@@ -136,7 +136,7 @@ const struct WindowTypesInfo {
    /* i18n-hint: Hann is a proper name */
    { Verbatim("Hann, none"),                     2 },
    /* i18n-hint: Hann is a proper name */
-   { Verbatim("Hann, Hann (default)"),           4 },
+   { Verbatim("Hann, Hann (default)"),           3 },
    /* i18n-hint: Hann and Blackman are proper names */
    { Verbatim("Blackman, Hann"),                 4 },
    /* i18n-hint: Hamming is a proper name */
@@ -169,7 +169,7 @@ class EffectNoiseReduction::Statistics
 public:
    Statistics(size_t spectrumSize, double rate, int windowTypes)
       : mRate{ rate }
-      , mWindowSize{ (spectrumSize - 1) * 2 }
+      , mFftSize{ (spectrumSize - 1) * 2 }
       , mWindowTypes{ windowTypes }
       , mTotalWindows{ 0 }
       , mTrackWindows{ 0 }
@@ -183,7 +183,7 @@ public:
    // Noise profile statistics follow
 
    double mRate; // Rate of profile track(s) -- processed tracks must match
-   size_t mWindowSize;
+   size_t mFftSize;
    int mWindowTypes;
 
    unsigned mTotalWindows;
@@ -215,7 +215,7 @@ public:
    bool Validate(EffectNoiseReduction *effect) const;
 
    size_t WindowSize() const { return 1u << (3 + mWindowSizeChoice); }
-   unsigned StepsPerWindow() const { return 1u << (1 + mStepsPerWindowChoice); }
+   unsigned StepsPerWindow() const { return 3u; }
 
    bool      mDoProfile;
 
@@ -635,7 +635,7 @@ bool EffectNoiseReduction::Process(EffectInstance &, EffectSettings &)
       mStatistics = std::make_unique<Statistics>
          (spectrumSize, track->GetRate(), mSettings->mWindowTypes);
    }
-   else if (mStatistics->mWindowSize != mSettings->WindowSize()) {
+   else if (mStatistics->mFftSize != mSettings->WindowSize()) {
       // possible only with advanced settings
       ::Effect::MessageBox(
          XO("You must specify the same window size for steps 1 and 2.") );
@@ -816,7 +816,7 @@ EffectNoiseReduction::Worker::Worker(eWindowFunctions inWindowType,
       // mBinLow is inclusive, mBinHigh is exclusive, of
       // the range of frequencies to affect.  Include any
       // bin that partly overlaps the selected range of frequencies.
-      const double bin = sampleRate / mWindowSize;
+      const double bin = sampleRate / mFftSize;
       if (f0 >= 0.0 )
          mBinLow = floor(f0 / bin);
       if (f1 >= 0.0)

@@ -17,27 +17,28 @@ Edward Hui
 SpectrumTransformer::SpectrumTransformer( bool needsOutput,
    eWindowFunctions inWindowType,
    eWindowFunctions outWindowType,
-   size_t windowSize, unsigned stepsPerWindow,
+   size_t fftSize, unsigned stepsPerWindow,
    bool leadingPadding, bool trailingPadding )
-: mWindowSize{ windowSize }
-, mSpectrumSize{ 1 + mWindowSize / 2 }
+: mFftSize{ fftSize }
+, mSmoothingWindowSize{ stepsPerWindow*(mFftSize/stepsPerWindow) }
+, mSpectrumSize{ 1 + mFftSize / 2 }
 , mStepsPerWindow{ stepsPerWindow }
-, mStepSize{ mWindowSize / mStepsPerWindow }
+, mStepSize{ mSmoothingWindowSize / mStepsPerWindow }
 , mLeadingPadding{ leadingPadding }
 , mTrailingPadding{ trailingPadding }
-, hFFT{ GetFFT(mWindowSize) }
-, mFFTBuffer( mWindowSize )
-, mInWaveBuffer( mWindowSize )
-, mOutOverlapBuffer( mWindowSize )
+, hFFT{ GetFFT(mFftSize) }
+, mFFTBuffer( mFftSize )
+, mInWaveBuffer( mSmoothingWindowSize )
+, mOutOverlapBuffer(mSmoothingWindowSize)
 , mNeedsOutput{ needsOutput }
 {
    // Check preconditions
 
    // Powers of 2 only!
-   wxASSERT(mWindowSize > 0 &&
-      0 == (mWindowSize & (mWindowSize - 1)));
+   wxASSERT(mFftSize > 0 &&
+      0 == (mFftSize & (mFftSize - 1)));
 
-   wxASSERT(mWindowSize % mStepsPerWindow == 0);
+   wxASSERT(mSmoothingWindowSize % mStepsPerWindow == 0);
 
    wxASSERT(!(inWindowType == eWinFuncRectangular && outWindowType == eWinFuncRectangular));
 
@@ -46,20 +47,23 @@ SpectrumTransformer::SpectrumTransformer( bool needsOutput,
 
    // Create windows as needed
    if (inWindowType != eWinFuncRectangular) {
-      mInWindow.resize(mWindowSize);
-      std::fill(mInWindow.begin(), mInWindow.end(), 1.0f);
-      NewWindowFunc(inWindowType, mWindowSize, false, mInWindow.data());
+      mInWindow.resize(mFftSize);
+      std::fill(mInWindow.begin(), mInWindow.begin() + mSmoothingWindowSize, 1.0f);
+      std::fill(mInWindow.begin() + mSmoothingWindowSize, mInWindow.end(), 0.f);
+      NewWindowFunc(inWindowType, mSmoothingWindowSize, false, mInWindow.data());
    }
    if (outWindowType != eWinFuncRectangular) {
-      mOutWindow.resize(mWindowSize);
-      std::fill(mOutWindow.begin(), mOutWindow.end(), 1.0f);
-      NewWindowFunc(outWindowType, mWindowSize, false, mOutWindow.data());
+      mOutWindow.resize(mFftSize);
+      std::fill(mOutWindow.begin(), mOutWindow.begin() + mSmoothingWindowSize, 1.0f);
+      std::fill(mOutWindow.begin() + mSmoothingWindowSize, mOutWindow.end(), 0.f);
+      NewWindowFunc(outWindowType, mSmoothingWindowSize, false, mOutWindow.data());
    }
 
    // Must scale one or the other window so overlap-add
    // comes out right
+   // Note (saintmatthieu): this probably could be done analytically.
    double denom = 0;
-   for (size_t ii = 0; ii < mWindowSize; ii += mStepSize) {
+   for (size_t ii = 0; ii < mSmoothingWindowSize; ii += mStepSize) {
       denom +=
          (mInWindow.empty() ? 1.0 : mInWindow[ii])
          *
@@ -80,7 +84,7 @@ SpectrumTransformer::SpectrumTransformer( bool needsOutput,
    else
       // Can only happen if both window types were rectangular
       wxASSERT(false);
-   for (size_t ii = 0; ii < mWindowSize; ++ii)
+   for (size_t ii = 0; ii < mSmoothingWindowSize; ++ii)
       *pWindow++ /= denom;
 }
 
@@ -121,9 +125,9 @@ bool SpectrumTransformer::Start(size_t queueLength)
    {
       float *pFill;
       pFill = mInWaveBuffer.data();
-      std::fill(pFill, pFill + mWindowSize, 0.0f);
+      std::fill(pFill, pFill + mFftSize, 0.0f);
       pFill = mOutOverlapBuffer.data();
-      std::fill(pFill, pFill + mWindowSize, 0.0f);
+      std::fill(pFill, pFill + mFftSize, 0.0f);
    }
 
    if (!mLeadingPadding)
@@ -137,7 +141,7 @@ bool SpectrumTransformer::Start(size_t queueLength)
       // So that the queue gets primed with some windows,
       // zero-padded in front, the first having mStepSize
       // samples of wave data:
-      mInWavePos = mWindowSize - mStepSize;
+      mInWavePos = mSmoothingWindowSize - mStepSize;
       // This starts negative, to count up until the queue fills:
       mOutStepCount = -static_cast<int>(queueLength - 1)
          // ... and then must pass over the padded windows,
@@ -158,7 +162,7 @@ bool SpectrumTransformer::ProcessSamples( const WindowProcessor &processor,
    bool success = true;
    while (success && len &&
           mOutStepCount * static_cast<int>(mStepSize) < mInSampleCount) {
-      auto avail = std::min(len, mWindowSize - mInWavePos);
+      auto avail = std::min(len, mSmoothingWindowSize - mInWavePos);
       if (buffer)
          memmove(&mInWaveBuffer[mInWavePos], buffer, avail * sizeof(float));
       else
@@ -168,7 +172,7 @@ bool SpectrumTransformer::ProcessSamples( const WindowProcessor &processor,
       len -= avail;
       mInWavePos += avail;
 
-      if (mInWavePos == mWindowSize) {
+      if (mInWavePos == mSmoothingWindowSize) {
          FillFirstWindow();
 
          // invoke derived method
@@ -180,7 +184,7 @@ bool SpectrumTransformer::ProcessSamples( const WindowProcessor &processor,
 
          // Shift input.
          memmove(mInWaveBuffer.data(), &mInWaveBuffer[mStepSize],
-            (mWindowSize - mStepSize) * sizeof(float));
+            (mSmoothingWindowSize - mStepSize) * sizeof(float));
          mInWavePos -= mStepSize;
       }
    }
@@ -195,7 +199,7 @@ void SpectrumTransformer::ResizeQueue(size_t queueLength)
    for (size_t ii = oldLen; ii < queueLength; ++ii)
       // invoke derived method to get a queue element
       // with appropriate extra fields
-      mQueue[ii] = NewWindow(mWindowSize);
+      mQueue[ii] = NewWindow(mFftSize);
 }
 
 void SpectrumTransformer::FillFirstWindow()
@@ -205,11 +209,11 @@ void SpectrumTransformer::FillFirstWindow()
       auto pFFTBuffer = mFFTBuffer.data(), pInWaveBuffer = mInWaveBuffer.data();
       if (mInWindow.size() > 0) {
          auto pInWindow = mInWindow.data();
-         for (size_t ii = 0; ii < mWindowSize; ++ii)
+         for (size_t ii = 0; ii < mFftSize; ++ii)
             *pFFTBuffer++ = *pInWaveBuffer++ * *pInWindow++;
       }
       else
-         memmove(pFFTBuffer, pInWaveBuffer, mWindowSize * sizeof(float));
+         memmove(pFFTBuffer, pInWaveBuffer, mFftSize * sizeof(float));
    }
    RealFFTf(mFFTBuffer.data(), hFFT.get());
 
@@ -325,8 +329,8 @@ void SpectrumTransformer::OutputStep()
          DoOutput(buffer, mStepSize);
       }
       // Shift the remainder over.
-      memmove(buffer, buffer + mStepSize, sizeof(float)*(mWindowSize - mStepSize));
-      std::fill(buffer + mWindowSize - mStepSize, buffer + mWindowSize, 0.0f);
+      memmove(buffer, buffer + mStepSize, sizeof(float)*(mFftSize - mStepSize));
+      std::fill(buffer + mFftSize - mStepSize, buffer + mFftSize, 0.0f);
    }
 }
 

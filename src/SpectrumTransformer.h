@@ -44,15 +44,14 @@ public:
 
    /*!
     @pre `!(inWindowType == eWinFuncRectangular && outWindowType eWinFuncRectangular)`
-    @pre `windowSize % stepsPerWindow == 0`
-    @pre `windowSize` is a power of 2
+    @pre `fftSize` is a power of 2
     */
    SpectrumTransformer(
       bool needsOutput, //!< Whether to do the inverse FFT
       eWindowFunctions inWindowType, //!< Used in FFT transform
       eWindowFunctions outWindowType, //!< Used in inverse FFT transform
-      size_t windowSize,     //!< must be a power of 2
-      unsigned stepsPerWindow, //!< determines the overlap
+      size_t fftSize,     //!< must be a power of 2
+      unsigned stepsPerWindow, //!< determines the overlap and the amount of zero-padding
       bool leadingPadding, /*!<
          Whether to start the queue with windows that partially overlap
          the first full window of input samples */
@@ -149,7 +148,8 @@ private:
    void OutputStep();
 
 protected:
-   const size_t mWindowSize;
+   const size_t mFftSize;
+   const size_t mSmoothingWindowSize;
    const size_t mSpectrumSize;
 
    const unsigned mStepsPerWindow;
@@ -166,11 +166,11 @@ private:
    sampleCount mOutStepCount = 0; //!< sometimes negative
    size_t mInWavePos = 0;
 
-   //! These have size mWindowSize:
+   //! These have size mFftSize:
    FloatVector mFFTBuffer;
    FloatVector mInWaveBuffer;
    FloatVector mOutOverlapBuffer;
-   //! These have size mWindowSize, or 0 for rectangular window:
+   //! These have size mFftSize, or 0 for rectangular window:
    FloatVector mInWindow;
    FloatVector mOutWindow;
 
