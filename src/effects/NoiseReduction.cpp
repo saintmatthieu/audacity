@@ -57,6 +57,7 @@
 #include <algorithm>
 #include <vector>
 #include <math.h>
+#include <fstream>
 
 #if defined(__WXMSW__) && !defined(__CYGWIN__)
 #include <float.h>
@@ -215,7 +216,16 @@ public:
    bool Validate(EffectNoiseReduction *effect) const;
 
    size_t WindowSize() const { return 1u << (3 + mWindowSizeChoice); }
-   unsigned StepsPerWindow() const { return 3u; }
+   unsigned StepsPerWindow() const { 
+      std::ifstream windowSizeFile{"./windowSize.txt"};
+      if (windowSizeFile.good()) {
+         auto val = 0;
+         windowSizeFile >> val;
+         return val;
+      } else {
+         return 1u << (1 + mStepsPerWindowChoice);
+      }
+   }
 
    bool      mDoProfile;
 
@@ -586,12 +596,13 @@ bool EffectNoiseReduction::Settings::PrefsIO(bool read)
 
 bool EffectNoiseReduction::Settings::Validate(EffectNoiseReduction *effect) const
 {
+   /*
    if (StepsPerWindow() < windowTypesInfo[mWindowTypes].minSteps) {
       effect->Effect::MessageBox(
          XO("Steps per block are too few for the window types.") );
       return false;
    }
-
+   */
    if (StepsPerWindow() > WindowSize()) {
       effect->Effect::MessageBox(
          XO("Steps per block cannot exceed the window size.") );
