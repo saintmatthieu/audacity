@@ -154,6 +154,18 @@ size_t WaveClip::GetAppendBufferLen() const
    return GetSequence()->GetAppendBufferLen();
 }
 
+double WaveClip::getTimeStretchRatio() const
+{
+   try
+   {
+      return std::stod(std::string(mName.mb_str()));
+   }
+   catch (...)
+   {
+      return 1.0;
+   }
+}
+
 constSamplePtr WaveClip::GetAppendBuffer() const
 {
    return GetSequence()->GetAppendBuffer();
