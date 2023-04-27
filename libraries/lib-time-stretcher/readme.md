@@ -3,6 +3,7 @@ sequenceDiagram
     actor User
     participant MainThread
     participant AudioThread
+    participant SampleHandle
     participant ProjectAudioManager
     participant AudioIO
     participant PlaybackPolicy
@@ -41,10 +42,16 @@ sequenceDiagram
     SampleTrackCache ->> WaveTrack:GetBestBlockSize(start0)
     Note over WaveTrack:if start0 is within clip,<br/>remaining samples till clip end,<br/>otherwise 2^18
     WaveTrack -->> SampleTrackCache:len0
-    SampleTrackCache->>WaveTrack:GetFloat(start0,len0)
-    WaveTrack->>WaveTrack:Get(start0,len0)
+    SampleTrackCache->>WaveTrack:GetFloats(start0, len0)
+    WaveTrack->>WaveTrack:Get(start0, len0)
     WaveTrack-->>SampleTrackCache:true/false
     Note over SampleTrackCache:...and so on.
     SampleTrackCache-->>AudioThread: 
     AudioThread--)AudioIO:done
+
+    User -->> MainThread:draw sample
+    MainThread ->> SampleHandle:Click(event)
+    SampleHandle ->> WaveTrack:TimeToLongSamples(event.x)
+    WaveTrack -->> SampleHandle:start = event.x*SR
+    SampleHandle ->> WaveTrack:Set(start, 1, y)
 ```
