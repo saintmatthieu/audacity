@@ -8,17 +8,15 @@ sequenceDiagram
     participant PlaybackPolicy
     participant MixerSource
     participant SampleTrackCache
-    participant SampleTrack
     participant WaveTrack
     participant WaveClip
 
     User -->> MainThread:Reposition Cursor
     MainThread ->>MixerSource:Reposition(time)
-    Note over MixerSource, SampleTrack: Done for each SampleTrack<br/>because of possible<br/>sample rate discrepancies
-    MixerSource ->> SampleTrack:TimeToLongSamples(time)
-    Note over SampleTrack:Time-warp to sample pos
-    Note over SampleTrack:how to warp this ?
-    SampleTrack -->> MixerSource:start
+    Note over MixerSource, WaveTrack: Done for each WaveTrack<br/>because of possible<br/>sample rate discrepancies
+    MixerSource ->> WaveTrack:TimeToLongSamples(time)
+    Note over WaveTrack:Time-warp to sample pos
+    WaveTrack -->> MixerSource:start
 
     User -->> MainThread:Play
     MainThread->>ProjectAudioManager:PlayPlayRegion()
@@ -43,8 +41,8 @@ sequenceDiagram
     SampleTrackCache ->> WaveTrack:GetBestBlockSize(start0)
     Note over WaveTrack:if start0 is within clip,<br/>remaining samples till clip end,<br/>otherwise 2^18
     WaveTrack -->> SampleTrackCache:len0
-    SampleTrackCache->>SampleTrack:GetFloat(start0,len0)
-    SampleTrack->>WaveTrack:Get(start0,len0)
+    SampleTrackCache->>WaveTrack:GetFloat(start0,len0)
+    WaveTrack->>WaveTrack:Get(start0,len0)
     WaveTrack-->>SampleTrackCache:true/false
     Note over SampleTrackCache:...and so on.
     SampleTrackCache-->>AudioThread: 
