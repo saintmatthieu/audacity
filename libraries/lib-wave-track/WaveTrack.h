@@ -145,8 +145,8 @@ private:
    int GetWaveColorIndex() const { return mWaveColorIndex; };
    void SetWaveColorIndex(int colorIndex);
 
-   sampleCount GetPlaySamplesCount() const;
-   sampleCount GetSequenceSamplesCount() const;
+   sampleCount GetPlaySamplesCount() const; // not sure
+   sampleCount GetSequenceSamplesCount() const; // used in WaveTrackControls for progress update -> absolute
 
    sampleFormat GetSampleFormat() const override { return mFormat; }
 
@@ -250,7 +250,7 @@ private:
       // Report how many samples were copied from within clips, rather than
       // filled according to fillFormat; but these were not necessarily one
       // contiguous range.
-      sampleCount * pNumWithinClips = nullptr) const override;
+      sampleCount * pNumWithinClips = nullptr) const override; // not sure
    void Set(constSamplePtr buffer, sampleFormat format,
       sampleCount start, size_t len,
       sampleFormat effectiveFormat = widestSampleFormat /*!<

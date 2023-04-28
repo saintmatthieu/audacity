@@ -149,24 +149,24 @@ public:
    void SetColourIndex( int index ){ mColourIndex = index;};
    int GetColourIndex( ) const { return mColourIndex;};
    
-   double GetSequenceStartTime() const noexcept;
+   double GetSequenceStartTime() const noexcept; // double - always absolute
    void SetSequenceStartTime(double startTime);
-   double GetSequenceEndTime() const;
+   double GetSequenceEndTime() const; // absolute, but time-domain - doesn't make a difference.
    //! Returns the index of the first sample of the underlying sequence
-   sampleCount GetSequenceStartSample() const;
+   sampleCount GetSequenceStartSample() const;  // absolute
    //! Returns the index of the sample next after the last sample of the underlying sequence
-   sampleCount GetSequenceEndSample() const;
+   sampleCount GetSequenceEndSample() const;  // not used
    //! Returns the total number of samples in underlying sequence (not counting the cutlines)
-   sampleCount GetSequenceSamplesCount() const;
+   sampleCount GetSequenceSamplesCount() const; // absolute
 
    double GetPlayStartTime() const noexcept;
    void SetPlayStartTime(double time);
 
    double GetPlayEndTime() const;
 
-   sampleCount GetPlayStartSample() const;
-   sampleCount GetPlayEndSample() const;
-   sampleCount GetPlaySamplesCount() const;
+   sampleCount GetPlayStartSample() const; // absolute
+   sampleCount GetPlayEndSample() const; // absolute
+   sampleCount GetPlaySamplesCount() const; // not sure ... may depend on the use.
 
    //! Sets the play start offset in seconds from the beginning of the underlying sequence
    void SetTrimLeft(double trim);
@@ -202,7 +202,7 @@ public:
    //! rounded to the nearest clip sample boundary, i.e. relative to clips
    //! start time offset.
    //! @returns Number of samples within t0 and t1 if t1 > t0, 0 otherwise
-   sampleCount CountSamples(double t0, double t1) const;
+   sampleCount CountSamples(double t0, double t1) const; // unsure - not necessary anyways.
 
    bool GetSamples(samplePtr buffer, sampleFormat format,
                    sampleCount start, size_t len, bool mayThrow = true) const;
