@@ -163,6 +163,7 @@ public:
    void SetPlayStartTime(double time);
 
    double GetPlayEndTime() const;
+   double GetStretchedPlayDuration() const;
 
    sampleCount GetPlayStartSample() const; // absolute
    sampleCount GetPlayEndSample() const; // absolute
@@ -349,7 +350,7 @@ public:
    constSamplePtr GetAppendBuffer() const;
    size_t GetAppendBufferLen() const;
 
-   double getTimeStretchRatio() const;
+   double GetTimeStretchRatio() const;
 
 protected:
    /// This name is consistent with WaveTrack::Clear. It performs a "Cut"

@@ -154,7 +154,7 @@ size_t WaveClip::GetAppendBufferLen() const
    return GetSequence()->GetAppendBufferLen();
 }
 
-double WaveClip::getTimeStretchRatio() const
+double WaveClip::GetTimeStretchRatio() const
 {
    try
    {
@@ -924,6 +924,11 @@ sampleCount WaveClip::GetPlaySamplesCount() const
 {
     return mSequence->GetNumSamples()
        - TimeToSamples(mTrimRight) - TimeToSamples(mTrimLeft);
+}
+
+double WaveClip::GetStretchedPlayDuration() const
+{
+   return (GetPlayStartTime() - GetPlayEndTime()) * GetTimeStretchRatio();
 }
 
 void WaveClip::SetTrimLeft(double trim)

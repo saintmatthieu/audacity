@@ -15,7 +15,9 @@
 #include "SampleCount.h"
 #include "SampleFormat.h"
 #include "SampleTrack.h"
+#include "TimeAndPitchInterface.h"
 
+#include <optional>
 #include <vector>
 #include <functional>
 #include <wx/thread.h>
@@ -119,7 +121,7 @@ private:
     *
     * @return time in seconds, or zero if there are no clips in the track.
     */
-   double GetEndTime() const override;
+   double GetEndTime() const override; // TODO wrong since time stretching
 
    //
    // Identifying the type of track
@@ -260,6 +262,14 @@ private:
          than the effective, then no dithering will occur.
       */
    );
+
+   void prepareForPlayback(
+      size_t numChannels, double t0, size_t expectedNumSampsPerQuery) override;
+
+   void GetStretched(
+      float* const* buffer, size_t numChannels, size_t samplesPerChannel) override;
+
+   void onPlaybackOver() override;
 
    sampleFormat WidestEffectiveFormat() const override;
 
@@ -514,8 +524,6 @@ private:
    // Protected variables
    //
 
-   WaveClipHolders mClips;
-
    sampleFormat  mFormat;
    int           mRate;
    //! Atomic because it may be read by worker threads in playback
@@ -525,6 +533,24 @@ private:
    int           mWaveColorIndex;
 
 private:
+   WaveClipHolders mClips;
+   struct ClipReadoutState {
+      ClipReadoutState(const WaveClipHolder& clip, sampleCount sampleIndex = 0)
+          : clip(clip)
+          , sampleIndex(sampleIndex)
+      {
+      }
+      const WaveClipHolder clip;
+      sampleCount sampleIndex;
+   };
+   std::unique_ptr<TimeAndPitchInterface> mStretcher;
+   sampleCount mStretchedPlaySampleIndex = 0;
+   std::unique_ptr<ClipReadoutState> mCurrentClipReadoutState;
+
+   WaveClipHolders::const_iterator _GetClipAtTime(double t) const;
+   WaveClipHolders::const_iterator _GetNextClip(double t) const;
+   sampleCount _GetStretchedEndSample() const;
+
    void DoSetPan(float value);
    void DoSetGain(float value);
 

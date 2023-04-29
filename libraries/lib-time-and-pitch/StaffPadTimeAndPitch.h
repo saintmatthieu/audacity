@@ -5,9 +5,10 @@
 class StaffPadTimeAndPitch final : public TimeAndPitchInterface
 {
 public:
-   StaffPadTimeAndPitch();
+   StaffPadTimeAndPitch(size_t numChannels, InputGetter);
    bool GetSamples(float* const*, size_t) override;
 
 private:
    staffpad::TimeAndPitch mStretcher;
+   const InputGetter mInputGetter;
 };

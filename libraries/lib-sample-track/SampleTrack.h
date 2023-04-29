@@ -83,6 +83,7 @@ public:
       fillFormat fill = fillZero, bool mayThrow = true,
       sampleCount * pNumWithinClips = nullptr) const
    {
+      // GetStretched(&buffer, 1u, len, )
       //! Cast the pointer to pass it to Get() which handles multiple destination formats
       return Get(reinterpret_cast<samplePtr>(buffer),
          floatSample, start, len, fill, mayThrow, pNumWithinClips);
@@ -101,6 +102,16 @@ public:
       // filled according to fillFormat; but these were not necessarily one
       // contiguous range.
       sampleCount * pNumWithinClips = nullptr) const = 0;
+
+   virtual void prepareForPlayback(
+      size_t numChannels, double t0, size_t expectedNumSampsPerQuery = 0u) {};
+
+   virtual void GetStretched(
+      float* const* buffer, size_t numChannels, size_t samplesPerChannel)
+   {
+   }
+
+   virtual void onPlaybackOver() {};
 
    /** @brief Convert correctly between an (absolute) time in seconds and a number of samples.
     *

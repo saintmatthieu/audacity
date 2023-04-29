@@ -3,6 +3,7 @@ set( SOURCES
    StaffPad/FourierTransform_pffft.cpp
    StaffPad/TimeAndPitch.cpp
    StaffPadTimeAndPitch.cpp
+   TimeAndPitchInterface.cpp
    TimeAndPitchInterface.h
 )
 set( LIBRARIES
