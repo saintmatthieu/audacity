@@ -93,6 +93,10 @@ Track::LinkType ToLinkType(int value)
 
 }
 
+WaveTrackTimeStretcherBase::~WaveTrackTimeStretcherBase()
+{
+}
+
 static auto DefaultName = XO("Audio");
 
 wxString WaveTrack::GetDefaultAudioTrackNamePreference()
@@ -1954,84 +1958,86 @@ WaveClipHolders::const_iterator WaveTrack::_GetClipAtTime(double t) const
 void WaveTrack::OnAudioThreadAboutToStart(
    size_t numChannels, double t0, size_t expectedNumSampsPerQuery)
 {
-   mStretchedPlaySampleIndex = static_cast<sampleCount>(t0 * mRate + 0.5);
-   const auto intersectedClipIt = _GetClipAtTime(t0);
-   if (intersectedClipIt != mClips.end())
-   {
-      const auto& clip = *intersectedClipIt;
-      const auto r = clip->GetTimeStretchRatio();
-      const auto sampleOffset = static_cast<sampleCount>(
-         (t0 - clip->GetPlayStartTime()) * r * mRate + 0.5);
-      mCurrentClipReadoutState = std::make_unique<ClipReadoutState>(clip, sampleOffset);
-   }
+   // mStretchedPlaySampleIndex = static_cast<sampleCount>(t0 * mRate + 0.5);
+   // const auto intersectedClipIt = _GetClipAtTime(t0);
+   // if (intersectedClipIt != mClips.end())
+   // {
+   //    const auto& clip = *intersectedClipIt;
+   //    const auto r = clip->GetTimeStretchRatio();
+   //    const auto sampleOffset = static_cast<sampleCount>(
+   //       (t0 - clip->GetPlayStartTime()) * r * mRate + 0.5);
+   //    mCurrentClipReadoutState = std::make_unique<ClipReadoutState>(clip, sampleOffset);
+   // }
 
-   TimeAndPitchInterface::InputGetter inputGetter =
-      [this, numChannels](float* const* buffers, size_t samplesPerChannel) {
-         auto remaining = static_cast<sampleCount>(samplesPerChannel);
-         while (remaining > 0)
-         {
-            if (!mCurrentClipReadoutState)
-            {
-               const auto nextClipIt = _GetNextClip(
-                  mStretchedPlaySampleIndex.as_double() / static_cast<double>(mRate));
-               const auto nextClipBeginSample =
-                  nextClipIt == mClips.end() ?
-                     _GetStretchedEndSample() :
-                     (*nextClipIt)->GetPlayStartSample();
-               const sampleCount numSamplesToFill =
-                  std::min(nextClipBeginSample - mStretchedPlaySampleIndex, remaining);
-               for (auto i = 0u; i < numChannels; ++i)
-               {
-                  std::fill(buffers[i], buffers[i] + numSamplesToFill.as_size_t(), 0.f);
-               }
-               if (nextClipIt != mClips.end())
-               {
-                  mCurrentClipReadoutState =
-                     std::make_unique<ClipReadoutState>(*nextClipIt, 0);
-               }
-               remaining -= numSamplesToFill;
-            } else {
-               const auto& [clip, sampleIndex] = *mCurrentClipReadoutState;
-               const auto bestBlockSize = static_cast<sampleCount>(
-                  clip->GetSequence()->GetBestBlockSize(sampleIndex));
-               const auto remainingSamplesInClip =
-                  clip->GetPlaySamplesCount() - sampleIndex;
-               const auto numSamplesToRead = std::min(
-                  { bestBlockSize, remainingSamplesInClip, remaining }).as_size_t();
-               for (auto i = 0u; i < numChannels;++i){
-                  constexpr auto mayThrow = false;
-                  const auto success = clip->GetSamples(
-                     reinterpret_cast<char*>(buffers[i]), floatSample,
-                     sampleIndex, numSamplesToRead, mayThrow);
-                  assert(success);
-                  if (!success) {
-                     std::fill(buffers[i], buffers[i] + numSamplesToRead, 0.f);
-                  }
-               }
-               remaining -= numSamplesToRead;
-            }
-         }
-      };
+   // TimeAndPitchInterface::InputGetter inputGetter =
+   //    [this, numChannels](float* const* buffers, size_t samplesPerChannel) {
+   //       auto remaining = static_cast<sampleCount>(samplesPerChannel);
+   //       while (remaining > 0)
+   //       {
+   //          if (!mCurrentClipReadoutState)
+   //          {
+   //             const auto nextClipIt = _GetNextClip(
+   //                mStretchedPlaySampleIndex.as_double() / static_cast<double>(mRate));
+   //             const auto nextClipBeginSample =
+   //                nextClipIt == mClips.end() ?
+   //                   _GetStretchedEndSample() :
+   //                   (*nextClipIt)->GetPlayStartSample();
+   //             const sampleCount numSamplesToFill =
+   //                std::min(nextClipBeginSample - mStretchedPlaySampleIndex, remaining);
+   //             for (auto i = 0u; i < numChannels; ++i)
+   //             {
+   //                std::fill(buffers[i], buffers[i] + numSamplesToFill.as_size_t(), 0.f);
+   //             }
+   //             if (nextClipIt != mClips.end())
+   //             {
+   //                mCurrentClipReadoutState =
+   //                   std::make_unique<ClipReadoutState>(*nextClipIt, 0);
+   //             }
+   //             remaining -= numSamplesToFill;
+   //          } else {
+   //             const auto& [clip, sampleIndex] = *mCurrentClipReadoutState;
+   //             const auto bestBlockSize = static_cast<sampleCount>(
+   //                clip->GetSequence()->GetBestBlockSize(sampleIndex));
+   //             const auto remainingSamplesInClip =
+   //                clip->GetPlaySamplesCount() - sampleIndex;
+   //             const auto numSamplesToRead = std::min(
+   //                { bestBlockSize, remainingSamplesInClip, remaining }).as_size_t();
+   //             for (auto i = 0u; i < numChannels;++i){
+   //                constexpr auto mayThrow = false;
+   //                const auto success = clip->GetSamples(
+   //                   reinterpret_cast<char*>(buffers[i]), floatSample,
+   //                   sampleIndex, numSamplesToRead, mayThrow);
+   //                assert(success);
+   //                if (!success) {
+   //                   std::fill(buffers[i], buffers[i] + numSamplesToRead, 0.f);
+   //                }
+   //             }
+   //             remaining -= numSamplesToRead;
+   //          }
+   //       }
+   //    };
 
-   mStretcher = TimeAndPitchInterface::createInstance(
-      numChannels, std::move(inputGetter));
+   // mStretcher = TimeAndPitchInterface::createInstance(
+   //    numChannels, std::move(inputGetter));
 }
 
 void WaveTrack::GetStretched(
-   float* const* buffer, size_t numChannels, size_t samplesPerChannel)
+   float* const* buffer, size_t numChannels, size_t samplesPerChannel,
+   SampleTrackPlayoutState& state) const
 {
-   assert(mStretcher);
-   if (!mStretcher)
-   {
-      // TODO: something better - at least set buffer to zeros.
-      return;
-   }
-   mStretcher->GetSamples(buffer, samplesPerChannel);
+   
+   // assert(mStretcher);
+   // if (!mStretcher)
+   // {
+   //    // TODO: something better - at least set buffer to zeros.
+   //    return;
+   // }
+   // mStretcher->GetSamples(buffer, samplesPerChannel);
 }
 
 void WaveTrack::OnAudioThreadStopped()
 {
-   mStretcher.reset();
+   // mStretcher.reset();
 }
 
 bool WaveTrack::Get(samplePtr buffer, sampleFormat format,

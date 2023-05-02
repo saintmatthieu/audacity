@@ -5,9 +5,12 @@ set( SOURCES
    StaffPadTimeAndPitch.cpp
    TimeAndPitchInterface.cpp
    TimeAndPitchInterface.h
+   WaveTrackTimeStretcher.cpp
+   WaveTrackTimeStretcher.h
 )
 set( LIBRARIES
+   lib-wave-track-interface
 )
-audacity_library( lib-time-and-pitch "${SOURCES}" ""
+audacity_library( lib-time-and-pitch "${SOURCES}" "${LIBRARIES}"
    "" ""
 )

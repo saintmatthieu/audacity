@@ -15,7 +15,6 @@
 #include "SampleCount.h"
 #include "SampleFormat.h"
 #include "SampleTrack.h"
-#include "TimeAndPitchInterface.h"
 
 #include <optional>
 #include <vector>
@@ -49,9 +48,20 @@ using WaveClipConstPointers = std::vector < const WaveClip* >;
 
 class Envelope;
 
-class WAVE_TRACK_API WaveTrack final : public WritableSampleTrack
+struct WAVE_TRACK_API WaveTrackTimeStretcherBase
+{
+   virtual ~WaveTrackTimeStretcherBase() = 0;
+   virtual void GetFloats(float* const* buffers, size_t samplesPerChannel) = 0;
+};
+
+class WAVE_TRACK_API WaveTrack final :
+    public WritableSampleTrack,
+    public ClientData::Site<WaveTrack, WaveTrackTimeStretcherBase>
 {
 public:
+   using AttachedObjects =
+      ClientData::Site<WaveTrack, WaveTrackTimeStretcherBase>;
+
    /// \brief Structure to hold region of a wavetrack and a comparison function
    /// for sortability.
    struct Region
@@ -267,7 +277,8 @@ private:
       size_t numChannels, double t0, size_t expectedNumSampsPerQuery) override;
 
    void GetStretched(
-      float* const* buffer, size_t numChannels, size_t samplesPerChannel) override;
+      float* const* buffer, size_t numChannels, size_t samplesPerChannel,
+      SampleTrackPlayoutState&) const override;
 
    void OnAudioThreadStopped() override;
 
@@ -534,18 +545,6 @@ private:
 
 private:
    WaveClipHolders mClips;
-   struct ClipReadoutState {
-      ClipReadoutState(const WaveClipHolder& clip, sampleCount sampleIndex = 0)
-          : clip(clip)
-          , sampleIndex(sampleIndex)
-      {
-      }
-      const WaveClipHolder clip;
-      sampleCount sampleIndex;
-   };
-   std::unique_ptr<TimeAndPitchInterface> mStretcher;
-   sampleCount mStretchedPlaySampleIndex = 0;
-   std::unique_ptr<ClipReadoutState> mCurrentClipReadoutState;
 
    WaveClipHolders::const_iterator _GetClipAtTime(double t) const;
    WaveClipHolders::const_iterator _GetNextClip(double t) const;
