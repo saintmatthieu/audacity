@@ -141,7 +141,7 @@ public:
                        int subformat = 0) = 0;
 
 protected:
-   std::unique_ptr<Mixer> CreateMixer(const TrackList &tracks,
+   std::unique_ptr<Mixer> CreateMixer(TrackList &tracks,
          bool selectionOnly,
          double startTime, double stopTime,
          unsigned numOutChannels, size_t outBufferSize, bool outInterleaved,

@@ -57,7 +57,7 @@ void DoMixAndRender
 
    auto trackRange = tracks.Selected< WaveTrack >();
    WaveTrack::Holder uNewLeft, uNewRight;
-   ::MixAndRender(trackRange.Filter<const WaveTrack>(),
+   ::MixAndRender(trackRange.Filter<WaveTrack>(),
       Mixer::WarpOptions{ tracks },
       tracks.MakeUniqueTrackName(_("Mix")),
       &trackFactory, rate, defaultFormat, 0.0, 0.0, uNewLeft, uNewRight);

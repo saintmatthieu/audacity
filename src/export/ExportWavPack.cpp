@@ -291,7 +291,7 @@ ProgressResult ExportWavPack::Export(AudacityProject *project,
    }
    
    double rate = ProjectRate::Get( *project ).GetRate();
-   const auto &tracks = TrackList::Get( *project );
+   auto &tracks = TrackList::Get( *project );
 
    int quality = QualitySetting.Read();
    bool hybridMode = HybridModeSetting.Read();

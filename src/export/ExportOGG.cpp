@@ -168,7 +168,7 @@ ProgressResult ExportOGG::Export(AudacityProject *project,
                        int WXUNUSED(subformat))
 {
    double    rate    = ProjectRate::Get( *project ).GetRate();
-   const auto &tracks = TrackList::Get( *project );
+   auto &tracks = TrackList::Get( *project );
    double    quality = (gPrefs->Read(wxT("/FileFormats/OggExportQuality"), 50)/(float)100.0);
 
    wxLogNull logNo;            // temporarily disable wxWidgets error messages

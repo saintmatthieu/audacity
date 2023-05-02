@@ -45,7 +45,7 @@ using PlayableTrackConstArray =
 class Track;
 class SampleTrack;
 using SampleTrackArray = std::vector < std::shared_ptr < SampleTrack > >;
-using SampleTrackConstArray = std::vector < std::shared_ptr < const SampleTrack > >;
+using SampleTrackConstArray = std::vector < std::shared_ptr < SampleTrack > >;
 
 class WritableSampleTrack;
 using WritableSampleTrackArray =

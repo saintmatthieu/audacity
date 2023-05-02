@@ -1773,7 +1773,7 @@ ProgressResult ExportMP3::Export(AudacityProject *project,
 #ifndef DISABLE_DYNAMIC_LOADING_LAME
    wxWindow *parent = ProjectWindow::Find( project );
 #endif // DISABLE_DYNAMIC_LOADING_LAME
-   const auto &tracks = TrackList::Get( *project );
+   auto &tracks = TrackList::Get( *project );
    MP3Exporter exporter;
 
 #ifdef DISABLE_DYNAMIC_LOADING_LAME

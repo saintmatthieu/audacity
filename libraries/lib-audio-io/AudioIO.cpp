@@ -1237,11 +1237,10 @@ bool AudioIO::AllocateBuffers(
                      endTime = t1;
 
                   Mixer::Inputs mixTracks;
-                  const auto range =
-                     TrackList::Channels<const SampleTrack>(pTrack.get());
+                  const auto range = TrackList::Channels<SampleTrack>(pTrack.get());
                   for (auto channel : range)
                      mixTracks.push_back(
-                        channel->SharedPointer<const SampleTrack>());
+                        channel->SharedPointer<SampleTrack>());
                   mPlaybackMixers.emplace_back(std::make_unique<Mixer>(
                      move(mixTracks),
                      // Don't throw for read errors, just play silence:
@@ -2590,8 +2589,8 @@ bool AudioIoCallback::FillOutputBuffers(
 
    // ------ MEMORY ALLOCATION ----------------------
    // These are small structures.
-   const auto chans = (const SampleTrack **) alloca(
-      numPlaybackChannels * sizeof(const SampleTrack *));
+   const auto chans = (SampleTrack **) alloca(
+      numPlaybackChannels * sizeof(SampleTrack *));
    const auto oldgains = (OldChannelGains **) alloca(
       numPlaybackChannels * sizeof(OldChannelGains *));
    float **tempBufs = (float **) alloca(numPlaybackChannels * sizeof(float *));

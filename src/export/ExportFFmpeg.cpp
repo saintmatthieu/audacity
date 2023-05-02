@@ -1120,7 +1120,7 @@ ProgressResult ExportFFmpeg::Export(
       return ProgressResult::Cancelled;
    }
    mName = fName;
-   const auto &tracks = TrackList::Get( *project );
+   auto &tracks = TrackList::Get( *project );
    bool ret = true;
 
    if (mSubFormat >= FMT_LAST) {

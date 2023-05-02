@@ -242,7 +242,7 @@ ProgressResult ExportMP2::Export(AudacityProject *project,
    bool stereo = (channels == 2);
    long bitrate = gPrefs->Read(wxT("/FileFormats/MP2Bitrate"), 160);
    double rate = ProjectRate::Get(*project).GetRate();
-   const auto &tracks = TrackList::Get( *project );
+   auto &tracks = TrackList::Get( *project );
 
    wxLogNull logNo;             /* temporarily disable wxWidgets error messages */
 

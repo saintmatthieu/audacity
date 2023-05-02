@@ -30,7 +30,7 @@ public:
    {
    }
 
-   explicit SampleTrackCache(const std::shared_ptr<const SampleTrack> &pTrack)
+   explicit SampleTrackCache(const std::shared_ptr<SampleTrack> &pTrack)
       : mBufferSize(0)
       , mOverlapBuffer()
       , mNValidBuffers(0)
@@ -39,8 +39,8 @@ public:
    }
    ~SampleTrackCache();
 
-   const std::shared_ptr<const SampleTrack>& GetTrack() const { return mPTrack; }
-   void SetTrack(const std::shared_ptr<const SampleTrack> &pTrack);
+   const std::shared_ptr<SampleTrack>& GetTrack() const { return mPTrack; }
+   void SetTrack(const std::shared_ptr<SampleTrack> &pTrack);
 
    //! Retrieve samples as floats from the track or from the memory cache
    /*! Uses fillZero always
@@ -68,7 +68,7 @@ private:
       }
    };
 
-   std::shared_ptr<const SampleTrack> mPTrack;
+   std::shared_ptr<SampleTrack> mPTrack;
    size_t mBufferSize;
    Buffer mBuffers[2];
    GrowableSampleBuffer mOverlapBuffer;

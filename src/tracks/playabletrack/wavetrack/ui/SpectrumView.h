@@ -143,7 +143,7 @@ private:
       const wxRect &rect, unsigned iPass ) override;
 
    void DoDraw( TrackPanelDrawingContext &context,
-      const WaveTrack *track,
+      WaveTrack *track,
       const WaveClip* selectedClip,
       const wxRect & rect );
 
