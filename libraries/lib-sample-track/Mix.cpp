@@ -429,6 +429,20 @@ void Mixer::Reposition(double t, bool bSkipping)
       source.Reposition(mTime, bSkipping);
 }
 
+void Mixer::OnAudioThreadAboutToStart()
+{
+   for (auto& source : mSources)
+   {
+      source.OnAudioThreadAboutToStart();
+   }
+}
+
+void Mixer::OnAudioThreadStopped() {
+for(auto&source:mSources){
+      source.OnAudioThreadStopped();
+}
+}
+
 void Mixer::SetTimesAndSpeed(double t0, double t1, double speed, bool bSkipping)
 {
    wxASSERT(std::isfinite(speed));

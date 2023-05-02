@@ -1469,6 +1469,7 @@ void AudioIO::StopStream()
    // If there's no token, we were just monitoring, so we can
    // skip this next part...
    if (mStreamToken > 0) {
+      // TODO(mhodgkinson) understand this
       // In either of the above cases, we want to make sure that any
       // capture data that made it into the PortAudio callback makes it
       // to the target WaveTrack.  To do this, we ask the audio thread to
@@ -1752,7 +1753,7 @@ void AudioIO::AudioThread(std::atomic<bool> &finish)
       if( gAudioIO->mAudioThreadShouldCallTrackBufferExchangeOnce
          .load(std::memory_order_acquire) )
       {
-         gAudioIO->TrackBufferExchange();
+         gAudioIO->TrackBufferExchange(true);
          gAudioIO->mAudioThreadShouldCallTrackBufferExchangeOnce
             .store(false, std::memory_order_release);
 
@@ -1775,7 +1776,7 @@ void AudioIO::AudioThread(std::atomic<bool> &finish)
          // This is unlike the case with mAudioThreadShouldCallTrackBufferExchangeOnce where the
          // store really means that the one-time exchange was done.
 
-         gAudioIO->TrackBufferExchange();
+         gAudioIO->TrackBufferExchange(false);
       }
       else
       {
@@ -1844,8 +1845,14 @@ size_t AudioIO::GetCommonlyAvailCapture()
 // This method is the data gateway between the audio thread (which
 // communicates with the disk) and the PortAudio callback thread
 // (which communicates with the audio device).
-void AudioIO::TrackBufferExchange()
+void AudioIO::TrackBufferExchange(bool isFirstPlayoutCall)
 {
+   if (isFirstPlayoutCall) {
+      for (const auto& mixer : mPlaybackMixers)
+      {
+         mixer->OnAudioThreadAboutToStart();
+      }
+   }
    FillPlayBuffers();
    DrainRecordBuffers();
 }
@@ -1925,6 +1932,11 @@ void AudioIO::FillPlayBuffers()
 
       // Might increase because the reader consumed some
       nAvailable = GetCommonlyFreePlayback();
+   }
+
+   for (const auto& mixer : mPlaybackMixers)
+   {
+      mixer->OnAudioThreadStopped();
    }
 }
 

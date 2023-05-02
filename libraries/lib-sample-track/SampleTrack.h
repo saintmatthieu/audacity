@@ -103,7 +103,7 @@ public:
       // contiguous range.
       sampleCount * pNumWithinClips = nullptr) const = 0;
 
-   virtual void prepareForPlayback(
+   virtual void OnAudioThreadAboutToStart(
       size_t numChannels, double t0, size_t expectedNumSampsPerQuery = 0u) {};
 
    virtual void GetStretched(
@@ -111,7 +111,7 @@ public:
    {
    }
 
-   virtual void onPlaybackOver() {};
+   virtual void OnAudioThreadStopped() {};
 
    /** @brief Convert correctly between an (absolute) time in seconds and a number of samples.
     *

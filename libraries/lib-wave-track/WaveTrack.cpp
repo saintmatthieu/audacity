@@ -1951,7 +1951,7 @@ WaveClipHolders::const_iterator WaveTrack::_GetClipAtTime(double t) const
    return t < clipEndTime ? clipIt : mClips.end();
 }
 
-void WaveTrack::prepareForPlayback(
+void WaveTrack::OnAudioThreadAboutToStart(
    size_t numChannels, double t0, size_t expectedNumSampsPerQuery)
 {
    mStretchedPlaySampleIndex = static_cast<sampleCount>(t0 * mRate + 0.5);
@@ -2029,7 +2029,7 @@ void WaveTrack::GetStretched(
    mStretcher->GetSamples(buffer, samplesPerChannel);
 }
 
-void WaveTrack::onPlaybackOver()
+void WaveTrack::OnAudioThreadStopped()
 {
    mStretcher.reset();
 }

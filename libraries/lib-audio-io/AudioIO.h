@@ -615,7 +615,7 @@ private:
     include memory allocations and database operations.  RingBuffer objects mediate the transfer
     between threads, to overcome the mismatch of their batch sizes.
     */
-   void TrackBufferExchange();
+   void TrackBufferExchange(bool isFirstPlayoutCall);
 
    //! First part of TrackBufferExchange
    void FillPlayBuffers();

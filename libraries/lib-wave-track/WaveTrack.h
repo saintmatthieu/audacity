@@ -263,13 +263,13 @@ private:
       */
    );
 
-   void prepareForPlayback(
+   void OnAudioThreadAboutToStart(
       size_t numChannels, double t0, size_t expectedNumSampsPerQuery) override;
 
    void GetStretched(
       float* const* buffer, size_t numChannels, size_t samplesPerChannel) override;
 
-   void onPlaybackOver() override;
+   void OnAudioThreadStopped() override;
 
    sampleFormat WidestEffectiveFormat() const override;
 

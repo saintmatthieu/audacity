@@ -49,6 +49,11 @@ public:
    const SampleTrack *GetChannel(unsigned iChannel) const;
    const bool *MixerSpec(unsigned iChannel) const;
 
+   void OnAudioThreadAboutToStart(); // Must be called from the AudioThread
+   void
+   OnAudioThreadStopped(); // This really is an optimization, maybe not
+                           // worthwhile integrating. Would have to be called at
+                           // the right time from the AudioThread.
    bool AcceptsBuffers(const Buffers &buffers) const override;
    bool AcceptsBlockSize(size_t blockSize) const override;
    std::optional<size_t> Acquire(Buffers &data, size_t bound) override;

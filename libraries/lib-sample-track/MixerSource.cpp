@@ -332,6 +332,22 @@ bool MixerSource::AcceptsBuffers(const Buffers &buffers) const
    return AcceptsBlockSize(buffers.BufferSize());
 }
 
+void MixerSource::OnAudioThreadAboutToStart()
+{
+   for (auto& track : mInputTrack)
+   {
+      track.OnAudioThreadAboutToStart();
+   }
+}
+
+void MixerSource::OnAudioThreadStopped()
+{
+   for (auto& track : mInputTrack)
+   {
+      track.OnAudioThreadStopped();
+   }
+}
+
 bool MixerSource::AcceptsBlockSize(size_t blockSize) const
 {
    return blockSize <= mEnvValues.size();

@@ -89,3 +89,12 @@ sequenceDiagram
     WaveTrack -->> SampleHandle:start = event.x*SR
     SampleHandle ->> WaveTrack:Set(start, 1, y)
 ```
+
+# Threading Model
+```mermaid
+sequenceDiagram
+participant MainThread
+participant AudioIO
+MainThread ->> AudioIO:StartStream
+AudioIO->>AudioIO:mAudioThreadShouldCallTrackBufferExchangeOnce = true
+```
