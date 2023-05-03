@@ -266,9 +266,9 @@ private:
 
    void Reposition(double t);
 
-   void GetStretched(
-      float* const* buffer, size_t numChannels, size_t samplesPerChannel,
-      void* state) override;
+   bool GetStretched(
+      float* const* buffer, size_t numChannels,
+      size_t samplesPerChannel) const override;
 
    sampleFormat WidestEffectiveFormat() const override;
 

@@ -48,7 +48,16 @@ public:
    */
    const float *GetFloats(sampleCount start, size_t len, bool mayThrow);
 
+   const float* GetFloatsStretched(sampleCount start, size_t len, bool mayThrow);
+
 private:
+   using SampleTrackGetFloats = std::function<bool(
+      float* buffer, sampleCount start, size_t len, fillFormat fill,
+      bool mayThrow, sampleCount* pNumWithinClips)>;
+   const float* _GetFloats(
+      sampleCount start, size_t len, bool mayThrow,
+      SampleTrackGetFloats);
+
    void Free();
 
    struct Buffer {

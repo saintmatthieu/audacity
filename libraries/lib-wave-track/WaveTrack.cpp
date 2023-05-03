@@ -1959,7 +1959,9 @@ void WaveTrack::Reposition(double t)
       [](double t, const WaveClipHolder& clip) {
          return t < clip->GetPlayStartTime() + clip->GetStretchedPlayDuration();
       });
-   for(const auto& clip : mClips){
+   for (auto it = leftMostClipIt; it != mClips.end(); ++it)
+   {
+      const auto& clip = *it;
       const auto clipStartTime = clip->GetPlayStartTime();
       if (clipStartTime > t)
       {
@@ -2043,8 +2045,8 @@ GetOffsetBuffer(float* const* buffer, size_t numChannels, size_t offset)
 }
 }
 
-void WaveTrack::GetStretched(
-   float* const* buffer, size_t numChannels, size_t samplesPerChannel, void* s)
+bool WaveTrack::GetStretched(
+   float* const* buffer, size_t numChannels, size_t samplesPerChannel) const
 {
    auto numProcessedSamples = 0u;
    while (numProcessedSamples < samplesPerChannel &&
@@ -2059,6 +2061,9 @@ void WaveTrack::GetStretched(
          samplesPerChannel - numProcessedSamples);
       ++mActiveAudioSegmentIt;
    }
+   if (numProcessedSamples == 0u) {
+      return false;
+   }
    const auto remaining = samplesPerChannel - numProcessedSamples;
    if (remaining > 0u)
    {
@@ -2068,6 +2073,7 @@ void WaveTrack::GetStretched(
          std::fill(offsetBuffer[i], offsetBuffer[i] + remaining, 0.f);
       }
    }
+   return true;
 }
 
 bool WaveTrack::Get(samplePtr buffer, sampleFormat format,

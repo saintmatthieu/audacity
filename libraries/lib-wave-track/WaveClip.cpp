@@ -936,7 +936,7 @@ sampleCount WaveClip::GetPlaySamplesCount() const
 
 double WaveClip::GetStretchedPlayDuration() const
 {
-   return (GetPlayStartTime() - GetPlayEndTime()) * GetTimeStretchRatio();
+   return (GetPlayEndTime() - GetPlayStartTime()) * GetTimeStretchRatio();
 }
 
 void WaveClip::SetTrimLeft(double trim)

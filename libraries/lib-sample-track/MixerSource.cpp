@@ -124,7 +124,7 @@ size_t MixerSource::MixVariableRates(
          if (getLen > 0) {
             if (backwards) {
                auto results =
-                  cache.GetFloats(*pos - (getLen - 1), getLen, mMayThrow);
+                  cache.GetFloatsStretched(*pos - (getLen - 1), getLen, mMayThrow);
                if (results)
                   memcpy(&queue[*queueLen], results, sizeof(float) * getLen);
                else
@@ -135,7 +135,7 @@ size_t MixerSource::MixVariableRates(
                *pos -= getLen;
             }
             else {
-               auto results = cache.GetFloats(*pos, getLen, mMayThrow);
+               auto results = cache.GetFloatsStretched(*pos, getLen, mMayThrow);
                if (results)
                   memcpy(&queue[*queueLen], results, sizeof(float) * getLen);
                else
@@ -243,7 +243,7 @@ size_t MixerSource::MixSameRate(unsigned iChannel, const size_t maxOut,
    );
 
    if (backwards) {
-      auto results = cache.GetFloats(*pos - (slen - 1), slen, mMayThrow);
+      auto results = cache.GetFloatsStretched(*pos - (slen - 1), slen, mMayThrow);
       if (results)
          memcpy(pFloat, results, sizeof(float) * slen);
       else
@@ -256,7 +256,7 @@ size_t MixerSource::MixSameRate(unsigned iChannel, const size_t maxOut,
       *pos -= slen;
    }
    else {
-      auto results = cache.GetFloats(*pos, slen, mMayThrow);
+      auto results = cache.GetFloatsStretched(*pos, slen, mMayThrow);
       if (results)
          memcpy(pFloat, results, sizeof(float) * slen);
       else

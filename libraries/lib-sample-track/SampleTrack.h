@@ -89,6 +89,12 @@ public:
          floatSample, start, len, fill, mayThrow, pNumWithinClips);
    }
 
+   bool GetFloatsStretched(
+      float* buffer, size_t numChannels, size_t samplesPerChannel) const
+   {
+      return GetStretched(&buffer, numChannels, samplesPerChannel);
+   }
+
    //! Retrieve samples from a track in a specified format
    /*!
     @copydetails SampleTrack::GetFloats()
@@ -103,9 +109,10 @@ public:
       // contiguous range.
       sampleCount * pNumWithinClips = nullptr) const = 0;
 
-   virtual void GetStretched(
-      float* const* buffer, size_t numChannels, size_t samplesPerChannel, void* state)
+   virtual bool GetStretched(
+      float* const* buffer, size_t numChannels, size_t samplesPerChannel) const
    {
+      return false;
    }
 
    /** @brief Convert correctly between an (absolute) time in seconds and a number of samples.
