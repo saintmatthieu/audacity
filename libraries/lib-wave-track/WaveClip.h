@@ -12,6 +12,7 @@
 #ifndef __AUDACITY_WAVECLIP__
 #define __AUDACITY_WAVECLIP__
 
+#include "AudioSegment.h"
 #include "ClientData.h"
 #include "SampleCount.h"
 #include "SampleFormat.h"
@@ -96,18 +97,10 @@ struct WAVE_TRACK_API WaveClipListener
    virtual void Invalidate() = 0;
 };
 
-struct WAVE_TRACK_API WaveClipProcessor
-{
-   virtual ~WaveClipProcessor() = default;
-   virtual void SetReadPosition(double t) = 0;
-   virtual size_t Process(float* const* buffer, size_t bufferSize) = 0;
-};
-
 class WAVE_TRACK_API WaveClip final :
     public XMLTagHandler,
     public AudioSegment,
-    public ClientData::Site<WaveClip, WaveClipListener>,
-    public ClientData::Site<WaveClip, WaveClipProcessor>
+    public ClientData::Site<WaveClip, WaveClipListener>
 {
 private:
    // It is an error to copy a WaveClip without specifying the
@@ -118,7 +111,6 @@ private:
 
 public:
    using Caches = Site< WaveClip, WaveClipListener >;
-   using ProcessorCaches = Site<WaveClip, WaveClipProcessor>;
 
    // typical constructor
    WaveClip(const SampleBlockFactoryPtr &factory, sampleFormat format,
@@ -140,7 +132,7 @@ public:
 
    virtual ~WaveClip();
 
-   size_t GetAudio(float* const* buffer, size_t bufferSize) const override;
+   AudioSegmentProcessor& GetProcessor() const override;
 
    void ConvertToSampleFormat(sampleFormat format,
       const std::function<void(size_t)> & progressReport = {});

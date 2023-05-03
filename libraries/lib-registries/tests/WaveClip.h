@@ -5,5 +5,5 @@
 class WaveClip : public AudioSegment
 {
 public:
-   AudioSegmentProcessor& GetProcessor() const override;
+   AudioSegmentProcessor& GetProcessor() const override
 };

@@ -17,16 +17,21 @@ and WaveTrackSink make new WaveTrack objects.
 ]]
 
 set( SOURCES
+   AudioSegment.h
    PasteOverPreservingClips.cpp
    PasteOverPreservingClips.h
    SampleBlock.cpp
    SampleBlock.h
    Sequence.cpp
    Sequence.h
+   SilenceSegment.cpp
+   SilenceSegment.h
+   SilenceSegmentProcessor.cpp
+   SilenceSegmentProcessor.h
    WaveClip.cpp
    WaveClip.h
-   WaveClipSegment.cpp
-   WaveClipSegment.h
+   WaveClipProcessor.cpp
+   WaveClipProcessor.h
    WaveTrack.cpp
    WaveTrack.h
    WaveTrackSink.cpp

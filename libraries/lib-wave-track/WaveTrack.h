@@ -15,7 +15,6 @@
 #include "SampleCount.h"
 #include "SampleFormat.h"
 #include "SampleTrack.h"
-#include "TimeAndPitchInterface.h"
 
 #include <optional>
 #include <vector>
@@ -535,6 +534,8 @@ private:
 
 private:
    WaveClipHolders mClips;
+   std::vector<std::shared_ptr<AudioSegment>> mAudioSegments;
+
    struct ClipReadoutState {
       ClipReadoutState(const WaveClipHolder& clip, sampleCount sampleIndex = 0)
           : clip(clip)
@@ -544,7 +545,6 @@ private:
       const WaveClipHolder clip;
       sampleCount sampleIndex;
    };
-   std::unique_ptr<TimeAndPitchInterface> mStretcher;
    sampleCount mStretchedPlaySampleIndex = 0;
    std::unique_ptr<ClipReadoutState> mCurrentClipReadoutState;
 

@@ -23,12 +23,14 @@
 #include <wx/log.h>
 
 #include "BasicUI.h"
-#include "Sequence.h"
-#include "Prefs.h"
 #include "Envelope.h"
-#include "Resample.h"
 #include "InconsistencyException.h"
+#include "Prefs.h"
+#include "Resample.h"
+#include "Sequence.h"
 #include "UserException.h"
+#include "WaveClipProcessor.h"
+
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -121,8 +123,9 @@ WaveClip::~WaveClip()
 {
 }
 
-size_t WaveClip::GetAudio(float* const* buffer, size_t bufferSize) const {
-   return 0;
+AudioSegmentProcessor& WaveClip::GetProcessor() const
+{
+   return WaveClipProcessor::Get(*this);
 }
 
 bool WaveClip::GetSamples(
