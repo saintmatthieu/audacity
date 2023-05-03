@@ -1951,8 +1951,7 @@ WaveClipHolders::const_iterator WaveTrack::_GetClipAtTime(double t) const
    return t < clipEndTime ? clipIt : mClips.end();
 }
 
-void WaveTrack::OnAudioThreadAboutToStart(
-   size_t numChannels, double t0, size_t expectedNumSampsPerQuery)
+void WaveTrack::Reposition(double t)
 {
    // mStretchedPlaySampleIndex = static_cast<sampleCount>(t0 * mRate + 0.5);
    // const auto intersectedClipIt = _GetClipAtTime(t0);
@@ -2018,10 +2017,6 @@ void WaveTrack::GetStretched(
    float* const* buffer, size_t numChannels, size_t samplesPerChannel, void* s)
 {
    auto pState = reinterpret_cast<StretchedWaveTrackPlayoutState*>(s);
-}
-
-void WaveTrack::OnAudioThreadStopped()
-{
 }
 
 bool WaveTrack::Get(samplePtr buffer, sampleFormat format,

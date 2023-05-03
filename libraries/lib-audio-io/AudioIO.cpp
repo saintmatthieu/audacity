@@ -1754,7 +1754,7 @@ void AudioIO::AudioThread(std::atomic<bool> &finish)
       if( gAudioIO->mAudioThreadShouldCallTrackBufferExchangeOnce
          .load(std::memory_order_acquire) )
       {
-         gAudioIO->TrackBufferExchange(true);
+         gAudioIO->TrackBufferExchange();
          gAudioIO->mAudioThreadShouldCallTrackBufferExchangeOnce
             .store(false, std::memory_order_release);
 
@@ -1777,7 +1777,7 @@ void AudioIO::AudioThread(std::atomic<bool> &finish)
          // This is unlike the case with mAudioThreadShouldCallTrackBufferExchangeOnce where the
          // store really means that the one-time exchange was done.
 
-         gAudioIO->TrackBufferExchange(false);
+         gAudioIO->TrackBufferExchange();
       }
       else
       {
@@ -1846,14 +1846,8 @@ size_t AudioIO::GetCommonlyAvailCapture()
 // This method is the data gateway between the audio thread (which
 // communicates with the disk) and the PortAudio callback thread
 // (which communicates with the audio device).
-void AudioIO::TrackBufferExchange(bool isFirstPlayoutCall)
+void AudioIO::TrackBufferExchange()
 {
-   if (isFirstPlayoutCall) {
-      for (const auto& mixer : mPlaybackMixers)
-      {
-         mixer->OnAudioThreadAboutToStart();
-      }
-   }
    FillPlayBuffers();
    DrainRecordBuffers();
 }
@@ -1933,11 +1927,6 @@ void AudioIO::FillPlayBuffers()
 
       // Might increase because the reader consumed some
       nAvailable = GetCommonlyFreePlayback();
-   }
-
-   for (const auto& mixer : mPlaybackMixers)
-   {
-      mixer->OnAudioThreadStopped();
    }
 }
 

@@ -48,9 +48,6 @@ public:
    */
    const float *GetFloats(sampleCount start, size_t len, bool mayThrow);
 
-   void OnAudioThreadAboutToStart();
-   void OnAudioThreadStopped();
-
 private:
    void Free();
 

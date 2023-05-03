@@ -11,10 +11,12 @@
 #ifndef __AUDACITY_WAVETRACK__
 #define __AUDACITY_WAVETRACK__
 
+#include "AudioSegment.h"
 #include "Prefs.h"
 #include "SampleCount.h"
 #include "SampleFormat.h"
 #include "SampleTrack.h"
+
 
 #include <optional>
 #include <vector>
@@ -262,14 +264,11 @@ private:
       */
    );
 
-   void OnAudioThreadAboutToStart(
-      size_t numChannels, double t0, size_t expectedNumSampsPerQuery) override;
+   void Reposition(double t);
 
    void GetStretched(
       float* const* buffer, size_t numChannels, size_t samplesPerChannel,
       void* state) override;
-
-   void OnAudioThreadStopped() override;
 
    sampleFormat WidestEffectiveFormat() const override;
 

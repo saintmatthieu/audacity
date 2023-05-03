@@ -94,8 +94,6 @@ class SAMPLE_TRACK_API Mixer {
    //! Reposition processing to absolute time next time Process() is called.
    void Reposition(double t, bool bSkipping = false);
 
-   void OnAudioThreadAboutToStart();
-   void OnAudioThreadStopped();
 
    //! Used in scrubbing and other nonuniform playback policies.
    void SetTimesAndSpeed(

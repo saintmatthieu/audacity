@@ -214,16 +214,6 @@ const float *SampleTrackCache::GetFloats(
    }
 }
 
-void SampleTrackCache::OnAudioThreadAboutToStart()
-{
-   mPTrack->OnAudioThreadAboutToStart(1u, 0.0, 0);
-}
-
-void SampleTrackCache::OnAudioThreadStopped()
-{
-   mPTrack->OnAudioThreadStopped();
-}
-
 void SampleTrackCache::Free()
 {
    mBuffers[0].Free();

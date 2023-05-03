@@ -403,6 +403,16 @@ int ProjectAudioManager::PlayPlayRegion(const SelectedRegion &selectedRegion,
 
    int token = -1;
 
+   if (pStartTime.has_value())
+   {
+      for (auto track : tracks)
+      {
+         track->TypeSwitch([&pStartTime](WaveTrack* waveTrack) {
+            waveTrack->Reposition(*pStartTime);
+         });
+      }
+   }
+
    if (t1 != t0) {
       if (cutpreview) {
          const double tless = std::min(t0, t1);
