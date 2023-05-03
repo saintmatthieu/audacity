@@ -280,11 +280,11 @@ void MixerSource::ZeroFill(
    std::fill(pFloat + produced, pFloat + max, 0);
 }
 
-MixerSource::MixerSource(SampleTrack &leader, size_t bufferSize,
+MixerSource::MixerSource(const SampleTrack &leader, size_t bufferSize,
    double rate, const MixerOptions::Warp &options, bool highQuality,
    bool mayThrow, std::shared_ptr<TimesAndSpeed> pTimesAndSpeed,
    const ArrayOf<bool> *pMap
-)  : mpLeader{ leader.SharedPointer<SampleTrack>() }
+)  : mpLeader{ leader.SharedPointer<const SampleTrack>() }
    , mnChannels{ TrackList::Channels(&leader).size() }
    , mRate{ rate }
    , mEnvelope{ options.envelope }
@@ -302,7 +302,7 @@ MixerSource::MixerSource(SampleTrack &leader, size_t bufferSize,
 {
    size_t j = 0;
    for (auto channel : TrackList::Channels(&leader))
-      mInputTrack[j++].SetTrack(channel->SharedPointer<SampleTrack>());
+      mInputTrack[j++].SetTrack(channel->SharedPointer<const SampleTrack>());
 
    assert(mTimesAndSpeed);
    auto t0 = mTimesAndSpeed->mT0;

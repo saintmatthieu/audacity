@@ -33,11 +33,11 @@ class SAMPLE_TRACK_API Mixer {
 
    struct Input {
       Input(
-         std::shared_ptr<SampleTrack> pTrack = {}, Stages stages = {}
+         std::shared_ptr<const SampleTrack> pTrack = {}, Stages stages = {}
       )  : pTrack{ move(pTrack) }, stages{ move(stages) }
       {}
 
-      std::shared_ptr<SampleTrack> pTrack;
+      std::shared_ptr<const SampleTrack> pTrack;
       Stages stages;
    };
    using Inputs = std::vector<Input>;

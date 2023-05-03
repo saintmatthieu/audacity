@@ -473,7 +473,7 @@ ProgressResult ExportPCM::Export(AudacityProject *project,
                                  int subformat)
 {
    double rate = ProjectRate::Get( *project ).GetRate();
-   auto &tracks = TrackList::Get( *project );
+   const auto &tracks = TrackList::Get( *project );
 
    // Set a default in case the settings aren't found
    int sf_format;

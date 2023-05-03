@@ -15,7 +15,7 @@ SampleTrackCache::~SampleTrackCache()
 {
 }
 
-void SampleTrackCache::SetTrack(const std::shared_ptr<SampleTrack> &pTrack)
+void SampleTrackCache::SetTrack(const std::shared_ptr<const SampleTrack> &pTrack)
 {
    if (mPTrack != pTrack) {
       if (pTrack) {

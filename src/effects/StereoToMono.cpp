@@ -175,7 +175,7 @@ bool EffectStereoToMono::ProcessOne(sampleCount & curTime, sampleCount totalTime
    Mixer::Inputs tracks;
    for (auto pTrack : { left, right })
       tracks.emplace_back(
-         pTrack->SharedPointer<SampleTrack>(), GetEffectStages(*pTrack));
+         pTrack->SharedPointer<const SampleTrack>(), GetEffectStages(*pTrack));
 
    Mixer mixer(move(tracks),
                true,                // Throw to abort mix-and-render if read fails:

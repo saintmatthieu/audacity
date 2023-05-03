@@ -491,7 +491,7 @@ ProgressResult ExportCL::Export(AudacityProject *project, std::unique_ptr<BasicU
    os->Write(&data, sizeof(data));
 
    // Mix 'em up
-   auto &tracks = TrackList::Get( *project );
+   const auto &tracks = TrackList::Get( *project );
    auto mixer = CreateMixer(
                             tracks,
                             selectionOnly,

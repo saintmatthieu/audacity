@@ -18,7 +18,7 @@ Paul Licameli split from Mix.cpp
 using WaveTrackConstArray = std::vector < std::shared_ptr < const WaveTrack > >;
 
 //TODO-MB: wouldn't it make more sense to DELETE the time track after 'mix and render'?
-void MixAndRender(const TrackIterRange<WaveTrack> &trackRange,
+void MixAndRender(const TrackIterRange<const WaveTrack> &trackRange,
    const Mixer::WarpOptions &warpOptions,
    const wxString &newTrackName,
    WaveTrackFactory *trackFactory,
@@ -69,7 +69,7 @@ void MixAndRender(const TrackIterRange<WaveTrack> &trackRange,
 
    for(auto wt : trackRange) {
       waveArray.emplace_back(
-         wt->SharedPointer<SampleTrack>(), GetEffectStages(*wt));
+         wt->SharedPointer<const SampleTrack>(), GetEffectStages(*wt));
       tstart = wt->GetStartTime();
       tend = wt->GetEndTime();
       if (tend > mixEndTime)

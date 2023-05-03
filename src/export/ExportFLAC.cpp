@@ -252,7 +252,7 @@ ProgressResult ExportFLAC::Export(AudacityProject *project,
                         int WXUNUSED(subformat))
 {
    double    rate    = ProjectRate::Get(*project).GetRate();
-   auto &tracks = TrackList::Get( *project );
+   const auto &tracks = TrackList::Get( *project );
 
    wxLogNull logNo;            // temporarily disable wxWidgets error messages
    auto updateResult = ProgressResult::Success;

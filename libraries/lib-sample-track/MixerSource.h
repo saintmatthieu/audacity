@@ -35,7 +35,7 @@ public:
    /*!
     @pre `pTimesAndSpeed != nullptr`
     */
-   MixerSource(SampleTrack &leader, size_t bufferSize,
+   MixerSource(const SampleTrack &leader, size_t bufferSize,
       double rate, const MixerOptions::Warp &options, bool highQuality,
       bool mayThrow, std::shared_ptr<TimesAndSpeed> pTimesAndSpeed,
       //! Null or else must have a lifetime enclosing this objects's
@@ -96,7 +96,7 @@ private:
     */
    void ZeroFill(size_t produced, size_t max, float &floatBuffer);
 
-   const std::shared_ptr<SampleTrack> mpLeader;
+   const std::shared_ptr<const SampleTrack> mpLeader;
    size_t i;
 
    const size_t mnChannels;

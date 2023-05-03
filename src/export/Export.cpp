@@ -219,7 +219,7 @@ void ExportPlugin::OptionsCreate(ShuttleGui &S, int WXUNUSED(format))
 }
 
 //Create a mixer by computing the time warp factor
-std::unique_ptr<Mixer> ExportPlugin::CreateMixer(TrackList &tracks,
+std::unique_ptr<Mixer> ExportPlugin::CreateMixer(const TrackList &tracks,
          bool selectionOnly,
          double startTime, double stopTime,
          unsigned numOutChannels, size_t outBufferSize, bool outInterleaved,
@@ -230,12 +230,12 @@ std::unique_ptr<Mixer> ExportPlugin::CreateMixer(TrackList &tracks,
 
    bool anySolo = !(( tracks.Any<const WaveTrack>() + &WaveTrack::GetSolo ).empty());
 
-   auto range = tracks.Any< WaveTrack >()
+   auto range = tracks.Any< const WaveTrack >()
       + (selectionOnly ? &Track::IsSelected : &Track::Any )
       - ( anySolo ? &WaveTrack::GetNotSolo : &WaveTrack::GetMute);
    for (auto pTrack: range)
       inputs.emplace_back(
-         pTrack->SharedPointer<SampleTrack>(), GetEffectStages(*pTrack));
+         pTrack->SharedPointer<const SampleTrack>(), GetEffectStages(*pTrack));
    // MB: the stop time should not be warped, this was a bug.
    return std::make_unique<Mixer>(move(inputs),
                   // Throw, to stop exporting, if read fails:

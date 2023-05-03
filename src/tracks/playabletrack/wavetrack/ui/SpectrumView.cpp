@@ -853,7 +853,7 @@ void DrawClipSpectrum(TrackPanelDrawingContext &context,
 }
 
 void SpectrumView::DoDraw(TrackPanelDrawingContext& context,
-                                WaveTrack* track,
+                                const WaveTrack* track,
                                 const WaveClip* selectedClip,
                                 const wxRect & rect )
 {
@@ -863,7 +863,7 @@ void SpectrumView::DoDraw(TrackPanelDrawingContext& context,
    TrackArt::DrawBackgroundWithSelection(
       context, rect, track, blankSelectedBrush, blankBrush );
 
-   SampleTrackCache cache(track->SharedPointer<WaveTrack>());
+   SampleTrackCache cache(track->SharedPointer<const WaveTrack>());
    for (const auto &clip: track->GetClips()){
       DrawClipSpectrum( context, cache, clip.get(), rect,
                         mpSpectralData, clip.get() == selectedClip);
@@ -888,7 +888,7 @@ void SpectrumView::Draw(
          locationsCache.Update( *channel );
       }
 
-      const auto wt = std::static_pointer_cast<WaveTrack>(
+      const auto wt = std::static_pointer_cast<const WaveTrack>(
          FindTrack()->SubstitutePendingChangedTrack());
 
       const auto artist = TrackArtist::Get( context );

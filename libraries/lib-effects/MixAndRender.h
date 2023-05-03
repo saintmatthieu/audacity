@@ -38,7 +38,7 @@ class WaveTrackFactory;
  * mono channel or a stereo pair); else the unique track's name is copied
  */
 void EFFECTS_API MixAndRender(
-   const TrackIterRange<WaveTrack> &trackRange,
+   const TrackIterRange<const WaveTrack> &trackRange,
    const Mixer::WarpOptions &warpOptions,
    const wxString &newTrackName,
    WaveTrackFactory *factory,
