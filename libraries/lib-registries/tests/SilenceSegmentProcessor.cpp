@@ -1,7 +1,7 @@
 #include "SilenceSegmentProcessor.h"
 #include "SilenceSegment.h"
 
-static AudioSegment::Caches::RegisteredFactory sKeyS {
+static AudioSegment::Processor::RegisteredFactory sKeyS {
    [](AudioSegment& segment) {
       // todo(mhodgkinson) segment doesn't have to be mutable actually, but I
       // couldn't get it to compile with const
@@ -14,5 +14,5 @@ SilenceSegmentProcessor&
 SilenceSegmentProcessor::Get(const SilenceSegment& segment)
 {
    return const_cast<SilenceSegment&>(segment)
-      .Caches::Get<SilenceSegmentProcessor>(sKeyS);
+      .Processor::Get<SilenceSegmentProcessor>(sKeyS);
 }
