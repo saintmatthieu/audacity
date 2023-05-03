@@ -8,7 +8,8 @@ class AudioSegmentProcessor
 {
 public:
    virtual ~AudioSegmentProcessor() = default;
-   virtual void Process() = 0;
+   virtual size_t Process(
+      float* const* buffers, size_t numChannels, size_t samplesPerChannel) = 0;
 };
 
 class AudioSegment :

@@ -12,9 +12,9 @@ public:
    {
    }
 
-   void Process() override
-   {
-   }
+   size_t Process(
+      float* const* buffer, size_t numChannels,
+      size_t samplesPerChannel) override;
 
    static SilenceSegmentProcessor& Get(const SilenceSegment&);
 

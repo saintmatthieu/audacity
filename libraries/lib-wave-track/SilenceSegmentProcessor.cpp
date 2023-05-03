@@ -16,3 +16,12 @@ SilenceSegmentProcessor::Get(const SilenceSegment& segment)
    return const_cast<SilenceSegment&>(segment)
       .Processor::Get<SilenceSegmentProcessor>(sKeyS);
 }
+
+size_t SilenceSegmentProcessor::Process(
+   float* const* buffer, size_t numChannels, size_t samplesPerChannel)
+{
+   for (auto i = 0u; i < numChannels;++i){
+      std::fill(buffer[i], buffer[i] + samplesPerChannel, 0.f);
+   }
+   return samplesPerChannel;
+}

@@ -11,10 +11,9 @@ public:
    {
    }
 
-   void Process() override
-   {
-      // Get data from clip, time-stretch, etc
-   }
+   size_t Process(
+      float* const* buffer, size_t numChannels,
+      size_t samplesPerChannel) override;
 
    static WaveClipProcessor& Get(const WaveClip& clip);
 

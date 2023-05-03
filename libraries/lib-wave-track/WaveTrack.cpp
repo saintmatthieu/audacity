@@ -28,7 +28,7 @@ from the project that will own the track.
 
 #include "WaveTrack.h"
 
-
+#include "SilenceSegment.h"
 #include "WaveTrackTypes.h"
 #include "WaveClip.h"
 
@@ -1953,6 +1953,23 @@ WaveClipHolders::const_iterator WaveTrack::_GetClipAtTime(double t) const
 
 void WaveTrack::Reposition(double t)
 {
+   mAudioSegments.clear();
+   const auto leftMostClipIt = std::upper_bound(
+      mClips.begin(), mClips.end(), t,
+      [](double t, const WaveClipHolder& clip) {
+         return t < clip->GetPlayStartTime() + clip->GetStretchedPlayDuration();
+      });
+   for(const auto& clip : mClips){
+      const auto clipStartTime = clip->GetPlayStartTime();
+      if (clipStartTime > t)
+      {
+         mAudioSegments.push_back(
+            std::make_shared<SilenceSegment>(clipStartTime - t));
+      }
+      mAudioSegments.push_back(clip);
+      t = clipStartTime + clip->GetStretchedPlayDuration();
+   }
+   mActiveAudioSegmentIt = mAudioSegments.begin();
    // mStretchedPlaySampleIndex = static_cast<sampleCount>(t0 * mRate + 0.5);
    // const auto intersectedClipIt = _GetClipAtTime(t0);
    // if (intersectedClipIt != mClips.end())
@@ -2013,10 +2030,44 @@ void WaveTrack::Reposition(double t)
    //    };
 }
 
+namespace{
+std::vector<float*>
+GetOffsetBuffer(float* const* buffer, size_t numChannels, size_t offset)
+{
+   std::vector<float*> offsetBuffer(numChannels);
+   for (auto i = 0u; i < numChannels; ++i)
+   {
+      offsetBuffer[i] = buffer[i] + offset;
+   }
+   return offsetBuffer;
+}
+}
+
 void WaveTrack::GetStretched(
    float* const* buffer, size_t numChannels, size_t samplesPerChannel, void* s)
 {
-   auto pState = reinterpret_cast<StretchedWaveTrackPlayoutState*>(s);
+   auto numProcessedSamples = 0u;
+   while (numProcessedSamples < samplesPerChannel &&
+          mActiveAudioSegmentIt != mAudioSegments.end())
+   {
+      const auto& segment = *mActiveAudioSegmentIt;
+      AudioSegmentProcessor& processor = segment->GetProcessor();
+      const auto offsetBuffer =
+         GetOffsetBuffer(buffer, numChannels, numProcessedSamples);
+      numProcessedSamples += processor.Process(
+         offsetBuffer.data(), numChannels,
+         samplesPerChannel - numProcessedSamples);
+      ++mActiveAudioSegmentIt;
+   }
+   const auto remaining = samplesPerChannel - numProcessedSamples;
+   if (remaining > 0u)
+   {
+      const auto offsetBuffer =
+         GetOffsetBuffer(buffer, numChannels, numProcessedSamples);
+      for (auto i = 0u; i < numChannels;++i){
+         std::fill(offsetBuffer[i], offsetBuffer[i] + remaining, 0.f);
+      }
+   }
 }
 
 bool WaveTrack::Get(samplePtr buffer, sampleFormat format,

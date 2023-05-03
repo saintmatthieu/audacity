@@ -533,7 +533,11 @@ private:
 
 private:
    WaveClipHolders mClips;
-   std::vector<std::shared_ptr<AudioSegment>> mAudioSegments;
+
+   using AudioSegmentVector = std::vector<std::shared_ptr<AudioSegment>>;
+   AudioSegmentVector mAudioSegments;
+   mutable AudioSegmentVector::const_iterator mActiveAudioSegmentIt =
+      mAudioSegments.end();
 
    struct ClipReadoutState {
       ClipReadoutState(const WaveClipHolder& clip, sampleCount sampleIndex = 0)
