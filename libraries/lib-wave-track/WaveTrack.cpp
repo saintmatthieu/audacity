@@ -29,8 +29,9 @@ from the project that will own the track.
 #include "WaveTrack.h"
 
 
-
+#include "WaveTrackTypes.h"
 #include "WaveClip.h"
+#include "WaveClipSegment.h"
 
 #include <wx/defs.h>
 #include <wx/debug.h>
@@ -2018,8 +2019,11 @@ void WaveTrack::OnAudioThreadAboutToStart(
 }
 
 void WaveTrack::GetStretched(
-   float* const* buffer, size_t numChannels, size_t samplesPerChannel)
+   float* const* buffer, size_t numChannels, size_t samplesPerChannel, void* s)
 {
+   auto pState = reinterpret_cast<StretchedWaveTrackPlayoutState*>(s);
+   auto& stretcher = WaveClipSegment::Get(*mClips[0]);
+
    assert(mStretcher);
    if (!mStretcher)
    {

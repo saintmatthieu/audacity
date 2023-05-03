@@ -121,8 +121,13 @@ WaveClip::~WaveClip()
 {
 }
 
-bool WaveClip::GetSamples(samplePtr buffer, sampleFormat format,
-                   sampleCount start, size_t len, bool mayThrow) const
+size_t WaveClip::GetAudio(float* const* buffer, size_t bufferSize) const {
+   return 0;
+}
+
+bool WaveClip::GetSamples(
+   samplePtr buffer, sampleFormat format, sampleCount start, size_t len,
+   bool mayThrow) const
 {
    return mSequence->Get(buffer, format, start + TimeToSamples(mTrimLeft), len, mayThrow);
 }

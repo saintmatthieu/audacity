@@ -267,7 +267,8 @@ private:
       size_t numChannels, double t0, size_t expectedNumSampsPerQuery) override;
 
    void GetStretched(
-      float* const* buffer, size_t numChannels, size_t samplesPerChannel) override;
+      float* const* buffer, size_t numChannels, size_t samplesPerChannel,
+      void* state) override;
 
    void OnAudioThreadStopped() override;
 

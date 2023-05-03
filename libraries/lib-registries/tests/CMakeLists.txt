@@ -1,0 +1,12 @@
+add_unit_test(
+   NAME
+      lib-registries
+   SOURCES
+      ClientDataTest.cpp
+      SilenceSegment.cpp
+      SilenceSegmentProcessor.cpp
+      WaveClip.cpp
+      WaveClipProcessor.cpp
+   LIBRARIES
+      lib-registries
+)

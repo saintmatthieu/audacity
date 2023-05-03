@@ -107,7 +107,7 @@ public:
       size_t numChannels, double t0, size_t expectedNumSampsPerQuery = 0u) {};
 
    virtual void GetStretched(
-      float* const* buffer, size_t numChannels, size_t samplesPerChannel)
+      float* const* buffer, size_t numChannels, size_t samplesPerChannel, void* state)
    {
    }
 
