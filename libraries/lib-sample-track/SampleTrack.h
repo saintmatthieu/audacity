@@ -90,9 +90,9 @@ public:
    }
 
    bool GetFloatsStretched(
-      float* buffer, size_t numChannels, size_t samplesPerChannel) const
+      float* const* buffer, size_t numChannels, size_t samplesPerChannel) const
    {
-      return GetStretched(&buffer, numChannels, samplesPerChannel);
+      return GetStretched(buffer, numChannels, samplesPerChannel);
    }
 
    //! Retrieve samples from a track in a specified format

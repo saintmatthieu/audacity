@@ -42,8 +42,19 @@ SampleTrackCache::GetFloats(sampleCount start, size_t len, bool mayThrow)
       [this](
          float* buffer, sampleCount start, size_t len, fillFormat fill,
          bool mayThrow, sampleCount* pNumWithinClips) -> bool {
-         return mPTrack->GetFloats(
-            mBuffers[1].data.get(), start, len, fillZero, mayThrow);
+         return mPTrack->GetFloats(buffer, start, len, fillZero, mayThrow);
+      });
+}
+
+const float* SampleTrackCache::GetFloatsStretched(
+   sampleCount start, size_t len, bool mayThrow)
+{
+   return _GetFloats(
+      start, len, mayThrow,
+      [this](
+         float* buffer, sampleCount start, size_t len, fillFormat fill,
+         bool mayThrow, sampleCount* pNumWithinClips) -> bool {
+         return mPTrack->GetFloatsStretched(&buffer, 1u, len);
       });
 }
 
@@ -225,16 +236,6 @@ const float* SampleTrackCache::_GetFloats(
 #endif
       return nullptr;
    }
-}
-
-const float* SampleTrackCache::GetFloatsStretched(sampleCount start, size_t len, bool mayThrow) {
-   return _GetFloats(
-      start, len, mayThrow,
-      [this](
-         float* buffer, sampleCount start, size_t len, fillFormat fill,
-         bool mayThrow, sampleCount* pNumWithinClips) -> bool {
-         return mPTrack->GetFloatsStretched(mBuffers[1].data.get(), 1u, len);
-      });
 }
 
 void SampleTrackCache::Free()
