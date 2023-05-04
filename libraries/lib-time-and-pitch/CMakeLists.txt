@@ -2,9 +2,9 @@ set( SOURCES
    StaffPad/pffft/pffft.c
    StaffPad/FourierTransform_pffft.cpp
    StaffPad/TimeAndPitch.cpp
+   AudioContainer.cpp
    StaffPadTimeAndPitch.cpp
    TimeAndPitchInterface.cpp
-   TimeAndPitchInterface.h
 )
 set( LIBRARIES
 )

@@ -5,4 +5,5 @@ add_unit_test(
       StaffPadTimeAndPitchTest.cpp
    LIBRARIES
       lib-utility
+      lib-time-and-pitch-interface
 )

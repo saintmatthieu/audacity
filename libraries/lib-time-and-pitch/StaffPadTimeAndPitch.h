@@ -2,13 +2,21 @@
 
 #include "StaffPad/TimeAndPitch.h"
 
-class StaffPadTimeAndPitch final : public TimeAndPitchInterface
+class TIME_AND_PITCH_API StaffPadTimeAndPitch final :
+    public TimeAndPitchInterface
 {
 public:
    StaffPadTimeAndPitch(size_t numChannels, InputGetter);
-   bool GetSamples(float* const*, size_t) override;
+   void SetTimeRatio(double) override;
+   void SetPitchRatio(double) override;
+   void GetSamples(float* const*, size_t) override;
 
 private:
-   staffpad::TimeAndPitch mStretcher;
+   bool _SetRatio(double r, double& member);
+   void _BootStretcher();
+   std::unique_ptr<staffpad::TimeAndPitch> mStretcher;
    const InputGetter mInputGetter;
+   const size_t mNumChannels;
+   double mTimeRatio = 1.0;
+   double mPitchRatio = 1.0;
 };
