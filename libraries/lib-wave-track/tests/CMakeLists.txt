@@ -8,4 +8,6 @@ add_unit_test(
    LIBRARIES
       lib-wave-track-interface
       lib-audio-io-interface
+      lib-project-file-io-interface
+      SndFile::sndfile
 )

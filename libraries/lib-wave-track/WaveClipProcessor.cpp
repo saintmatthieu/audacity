@@ -26,7 +26,7 @@ void WaveClipProcessor::Reposition(double t)
    assert(fitsClipPlayDuration);
    if (!fitsClipPlayDuration)
    {
-      // TODO(mhodgkinson) better ?
+      // TODO(mhodgkinson) do smth better ?
       return;
    }
    mReadPos = static_cast<sampleCount::type>(

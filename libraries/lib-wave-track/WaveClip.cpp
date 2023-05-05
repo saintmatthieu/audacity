@@ -160,16 +160,18 @@ size_t WaveClip::GetAppendBufferLen() const
    return GetSequence()->GetAppendBufferLen();
 }
 
+void WaveClip::SetTimeStretchRatio(double r)
+{
+   assert(r > 0.0);
+   if (r > 0.0)
+   {
+      mTimeStretchRatio = r;
+   }
+}
+
 double WaveClip::GetTimeStretchRatio() const
 {
-   try
-   {
-      return std::stod(std::string(mName.mb_str()));
-   }
-   catch (...)
-   {
-      return 1.0;
-   }
+   return mTimeStretchRatio;
 }
 
 constSamplePtr WaveClip::GetAppendBuffer() const
@@ -866,6 +868,17 @@ bool WaveClip::SharesBoundaryWithNextClip(const WaveClip* next) const
 void WaveClip::SetName(const wxString& name)
 {
    mName = name;
+   try
+   {
+      const auto ratio = std::stod(std::string(mName.mb_str()));
+      if (ratio > 0.0)
+      {
+         SetTimeStretchRatio(ratio);
+      }
+   }
+   catch (...)
+   {
+   }
 }
 
 const wxString& WaveClip::GetName() const

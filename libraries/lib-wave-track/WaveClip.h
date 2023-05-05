@@ -353,6 +353,7 @@ public:
    constSamplePtr GetAppendBuffer() const;
    size_t GetAppendBufferLen() const;
 
+   void SetTimeStretchRatio(double);
    double GetTimeStretchRatio() const;
 
 protected:
@@ -381,6 +382,7 @@ protected:
 
 private:
    wxString mName;
+   double mTimeStretchRatio = 1.0;
 };
 
 #endif
