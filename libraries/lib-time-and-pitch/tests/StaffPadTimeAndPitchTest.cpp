@@ -29,7 +29,9 @@ TEST_CASE("StaffPadTimeAndPitch")
             numPulledInputSamples += numNonZeroSamples;
          }
       };
-      StaffPadTimeAndPitch sut(numChannels, dcOffsetGetter);
+      TimeAndPitchInterface::Parameters params;
+      params.timeRatio = 0.5;
+      StaffPadTimeAndPitch sut(numChannels, dcOffsetGetter, std::move(params));
       AudioContainer container(clipLength + 10, numChannels);
       sut.GetSamples(container.get(), clipLength + 10);
    }

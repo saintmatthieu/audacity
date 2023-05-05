@@ -4,9 +4,8 @@
 #include <cassert>
 
 static AudioSegment::Processor::RegisteredFactory sKeyS {
-   [](AudioSegment& clip) {
-      return std::make_unique<WaveClipProcessor>(static_cast<WaveClip&>(clip));
-   }
+   [](AudioSegment& clip)
+   { return std::make_unique<WaveClipProcessor>(static_cast<WaveClip&>(clip)); }
 };
 
 WaveClipProcessor& WaveClipProcessor::Get(const WaveClip& clip)
@@ -34,33 +33,42 @@ void WaveClipProcessor::Reposition(double t)
       t * mClip.GetRate() * mClip.GetTimeStretchRatio() + 0.5f);
 
    TimeAndPitchInterface::InputGetter inputGetter =
-      [this,
-       numChannels = 1u](float* const* buffers, size_t samplesPerChannel) {
-         auto remaining = static_cast<sampleCount>(samplesPerChannel);
-         while (remaining > 0)
+      [this, numChannels = 1u](float* const* buffers, size_t samplesPerChannel)
+   {
+      auto remaining = samplesPerChannel;
+      while (remaining > 0)
+      {
+         const auto bestBlockSize =
+            mClip.GetSequence()->GetBestBlockSize(mReadPos);
+         const auto remainingSamplesInClip =
+            mClip.GetPlaySamplesCount() - mReadPos;
+         const auto numSamplesToWrite = std::min(bestBlockSize, remaining);
+         const auto numSamplesToRead =
+            std::min(sampleCount { numSamplesToWrite }, remainingSamplesInClip)
+               .as_size_t();
+         auto numZerosToPad = numSamplesToWrite - numSamplesToRead;
+         constexpr auto mayThrow = false;
+         const auto success = mClip.GetSamples(
+            reinterpret_cast<char*>(buffers[0u]), floatSample, mReadPos,
+            numSamplesToRead, mayThrow);
+         assert(success);
+         if (success)
          {
-            const auto bestBlockSize = static_cast<sampleCount>(
-               mClip.GetSequence()->GetBestBlockSize(mReadPos));
-            const auto remainingSamplesInClip =
-               mClip.GetPlaySamplesCount() - mReadPos;
-            const auto numSamplesToRead =
-               std::min({ bestBlockSize, remainingSamplesInClip, remaining })
-                  .as_size_t();
-            constexpr auto mayThrow = false;
-            const auto success = mClip.GetSamples(
-               reinterpret_cast<char*>(buffers[0u]), floatSample, mReadPos,
-               numSamplesToRead, mayThrow);
-            assert(success);
-            if (!success)
-            {
-               std::fill(buffers[0], buffers[0] + numSamplesToRead, 0.f);
-            }
-            remaining -= numSamplesToRead;
+            mReadPos += numSamplesToRead;
          }
-      };
+         else
+         {
+            numZerosToPad = numSamplesToWrite;
+         }
+         std::fill(buffers[0], buffers[0] + numZerosToPad, 0.f);
+         remaining -= numSamplesToWrite;
+      }
+   };
 
-   mStretcher =
-      TimeAndPitchInterface::createInstance(1u, std::move(inputGetter));
+   TimeAndPitchInterface::Parameters params;
+   params.timeRatio = mClip.GetTimeStretchRatio();
+   mStretcher = TimeAndPitchInterface::createInstance(
+      1u, std::move(inputGetter), std::move(params));
 }
 
 size_t WaveClipProcessor::Process(
@@ -73,4 +81,9 @@ size_t WaveClipProcessor::Process(
    }
    mStretcher->GetSamples(buffer, samplesPerChannel);
    return samplesPerChannel;
+}
+
+bool WaveClipProcessor::SamplesRemaining() const
+{
+   return mClip.GetPlaySamplesCount() - mReadPos > 0 || mStretcher;
 }

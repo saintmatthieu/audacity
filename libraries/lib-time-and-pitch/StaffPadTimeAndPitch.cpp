@@ -21,27 +21,32 @@ GetOffsetBuffer(float* const* buffer, size_t numChannels, size_t offset)
 } // namespace
 
 StaffPadTimeAndPitch::StaffPadTimeAndPitch(
-   size_t mNumChannels, InputGetter inputGetter)
+   size_t mNumChannels, InputGetter inputGetter, Parameters parameters)
     : mInputGetter(inputGetter)
     , mNumChannels(mNumChannels)
 {
-   _BootStretcher();
+   SetParameters(
+      parameters.timeRatio.value_or(1.0), parameters.pitchRatio.value_or(1.0));
+}
+
+void StaffPadTimeAndPitch::SetParameters(double timeRatio, double pitchRatio)
+{
+   if (
+      _SetRatio(timeRatio, mTimeRatio, false) ||
+      _SetRatio(pitchRatio, mPitchRatio, false))
+   {
+      _BootStretcher();
+   }
 }
 
 void StaffPadTimeAndPitch::SetTimeRatio(double r)
 {
-   if (_SetRatio(r, mTimeRatio))
-   {
-      _BootStretcher();
-   }
+   _SetRatio(r, mTimeRatio, true);
 }
 
 void StaffPadTimeAndPitch::SetPitchRatio(double r)
 {
-   if (_SetRatio(r, mPitchRatio))
-   {
-      _BootStretcher();
-   }
+   _SetRatio(r, mPitchRatio, true);
 }
 
 void StaffPadTimeAndPitch::GetSamples(float* const* output, size_t outputLen)
@@ -77,18 +82,26 @@ void StaffPadTimeAndPitch::GetSamples(float* const* output, size_t outputLen)
    }
 }
 
-bool StaffPadTimeAndPitch::_SetRatio(double r, double& member)
+bool StaffPadTimeAndPitch::SamplesRemaining() const
+{
+   return mStretcher != nullptr &&
+          mStretcher->getNumAvailableOutputSamples() > 0;
+}
+
+bool StaffPadTimeAndPitch::_SetRatio(
+   double r, double& member, bool rebootOnSuccess)
 {
    assert(r > 0.0);
-   if (r > 0.0)
-   {
-      member = r;
-      return true;
-   }
-   else
+   if (r <= 0.0)
    {
       return false;
    }
+   member = r;
+   if (rebootOnSuccess)
+   {
+      _BootStretcher();
+   }
+   return true;
 }
 
 void StaffPadTimeAndPitch::_BootStretcher()

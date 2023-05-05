@@ -12,7 +12,7 @@ public:
    size_t Process(
       float* const* buffer, size_t numChannels,
       size_t samplesPerChannel) override;
-
+   bool SamplesRemaining() const override;
    static WaveClipProcessor& Get(const WaveClip& clip);
 
 private:

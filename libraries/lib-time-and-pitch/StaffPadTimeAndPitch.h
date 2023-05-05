@@ -6,13 +6,15 @@ class TIME_AND_PITCH_API StaffPadTimeAndPitch final :
     public TimeAndPitchInterface
 {
 public:
-   StaffPadTimeAndPitch(size_t numChannels, InputGetter);
+   StaffPadTimeAndPitch(size_t numChannels, InputGetter, Parameters);
+   void SetParameters(double timeRatio, double pitchRatio) override;
    void SetTimeRatio(double) override;
    void SetPitchRatio(double) override;
    void GetSamples(float* const*, size_t) override;
+   bool SamplesRemaining() const override;
 
 private:
-   bool _SetRatio(double r, double& member);
+   bool _SetRatio(double r, double& member, bool rebootOnSuccess);
    void _BootStretcher();
    std::unique_ptr<staffpad::TimeAndPitch> mStretcher;
    const InputGetter mInputGetter;

@@ -31,3 +31,9 @@ size_t SilenceSegmentProcessor::Process(
    }
    return samplesPerChannel;
 }
+
+inline bool SilenceSegmentProcessor::SamplesRemaining() const
+{
+   // TODO(mhodgkinson) review
+   return false;
+}
