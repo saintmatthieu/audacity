@@ -88,6 +88,10 @@ public:
          floatSample, start, len, fill, mayThrow, pNumWithinClips);
    }
 
+   virtual bool GetFloatsStretched(
+      float* const* buffer, size_t numChannels,
+      size_t samplesPerChannel) const = 0;
+
    //! Retrieve samples from a track in a specified format
    /*!
     @copydetails SampleTrack::GetFloats()

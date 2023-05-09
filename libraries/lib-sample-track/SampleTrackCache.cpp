@@ -37,6 +37,30 @@ void SampleTrackCache::SetTrack(const std::shared_ptr<const SampleTrack> &pTrack
 const float *SampleTrackCache::GetFloats(
    sampleCount start, size_t len, bool mayThrow)
 {
+   return _GetFloats(
+      start, len, mayThrow,
+      [this](
+         float* buffer, sampleCount start, size_t len, fillFormat fill,
+         bool mayThrow, sampleCount* pNumWithinClips) -> bool {
+         return mPTrack->GetFloats(buffer, start, len, fillZero, mayThrow);
+      });
+}
+
+const float* SampleTrackCache::GetFloatsStretched(
+   sampleCount start, size_t len, bool mayThrow)
+{
+   return _GetFloats(
+      start, len, mayThrow,
+      [this](
+         float* buffer, sampleCount start, size_t len, fillFormat fill,
+         bool mayThrow, sampleCount* pNumWithinClips) -> bool {
+         return mPTrack->GetFloatsStretched(&buffer, 1u, len);
+      });
+}
+
+const float* SampleTrackCache::_GetFloats(
+   sampleCount start, size_t len, bool mayThrow, SampleTrackGetFloats getFloats)
+{
    constexpr auto format = floatSample;
    if (format == floatSample && len > 0) {
       const auto end = start + len;
@@ -86,9 +110,9 @@ const float *SampleTrackCache::GetFloats(
          if (start0 >= 0) {
             const auto len0 = mPTrack->GetBestBlockSize(start0);
             wxASSERT(len0 <= mBufferSize);
-            if (!mPTrack->GetFloats(
+            if (!getFloats(
                   mBuffers[0].data.get(), start0, len0,
-                  fillZero, mayThrow))
+                  fillZero, mayThrow, nullptr))
                return nullptr;
             mBuffers[0].start = start0;
             mBuffers[0].len = len0;
@@ -114,7 +138,7 @@ const float *SampleTrackCache::GetFloats(
             if (start1 == end0) {
                const auto len1 = mPTrack->GetBestBlockSize(start1);
                wxASSERT(len1 <= mBufferSize);
-               if (!mPTrack->GetFloats(mBuffers[1].data.get(), start1, len1, fillZero, mayThrow))
+               if (!getFloats(mBuffers[1].data.get(), start1, len1, fillZero, mayThrow, nullptr))
                   return nullptr;
                mBuffers[1].start = start1;
                mBuffers[1].len = len1;
@@ -139,10 +163,10 @@ const float *SampleTrackCache::GetFloats(
          mOverlapBuffer.Resize(len, format);
          // initLen is not more than len:
          auto sinitLen = initLen.as_size_t();
-         if (!mPTrack->GetFloats(
+         if (!getFloats(
             // See comment below about casting
             reinterpret_cast<float *>(mOverlapBuffer.ptr()),
-            start, sinitLen, fillZero, mayThrow))
+            start, sinitLen, fillZero, mayThrow, nullptr))
             return nullptr;
          wxASSERT( sinitLen <= remaining );
          remaining -= sinitLen;
@@ -192,8 +216,8 @@ const float *SampleTrackCache::GetFloats(
             buffer = mOverlapBuffer.ptr();
          }
          // See comment below about casting
-         if (!mPTrack->GetFloats( reinterpret_cast<float*>(buffer),
-            start, remaining, fillZero, mayThrow))
+         if (!getFloats( reinterpret_cast<float*>(buffer),
+            start, remaining, fillZero, mayThrow, nullptr))
             return 0;
       }
 

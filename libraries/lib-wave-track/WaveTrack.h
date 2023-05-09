@@ -11,6 +11,7 @@
 #ifndef __AUDACITY_WAVETRACK__
 #define __AUDACITY_WAVETRACK__
 
+#include "AudioSegment.h"
 #include "Prefs.h"
 #include "SampleCount.h"
 #include "SampleFormat.h"
@@ -260,6 +261,12 @@ private:
          than the effective, then no dithering will occur.
       */
    );
+
+   void Reposition(double t);
+
+   bool GetFloatsStretched(
+      float* const* buffer, size_t numChannels,
+      size_t samplesPerChannel) const override;
 
    sampleFormat WidestEffectiveFormat() const override;
 
@@ -525,6 +532,10 @@ private:
    int           mWaveColorIndex;
 
 private:
+    using AudioSegmentVector = std::vector<std::shared_ptr<AudioSegment>>;
+    AudioSegmentVector mAudioSegments;
+    mutable AudioSegmentVector::const_iterator mActiveAudioSegmentIt =
+       mAudioSegments.end();
    void DoSetPan(float value);
    void DoSetGain(float value);
 

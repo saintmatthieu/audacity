@@ -29,6 +29,7 @@
 #include "Resample.h"
 #include "InconsistencyException.h"
 #include "UserException.h"
+#include "WaveClipProcessor.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -121,6 +122,11 @@ WaveClip::~WaveClip()
 {
 }
 
+AudioSegmentProcessor& WaveClip::GetProcessor() const
+{
+   return WaveClipProcessor::Get(*this);
+}
+
 bool WaveClip::GetSamples(samplePtr buffer, sampleFormat format,
                    sampleCount start, size_t len, bool mayThrow) const
 {
@@ -152,6 +158,18 @@ const BlockArray* WaveClip::GetSequenceBlockArray() const
 size_t WaveClip::GetAppendBufferLen() const
 {
    return GetSequence()->GetAppendBufferLen();
+}
+
+double WaveClip::GetTimeStretchRatio() const
+{
+   try
+   {
+      return std::stod(std::string(mName.mb_str()));
+   }
+   catch (...)
+   {
+      return 1.0;
+   }
 }
 
 constSamplePtr WaveClip::GetAppendBuffer() const
@@ -912,6 +930,11 @@ sampleCount WaveClip::GetPlaySamplesCount() const
 {
     return mSequence->GetNumSamples()
        - TimeToSamples(mTrimRight) - TimeToSamples(mTrimLeft);
+}
+
+double WaveClip::GetStretchedPlayDuration() const
+{
+   return (GetPlayEndTime() - GetPlayStartTime()) * GetTimeStretchRatio();
 }
 
 void WaveClip::SetTrimLeft(double trim)

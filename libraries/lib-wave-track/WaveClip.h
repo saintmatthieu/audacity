@@ -12,8 +12,7 @@
 #ifndef __AUDACITY_WAVECLIP__
 #define __AUDACITY_WAVECLIP__
 
-
-
+#include "AudioSegment.h"
 #include "ClientData.h"
 #include "SampleFormat.h"
 #include "XMLTagHandler.h"
@@ -96,8 +95,10 @@ struct WAVE_TRACK_API WaveClipListener
    virtual void Invalidate() = 0;
 };
 
-class WAVE_TRACK_API WaveClip final : public XMLTagHandler
-   , public ClientData::Site< WaveClip, WaveClipListener >
+class WAVE_TRACK_API WaveClip final :
+    public XMLTagHandler,
+    public AudioSegment,
+    public ClientData::Site<WaveClip, WaveClipListener>
 {
 private:
    // It is an error to copy a WaveClip without specifying the
@@ -129,6 +130,8 @@ public:
 
    virtual ~WaveClip();
 
+   AudioSegmentProcessor& GetProcessor() const override;
+
    void ConvertToSampleFormat(sampleFormat format,
       const std::function<void(size_t)> & progressReport = {});
 
@@ -153,9 +156,9 @@ public:
    void SetSequenceStartTime(double startTime);
    double GetSequenceEndTime() const;
    //! Returns the index of the first sample of the underlying sequence
-   sampleCount GetSequenceStartSample() const;
+   sampleCount GetSequenceStartSample() const; 
    //! Returns the index of the sample next after the last sample of the underlying sequence
-   sampleCount GetSequenceEndSample() const;
+   sampleCount GetSequenceEndSample() const; 
    //! Returns the total number of samples in underlying sequence (not counting the cutlines)
    sampleCount GetSequenceSamplesCount() const;
 
@@ -163,6 +166,7 @@ public:
    void SetPlayStartTime(double time);
 
    double GetPlayEndTime() const;
+   double GetStretchedPlayDuration() const;
 
    sampleCount GetPlayStartSample() const;
    sampleCount GetPlayEndSample() const;
@@ -348,6 +352,8 @@ public:
 
    constSamplePtr GetAppendBuffer() const;
    size_t GetAppendBufferLen() const;
+
+   double GetTimeStretchRatio() const;
 
 protected:
    /// This name is consistent with WaveTrack::Clear. It performs a "Cut"
