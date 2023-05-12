@@ -33,6 +33,7 @@ set( SOURCES
 )
 set( LIBRARIES
    lib-project-history-interface
+   lib-numeric-formats-interface
 )
 audacity_library( lib-track "${SOURCES}" "${LIBRARIES}"
    "" ""

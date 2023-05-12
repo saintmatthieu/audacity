@@ -33,6 +33,7 @@ and TimeTrack.
 
 #include "BasicUI.h"
 #include "Project.h"
+#include "ProjectTimeSignature.h"
 #include "UndoManager.h"
 
 #include "InconsistencyException.h"
@@ -136,6 +137,11 @@ void Track::SetOwner
 {
    // BUG: When using this function to clear an owner, we may need to clear
    // focused track too.  Otherwise focus could remain on an invisible (or deleted) track.
+   const auto currentOwner = mList.lock();
+   const auto newOwner = list.lock();
+   if (currentOwner != newOwner) {
+      OnOwnerChange(newOwner);
+   }
    mList = list;
    mNode = node;
 }
@@ -497,6 +503,22 @@ const TrackList &TrackList::Get( const AudacityProject &project )
 TrackList::TrackList( AudacityProject *pOwner )
    : mOwner{ pOwner }
 {
+   if (mOwner)
+   {
+      const auto projectTempo = ProjectTimeSignature::Get(*mOwner).GetTempo();
+      for (const auto& track : Any())
+      {
+         track->OnProjectTempoChange(projectTempo, projectTempo);
+      }
+      mProjectTimeSignatureSubscription =
+         ProjectTimeSignature::Get(*mOwner).Subscribe(
+            [this](const TimeSignatureChangedMessage& msg) {
+               for (const auto& track : Any())
+               {
+                  track->OnProjectTempoChange(msg.oldTempo, msg.newTempo);
+               }
+            });
+   }
 }
 
 // Factory function

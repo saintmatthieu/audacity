@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AudioSegment.h"
+#include "SampleCount.h"
 #include "TimeAndPitchInterface.h"
 #include "WaveClip.h"
 

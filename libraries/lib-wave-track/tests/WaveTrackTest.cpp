@@ -86,10 +86,8 @@ TEST_CASE("WaveTrack")
       auto& projectFileIO = ProjectFileIO::Get(*project);
       projectFileIO.OpenProject();
       const auto factory = SampleBlockFactory::New(*project);
-      WaveTrack sut(factory, floatFormat, 1.0);
-      const auto clip =
-         std::make_shared<WaveClip>(factory, floatFormat, 1.0, 0);
-      clip->SetTimeStretchRatio(0.5);
+      const auto clip = std::make_shared<WaveClip>(
+         factory, floatFormat, 0, 0, std::weak_ptr<TrackList>());
       SF_INFO sfInfo;
       const auto audio = readWavFile(sfInfo);
       const auto numFrames = audio[0].size();

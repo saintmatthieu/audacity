@@ -14,14 +14,15 @@
 
 #include "AudioSegment.h"
 #include "ClientData.h"
+#include "SampleCount.h"
 #include "SampleFormat.h"
 #include "XMLTagHandler.h"
-#include "SampleCount.h"
 
 #include <wx/longlong.h>
 
-#include <vector>
 #include <functional>
+#include <optional>
+#include <vector>
 
 class BlockArray;
 class Envelope;
@@ -31,6 +32,7 @@ class SampleBlock;
 class SampleBlockFactory;
 using SampleBlockFactoryPtr = std::shared_ptr<SampleBlockFactory>;
 class Sequence;
+class TrackList;
 class wxFileNameWrapper;
 namespace BasicUI { class ProgressDialog; }
 
@@ -111,22 +113,23 @@ public:
    using Caches = Site< WaveClip, WaveClipListener >;
 
    // typical constructor
-   WaveClip(const SampleBlockFactoryPtr &factory, sampleFormat format,
-      int rate, int colourIndex);
+   WaveClip(
+      const SampleBlockFactoryPtr& factory, sampleFormat format, int rate,
+      int colourIndex, const std::weak_ptr<TrackList>& owner);
 
    // essentially a copy constructor - but you must pass in the
    // current sample block factory, because we might be copying
    // from one project to another
-   WaveClip(const WaveClip& orig,
-            const SampleBlockFactoryPtr &factory,
-            bool copyCutlines);
+   WaveClip(
+      const WaveClip& orig, const SampleBlockFactoryPtr& factory,
+      bool copyCutlines, const std::weak_ptr<TrackList>& owner);
 
    //! @brief Copy only a range from the given WaveClip
    //! @pre CountSamples(t1, t0) > 0
-   WaveClip(const WaveClip& orig,
-            const SampleBlockFactoryPtr &factory,
-            bool copyCutlines,
-            double t0, double t1);
+   WaveClip(
+      const WaveClip& orig, const SampleBlockFactoryPtr& factory,
+      bool copyCutlines, double t0, double t1,
+      const std::weak_ptr<TrackList>& owner);
 
    virtual ~WaveClip();
 
@@ -353,19 +356,18 @@ public:
    constSamplePtr GetAppendBuffer() const;
    size_t GetAppendBufferLen() const;
 
-   void SetTimeStretchRatio(double);
-   double GetTimeStretchRatio() const;
+   double GetPlayoutStretchRatio() const;
+   void OnOwnerChange(const std::shared_ptr<TrackList>&);
+   void OnProjectTempoChange(double oldTempo, double newTempo);
 
 protected:
    /// This name is consistent with WaveTrack::Clear. It performs a "Cut"
    /// operation (but without putting the cut audio to the clipboard)
    void ClearSequence(double t0, double t1);
 
-   
-
-   double mSequenceOffset { 0 };
-   double mTrimLeft{ 0 };
-   double mTrimRight{ 0 };
+   double mSequenceOffset { 0 }; // todo(mhodgkinson) to sampleCount ?
+   sampleCount mTrimLeft{ 0 };
+   sampleCount mTrimRight{ 0 };
 
    int mRate;
    int mColourIndex;
@@ -381,8 +383,14 @@ protected:
    bool mIsPlaceholder { false };
 
 private:
+   void ReadProjectTempoIfAvailable();
+
    wxString mName;
-   double mTimeStretchRatio = 1.0;
+   double mUiStretchRatio = 1.0;
+   bool mLockToProjectTempo = true;
+   std::optional<double> mSourceTempo;
+   std::optional<double> mDestinationTempo;
+   std::weak_ptr<TrackList> mOwner;
 };
 
 #endif

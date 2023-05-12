@@ -28,7 +28,6 @@ class SampleBlockFactory;
 using SampleBlockFactoryPtr = std::shared_ptr<SampleBlockFactory>;
 
 class TimeWarper;
-
 class Sequence;
 class WaveClip;
 
@@ -106,6 +105,7 @@ private:
    ChannelType GetChannelIgnoringPan() const override;
    ChannelType GetChannel() const override;
    virtual void SetPanFromChannelType() override;
+   void OnProjectTempoChange(double oldTempo, double newTempo) override;
 
    bool LinkConsistencyFix(bool doFix, bool completeList) override;
 
@@ -541,7 +541,10 @@ private:
 
    void PasteWaveTrack(double t0, const WaveTrack* other);
 
+   void OnOwnerChange(const std::shared_ptr<TrackList>&) override;
+
    SampleBlockFactoryPtr mpFactory;
+   std::weak_ptr<TrackList> mOwner;
 
    wxCriticalSection mFlushCriticalSection;
    wxCriticalSection mAppendCriticalSection;

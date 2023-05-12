@@ -13,10 +13,11 @@
 #define __AUDACITY_TRACK__
 
 #include <atomic>
+#include <functional>
+#include <list>
+#include <optional>
 #include <utility>
 #include <vector>
-#include <list>
-#include <functional>
 #include <wx/longlong.h>
 
 #include "ClientData.h"
@@ -376,6 +377,10 @@ private:
    //! Update mNode when Track is added to TrackList, or removed from it
    void SetOwner
       (const std::weak_ptr<TrackList> &list, TrackNodePointer node);
+
+   virtual void OnOwnerChange(const std::shared_ptr<TrackList>&)
+   {
+   }
 
  // Keep in Track
 
@@ -807,6 +812,10 @@ public:
 
    virtual double GetStartTime() const = 0;
    virtual double GetEndTime() const = 0;
+
+   virtual void OnProjectTempoChange(double oldTempo, double newTempo)
+   {
+   }
 
    // Send a notification to subscribers when state of the track changes
    // To do: define values for the argument to distinguish different parts
@@ -1712,13 +1721,14 @@ public:
    bool HasPendingTracks() const;
 
 private:
-   AudacityProject *mOwner;
+   AudacityProject* const mOwner;
 
    //! Shadow tracks holding append-recording in progress; need to put them into a list so that GetLink() works
    /*! Beware, they are in a disjoint iteration sequence from ordinary tracks */
    ListOfTracks mPendingUpdates;
    //! This is in correspondence with mPendingUpdates
    std::vector< Updater > mUpdaters;
+   std::optional<Observer::Subscription> mProjectTimeSignatureSubscription;
 };
 
 #endif

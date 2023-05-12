@@ -30,7 +30,7 @@ void WaveClipProcessor::Reposition(double t)
       return;
    }
    mReadPos = static_cast<sampleCount::type>(
-      t * mClip.GetRate() * mClip.GetTimeStretchRatio() + 0.5f);
+      t * mClip.GetRate() * mClip.GetPlayoutStretchRatio() + 0.5f);
 
    TimeAndPitchInterface::InputGetter inputGetter =
       [this, numChannels = 1u](float* const* buffers, size_t samplesPerChannel)
@@ -66,7 +66,7 @@ void WaveClipProcessor::Reposition(double t)
    };
 
    TimeAndPitchInterface::Parameters params;
-   params.timeRatio = mClip.GetTimeStretchRatio();
+   params.timeRatio = mClip.GetPlayoutStretchRatio();
    mStretcher = TimeAndPitchInterface::createInstance(
       1u, std::move(inputGetter), std::move(params));
 }
