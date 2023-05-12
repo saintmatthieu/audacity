@@ -49,7 +49,9 @@ classDiagram
 
 ---
 
-## Proposal
+## Proposal A
+
+Simplest, but may suffer quality problems : unstretched clip A may transition without a *click* into unstretched clip B, but time-stretching either or both could introduce clicking.
 
 ```mermaid
 classDiagram
@@ -67,7 +69,7 @@ classDiagram
    WaveTrack *-- WaveClipInterface: 1-M
    WaveClipInterface <|-- StretchingWaveClip
    WaveClipInterface <|-- WaveClip
-   WaveClip --* StretchingWaveClip
+   StretchingWaveClip *-- WaveClip
    WaveClipFactoryInterface <|-- StretchingWaveClipFactory
    WaveTrack *-- WaveClipFactoryInterface
 
@@ -89,3 +91,9 @@ classDiagram
    libsampletrack <.. libwavetrack
    libwavetrack <.. libtimestretching
 ```
+
+---
+
+## Proposal B
+
+How do we prevent the clicking risk mentioned above? (Could be part of proposal A.)
