@@ -1,15 +1,17 @@
 #include "StretchingPlaybackTrackFactory.h"
 
+#include "StretchingSampleTrack.h"
 #include "WaveTrack.h"
 
-std::function<ConstSampleTrackHolder(ConstSampleTrackHolder)>
+std::function<ConstSampleTrackHolder(SampleTrackHolder)>
 StretchingPlaybackTrackFactory::GetStretchingSampleTrackFactory()
 {
-   return [](ConstSampleTrackHolder sampleTrack) {
-      if (track_cast<const WaveTrack*>(sampleTrack.get()))
+   return [](SampleTrackHolder sampleTrack) -> ConstSampleTrackHolder {
+      if (track_cast<WaveTrack*>(sampleTrack.get()))
       {
          // todo(mhodgkinson) wrap into StretchingSampleTrack
-         return sampleTrack;
+         return std::make_shared<StretchingSampleTrack>(
+            std::static_pointer_cast<WaveTrack>(sampleTrack));
       }
       else
       {

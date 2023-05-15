@@ -40,6 +40,7 @@ class AudacityProject;
 using TrackArray = std::vector< Track* >;
 
 class TrackList;
+class NiceTrack;
 struct UndoStackElem;
 
 using ListOfTracks = std::list< std::shared_ptr< Track > >;
@@ -193,8 +194,9 @@ public:
 private:
 
    friend class TrackList;
+   friend class NiceTrack;
 
- private:
+private:
    TrackId mId; //!< Identifies the track only in-session, not persistently
 
    std::unique_ptr<ChannelGroupData> mpGroupData;
@@ -206,8 +208,6 @@ private:
    TrackNodePointer mNode{};
    int            mIndex; //!< 0-based position of this track in its TrackList
    wxString       mName;
-
- private:
    bool           mSelected;
 
  public:
@@ -297,8 +297,10 @@ private:
    };
    virtual const TypeInfo &GetTypeInfo() const = 0;
    static const TypeInfo &ClassTypeInfo();
-   virtual const TypeNames &GetTypeNames() const
-   { return GetTypeInfo().names; }
+   virtual const TypeNames& GetTypeNames() const
+   {
+      return GetTypeInfo().names;
+   }
 
    //! Whether this track type implements cut-copy-paste; by default, true
    virtual bool SupportsBasicEditing() const;
@@ -313,12 +315,12 @@ private:
    /*!
    Some intervals may be empty, and no ordering of the intervals is assumed.
    */
-   virtual ConstIntervals GetIntervals() const;
+   virtual ConstIntervals GetIntervals() const = 0;
 
    /*! @copydoc GetIntervals()
    This overload exposes the extra data of the intervals as non-const
     */
-   virtual Intervals GetIntervals();
+   virtual Intervals GetIntervals() = 0;
 
  public:
    mutable std::pair<int, int> vrulerSize;
@@ -378,9 +380,7 @@ private:
    void SetOwner
       (const std::weak_ptr<TrackList> &list, TrackNodePointer node);
 
-   virtual void OnOwnerChange(const std::shared_ptr<TrackList>&)
-   {
-   }
+   virtual void OnOwnerChange(const std::shared_ptr<TrackList>&) = 0;
 
  // Keep in Track
 
@@ -403,7 +403,7 @@ private:
 
    // Called when this track is merged to stereo with another, and should
    // take on some parameters of its partner.
-   virtual void Merge(const Track &orig);
+   virtual void Merge(const Track &orig) = 0;
 
    wxString GetName() const { return mName; }
    void SetName( const wxString &n );
@@ -418,14 +418,14 @@ private:
 
 public:
 
-   virtual ChannelType GetChannel() const { return mChannel;}
+   virtual ChannelType GetChannel() const = 0;
    virtual double GetOffset() const = 0;
 
    void Offset(double t) { SetOffset(GetOffset() + t); }
-   virtual void SetOffset (double o) { mOffset = o; }
+   virtual void SetOffset(double o) = 0;
 
-   virtual void SetPan( float ){ ;}
-   virtual void SetPanFromChannelType(){ ;};
+   virtual void SetPan( float ) = 0;
+   virtual void SetPanFromChannelType() = 0;
 
    // Create a NEW track and modify this track
    // Return non-NULL or else throw
@@ -448,7 +448,7 @@ public:
 
    // This can be used to adjust a sync-lock selected track when the selection
    // is replaced by one of a different length.
-   virtual void SyncLockAdjust(double oldT1, double newT1);
+   virtual void SyncLockAdjust(double oldT1, double newT1) = 0;
 
    // May assume precondition: t0 <= t1
    virtual void Silence(double WXUNUSED(t0), double WXUNUSED(t1)) = 0;
@@ -808,14 +808,12 @@ public:
 
    // Returns true if an error was encountered while trying to
    // open the track from XML
-   virtual bool GetErrorOpening() { return false; }
+   virtual bool GetErrorOpening() = 0;
 
    virtual double GetStartTime() const = 0;
    virtual double GetEndTime() const = 0;
 
-   virtual void OnProjectTempoChange(double oldTempo, double newTempo)
-   {
-   }
+   virtual void OnProjectTempoChange(double oldTempo, double newTempo) = 0;
 
    // Send a notification to subscribers when state of the track changes
    // To do: define values for the argument to distinguish different parts
@@ -842,6 +840,45 @@ public:
 };
 
 ENUMERATE_TRACK_TYPE(Track);
+
+//! Track with some default implementations
+class TRACK_API NiceTrack : public Track
+{
+public:
+   NiceTrack();
+   NiceTrack(const NiceTrack &orig, ProtectedCreationArg&&);
+
+   virtual ~NiceTrack() = default;
+
+   virtual ConstIntervals GetIntervals() const;
+   virtual Intervals GetIntervals();
+   virtual void OnOwnerChange(const std::shared_ptr<TrackList>&)
+   {
+   }
+   virtual void Merge(const Track& orig);
+   virtual ChannelType GetChannel() const
+   {
+      return mChannel;
+   }
+   virtual void SetOffset(double o)
+   {
+      mOffset = o;
+   }
+   virtual void SetPan(float)
+   {
+   }
+   virtual void SetPanFromChannelType()
+   {
+   }
+   virtual void SyncLockAdjust(double oldT1, double newT1);
+   virtual bool GetErrorOpening()
+   {
+      return false;
+   }
+   virtual void OnProjectTempoChange(double oldTempo, double newTempo)
+   {
+   }
+};
 
 //! Track subclass holding data representing sound (as notes, or samples, or ...)
 class TRACK_API AudioTrack /* not final */ : public Track
@@ -1502,6 +1539,7 @@ public:
    static bool SwapChannels(Track &track);
 
    friend class Track;
+   friend class NiceTrack;
 
    //! For use in sorting:  assume each iterator points into this list, no duplications
    void Permute(const std::vector<TrackNodePointer> &permutation);

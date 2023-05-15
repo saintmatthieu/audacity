@@ -83,7 +83,7 @@ struct AUDIO_IO_API TransportTracks final {
    TransportTracks() = default;
    TransportTracks(
       TrackList& trackList,
-      const std::function<ConstSampleTrackHolder(ConstSampleTrackHolder)>&
+      const std::function<ConstSampleTrackHolder(SampleTrackHolder)>&
          playbackTrackFactory,
       bool selectedOnly,
       bool nonWaveToo = false //!< if true, collect all PlayableTracks

@@ -88,8 +88,6 @@ public:
 private:
    void Init(const WaveTrack &orig);
 
-   Track::Holder Clone() const override;
-
    friend class WaveTrackFactory;
 
    wxString MakeClipCopyName(const wxString& originalName) const;
@@ -100,6 +98,7 @@ private:
 
    virtual ~WaveTrack();
    
+   Track::Holder Clone() const override;
    double GetOffset() const override;
    void SetOffset(double o) override;
    ChannelType GetChannelIgnoringPan() const override;
@@ -267,6 +266,8 @@ private:
    bool GetFloatsStretched(
       float* const* buffer, size_t numChannels,
       size_t samplesPerChannel) const override;
+
+   void OnOwnerChange(const std::shared_ptr<TrackList>&) override;
 
    sampleFormat WidestEffectiveFormat() const override;
 
@@ -540,8 +541,6 @@ private:
    void DoSetGain(float value);
 
    void PasteWaveTrack(double t0, const WaveTrack* other);
-
-   void OnOwnerChange(const std::shared_ptr<TrackList>&) override;
 
    SampleBlockFactoryPtr mpFactory;
    std::weak_ptr<TrackList> mOwner;

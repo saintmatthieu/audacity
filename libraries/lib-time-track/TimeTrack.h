@@ -19,7 +19,7 @@ class wxRect;
 class BoundedEnvelope;
 struct TrackPanelDrawingContext;
 
-class TIME_TRACK_API TimeTrack final : public Track {
+class TIME_TRACK_API TimeTrack final : public NiceTrack {
 
  public:
 

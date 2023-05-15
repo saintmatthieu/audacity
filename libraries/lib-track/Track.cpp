@@ -43,6 +43,16 @@ and TimeTrack.
 #pragma warning( disable : 4786 )
 #endif
 
+NiceTrack::NiceTrack()
+    : Track()
+{
+}
+
+NiceTrack::NiceTrack(const NiceTrack& orig, ProtectedCreationArg&& arg)
+    : Track(orig, std::move(arg))
+{
+}
+
 Track::Track()
 :  vrulerSize(36,0)
 {
@@ -103,7 +113,7 @@ void Track::EnsureVisible( bool modifyState )
       pList->EnsureVisibleEvent( SharedPointer(), modifyState );
 }
 
-void Track::Merge(const Track &orig)
+void NiceTrack::Merge(const Track &orig)
 {
    mSelected = orig.mSelected;
 }
@@ -289,7 +299,7 @@ void Track::Notify( int code )
       pList->DataEvent( SharedPointer(), code );
 }
 
-void Track::SyncLockAdjust(double oldT1, double newT1)
+void NiceTrack::SyncLockAdjust(double oldT1, double newT1)
 {
    if (newT1 > oldT1) {
       // Insert space within the track
@@ -339,7 +349,7 @@ void PlayableTrack::Merge( const Track &orig )
    wxASSERT( pOrig );
    DoSetMute(pOrig->DoGetMute());
    DoSetSolo(pOrig->DoGetSolo());
-   AudioTrack::Merge( *pOrig );
+   mSelected = pOrig->mSelected;
 }
 
 void PlayableTrack::SetMute( bool m )
@@ -1283,12 +1293,12 @@ bool Track::SupportsBasicEditing() const
    return true;
 }
 
-auto Track::GetIntervals() const -> ConstIntervals
+auto NiceTrack::GetIntervals() const -> ConstIntervals
 {
    return {};
 }
 
-auto Track::GetIntervals() -> Intervals
+auto NiceTrack::GetIntervals() -> Intervals
 {
    return {};
 }
