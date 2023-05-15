@@ -98,9 +98,16 @@ classDiagram
 
 The `StretchingSampleTrack` proposal, wrapping `WaveTrack` and replacing the `playbackTracks` member of `TransportTracks`. (What are the `otherPlayableTracks`?).
 
+Clients of `TransportTracks` now inject a `StretchingSampleTrack` factory in its constructor. This factory is provided by `lib-stretching-sample-track`.
+
 ```mermaid
 classDiagram
-class TransportTracks
+class TransportTracks {
+   playbackTracks
+   captureTracks
+   otherPlayableTracks
+   prerollTracks
+}
 class SampleTrack
 class StretchingSampleTrack
 class WaveTrack {
@@ -111,4 +118,30 @@ TransportTracks *-- SampleTrack: 1-M
 SampleTrack <|-- WaveTrack: implements
 SampleTrack <|-- StretchingSampleTrack
 StretchingSampleTrack *-- WaveTrack: owns
+
+class libsampletrack["lib-sample-track"] {
+   SampleTrack
+}
+class libwavetrack["lib-wave-track"] {
+   WaveTrack
+}
+class libaudioio["lib-audio-io"] {
+   TransportTracks
+}
+class libstretchingsampletrack["lib-stretching-sample-track"] {
+   StretchingSampleTrack
+}
+class libtimeandpitch["lib-time-and-pitch"]
+class libeffects["lib-effects"]
+class src
+libsampletrack <-- libwavetrack
+libsampletrack <-- libaudioio
+libwavetrack <-- libstretchingsampletrack
+libaudioio <-- libstretchingsampletrack
+libtimeandpitch <-- libstretchingsampletrack
+libaudioio <-- libeffects
+libstretchingsampletrack <-- libeffects: new
+libstretchingsampletrack <-- src: new
+libeffects <-- src
+libaudioio <-- src
 ```

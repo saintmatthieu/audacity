@@ -1429,6 +1429,7 @@ set( AUDACITY_LIBRARIES
    lib-effects-interface
    lib-wx-init-interface
    lib-time-track-interface
+   lib-stretching-sample-track-interface
    lib-snapping-interface
 )
 

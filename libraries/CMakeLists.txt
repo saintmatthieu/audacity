@@ -52,6 +52,7 @@ set( LIBRARIES
    lib-ladspa
    lib-audio-unit
    lib-time-and-pitch
+   lib-stretching-sample-track
 )
 
 if ( ${_OPT}has_networking )

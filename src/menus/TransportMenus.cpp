@@ -28,6 +28,7 @@
 #include "AudacityMessageBox.h"
 #include "BasicUI.h"
 #include "ProgressDialog.h"
+#include "StretchingPlaybackTrackFactory.h"
 
 #include <thread>
 #include <float.h>
@@ -326,8 +327,12 @@ void OnPunchAndRoll(const CommandContext &context)
    const auto duplex = ProjectAudioManager::UseDuplex();
    if (duplex)
       // play all
-      transportTracks = TransportTracks{
-         TrackList::Get( project ), false, true };
+      transportTracks = TransportTracks {
+         TrackList::Get(project),
+         // todo(mhodgkinson) verify that stretching is needed here
+         StretchingPlaybackTrackFactory::GetStretchingSampleTrackFactory(),
+         false, true
+      };
    else
       // play recording tracks only
       std::copy(tracks.begin(), tracks.end(),

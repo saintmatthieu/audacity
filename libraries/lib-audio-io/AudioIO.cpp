@@ -124,13 +124,17 @@ using std::max;
 using std::min;
 
 TransportTracks::TransportTracks(
-   TrackList &trackList, bool selectedOnly, bool nonWaveToo)
+   TrackList& trackList,
+   const std::function<ConstSampleTrackHolder(ConstSampleTrackHolder)>&
+      playbackTrackFactory,
+   bool selectedOnly, bool nonWaveToo)
 {
    {
       const auto range = trackList.Any<SampleTrack>()
          + (selectedOnly ? &Track::IsSelected : &Track::Any);
       for (auto pTrack : range)
-         playbackTracks.push_back(pTrack->SharedPointer<SampleTrack>());
+         playbackTracks.push_back(
+            playbackTrackFactory(pTrack->SharedPointer<SampleTrack>()));
    }
 #ifdef EXPERIMENTAL_MIDI_OUT
    if (nonWaveToo) {
