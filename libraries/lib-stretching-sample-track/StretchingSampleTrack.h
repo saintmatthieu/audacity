@@ -3,7 +3,7 @@
 #include "WaveTrack.h"
 
 class STRETCHING_SAMPLE_TRACK_API StretchingSampleTrack final :
-    public SampleTrack
+    public WritableSampleTrack
 {
 public:
    StretchingSampleTrack(std::shared_ptr<WaveTrack>);
@@ -50,6 +50,13 @@ public:
       samplePtr buffer, sampleFormat format, sampleCount start, size_t len,
       fillFormat fill = fillZero, bool mayThrow = true,
       sampleCount* pNumWithinClips = nullptr) const override;
+
+   // WritableSampleTrack
+   bool Append(
+      constSamplePtr buffer, sampleFormat format, size_t len,
+      unsigned int stride = 1,
+      sampleFormat effectiveFormat = widestSampleFormat) override;
+   void Flush() override;
 
    // XMLTagHandler
    bool HandleXMLTag(

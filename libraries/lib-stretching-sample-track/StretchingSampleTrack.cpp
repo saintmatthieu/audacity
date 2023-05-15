@@ -179,6 +179,18 @@ bool StretchingSampleTrack::Get(
       buffer, format, start, len, fill, mayThrow, pNumWithinClips);
 }
 
+bool StretchingSampleTrack::Append(
+   constSamplePtr buffer, sampleFormat format, size_t len, unsigned int stride,
+   sampleFormat effectiveFormat)
+{
+   return mWaveTrack->Append(buffer, format, len, stride, effectiveFormat);
+}
+
+void StretchingSampleTrack::Flush()
+{
+   return mWaveTrack->Flush();
+}
+
 bool StretchingSampleTrack::HandleXMLTag(
    const std::string_view& tag, const AttributesList& attrs)
 {
