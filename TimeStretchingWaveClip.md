@@ -96,4 +96,19 @@ classDiagram
 
 ## Proposal B
 
-How do we prevent the clicking risk mentioned above? (Could be part of proposal A.)
+The `StretchingSampleTrack` proposal, wrapping `WaveTrack` and replacing the `playbackTracks` member of `TransportTracks`. (What are the `otherPlayableTracks`?).
+
+```mermaid
+classDiagram
+class TransportTracks
+class SampleTrack
+class StretchingSampleTrack
+class WaveTrack {
+   GetAllClips()
+}
+
+TransportTracks *-- SampleTrack: 1-M
+SampleTrack <|-- WaveTrack: implements
+SampleTrack <|-- StretchingSampleTrack
+StretchingSampleTrack *-- WaveTrack: owns
+```
