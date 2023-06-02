@@ -8,7 +8,7 @@
   Paul Licameli
 
 **********************************************************************/
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include "Callable.h"
 #include "Variant.h"
@@ -27,7 +27,7 @@ struct ValueType {
 //! Parameterize for the type of visitor return
 template<bool Const, Ref ref = lvalue>
 struct Tester {
-   
+
 template<typename T>
 using MaybeConst = std::conditional_t<Const, const T, T>;
 

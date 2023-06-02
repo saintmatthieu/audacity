@@ -9,7 +9,7 @@
 
 **********************************************************************/
 
-#include <catch2/catch_all.hpp>
+#include <catch2/catch.hpp>
 
 #include "formatters/ParsedNumericConverterFormatter.h"
 #include "formatters/BeatsNumericConverterFormatter.h"
@@ -26,7 +26,7 @@
 TEST_CASE("ParsedNumericConverterFormatter", "")
 {
    auto context = FormatterContext::SampleRateContext(44100.0);
-   
+
    auto hhmmssFormatter = CreateParsedNumericConverterFormatter(
       context, NumericConverterType_TIME(), Verbatim("0100 h 060 m 060 s"));
 
@@ -72,14 +72,14 @@ TEST_CASE("BeatsNumericConverterFormatter", "")
 {
    MockedPrefs mockedPrefs;
    MockedAudio mockedAudio;
-   
+
    auto project = AudacityProject::Create();
    auto& timeSignature = ProjectTimeSignature::Get(*project);
-   
+
    timeSignature.SetTempo(120.0);
    timeSignature.SetUpperTimeSignature(3);
    timeSignature.SetLowerTimeSignature(4);
-   
+
    auto basicFormatter = CreateBeatsNumericConverterFormatter(FormatterContext::ProjectContext(*project));
 
    REQUIRE(
