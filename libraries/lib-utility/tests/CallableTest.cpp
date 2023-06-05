@@ -45,7 +45,7 @@ TEST_CASE("Compilation")
          // and move constructor
          visitor3{ OverloadSet{ TestVisitor{}, &X::member } };
    }
-
+   
    {
       // These function objects are of literal types
       constexpr auto f1 = UniquePtrFactory<X>::Function;
@@ -78,7 +78,7 @@ TEST_CASE("Compilation")
       TakesNonTypeParameter<f2> t2{};
       // Doesn't work with f3 in C++17
    }
-
+   
    {
       // These function objects are of literal types
       constexpr auto f1 = SharedPtrFactory<X>::Function;
@@ -111,7 +111,7 @@ TEST_CASE("Compilation")
       TakesNonTypeParameter<f2> t2{};
       // Doesn't work with f3 in C++17
    }
-
+   
    {
       // These function objects are of literal types
       constexpr auto f1 = Constantly<0>::Function;

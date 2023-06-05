@@ -20,7 +20,7 @@
 #include "MockedPrefs.h"
 
 void TimeCase(const AudacityProject& project, const char* format, double time, double expected, bool nearest)
-{
+{   
    REQUIRE(SnapFunctionsRegistry::Snap(format, project, time, nearest).snapped);
    REQUIRE(
       SnapFunctionsRegistry::Snap(format, project, time, nearest).time ==
@@ -52,7 +52,7 @@ void TimeStepCase(
    REQUIRE(
       SnapFunctionsRegistry::SingleStep(format, project, time, upwards)
          .snapped == successful);
-
+   
    REQUIRE(
       SnapFunctionsRegistry::SingleStep(format, project, time, upwards).time ==
       Approx(expected));
@@ -63,11 +63,11 @@ void BarStepCase(
    double expected, bool upwards)
 {
    auto& timeSignature = ProjectTimeSignature::Get(project);
-
+   
    timeSignature.SetTempo(60.0);
    timeSignature.SetUpperTimeSignature(4);
    timeSignature.SetLowerTimeSignature(4);
-
+   
    REQUIRE(SnapFunctionsRegistry::SingleStep(format, project, time, upwards)
               .snapped);
 
@@ -82,10 +82,10 @@ TEST_CASE("Snapping", "")
    MockedAudio mockedAudio;
 
    auto project = AudacityProject::Create();
-
+         
    REQUIRE(!SnapFunctionsRegistry::Snap("foo", *project, 1.0, true).snapped);
-
-
+   
+   
    TimeCase(*project, "seconds", 1.0, 1.0, true);
    TimeCase(*project, "seconds", 1.0, 1.0, false);
    TimeCase(*project, "seconds", 1.1, 1.0, true);
@@ -150,7 +150,7 @@ TEST_CASE("Snapping", "")
    BeatsCase(*project, "bar", 1.0, 0.0, false, 3, 4);
    BeatsCase(*project, "bar", 2.0, 3.0, true, 3, 4);
    BeatsCase(*project, "bar", 2.0, 0.0, false, 3, 4);
-
+   
    BeatsCase(*project, "bar", 2.0, 4.0, true, 4, 4);
    BeatsCase(*project, "bar", 2.0, 0.0, false, 4, 4);
    BeatsCase(*project, "bar", 3.0, 3.0, true, 3, 4);
@@ -205,7 +205,7 @@ TEST_CASE("Snapping", "")
    BeatsCase(*project, "triplet_1_2", 1.0, 1 + 1.0 / 3.0, true, 3, 4);
    BeatsCase(*project, "triplet_1_2", 2.0, 2.0 + 2.0 / 3.0, true, 3, 4);
    BeatsCase(*project, "triplet_1_2", 3.0, 2.0 + 2.0 / 3.0, true, 3, 4);
-
+   
    BeatsCase(*project, "triplet_1_2", 0.0, 0.0, true, 4, 4);
    BeatsCase(*project, "triplet_1_2", 0.5, 0.0, true, 4, 4);
    BeatsCase(*project, "triplet_1_2", 1.0, 1 + 1.0 / 3.0, true, 4, 4);

@@ -27,7 +27,7 @@ struct ValueType {
 //! Parameterize for the type of visitor return
 template<bool Const, Ref ref = lvalue>
 struct Tester {
-
+   
 template<typename T>
 using MaybeConst = std::conditional_t<Const, const T, T>;
 
