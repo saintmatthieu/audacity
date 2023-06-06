@@ -966,7 +966,7 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
             auto at = LongSamplesToTime(TimeToLongSamples(warper->Warp(split.time)));
             for (const auto& clip : GetClips())
             {
-               if (clip->WithinPlayRegion(at))//strictly inside
+               if (clip->StrictlyWithinPlayRegion(at))
                {
                   auto newClip =
                      std::make_unique<WaveClip>(*clip, mpFactory, true);
@@ -1355,7 +1355,7 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
         {
             if (editClipCanMove)
             {
-                if (clip->WithinPlayRegion(t0))
+                if (clip->StrictlyWithinPlayRegion(t0))
                 {
                     //wxPrintf("t0=%.6f: inside clip is %.6f ... %.6f\n",
                     //       t0, clip->GetStartTime(), clip->GetEndTime());
@@ -1366,7 +1366,7 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
             else
             {
                 // If clips are immovable we also allow prepending to clips
-                if (clip->WithinPlayRegion(t0) ||
+                if (clip->StrictlyWithinPlayRegion(t0) ||
                     TimeToLongSamples(t0) == clip->GetPlayStartSample())
                 {
                     insideClip = clip.get();
@@ -1496,7 +1496,7 @@ void WaveTrack::InsertSilence(double t, double len)
       // Assume at most one clip contains t
       const auto end = mClipList.End();
       const auto it = std::find_if( mClipList.Begin(), end,
-         [&](const WaveClipHolder &clip) { return clip->WithinPlayRegion(t); } );
+         [&](const WaveClipHolder &clip) { return clip->StrictlyWithinPlayRegion(t); } );
 
       // use Strong-guarantee
       if (it != end)
@@ -2420,7 +2420,7 @@ void WaveTrack::SplitAt(double t)
 {
    for (const auto &c : mClipList.Get())
    {
-      if (c->WithinPlayRegion(t))
+      if (c->StrictlyWithinPlayRegion(t))
       {
          t = LongSamplesToTime(TimeToLongSamples(t));
          auto newClip = std::make_unique<WaveClip>(*c, mpFactory, true);
