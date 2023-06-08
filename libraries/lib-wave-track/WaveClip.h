@@ -164,7 +164,11 @@ public:
    void SetPlayStartTime(double time);
 
    double GetPlayEndTime() const;
+   double GetPlayEndTimeInOtherProject(
+      const std::optional<double>& targetProjectTempo) const;
    double GetPlayDuration() const;
+   double GetPlayDurationInOtherProject(
+      const std::optional<double>& targetProjectTempo) const;
 
    sampleCount GetPlayStartSample() const;
    sampleCount GetPlayEndSample() const;
@@ -385,6 +389,13 @@ protected:
    bool mIsPlaceholder { false };
 
 private:
+   double GetPlayEndTime(const std::optional<double>& destinationTempo) const;
+   double GetPlayDuration(const std::optional<double>& destinationTempo) const;
+   double
+   GetPlayoutStretchRatio(const std::optional<double>& destinationTempo) const;
+   double
+   GetPlayoutStretchRatioInOtherProject(const std::optional<double>&) const;
+
    wxString mName;
    double mUiStretchRatio = 1.0;
    bool mLockToProjectTempo = true;

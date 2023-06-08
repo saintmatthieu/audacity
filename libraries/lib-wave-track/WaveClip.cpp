@@ -150,13 +150,25 @@ size_t WaveClip::GetAppendBufferLen() const
 
 double WaveClip::GetPlayoutStretchRatio() const
 {
+   return GetPlayoutStretchRatio(mDestinationTempo);
+}
+
+double WaveClip::GetPlayoutStretchRatioInOtherProject(
+   const std::optional<double>& otherProjectTempo) const
+{
+   return GetPlayoutStretchRatio(otherProjectTempo);
+}
+
+double WaveClip::GetPlayoutStretchRatio(
+   const std::optional<double>& destinationTempo) const
+{
    if (!mLockToProjectTempo)
    {
       return mUiStretchRatio;
    }
    const auto dstSrcRatio =
-      mDestinationTempo.has_value() && mSourceTempo.has_value() ?
-         *mSourceTempo / *mDestinationTempo :
+      destinationTempo.has_value() && mSourceTempo.has_value() ?
+         *mSourceTempo / *destinationTempo :
          1.0;
    return mUiStretchRatio * dstSrcRatio;
 }
@@ -969,12 +981,25 @@ void WaveClip::SetPlayStartTime(double time)
     SetSequenceStartTime(time - mTrimLeft);
 }
 
-double WaveClip::GetPlayEndTime() const
+double
+WaveClip::GetPlayEndTime() const
+{
+    return GetPlayEndTime(mDestinationTempo);
+}
+
+double WaveClip::GetPlayEndTimeInOtherProject(
+   const std::optional<double>& otherProjectTempo) const
+{
+   return GetPlayEndTime(otherProjectTempo);
+}
+
+double
+WaveClip::GetPlayEndTime(const std::optional<double>& destinationTempo) const
 {
     auto numSamples = mSequence->GetNumSamples();
     double maxLen = GetSequenceStartTime() +
                     ((numSamples + GetAppendBufferLen()).as_double()) *
-                       GetPlayoutStretchRatio() / mRate -
+                       GetPlayoutStretchRatio(destinationTempo) / mRate -
                     SamplesToTime(TimeToSamples(mTrimRight));
     // JS: calculated value is not the length;
     // it is a maximum value and can be negative; no clipping to 0
@@ -982,9 +1007,22 @@ double WaveClip::GetPlayEndTime() const
     return maxLen;
 }
 
-double WaveClip::GetPlayDuration() const
+double
+WaveClip::GetPlayDuration() const
 {
-   return GetPlayEndTime() - GetPlayStartTime();
+    return GetPlayDuration(mDestinationTempo);
+}
+
+double WaveClip::GetPlayDurationInOtherProject(
+   const std::optional<double>& otherProjectTempo) const
+{
+    return GetPlayDuration(otherProjectTempo);
+}
+
+double
+WaveClip::GetPlayDuration(const std::optional<double>& destinationTempo) const
+{
+    return GetPlayEndTime(destinationTempo) - GetPlayStartTime();
 }
 
 sampleCount WaveClip::GetPlayStartSample() const

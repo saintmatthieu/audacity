@@ -528,12 +528,17 @@ private:
    void DoSetGain(float value);
 
    void PasteWaveTrack(double t0, const WaveTrack* other);
+   double GetEndTime(
+      const std::function<double(const WaveClip&)>& endTimeGetter) const;
+   double GetEndTimeInOtherProject(
+      const std::optional<double>& otherProjectTempo) const;
 
    SampleBlockFactoryPtr mpFactory;
 
    wxCriticalSection mFlushCriticalSection;
    wxCriticalSection mAppendCriticalSection;
    double mLegacyProjectFileOffset;
+   std::optional<double> mProjectTempo;
 };
 
 ENUMERATE_TRACK_TYPE(WaveTrack);

@@ -302,6 +302,7 @@ void WaveTrack::SetPanFromChannelType()
 void WaveTrack::OnProjectTempoChange(double oldTempo, double newTempo)
 {
    mClipList.OnProjectTempoChange(oldTempo, newTempo);
+   mProjectTempo = newTempo;
 }
 
 bool WaveTrack::LinkConsistencyFix(bool doFix, bool completeList)
@@ -1312,10 +1313,11 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
 
     //wxPrintf("paste: we have at least one clip\n");
 
-    bool singleClipMode = other->GetNumClips() == 1 &&
+    const bool singleClipMode = other->GetNumClips() == 1 &&
         std::abs(other->GetStartTime()) < LongSamplesToTime(1) * 0.5;
 
-    const double insertDuration = other->GetEndTime();
+    const double insertDuration =
+       other->GetEndTimeInOtherProject(mProjectTempo);
     if (insertDuration != 0 && insertDuration < 1.0 / mRate)
         // PRL:  I added this check to avoid violations of preconditions in other WaveClip and Sequence
         // methods, but allow the value 0 so I don't subvert the purpose of commit
@@ -1325,8 +1327,8 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
 
     //wxPrintf("Check if we need to make room for the pasted data\n");
 
-    auto pastingFromTempTrack = !other->GetOwner();
-    bool editClipCanMove = GetEditClipsCanMove();
+    const auto pastingFromTempTrack = !other->GetOwner();
+    const bool editClipCanMove = GetEditClipsCanMove();
 
     // Make room for the pasted data
     if (editClipCanMove) {
@@ -1902,6 +1904,21 @@ double WaveTrack::GetStartTime() const
 
 double WaveTrack::GetEndTime() const
 {
+   return GetEndTime(
+      [](const WaveClip& clip) { return clip.GetPlayEndTime(); });
+}
+
+double WaveTrack::GetEndTimeInOtherProject(
+   const std::optional<double>& otherProjectTempo) const
+{
+   return GetEndTime([otherProjectTempo](const WaveClip& clip) {
+      return clip.GetPlayEndTimeInOtherProject(otherProjectTempo);
+   });
+}
+
+double WaveTrack::GetEndTime(
+   const std::function<double(const WaveClip&)>& endTimeGetter) const
+{
    bool found = false;
    double best = 0.0;
 
@@ -1912,10 +1929,10 @@ double WaveTrack::GetEndTime() const
       if (!found)
       {
          found = true;
-         best = clip->GetPlayEndTime();
+         best = endTimeGetter(*clip);
       }
-      else if (clip->GetPlayEndTime() > best)
-         best = clip->GetPlayEndTime();
+      else if (endTimeGetter(*clip) > best)
+         best = endTimeGetter(*clip);
 
    return best;
 }
