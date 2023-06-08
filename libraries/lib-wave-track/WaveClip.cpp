@@ -164,6 +164,10 @@ double WaveClip::GetPlayoutStretchRatio() const
 void WaveClip::OnProjectTempoChange(double oldTempo, double newTempo)
 {
    mDestinationTempo = newTempo;
+   const auto ratioChange = oldTempo / newTempo;
+   mSequenceOffset *= ratioChange;
+   mTrimLeft *= ratioChange;
+   mTrimRight *= ratioChange;
    if (mLockToProjectTempo && !mSourceTempo.has_value())
    {
       mSourceTempo = oldTempo;
