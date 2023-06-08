@@ -27,8 +27,8 @@ private:
    void StretcherSampleGetterCb(float* const*, size_t samplesPerChannel);
    sampleCount GetRemainingSamplesInClip() const;
    const WaveClip& mClip;
-   const sampleCount mTotalNumSamplesToProduce;
-   sampleCount mTotalNumSamplesProduced = 0;
    sampleCount mReadPos = 0;
    const std::unique_ptr<TimeAndPitchInterface> mStretcher;
+   const sampleCount mTotalNumSamplesToProduce;
+   sampleCount mTotalNumSamplesProduced = 0;
 };

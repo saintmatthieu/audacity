@@ -1046,7 +1046,7 @@ WaveClip::GetClosestSampleIndex(double offsetFromPlayStartTime) const
 {
    const auto corrected =
       std::clamp(offsetFromPlayStartTime, 0., GetPlayDuration());
-   return TimeToSamples(corrected / mUiStretchRatio);
+   return TimeToSamples(corrected / GetPlayoutStretchRatio());
 }
 
 void WaveClip::SetTrimLeft(double trim)
