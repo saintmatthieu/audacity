@@ -19,6 +19,7 @@
 #include "XMLTagHandler.h"
 #include "SampleCount.h"
 
+#include <NamedType/named_type.hpp>
 #include <wx/longlong.h>
 
 #include <functional>
@@ -42,6 +43,7 @@ class WaveClip;
 using WaveClipHolder = std::shared_ptr< WaveClip >;
 using WaveClipHolders = std::vector < WaveClipHolder >;
 using WaveClipConstHolders = std::vector < std::shared_ptr< const WaveClip > >;
+using Beat = fluent::NamedType<double, struct BeatTag, fluent::Arithmetic>;
 
 // A bundle of arrays needed for drawing waveforms.  The object may or may not
 // own the storage for those arrays.  If it does, it destroys them.
@@ -111,8 +113,9 @@ public:
    using Caches = Site< WaveClip, WaveClipListener >;
 
    // typical constructor
-   WaveClip(const SampleBlockFactoryPtr &factory, sampleFormat format,
-      int rate, int colourIndex);
+   WaveClip(
+      const SampleBlockFactoryPtr& factory, sampleFormat format, int rate,
+      int colourIndex, const std::optional<double>& projectBps);
 
    // essentially a copy constructor - but you must pass in the
    // current sample block factory, because we might be copying
@@ -165,10 +168,8 @@ public:
 
    double GetPlayEndTime() const;
    double GetPlayEndTimeInOtherProject(
-      const std::optional<double>& targetProjectTempo) const;
+      const std::optional<double>& targetProjectBps) const;
    double GetPlayDuration() const;
-   double GetPlayDurationInOtherProject(
-      const std::optional<double>& targetProjectTempo) const;
 
    sampleCount GetPlayStartSample() const;
    sampleCount GetPlayEndSample() const;
@@ -371,9 +372,9 @@ protected:
    /// operation (but without putting the cut audio to the clipboard)
    void ClearSequence(double t0, double t1);
 
-   double mSequenceOffset { 0 };
-   double mTrimLeft{ 0 };
-   double mTrimRight{ 0 };
+   Beat mSequenceOffset { 0 };
+   Beat mTrimLeft{ 0 };
+   Beat mTrimRight{ 0 };
 
    int mRate;
    int mColourIndex;
@@ -389,18 +390,22 @@ protected:
    bool mIsPlaceholder { false };
 
 private:
-   double GetPlayEndTime(const std::optional<double>& destinationTempo) const;
-   double GetPlayDuration(const std::optional<double>& destinationTempo) const;
+   double GetPlayEndTime(const std::optional<double>& destinationBps) const;
+   double GetPlayDuration(const std::optional<double>& destinationBps) const;
    double
-   GetPlayoutStretchRatio(const std::optional<double>& destinationTempo) const;
-   double
-   GetPlayoutStretchRatioInOtherProject(const std::optional<double>&) const;
+   GetPlayoutStretchRatio(const std::optional<double>& destinationBps) const;
+   Beat GetPlayStartBeat() const;
+   Beat GetPlayEndBeat() const;
+   double BeatToTime(const Beat&) const;
+   Beat TimeToBeat(double) const;
+   sampleCount BeatToSamples(const Beat&) const;
+   Beat SamplesToBeat(sampleCount) const;
 
    wxString mName;
    double mUiStretchRatio = 1.0;
    bool mLockToProjectTempo = true;
-   std::optional<double> mSourceTempo;
-   std::optional<double> mDestinationTempo;
+   std::optional<double> mSourceBps;
+   std::optional<double> mDestinationBps;
 };
 
 #endif

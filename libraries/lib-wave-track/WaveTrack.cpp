@@ -302,7 +302,7 @@ void WaveTrack::SetPanFromChannelType()
 void WaveTrack::OnProjectTempoChange(double oldTempo, double newTempo)
 {
    mClipList.OnProjectTempoChange(oldTempo, newTempo);
-   mProjectTempo = newTempo;
+   mProjectBps = newTempo / 60.;
 }
 
 bool WaveTrack::LinkConsistencyFix(bool doFix, bool completeList)
@@ -702,7 +702,8 @@ Track::Holder WaveTrack::Copy(double t0, double t1, bool forClipboard) const
    {
       auto placeholder = std::make_unique<WaveClip>(
          mpFactory, newTrack->GetSampleFormat(),
-         static_cast<int>(newTrack->GetRate()), 0 /*colourindex*/);
+         static_cast<int>(newTrack->GetRate()), 0 /*colourindex*/,
+         mProjectBps);
       placeholder->SetIsPlaceholder(true);
       placeholder->InsertSilence(0, (t1 - t0) - newTrack->GetEndTime());
       placeholder->Offset(newTrack->GetEndTime());
@@ -1316,8 +1317,7 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
     const bool singleClipMode = other->GetNumClips() == 1 &&
         std::abs(other->GetStartTime()) < LongSamplesToTime(1) * 0.5;
 
-    const double insertDuration =
-       other->GetEndTimeInOtherProject(mProjectTempo);
+    const double insertDuration = other->GetEndTimeInOtherProject(mProjectBps);
     if (insertDuration != 0 && insertDuration < 1.0 / mRate)
         // PRL:  I added this check to avoid violations of preconditions in other WaveClip and Sequence
         // methods, but allow the value 0 so I don't subvert the purpose of commit
@@ -1488,7 +1488,7 @@ void WaveTrack::InsertSilence(double t, double len)
    {
       // Special case if there is no clip yet
       auto clip = std::make_unique<WaveClip>(
-         mpFactory, mFormat, mRate, this->GetWaveColorIndex());
+         mpFactory, mFormat, mRate, this->GetWaveColorIndex(), mProjectBps);
       clip->InsertSilence(0, len);
       // use No-fail-guarantee
       mClipList.PushBack( std::move( clip ) );
@@ -2263,8 +2263,9 @@ Sequence* WaveTrack::GetSequenceAtTime(double time)
 
 WaveClip* WaveTrack::CreateClip(double offset, const wxString& name)
 {
+   // If I don't have a project tempo already, just give an arbitrary one for now. When
    auto clip = std::make_unique<WaveClip>(
-      mpFactory, mFormat, mRate, GetWaveColorIndex());
+      mpFactory, mFormat, mRate, GetWaveColorIndex(), mProjectBps);
    clip->SetName(name);
    clip->SetSequenceStartTime(offset);
    mClipList.PushBack(std::move(clip));

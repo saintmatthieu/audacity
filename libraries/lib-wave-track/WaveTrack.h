@@ -538,7 +538,7 @@ private:
    wxCriticalSection mFlushCriticalSection;
    wxCriticalSection mAppendCriticalSection;
    double mLegacyProjectFileOffset;
-   std::optional<double> mProjectTempo;
+   std::optional<double> mProjectBps;
 };
 
 ENUMERATE_TRACK_TYPE(WaveTrack);
