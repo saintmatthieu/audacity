@@ -40,15 +40,13 @@ void StretchingSampleTrack::Reposition(double t)
    {
       const auto& clip = *it;
       const auto clipStartTime = clip->GetPlayStartTime();
-      if (clipStartTime > t)
-      {
-         const auto numSilenceSamples =
-            sampleCount { (clipStartTime - t) * mWaveTrack->GetRate() + .5 };
+      const auto numSilenceSamples =
+         sampleCount { (clipStartTime - t) * mWaveTrack->GetRate() + .5 };
+      if (numSilenceSamples > 0)
          mAudioSegments.push_back(
             std::make_shared<SilenceSegment>(numSilenceSamples));
-      }
-      mAudioSegments.push_back(
-         std::make_shared<WaveClipSegment>(clip, t - clipStartTime));
+      mAudioSegments.push_back(std::make_shared<WaveClipSegment>(
+         clip, std::max(t - clipStartTime, 0.)));
       t = clip->GetPlayEndTime();
    }
    mActiveAudioSegmentIt = mAudioSegments.begin();
