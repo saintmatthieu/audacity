@@ -46,6 +46,7 @@ set( SOURCES
    TypedAny.h
    Variant.cpp
    Variant.h
+   NamedType/named_type.hpp
 )
 set( LIBRARIES
 )
