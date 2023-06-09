@@ -24,6 +24,7 @@
 
 #include <functional>
 #include <optional>
+#include <variant>
 #include <vector>
 
 class BlockArray;
@@ -372,9 +373,10 @@ protected:
    /// operation (but without putting the cut audio to the clipboard)
    void ClearSequence(double t0, double t1);
 
-   Beat mSequenceOffset { 0 };
-   Beat mTrimLeft{ 0 };
-   Beat mTrimRight{ 0 };
+   using BeatOrTime = std::variant<Beat, double>;
+   BeatOrTime mSequenceOffset { 0 };
+   BeatOrTime mTrimLeft { 0 };
+   BeatOrTime mTrimRight { 0 };
 
    int mRate;
    int mColourIndex;
@@ -394,12 +396,12 @@ private:
    double GetPlayDuration(const std::optional<double>& destinationBps) const;
    double
    GetPlayoutStretchRatio(const std::optional<double>& destinationBps) const;
-   Beat GetPlayStartBeat() const;
-   Beat GetPlayEndBeat() const;
-   double BeatToTime(const Beat&) const;
-   Beat TimeToBeat(double) const;
-   sampleCount BeatToSamples(const Beat&) const;
-   Beat SamplesToBeat(sampleCount) const;
+   double BeatToTime(const BeatOrTime&, const std::optional<double>& bps) const;
+   BeatOrTime TimeToBeat(double time, const std::optional<double>& bps) const;
+   sampleCount
+   BeatToSamples(const BeatOrTime&, const std::optional<double>& bps) const;
+   BeatOrTime
+   SamplesToBeat(sampleCount, const std::optional<double>& bps) const;
 
    wxString mName;
    double mUiStretchRatio = 1.0;
