@@ -1,0 +1,38 @@
+@startgantt
+Project starts 2023-06-12
+
+2023/07/10 to 2023/07/28 are colored in LightBlue
+
+2023/06/17 to 2023/06/18 are colored in LightGrey
+2023/06/24 to 2023/06/25 are colored in LightGrey
+2023/07/01 to 2023/07/02 are colored in LightGrey
+2023/07/08 to 2023/07/09 are colored in LightGrey
+2023/07/15 to 2023/07/16 are colored in LightGrey
+2023/07/22 to 2023/07/23 are colored in LightGrey
+2023/07/29 to 2023/07/30 are colored in LightGrey
+
+[Mixer-does-not-use-Track (P)] as [trackless_mixer] lasts 3 days and ends 2023-06-14
+then [Stretching Track (M)] as [stretchingtrack] lasts 16 days
+[AudioIO-does-not-use-Track (P)] as [trackless_audioio] starts at [trackless_mixer]'s end and lasts 9 days
+
+[passthrough export and render] starts at [stretchingtrack]'s end and is colored in GreenYellow/Green
+[passthrough playback] starts at [trackless_audioio]'s end and is colored in GreenYellow/Green
+[passthrough playback] starts at [stretchingtrack]'s end and is colored in GreenYellow/Green
+
+[caching (M)] as [caching] starts at [trackless_audioio]'s end and ends 2023/06/30
+[Resizeable Clips (M)] as [resizeable_clips] starts at [caching]'s end and lasts 10 days
+[stretched playback] starts at [resizeable_clips]'s end and is colored in GreenYellow/Green
+[stretched playback] starts at [caching]'s end
+
+[stretch handles (V)] as [handles] starts at [resizeable_clips]'s end and lasts 14 days
+[clip stretching] starts at [handles]'s end and is colored in GreenYellow/Green
+[clip stretching] starts at [resizeable_clips]'s end and is colored in GreenYellow/Green
+
+[Join-Stereo refactoring (P)] as [paul3] starts 2023/06/26 and lasts 5 days
+
+[3.4] is colored in GreenYellow/Green
+[3.4] starts at [handles]'s end
+[3.4] starts at [stretched playback]'s end
+[3.4] starts at [paul3]'s end
+[3.4] starts at 2023/07/31
+@endgantt

@@ -400,7 +400,7 @@ UIHandlePtr WaveClipStretchHandle::HitAnywhere(
    const std::shared_ptr<WaveTrack>& waveTrack, const AudacityProject* pProject,
    const TrackPanelMouseState& state)
 {
-   if (!wxGetKeyState(WXK_CONTROL))
+   if (!wxGetKeyState(WXK_ALT))
       return {};
    const auto rect = state.rect;
 
@@ -469,7 +469,7 @@ UIHandlePtr WaveClipStretchHandle::HitTest(
    std::weak_ptr<WaveClipStretchHandle>& holder, WaveTrackView& view,
    const AudacityProject* pProject, const TrackPanelMouseState& state)
 {
-   if (!wxGetKeyState(WXK_CONTROL))
+   if (!wxGetKeyState(WXK_ALT))
       return {};
    auto waveTrack = std::dynamic_pointer_cast<WaveTrack>(view.FindTrack());
    // For multichannel tracks, show trim handle only for the leader track

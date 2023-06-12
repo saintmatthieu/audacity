@@ -77,7 +77,7 @@ class WaveClipTrimHandle::AdjustBorder final : public WaveClipTrimHandle::ClipTr
    //the one to which adjusted clip belongs to, but not counting
    //the borders of adjusted clip
    static SnapPointArray FindSnapPoints(
-      const WaveTrack* currentTrack, 
+      const WaveTrack* currentTrack,
       WaveClip* adjustedClip,
       const std::pair<double, double> range)
    {
@@ -121,9 +121,9 @@ class WaveClipTrimHandle::AdjustBorder final : public WaveClipTrimHandle::ClipTr
 
 public:
    AdjustBorder(
-      const std::shared_ptr<WaveTrack>& track, 
-      const std::shared_ptr<WaveClip>& clip, 
-      bool leftBorder, 
+      const std::shared_ptr<WaveTrack>& track,
+      const std::shared_ptr<WaveClip>& clip,
+      bool leftBorder,
       const ZoomInfo& zoomInfo)
       : mTrack(track),
         mAdjustingLeftBorder(leftBorder)
@@ -277,8 +277,8 @@ class WaveClipTrimHandle::AdjustBetweenBorders final : public WaveClipTrimHandle
 
 public:
    AdjustBetweenBorders(
-      WaveTrack* track, 
-      std::shared_ptr<WaveClip>& leftClip, 
+      WaveTrack* track,
+      std::shared_ptr<WaveClip>& leftClip,
       std::shared_ptr<WaveClip>& rightClip)
    {
       auto clips = track->GetClips();
@@ -329,7 +329,7 @@ public:
             (eventT - mInitialBorderPosition) * mLeftClips[0]->GetRate()
          )
       ).as_double() / mLeftClips[0]->GetRate();
-      
+
       TrimTo(mInitialBorderPosition + offset);
 
       return RefreshCode::RefreshCell;
@@ -383,12 +383,12 @@ wxRect WaveClipTrimHandle::ClipTrimPolicy::DrawingArea(TrackPanelDrawingContext&
 }
 
 UIHandlePtr WaveClipTrimHandle::HitAnywhere(
-   std::weak_ptr<WaveClipTrimHandle>& holder, 
-   const std::shared_ptr<WaveTrack>& waveTrack, 
-   const AudacityProject* pProject, 
+   std::weak_ptr<WaveClipTrimHandle>& holder,
+   const std::shared_ptr<WaveTrack>& waveTrack,
+   const AudacityProject* pProject,
    const TrackPanelMouseState& state)
 {
-    if (wxGetKeyState(WXK_CONTROL))
+    if (wxGetKeyState(WXK_ALT))
       return {};
     const auto rect = state.rect;
 
@@ -408,7 +408,7 @@ UIHandlePtr WaveClipTrimHandle::HitAnywhere(
            continue;
 
         auto clipRect = ClipParameters::GetClipRect(*clip.get(), zoomInfo, rect);
-        
+
         //double the hit testing area in case if clip are close to each other
         if (std::abs(px - clipRect.GetLeft()) <= BoundaryThreshold * 2)
            rightClip = clip;
@@ -453,7 +453,7 @@ UIHandlePtr WaveClipTrimHandle::HitTest(std::weak_ptr<WaveClipTrimHandle>& holde
     WaveTrackView& view, const AudacityProject* pProject,
     const TrackPanelMouseState& state)
 {
-   if (wxGetKeyState(WXK_CONTROL))
+   if (wxGetKeyState(WXK_ALT))
       return {};
     auto waveTrack = std::dynamic_pointer_cast<WaveTrack>(view.FindTrack());
     //For multichannel tracks, show trim handle only for the leader track
@@ -467,7 +467,7 @@ UIHandlePtr WaveClipTrimHandle::HitTest(std::weak_ptr<WaveClipTrimHandle>& holde
     auto px = state.state.m_x;
     auto py = state.state.m_y;
 
-    if (py >= rect.GetTop() && 
+    if (py >= rect.GetTop() &&
         py <= (rect.GetTop() + static_cast<int>(rect.GetHeight() * 0.3)))
     {
         return HitAnywhere(holder, waveTrack, pProject, state);
