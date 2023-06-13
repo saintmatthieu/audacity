@@ -33,6 +33,8 @@ trackless_audioio --> passthrough_PLAYBACK
 trackless_audioio --> caching
 caching --> STRETCHED_PLAYBACK
 passthrough_PLAYBACK --> STRETCHED_PLAYBACK
+trackless_mixer --> trackless_audioio
+class avoid_duplicate_calculations
 
 trackless_mixer --> stretchingtrack
 resizeable_clips --> STRETCHED_PLAYBACK
