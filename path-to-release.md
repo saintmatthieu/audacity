@@ -1,59 +1,49 @@
-
-What to do in which order:
-1. `stretchingtrack`: then `passthrough_EXPORT_AND_RENDER` can be tested
-2. `resizable_clips`: clips are resized IF SYNC_CLIPS_TO_PROJECT_TEMPO toggle is defined (must NOT be accessible to users at that stage)
-3. `caching`: stretched playback doesn't suffer hick-ups anymore
+Rounded boxes are testable milestones, rectangles work items.
 
 ```mermaid
-classDiagram
-note "uppercase are FEATURES,\nlower case are work items"
+flowchart TD
+   passthrough_playback([pass-through playback])
+   passthrough_export_and_render([passthrough\nexport & render])
+   joint_stereo([joint stereo])
+   stretched_playback([stretched playback])
+   export_and_render([export & render])
+   clip_stretching([clip stretching])
+   release([release])
+   stretchingtrack([StretchingSequence])
+   wavecliptrimandstretchhandle[WaveClipTrimHandle\ngeneralized for stretching]
+   joint_stereo_refactoring[joint stereo\nrefactoring]
 
-%% features
-class passthrough_PLAYBACK
-class passthrough_EXPORT_AND_RENDER
-class JOINT_STEREO
-class STRETCHED_PLAYBACK
-class EXPORT_AND_RENDER
-class CLIP_STRETCHING
+   %% BIG ONE: resizable_clips entails
+   %% * boundary calculations
+   %% * sample indexing / time scaling
+   %% * clips listen to project_tempo
+   %% * envelopes can be stretched
+   resizable_clips[resizeable clips]
 
-class resizable_clips {
-   boundary calculations
-   sample indexing / time scaling
-   clips listen to project_tempo
-   envelopes can be stretched
-}
+   caching
+   avoid_duplicate_calculations[avoid duplicate calculations]
+   trackless_mixer[Mixer does not use Track]
+   trackless_audioio[AudioIO does not use Track]
 
-class caching {
-   replacement for SampleTrackCache
-   Is MixerSource queue for resampling a problem ?
-}
+   joint_stereo_refactoring --> joint_stereo
+   trackless_audioio --> passthrough_playback
+   trackless_audioio --> caching
+   caching -.-> stretched_playback
+   passthrough_playback --> stretched_playback
+   trackless_mixer --> trackless_audioio
 
-joint_stereo_refactoring --> JOINT_STEREO
-trackless_audioio --> passthrough_PLAYBACK
-trackless_audioio --> caching
-caching --> STRETCHED_PLAYBACK
-passthrough_PLAYBACK --> STRETCHED_PLAYBACK
-trackless_mixer --> trackless_audioio
-class avoid_duplicate_calculations
+   stretchingtrack -.-> resizable_clips
+   trackless_mixer --> stretchingtrack
+   resizable_clips --> stretched_playback
+   resizable_clips --> export_and_render
+   stretchingtrack --> passthrough_export_and_render
+   passthrough_export_and_render --> export_and_render
+   resizable_clips --> clip_stretching
+   wavecliptrimandstretchhandle --> clip_stretching
+   stretchingtrack --> passthrough_playback
 
-stretchingtrack ..> resizable_clips
-trackless_mixer --> stretchingtrack
-resizable_clips --> STRETCHED_PLAYBACK
-resizable_clips --> EXPORT_AND_RENDER
-stretchingtrack --> passthrough_EXPORT_AND_RENDER
-passthrough_EXPORT_AND_RENDER --> EXPORT_AND_RENDER
-resizable_clips --> CLIP_STRETCHING
-WaveClipTrimAndStretchHandle --> CLIP_STRETCHING
-stretchingtrack --> passthrough_PLAYBACK
-
-JOINT_STEREO --> RELEASE
-STRETCHED_PLAYBACK --> RELEASE
-EXPORT_AND_RENDER --> RELEASE
-CLIP_STRETCHING --> RELEASE
-
-note for WaveClipTrimAndStretchHandle "generalization of Vitaly's\nWaveClipTrimHandle"
-
-note for passthrough_EXPORT_AND_RENDER "both use a Mixer instance and could inject stretchers"
-
-note for trackless_mixer "merge pending"
+   joint_stereo --> release
+   stretched_playback --> release
+   export_and_render --> release
+   clip_stretching --> release
 ```
