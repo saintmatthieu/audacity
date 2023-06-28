@@ -24,6 +24,10 @@ set( SOURCES
    NumericConverterType.h
    ProjectNumericFormats.cpp
    ProjectNumericFormats.h
+   ProjectTempoListenerInterface.cpp
+   ProjectTempoListenerInterface.h
+   ProjectTempoPublisher.cpp
+   ProjectTempoPublisher.h
    ProjectTimeSignature.cpp
    ProjectTimeSignature.h
 
@@ -35,6 +39,7 @@ set( SOURCES
 set( LIBRARIES
    lib-math-interface
    lib-project-rate-interface
+   lib-utility-interface
 )
 audacity_library( lib-numeric-formats "${SOURCES}" "${LIBRARIES}"
    "" ""

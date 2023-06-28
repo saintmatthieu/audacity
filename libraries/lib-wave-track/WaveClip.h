@@ -26,6 +26,8 @@
 #include <cassert>
 #include <vector>
 #include <functional>
+#include <optional>
+#include <vector>
 
 class BlockArray;
 class Envelope;
@@ -161,7 +163,7 @@ public:
    // Set rate without resampling. This will change the length of the clip
    void SetRate(int rate);
 
-   double GetStretchRatio() const override { return 1.0; }
+   double GetStretchRatio() const override;
 
    // Resample clip. This also will set the rate, but without changing
    // the length of the clip
@@ -185,10 +187,16 @@ public:
    void SetPlayStartTime(double time);
 
    double GetPlayEndTime() const override;
+   double GetPlayEndTimeInOtherProject(
+      const std::optional<double>& targetProjectTempo) const;
+   double GetPlayDuration() const;
+   double GetPlayDurationInOtherProject(
+      const std::optional<double>& targetProjectTempo) const;
 
    sampleCount GetPlayStartSample() const;
    sampleCount GetPlayEndSample() const;
    sampleCount GetPlaySamplesCount() const override;
+   sampleCount GetClosestSampleIndex(double offsetFromPlayStartTime) const;
 
    //! Sets the play start offset in seconds from the beginning of the underlying sequence
    void SetTrimLeft(double trim);
@@ -205,20 +213,27 @@ public:
    //! Moves play end position by deltaTime
    void TrimRight(double deltaTime);
 
-   //! Sets the the left trimming to the absolute time (if that is in bounds)
+   //! Sets the left trimming to the absolute time (if that is in bounds)
    void TrimLeftTo(double to);
-   //! Sets the the right trimming to the absolute time (if that is in bounds)
+   //! Sets the right trimming to the absolute time (if that is in bounds)
    void TrimRightTo(double to);
 
    /*! @excsafety{No-fail} */
    void Offset(double delta) noexcept;
 
+   //! Stretches from left to the absolute time (if in expected range)
+   void StretchLeftTo(double to);
+   //! Sets from the right to the absolute time (if in expected range)
+   void StretchRightTo(double to);
+
    // One and only one of the following is true for a given t (unless the clip
    // has zero length -- then BeforePlayStartTime() and AfterPlayEndTime() can both be true).
-   // WithinPlayRegion() is true if the time is substantially within the clip
-   bool WithinPlayRegion(double t) const;
+   // StrictlyWithinPlayRegion() is true if the time is substantially within the clip
+   bool StrictlyWithinPlayRegion(double t) const;
+   bool BeforeOrAtPlayStartTime(double t) const;
+   bool AfterOrAtPlayEndTime(double t) const;
+
    bool BeforePlayStartTime(double t) const;
-   bool AfterPlayEndTime(double t) const;
 
    //! Counts number of samples within t0 and t1 region. t0 and t1 are
    //! rounded to the nearest clip sample boundary, i.e. relative to clips
@@ -445,6 +460,9 @@ public:
    constSamplePtr GetAppendBuffer(size_t ii) const;
    size_t GetAppendBufferLen() const;
 
+   double GetPlayoutStretchRatio() const;
+   void SetProjectTempo(double newTempo);
+
 private:
    sampleCount GetNumSamples() const;
    SampleFormats GetSampleFormats() const;
@@ -496,7 +514,17 @@ private:
    bool mIsPlaceholder { false };
 
 private:
+   double GetPlayEndTime(const std::optional<double>& destinationTempo) const;
+   double GetPlayDuration(const std::optional<double>& destinationTempo) const;
+   double
+   GetPlayoutStretchRatio(const std::optional<double>& destinationTempo) const;
+   double
+   GetPlayoutStretchRatioInOtherProject(const std::optional<double>&) const;
+
    wxString mName;
+   double mUiStretchRatio = 1.0;
+   std::optional<double> mSourceTempo;
+   std::optional<double> mDestinationTempo;
 };
 
 #endif

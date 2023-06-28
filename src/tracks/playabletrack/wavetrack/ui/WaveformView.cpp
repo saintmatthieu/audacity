@@ -308,7 +308,7 @@ void FindWavePortions
    // the fisheye.
 
    ZoomInfo::Intervals intervals;
-   zoomInfo.FindIntervals(params.rate, intervals, rect.width, rect.x);
+   zoomInfo.FindIntervals(intervals, rect.width, rect.x);
    ZoomInfo::Intervals::const_iterator it = intervals.begin(), end = intervals.end(), prev;
    wxASSERT(it != end && it->position == rect.x);
    const int rightmost = rect.x + rect.width;
@@ -456,7 +456,7 @@ void DrawIndividualSamples(TrackPanelDrawingContext &context, size_t channel,
    const auto &zoomInfo = *artist->pZoomInfo;
 
    const double toffset = clip->GetPlayStartTime();
-   double rate = clip->GetRate();
+   double rate = clip->GetRate() / clip->GetPlayoutStretchRatio();
    const double t0 = std::max(0.0, zoomInfo.PositionToTime(0, -leftOffset) - toffset);
    const auto s0 = sampleCount(floor(t0 * rate));
    const auto snSamples = clip->GetPlaySamplesCount();
@@ -684,7 +684,8 @@ void DrawClipWaveform(TrackPanelDrawingContext &context, size_t channel,
    const double &tpost = params.tpost;
    const double &t1 = params.t1;
    const double &averagePixelsPerSample = params.averagePixelsPerSample;
-   const double &rate = params.rate;
+   const double &sampleRate = params.sampleRate;
+   const double &stretchRatio = params.stretchRatio;
    double leftOffset = params.leftOffset;
    const wxRect &mid = params.mid;
 
@@ -734,8 +735,7 @@ void DrawClipWaveform(TrackPanelDrawingContext &context, size_t channel,
 
    WaveDisplay display(hiddenMid.width);
 
-   const double pps =
-      averagePixelsPerSample * rate;
+   const double pps = averagePixelsPerSample * sampleRate;
 
    // For each portion separately, we will decide to draw
    // it as min/max/rms or as individual samples.
@@ -744,9 +744,9 @@ void DrawClipWaveform(TrackPanelDrawingContext &context, size_t channel,
    const unsigned nPortions = portions.size();
 
    // Require at least 1/2 pixel per sample for drawing individual samples.
-   const double threshold1 = 0.5 * rate;
+   const double threshold1 = 0.5 * sampleRate / stretchRatio;
    // Require at least 3 pixels per sample for drawing the draggable points.
-   const double threshold2 = 3 * rate;
+   const double threshold2 = 3 * sampleRate / stretchRatio;
 
    auto &clipCache = WaveClipWaveformCache::Get(*clip);
 
@@ -797,7 +797,8 @@ void DrawClipWaveform(TrackPanelDrawingContext &context, size_t channel,
             for (; jj < rectPortion.width; ++jj) {
                const double time =
                   zoomInfo.PositionToTime(jj, -leftOffset) - tOffset;
-               const auto sample = (sampleCount)floor(time * rate + 0.5);
+               const auto sample =
+                  (sampleCount)floor(time * sampleRate / stretchRatio + 0.5);
                if (sample < 0) {
                   ++rectPortion.x;
                   ++skippedLeft;
@@ -1013,12 +1014,12 @@ void WaveformView::Draw(
       const auto hasSolo = artist->hasSolo;
       bool muted = (hasSolo || wt->GetMute()) &&
       !wt->GetSolo();
-      
+
 #if defined(__WXMAC__)
       wxAntialiasMode aamode = dc.GetGraphicsContext()->GetAntialiasMode();
       dc.GetGraphicsContext()->SetAntialiasMode(wxANTIALIAS_NONE);
 #endif
-      
+
       auto waveTrackView = GetWaveTrackView().lock();
       wxASSERT(waveTrackView.use_count());
 
@@ -1095,7 +1096,7 @@ BEGIN_POPUP_MENU(WaveColorMenuTable)
       const auto &track = *static_cast<WaveTrack*>(pData->pTrack);
       auto &project = pData->project;
       bool unsafe = ProjectAudioIO::Get( project ).IsAudioActive();
-      
+
       menu.Check( id, id == me.IdOfWaveColor( track.GetWaveColorIndex() ) );
       menu.Enable( id, !unsafe );
    };

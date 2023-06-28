@@ -165,6 +165,8 @@ list( APPEND SOURCES
       ProjectSelectionManager.h
       ProjectSettings.cpp
       ProjectSettings.h
+      ProjectTempoListener.cpp
+      ProjectTempoListener.h
       ProjectWindow.cpp
       ProjectWindow.h
       ProjectWindowBase.cpp
@@ -816,6 +818,8 @@ list( APPEND SOURCES
       tracks/playabletrack/wavetrack/ui/SpectrumVZoomHandle.h
       tracks/playabletrack/wavetrack/ui/SpectrumView.cpp
       tracks/playabletrack/wavetrack/ui/SpectrumView.h
+      tracks/playabletrack/wavetrack/ui/WaveClipStretchHandle.h
+      tracks/playabletrack/wavetrack/ui/WaveClipStretchHandle.cpp
       tracks/playabletrack/wavetrack/ui/WaveClipTrimHandle.h
       tracks/playabletrack/wavetrack/ui/WaveClipTrimHandle.cpp
       tracks/playabletrack/wavetrack/ui/WaveClipUtilities.cpp
