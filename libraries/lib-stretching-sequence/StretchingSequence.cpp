@@ -28,7 +28,7 @@ GetOffsetBuffer(float* const* buffer, size_t numChannels, size_t offset)
 } // namespace
 
 StretchingSequence::StretchingSequence(
-   const PlayableSequence& sequence, int sampleRate, size_t numChannels,
+   const PlayableSequence& sequence,
    std::unique_ptr<AudioSegmentFactoryInterface> factory)
     : mSequence { sequence }
     , mAudioSegmentFactory { std::move(factory) }
@@ -182,16 +182,18 @@ bool StretchingSequence::MutableGet(
 }
 
 std::shared_ptr<StretchingSequence> StretchingSequence::Create(
-   const PlayableSequence& sequence, const ClipConstHolders& clips)
+   const PlayableSequence& sequence, BPS projectTempo,
+   const ClipConstHolders& clips)
 {
    return std::make_shared<StretchingSequence>(
-      sequence, sequence.GetRate(), sequence.NChannels(),
+      sequence,
       std::make_unique<AudioSegmentFactory>(
-         sequence.GetRate(), sequence.NChannels(), clips));
+         sequence.GetRate(), sequence.NChannels(), projectTempo, clips));
 }
 
 std::shared_ptr<StretchingSequence> StretchingSequence::Create(
-   const PlayableSequence& sequence, const ClipHolders& clips)
+   const PlayableSequence& sequence, BPS projectTempo, const ClipHolders& clips)
 {
-   return Create(sequence, ClipConstHolders { clips.begin(), clips.end() });
+   return Create(
+      sequence, projectTempo, ClipConstHolders { clips.begin(), clips.end() });
 }

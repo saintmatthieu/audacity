@@ -37,14 +37,24 @@ int WideClip::GetRate() const
    return mChannels[0u]->GetRate();
 }
 
-double WideClip::GetPlayStartTime() const
+Beat WideClip::GetPlayStartTime() const
 {
    return mChannels[0u]->GetPlayStartTime();
 }
 
-double WideClip::GetPlayEndTime() const
+double WideClip::GetPlayStartTime(BPS tempo) const
+{
+   return mChannels[0u]->GetPlayStartTime(tempo);
+}
+
+Beat WideClip::GetPlayEndTime() const
 {
    return mChannels[0u]->GetPlayEndTime();
+}
+
+double WideClip::GetPlayEndTime(BPS tempo) const
+{
+   return mChannels[0u]->GetPlayEndTime(tempo);
 }
 
 double WideClip::GetStretchRatio() const

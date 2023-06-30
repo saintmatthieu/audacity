@@ -136,10 +136,9 @@ public:
     @pre CountSamples(t1, t0) > 0
     @post `GetWidth() == orig.GetWidth()`
     */
-   WaveClip(const WaveClip& orig,
-            const SampleBlockFactoryPtr &factory,
-            bool copyCutlines,
-            double t0, double t1);
+   WaveClip(
+      const WaveClip& orig, const SampleBlockFactoryPtr& factory,
+      bool copyCutlines, double t0, double t1, BPS projectTempo);
 
    virtual ~WaveClip();
 
@@ -156,7 +155,6 @@ public:
    // Always gives non-negative answer, not more than sample sequence length
    // even if t0 really falls outside that range
    sampleCount TimeToSequenceSamples(double t) const;
-   sampleCount ToSequenceSamples(sampleCount s) const;
 
    int GetRate() const { return mRate; }
 
@@ -172,9 +170,11 @@ public:
    void SetColourIndex( int index ){ mColourIndex = index;};
    int GetColourIndex( ) const { return mColourIndex;};
 
-   double GetSequenceStartTime() const noexcept;
-   void SetSequenceStartTime(double startTime);
-   double GetSequenceEndTime() const;
+   Beat GetSequenceStartTime() const noexcept;
+   double GetSequenceStartTime(BPS) const noexcept;
+   void SetSequenceStartTime(Beat startTime);
+   Beat GetSequenceEndTime() const;
+   double GetSequenceEndTime(BPS) const;
    //! Returns the index of the first sample of the underlying sequence
    sampleCount GetSequenceStartSample() const;
    //! Returns the index of the sample next after the last sample of the underlying sequence
@@ -183,10 +183,12 @@ public:
    //! (but not counting the cutlines)
    sampleCount GetSequenceSamplesCount() const;
 
-   double GetPlayStartTime() const noexcept override;
+   Beat GetPlayStartTime() const override;
+   double GetPlayStartTime(BPS) const noexcept override;
    void SetPlayStartTime(double time);
 
-   double GetPlayEndTime() const override;
+   Beat GetPlayEndTime() const override;
+   double GetPlayEndTime(BPS) const override;
    double GetPlayEndTimeInOtherProject(
       const std::optional<double>& targetProjectTempo) const;
    double GetPlayDuration() const;
@@ -214,9 +216,9 @@ public:
    void TrimRight(double deltaTime);
 
    //! Sets the left trimming to the absolute time (if that is in bounds)
-   void TrimLeftTo(double to);
+   void TrimLeftTo(Beat to);
    //! Sets the right trimming to the absolute time (if that is in bounds)
-   void TrimRightTo(double to);
+   void TrimRightTo(Beat to);
 
    /*! @excsafety{No-fail} */
    void Offset(double delta) noexcept;
@@ -250,7 +252,7 @@ public:
     * @pre `iChannel < GetWidth()`
     */
    AudioSegmentSampleView GetSampleView(
-      size_t iChannel, sampleCount start, size_t length) const override;
+      size_t iChannel, sampleCount start, size_t length, BPS) const override;
 
    //! Get samples from one channel
    /*!
@@ -485,9 +487,9 @@ private:
       bool committed{ false };
    };
 
-   double mSequenceOffset { 0 };
-   double mTrimLeft{ 0 };
-   double mTrimRight{ 0 };
+   Beat mSequenceOffset { 0 };
+   Beat mTrimLeft{ 0 };
+   Beat mTrimRight{ 0 };
 
    int mRate;
    int mColourIndex;
@@ -523,8 +525,7 @@ private:
 
    wxString mName;
    double mUiStretchRatio = 1.0;
-   std::optional<double> mSourceTempo;
-   std::optional<double> mDestinationTempo;
+   BPS mSequenceTempo;
 };
 
 #endif

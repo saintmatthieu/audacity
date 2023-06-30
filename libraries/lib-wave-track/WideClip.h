@@ -38,9 +38,11 @@ public:
 
    int GetRate() const override;
 
-   double GetPlayStartTime() const override;
+   Beat GetPlayStartTime() const override;
+   double GetPlayStartTime(BPS) const override;
 
-   double GetPlayEndTime() const override;
+   Beat GetPlayEndTime() const override;
+   double GetPlayEndTime(BPS) const override;
 
    double GetStretchRatio() const override;
 

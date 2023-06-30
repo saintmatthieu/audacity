@@ -11,6 +11,7 @@
 #pragma once
 
 #include "AudioIOSequences.h"
+#include "ClipInterface.h"
 #include "PlaybackDirection.h"
 
 #include <memory>
@@ -18,7 +19,6 @@
 
 class AudioSegment;
 class AudioSegmentFactoryInterface;
-class ClipInterface;
 using ClipHolders = std::vector<std::shared_ptr<ClipInterface>>;
 using ClipConstHolders = std::vector<std::shared_ptr<const ClipInterface>>;
 
@@ -27,14 +27,13 @@ using ClipConstHolders = std::vector<std::shared_ptr<const ClipInterface>>;
 class STRETCHING_SEQUENCE_API StretchingSequence final : public PlayableSequence
 {
 public:
+   static std::shared_ptr<StretchingSequence> Create(
+      const PlayableSequence&, BPS projectTempo, const ClipConstHolders& clips);
    static std::shared_ptr<StretchingSequence>
-   Create(const PlayableSequence&, const ClipConstHolders& clips);
-   static std::shared_ptr<StretchingSequence>
-   Create(const PlayableSequence&, const ClipHolders& clips);
+   Create(const PlayableSequence&, BPS projectTempo, const ClipHolders& clips);
 
    StretchingSequence(
-      const PlayableSequence&, int sampleRate, size_t numChannels,
-      std::unique_ptr<AudioSegmentFactoryInterface>);
+      const PlayableSequence&, std::unique_ptr<AudioSegmentFactoryInterface>);
 
    // WideSampleSequence
    size_t NChannels() const override;

@@ -14,13 +14,25 @@
 #include "SampleCount.h"
 #include "SampleFormat.h"
 
+#include <NamedType/named_type.hpp>
+#include <cassert>
+
+using Beat = fluent::NamedType<double, struct BpSTag, fluent::Arithmetic>;
+using BPS = fluent::NamedType<double, struct BpSTag, fluent::Arithmetic>;
+
+inline double operator/(Beat beat, BPS bps)
+{
+   assert(bps.get() != 0);
+   return beat.get() / bps.get();
+}
+
 class STRETCHING_SEQUENCE_API ClipInterface
 {
 public:
    virtual ~ClipInterface();
 
-   virtual AudioSegmentSampleView
-   GetSampleView(size_t iChannel, sampleCount start, size_t length) const = 0;
+   virtual AudioSegmentSampleView GetSampleView(
+      size_t iChannel, sampleCount start, size_t length, BPS) const = 0;
 
    virtual sampleCount GetPlaySamplesCount() const = 0;
 
@@ -28,9 +40,11 @@ public:
 
    virtual int GetRate() const = 0;
 
-   virtual double GetPlayStartTime() const = 0;
+   virtual Beat GetPlayStartTime() const = 0;
+   virtual double GetPlayStartTime(BPS) const = 0;
 
-   virtual double GetPlayEndTime() const = 0;
+   virtual Beat GetPlayEndTime() const = 0;
+   virtual double GetPlayEndTime(BPS) const = 0;
 
    virtual double GetStretchRatio() const = 0;
 };
