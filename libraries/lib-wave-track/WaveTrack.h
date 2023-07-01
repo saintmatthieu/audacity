@@ -11,6 +11,7 @@
 #ifndef __AUDACITY_WAVETRACK__
 #define __AUDACITY_WAVETRACK__
 
+#include "Beat.h"
 #include "Prefs.h"
 #include "SampleCount.h"
 #include "SampleFormat.h"
@@ -116,8 +117,8 @@ private:
 
    virtual ~WaveTrack();
 
-   double GetOffset() const override;
-   void SetOffset(double o) override;
+   double GetOffset(BPS) const override;
+   void SetOffset(double o, BPS) override;
    void SetProjectTempo(double newTempo);
 
    bool LinkConsistencyFix(bool doFix, bool completeList) override;
@@ -126,14 +127,14 @@ private:
     *
     * @return time in seconds, or zero if there are no clips in the track
     */
-   double GetStartTime() const override;
+   double GetStartTime(BPS) const override;
 
    /** @brief Get the time at which the last clip in the track ends, plus
     * recorded stuff
     *
     * @return time in seconds, or zero if there are no clips in the track.
     */
-   double GetEndTime() const override;
+   double GetEndTime(BPS) const override;
 
    //
    // Identifying the type of track
@@ -174,7 +175,7 @@ private:
    // High-level editing
    //
 
-   Track::Holder Cut(double t0, double t1) override;
+   Track::Holder Cut(double t0, double t1, BPS) override;
 
    //! Make another track copying format, rate, color, etc. but containing no
    //! clips
@@ -194,48 +195,48 @@ private:
    // and there is no clip at the end time of the selection, then the result
    // will contain a "placeholder" clip whose only purpose is to make
    // GetEndTime() correct.  This clip is not re-copied when pasting.
-   Track::Holder Copy(double t0, double t1, bool forClipboard = true) const override;
-   Track::Holder CopyNonconst(double t0, double t1) /* not override */;
+   Track::Holder
+   Copy(double t0, double t1, BPS, bool forClipboard = true) const override;
+   Track::Holder CopyNonconst(double t0, double t1, BPS) /* not override */;
 
-   void Clear(double t0, double t1) override;
-   void Paste(double t0, const Track *src) override;
+   void Clear(double t0, double t1, BPS) override;
+   void Paste(double t0, BPS, const Track* src) override;
    // May assume precondition: t0 <= t1
-   void ClearAndPaste(double t0, double t1,
-                              const Track *src,
-                              bool preserve = true,
-                              bool merge = true,
-                              const TimeWarper *effectWarper = NULL) /* not override */;
+   void ClearAndPaste(
+      double t0, double t1, BPS, const Track* src, bool preserve = true,
+      bool merge = true,
+      const TimeWarper* effectWarper = NULL) /* not override */;
 
-   void Silence(double t0, double t1) override;
-   void InsertSilence(double t, double len) override;
+   void Silence(double t0, double t1, BPS) override;
+   void InsertSilence(double t, double len, BPS) override;
 
-   void SplitAt(double t) /* not override */;
-   void Split(double t0, double t1) /* not override */;
+   void SplitAt(double t, BPS) /* not override */;
+   void Split(double t0, double t1, BPS) /* not override */;
    // Track::Holder CutAndAddCutLine(double t0, double t1) /* not override */;
    // May assume precondition: t0 <= t1
-   void ClearAndAddCutLine(double t0, double t1) /* not override */;
+   void ClearAndAddCutLine(double t0, double t1, BPS) /* not override */;
 
-   Track::Holder SplitCut(double t0, double t1) /* not override */;
+   Track::Holder SplitCut(double t0, double t1, BPS) /* not override */;
    // May assume precondition: t0 <= t1
-   void SplitDelete(double t0, double t1) /* not override */;
-   void Join(double t0, double t1) /* not override */;
+   void SplitDelete(double t0, double t1, BPS) /* not override */;
+   void Join(double t0, double t1, BPS) /* not override */;
    // May assume precondition: t0 <= t1
-   void Disjoin(double t0, double t1) /* not override */;
-
-   // May assume precondition: t0 <= t1
-   void Trim(double t0, double t1) /* not override */;
+   void Disjoin(double t0, double t1, BPS) /* not override */;
 
    // May assume precondition: t0 <= t1
-   void HandleClear(double t0, double t1, bool addCutLines, bool split);
+   void Trim(double t0, double t1, BPS) /* not override */;
 
-   void SyncLockAdjust(double oldT1, double newT1) override;
+   // May assume precondition: t0 <= t1
+   void HandleClear(double t0, double t1, BPS, bool addCutLines, bool split);
+
+   void SyncLockAdjust(double oldT1, double newT1, BPS) override;
 
    /** @brief Returns true if there are no WaveClips in the specified region
     *
     * @return true if no clips in the track overlap the specified time range,
     * false otherwise.
     */
-   bool IsEmpty(double t0, double t1) const;
+   bool IsEmpty(double t0, double t1, BPS) const;
 
    /*!
     If there is an existing WaveClip in the WaveTrack then the data are
@@ -261,7 +262,7 @@ private:
     * @return nBuffers `ChannelSampleView`s, one per channel.
     */
    std::vector<ChannelSampleView> GetSampleView(
-      size_t iChannel, size_t nBuffers, sampleCount start, size_t len,
+      size_t iChannel, size_t nBuffers, sampleCount start, size_t len, BPS,
       bool backwards) const;
 
    ///
@@ -277,7 +278,7 @@ private:
 
    bool Get(
       size_t iChannel, size_t nBuffers, samplePtr buffers[],
-      sampleFormat format, sampleCount start, size_t len, bool backwards,
+      sampleFormat format, sampleCount start, size_t len, BPS, bool backwards,
       fillFormat fill = fillZero, bool mayThrow = true,
       // Report how many samples were copied from within clips, rather than
       // filled according to fillFormat; but these were not necessarily one
@@ -287,14 +288,14 @@ private:
     Set samples in the unique channel
     TODO wide wave tracks -- overloads to set one or all channels
     */
-   void Set(constSamplePtr buffer, sampleFormat format,
-      sampleCount start, size_t len,
-      sampleFormat effectiveFormat = widestSampleFormat /*!<
-         Make the effective format of the data at least the minumum of this
-         value and `format`.  (Maybe wider, if merging with preexistent data.)
-         If the data are later narrowed from stored format, but not narrower
-         than the effective, then no dithering will occur.
-      */
+   void Set(
+      constSamplePtr buffer, sampleFormat format, sampleCount start, size_t len,
+      BPS, sampleFormat effectiveFormat = widestSampleFormat /*!<
+              Make the effective format of the data at least the minumum of this
+              value and `format`.  (Maybe wider, if merging with preexistent
+              data.) If the data are later narrowed from stored format, but not
+              narrower than the effective, then no dithering will occur.
+           */
    );
 
    sampleFormat WidestEffectiveFormat() const override;
@@ -302,7 +303,7 @@ private:
    bool HasTrivialEnvelope() const override;
 
    void GetEnvelopeValues(
-      double* buffer, size_t bufferLen, double t0,
+      double* buffer, size_t bufferLen, double t0, BPS tempo,
       bool backwards) const override;
 
    // Get min and max from the unique channel
@@ -310,34 +311,29 @@ private:
     @pre `t0 <= t1`
     TODO wide wave tracks -- require a channel number
     */
-   std::pair<float, float> GetMinMax(
-      double t0, double t1, bool mayThrow = true) const;
+   std::pair<float, float>
+   GetMinMax(double t0, double t1, BPS, bool mayThrow = true) const;
 
    // Get RMS from the unique channel
    /*!
     @pre `t0 <= t1`
     TODO wide wave tracks -- require a channel number
     */
-   float GetRMS(double t0, double t1, bool mayThrow = true) const;
+   float GetRMS(double t0, double t1, BPS, bool mayThrow = true) const;
 
    //
    // MM: We now have more than one sequence and envelope per track, so
    // instead of GetEnvelope() we have the following function which gives the
    // envelope that contains the given time.
    //
-   Envelope* GetEnvelopeAtTime(double time);
+   Envelope* GetEnvelopeAtTime(double time, BPS);
 
-   WaveClip* GetClipAtTime(double time);
+   WaveClip* GetClipAtTime(double time, BPS);
 
    //
    // Getting information about the track's internal block sizes
    // and alignment for efficiency
    //
-
-   // These return a nonnegative number of samples meant to size a memory buffer
-   size_t GetBestBlockSize(sampleCount t) const;
-   size_t GetMaxBlockSize() const;
-   size_t GetIdealBlockSize();
 
    //
    // XMLTagHandler callback methods for loading and saving
@@ -473,7 +469,8 @@ private:
 
     @post result: `result->GetWidth() == GetWidth()`
     */
-   WaveClip* CreateClip(double offset = .0, const wxString& name = wxEmptyString);
+   WaveClip*
+   CreateClip(Beat offset = Beat { .0 }, const wxString& name = wxEmptyString);
 
    /** @brief Get access to the most recently added clip, or create a clip,
    *  if there is not already one.  THIS IS NOT NECESSARILY RIGHTMOST.
@@ -516,16 +513,19 @@ private:
    @return true if possible to offset by `(allowedAmount ? *allowedAmount : amount)`
     */
    bool CanOffsetClips(
-      const std::vector<WaveClip*> &clips, //!< not necessarily in this track
-      double amount, //!< signed
-      double *allowedAmount = nullptr /*!<
-         [out] if null, test exact amount only; else, largest (in magnitude) possible offset with same sign */
+      const std::vector<WaveClip*>& clips, //!< not necessarily in this track
+      BPS tempo,
+      double amount,                  //!< signed
+      double* allowedAmount = nullptr /*!<
+         [out] if null, test exact amount only; else, largest (in magnitude)
+         possible offset with same sign */
    );
 
    // Before moving a clip into a track (or inserting a clip), use this
    // function to see if the times are valid (i.e. don't overlap with
    // existing clips).
-   bool CanInsertClip(WaveClip* clip, double &slideBy, double &tolerance) const;
+   bool CanInsertClip(
+      WaveClip* clip, BPS tempo, double& slideBy, double& tolerance) const;
 
    // Remove the clip from the track and return a SMART pointer to it.
    // You assume responsibility for its memory!
@@ -545,10 +545,12 @@ private:
    void MergeClips(int clipidx1, int clipidx2);
 
    // Expand cut line (that is, re-insert audio, then DELETE audio saved in cut line)
-   void ExpandCutLine(double cutLinePosition, double* cutlineStart = NULL, double* cutlineEnd = NULL);
+   void ExpandCutLine(
+      BPS, double cutLinePosition, double* cutlineStart = NULL,
+      double* cutlineEnd = NULL);
 
    // Remove cut line, without expanding the audio in it
-   bool RemoveCutLine(double cutLinePosition);
+   bool RemoveCutLine(double cutLinePosition, BPS tempo);
 
    // This track has been merged into a stereo track.  Copy shared parameters
    // from the NEW partner.
@@ -574,10 +576,11 @@ private:
       const std::shared_ptr<WaveClip> pClip;
    };
 
-   Track::Holder PasteInto( AudacityProject & ) const override;
+   Track::Holder PasteInto(
+      AudacityProject& otherProject, BPS otherProjectTempo) const override;
 
-   ConstIntervals GetIntervals() const override;
-   Intervals GetIntervals() override;
+   ConstIntervals GetIntervals(BPS) const override;
+   Intervals GetIntervals(BPS) override;
 
    //! Returns nullptr if clip with such name was not found
    const WaveClip* FindClipByName(const wxString& name) const;
@@ -597,21 +600,12 @@ private:
 private:
    void SetClipRates(double newRate);
 
-   bool GetOne(
-      samplePtr buffer, sampleFormat format, sampleCount start, size_t len,
-      bool backwards, fillFormat fill, bool mayThrow,
-      sampleCount* pNumWithinClips) const;
-   ChannelSampleView
-   GetOneSampleView(sampleCount start, size_t len, bool backwards) const;
-
    void DoSetPan(float value);
    void DoSetGain(float value);
 
-   void PasteWaveTrack(double t0, const WaveTrack* other);
+   void PasteWaveTrack(double t0, BPS tempo, const WaveTrack* other);
    double GetEndTime(
       const std::function<double(const WaveClip&)>& endTimeGetter) const;
-   double GetEndTimeInOtherProject(
-      const std::optional<double>& otherProjectTempo) const;
 
    //! Whether all clips have a common rate
    bool RateConsistencyCheck() const;

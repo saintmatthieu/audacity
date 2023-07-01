@@ -27,10 +27,10 @@ using ClipConstHolders = std::vector<std::shared_ptr<const ClipInterface>>;
 class STRETCHING_SEQUENCE_API StretchingSequence final : public PlayableSequence
 {
 public:
-   static std::shared_ptr<StretchingSequence> Create(
-      const PlayableSequence&, BPS projectTempo, const ClipConstHolders& clips);
    static std::shared_ptr<StretchingSequence>
-   Create(const PlayableSequence&, BPS projectTempo, const ClipHolders& clips);
+   Create(const PlayableSequence&, const ClipConstHolders& clips);
+   static std::shared_ptr<StretchingSequence>
+   Create(const PlayableSequence&, const ClipHolders& clips);
 
    StretchingSequence(
       const PlayableSequence&, std::unique_ptr<AudioSegmentFactoryInterface>);
@@ -38,17 +38,17 @@ public:
    // WideSampleSequence
    size_t NChannels() const override;
    float GetChannelGain(int channel) const override;
-   double GetStartTime() const override;
-   double GetEndTime() const override;
+   double GetStartTime(BPS) const override;
+   double GetEndTime(BPS) const override;
    double GetRate() const override;
    sampleFormat WidestEffectiveFormat() const override;
    bool HasTrivialEnvelope() const override;
    void GetEnvelopeValues(
-      double* buffer, size_t bufferLen, double t0,
+      double* buffer, size_t bufferLen, double t0, BPS,
       bool backwards) const override;
    bool Get(
       size_t iChannel, size_t nBuffers, samplePtr buffers[],
-      sampleFormat format, sampleCount start, size_t len, bool backwards,
+      sampleFormat format, sampleCount start, size_t len, BPS, bool backwards,
       fillFormat fill = fillZero, bool mayThrow = true,
       sampleCount* pNumWithinClips = nullptr) const override;
 
@@ -62,21 +62,23 @@ public:
 
    // class methods
    bool GetFloats(
-      float* buffers[], sampleCount start, size_t len, bool backwards) const;
+      float* buffers[], sampleCount start, size_t len, BPS tempo,
+      bool backwards) const;
 
 private:
    using AudioSegments = std::vector<std::shared_ptr<AudioSegment>>;
 
-   void ResetCursor(double t, PlaybackDirection);
+   void ResetCursor(double t, BPS tempo, PlaybackDirection);
    bool GetNext(float* buffers[], size_t numChannels, size_t numSamples);
    bool MutableGet(
       size_t iChannel, size_t nBuffers, samplePtr buffers[],
-      sampleFormat format, sampleCount start, size_t len, bool backwards);
+      sampleFormat format, sampleCount start, size_t len, BPS, bool backwards);
 
    const PlayableSequence& mSequence;
    const std::unique_ptr<AudioSegmentFactoryInterface> mAudioSegmentFactory;
    AudioSegments mAudioSegments;
    AudioSegments::const_iterator mActiveAudioSegmentIt = mAudioSegments.end();
    std::optional<sampleCount> mExpectedStart;
+   std::optional<BPS> mExpectedTempo;
    PlaybackDirection mPlaybackDirection = PlaybackDirection::forward;
 };

@@ -16,8 +16,8 @@
 #include "WaveTrack.h"
 
 void PasteOverPreservingClips(
-   WaveTrack &oldTrack, sampleCount start, sampleCount len,
-   WaveTrack &newContents)
+   WaveTrack& oldTrack, sampleCount start, sampleCount len,
+   WaveTrack& newContents, BPS tempo)
 {
    // now move the appropriate bit of the output back to the track
    // (this could be enhanced in the future to use the tails)
@@ -39,8 +39,8 @@ void PasteOverPreservingClips(
    //Used to restore clip names after pasting
    std::vector<wxString> clipNames;
    for (const auto &clip : oldTrack.GetClips()) {
-      auto clipStartT = clip->GetPlayStartTime();
-      auto clipEndT = clip->GetPlayEndTime();
+      auto clipStartT = clip->GetPlayStartTime(tempo);
+      auto clipEndT = clip->GetPlayEndTime(tempo);
       if ( clipEndT <= startT )
          continue;   // clip is not within selection
       if ( clipStartT >= startT + lenT )
@@ -62,13 +62,14 @@ void PasteOverPreservingClips(
    for (unsigned int i = 0; i < clipStartEndTimes.size(); ++i) {
       //remove the old audio and get the NEW
       auto [start, end] = clipStartEndTimes[i];
-      oldTrack.Clear(start, end);
-      auto toClipOutput = newContents.Copy(start - startT, end - startT);
+      oldTrack.Clear(start, end, tempo);
+      auto toClipOutput = newContents.Copy(start - startT, end - startT, tempo);
       //put the processed audio in
-      oldTrack.Paste(start, toClipOutput.get());
+      oldTrack.Paste(start, tempo, toClipOutput.get());
 
       //Restore original clip's name
-      auto newClip = oldTrack.GetClipAtTime(start + 0.5 / oldTrack.GetRate());
+      auto newClip =
+         oldTrack.GetClipAtTime(start + 0.5 / oldTrack.GetRate(), tempo);
       newClip->SetName(clipNames[i]);
 
       //if the clip was only partially selected, the Paste will have created a
@@ -78,6 +79,6 @@ void PasteOverPreservingClips(
       auto [realStart, realEnd] = clipRealStartEndTimes[i];
       if ((realStart  != start || realEnd != end) &&
          !(realStart <= startT && realEnd >= startT + lenT) )
-         oldTrack.Join(realStart, realEnd);
+         oldTrack.Join(realStart, realEnd, tempo);
    }
 }

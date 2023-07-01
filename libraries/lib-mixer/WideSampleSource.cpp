@@ -22,10 +22,15 @@
 #include "WideSampleSequence.h"
 #include <cassert>
 
-WideSampleSource::WideSampleSource(const WideSampleSequence &sequence,
-   size_t nChannels, sampleCount start, sampleCount len, Poller pollUser
-)  : mSequence{ sequence }, mnChannels{ nChannels }, mPollUser{ move(pollUser) }
-   , mPos{ start }, mOutputRemaining{ len  }
+WideSampleSource::WideSampleSource(
+   const WideSampleSequence& sequence, size_t nChannels, sampleCount start,
+   sampleCount len, Poller pollUser, BPS projectTempo)
+    : mSequence { sequence }
+    , mnChannels { nChannels }
+    , mPollUser { move(pollUser) }
+    , mProjectTempo { projectTempo }
+    , mPos { start }
+    , mOutputRemaining { len }
 {
    assert(nChannels <= sequence.NChannels());
 }
@@ -49,7 +54,7 @@ sampleCount WideSampleSource::Remaining() const
 
 #define stackAllocate(T, count) static_cast<T*>(alloca(count * sizeof(T)))
 
-std::optional<size_t> WideSampleSource::Acquire(Buffers &data, size_t bound)
+std::optional<size_t> WideSampleSource::Acquire(Buffers& data, size_t bound)
 {
    assert(bound <= data.BlockSize());
    assert(data.BlockSize() <= data.Remaining());
@@ -69,7 +74,7 @@ std::optional<size_t> WideSampleSource::Acquire(Buffers &data, size_t bound)
          buffers[0] = &data.GetWritePosition(0) + mFetched;
       if (mnChannels > 1)
          buffers[1] = &data.GetWritePosition(1) + mFetched;
-      mSequence.GetFloats(0, mnChannels, buffers, mPos, fetch);
+      mSequence.GetFloats(0, mnChannels, buffers, mPos, fetch, mProjectTempo);
       mPos += fetch;
       mFetched += fetch;
       mInitialized = true;

@@ -23,6 +23,7 @@
 
 #include <wx/longlong.h>
 
+#include <NamedType/named_type.hpp>
 #include <cassert>
 #include <vector>
 #include <functional>
@@ -46,6 +47,7 @@ class WaveClip;
 using WaveClipHolder = std::shared_ptr< WaveClip >;
 using WaveClipHolders = std::vector < WaveClipHolder >;
 using WaveClipConstHolders = std::vector < std::shared_ptr< const WaveClip > >;
+using Pct = fluent::NamedType<double, struct PctTag, fluent::Arithmetic>;
 
 // A bundle of arrays needed for drawing waveforms.  The object may or may not
 // own the storage for those arrays.  If it does, it destroys them.
@@ -154,14 +156,15 @@ public:
 
    // Always gives non-negative answer, not more than sample sequence length
    // even if t0 really falls outside that range
-   sampleCount TimeToSequenceSamples(double t) const;
+   sampleCount TimeToSequenceSamples(Beat) const;
+   sampleCount TimeToSequenceSamples(double t, BPS) const;
 
    int GetRate() const { return mRate; }
 
    // Set rate without resampling. This will change the length of the clip
-   void SetRate(int rate);
+   void SetRate(int rate, bool reposition = false);
 
-   double GetStretchRatio() const override;
+   double GetStretchRatio(BPS) const override;
 
    // Resample clip. This also will set the rate, but without changing
    // the length of the clip
@@ -172,76 +175,77 @@ public:
 
    Beat GetSequenceStartTime() const noexcept;
    double GetSequenceStartTime(BPS) const noexcept;
-   void SetSequenceStartTime(Beat startTime);
+   void SetSequenceStartTime(Beat);
+   void SetSequenceStartTime(double startTime, BPS projectTempo);
    Beat GetSequenceEndTime() const;
    double GetSequenceEndTime(BPS) const;
    //! Returns the index of the first sample of the underlying sequence
-   sampleCount GetSequenceStartSample() const;
+   sampleCount GetSequenceStartSample(BPS) const;
    //! Returns the index of the sample next after the last sample of the underlying sequence
-   sampleCount GetSequenceEndSample() const;
+   sampleCount GetSequenceEndSample(BPS) const;
    //! Returns the total number of samples in all underlying sequences
    //! (but not counting the cutlines)
    sampleCount GetSequenceSamplesCount() const;
 
    Beat GetPlayStartTime() const override;
    double GetPlayStartTime(BPS) const noexcept override;
-   void SetPlayStartTime(double time);
+   void SetPlayStartTime(double time, BPS);
 
    Beat GetPlayEndTime() const override;
    double GetPlayEndTime(BPS) const override;
-   double GetPlayEndTimeInOtherProject(
-      const std::optional<double>& targetProjectTempo) const;
-   double GetPlayDuration() const;
-   double GetPlayDurationInOtherProject(
-      const std::optional<double>& targetProjectTempo) const;
+   double GetPlayDuration(BPS) const;
 
-   sampleCount GetPlayStartSample() const;
-   sampleCount GetPlayEndSample() const;
+   sampleCount GetPlayStartSample(BPS) const;
+   sampleCount GetPlayEndSample(BPS) const;
    sampleCount GetPlaySamplesCount() const override;
-   sampleCount GetClosestSampleIndex(double offsetFromPlayStartTime) const;
 
    //! Sets the play start offset in seconds from the beginning of the underlying sequence
-   void SetTrimLeft(double trim);
+   void SetTrimLeft(Beat trim);
+   void SetTrimLeft(double trim, BPS);
    //! Returns the play start offset in seconds from the beginning of the underlying sequence
-   double GetTrimLeft() const noexcept;
+   double GetTrimLeft(BPS) const noexcept;
+   Beat GetTrimLeft() const noexcept;
 
    //! Sets the play end offset in seconds from the ending of the underlying sequence
-   void SetTrimRight(double trim);
+   void SetTrimRight(double trim, BPS);
+   void SetTrimRight(Beat trim);
    //! Returns the play end offset in seconds from the ending of the underlying sequence
-   double GetTrimRight() const noexcept;
+   double GetTrimRight(BPS) const noexcept;
+   Beat GetTrimRight() const noexcept;
 
    //! Moves play start position by deltaTime
-   void TrimLeft(double deltaTime);
+   void TrimLeft(double deltaTime, BPS);
    //! Moves play end position by deltaTime
-   void TrimRight(double deltaTime);
+   void TrimRight(double deltaTime, BPS);
 
    //! Sets the left trimming to the absolute time (if that is in bounds)
-   void TrimLeftTo(Beat to);
+   void TrimLeftTo(double to, BPS);
    //! Sets the right trimming to the absolute time (if that is in bounds)
-   void TrimRightTo(Beat to);
+   void TrimRightTo(double to, BPS);
 
    /*! @excsafety{No-fail} */
-   void Offset(double delta) noexcept;
+   void Offset(double delta, BPS) noexcept;
+   void Offset(Beat delta) noexcept;
 
    //! Stretches from left to the absolute time (if in expected range)
-   void StretchLeftTo(double to);
+   void StretchLeftTo(double to, BPS);
    //! Sets from the right to the absolute time (if in expected range)
-   void StretchRightTo(double to);
+   void StretchRightTo(double to, BPS);
 
    // One and only one of the following is true for a given t (unless the clip
    // has zero length -- then BeforePlayStartTime() and AfterPlayEndTime() can both be true).
    // StrictlyWithinPlayRegion() is true if the time is substantially within the clip
-   bool StrictlyWithinPlayRegion(double t) const;
-   bool BeforeOrAtPlayStartTime(double t) const;
-   bool AfterOrAtPlayEndTime(double t) const;
+   bool StrictlyWithinPlayRegion(double t, BPS) const;
+   bool BeforeOrAtPlayStartTime(double t, BPS) const;
+   bool AfterOrAtPlayEndTime(double t, BPS) const;
 
-   bool BeforePlayStartTime(double t) const;
+   bool BeforePlayStartTime(double t, BPS) const;
 
    //! Counts number of samples within t0 and t1 region. t0 and t1 are
    //! rounded to the nearest clip sample boundary, i.e. relative to clips
    //! start time offset.
    //! @returns Number of samples within t0 and t1 if t1 > t0, 0 otherwise
-   sampleCount CountSamples(double t0, double t1) const;
+   sampleCount CountSamples(double t0, double t1, BPS bps) const;
 
    /*!
     * @brief Request up to `length` samples. The actual number of samples
@@ -252,7 +256,7 @@ public:
     * @pre `iChannel < GetWidth()`
     */
    AudioSegmentSampleView GetSampleView(
-      size_t iChannel, sampleCount start, size_t length, BPS) const override;
+      size_t iChannel, sampleCount start, size_t length) const override;
 
    //! Get samples from one channel
    /*!
@@ -323,12 +327,13 @@ public:
     @param ii identifies the channel
     @pre `ii < GetWidth()`
     */
-   std::pair<float, float> GetMinMax(size_t ii,
-      double t0, double t1, bool mayThrow) const;
+   std::pair<float, float> GetMinMax(
+      size_t ii, double t0, double t1, BPS projectTempo, bool mayThrow) const;
    /*!
     @copydoc GetMinMax
     */
-   float GetRMS(size_t ii, double t0, double t1, bool mayThrow) const;
+   float GetRMS(
+      size_t ii, double t0, double t1, BPS projectTempo, bool mayThrow) const;
 
    /** Whenever you do an operation to the sequence that will change the number
     * of samples (that is, the length of the clip), you will want to call this
@@ -371,35 +376,37 @@ public:
 
    /// This name is consistent with WaveTrack::Clear. It performs a "Cut"
    /// operation (but without putting the cut audio to the clipboard)
-   void Clear(double t0, double t1);
+   void Clear(double t0, double t1, BPS projectTempo);
 
    /// Removes samples starting from the left boundary of the clip till
    /// t, if it's inside the play region. Also removes trimmed (hidden)
    /// data, if present. Changes offset to make remaining samples stay
    /// at their old place. Destructive operation.
-   void ClearLeft(double t);
+   void ClearLeft(double t, BPS projectTempo);
    /// Removes samples starting from t (if it's inside the clip),
    /// till the right boundary. Also removes trimmed (hidden)
    /// data, if present. Destructive operation.
-   void ClearRight(double t);
+   void ClearRight(double t, BPS projectTempo);
 
    /// Clear, and add cut line that starts at t0 and contains everything until t1
    /// if there is at least one clip sample between t0 and t1, noop otherwise.
-   void ClearAndAddCutLine(double t0, double t1);
+   void ClearAndAddCutLine(double t0, double t1, BPS projectTempo);
 
    //! Paste data from other clip, resampling it if not equal rate
    /*!
     @return true and succeed if and only if `this->GetWidth() == other.GetWidth()`
     */
-   bool Paste(double t0, const WaveClip &other);
+   bool Paste(double t0, BPS projectTempo, const WaveClip& other);
+   bool Paste(Beat t0, const WaveClip& other);
 
    /** Insert silence - note that this is an efficient operation for large
     * amounts of silence */
-   void InsertSilence( double t, double len, double *pEnvelopeValue = nullptr );
+   void InsertSilence(
+      double t, double len, BPS projectTempo, double* pEnvelopeValue = nullptr);
 
    /** Insert silence at the end, and causes the envelope to ramp
        linearly to the given value */
-   void AppendSilence( double len, double envelopeValue );
+   void AppendSilence(double len, BPS projectTempo, double envelopeValue);
 
    /// Get access to cut lines list
    WaveClipHolders &GetCutLines() { return mCutLines; }
@@ -410,20 +417,21 @@ public:
    /** Find cut line at (approximately) this position. Returns true and fills
     * in cutLineStart and cutLineEnd (if specified) if a cut line at this
     * position could be found. Return false otherwise. */
-   bool FindCutLine(double cutLinePosition,
-                    double* cutLineStart = NULL,
-                    double *cutLineEnd = NULL) const;
+   bool FindCutLine(
+      double cutLinePosition, BPS, double* cutLineStart = NULL,
+      double* cutLineEnd = NULL) const;
 
    /** Expand cut line (that is, re-insert audio, then DELETE audio saved in
     * cut line). Returns true if a cut line could be found and successfully
     * expanded, false otherwise */
-   void ExpandCutLine(double cutLinePosition);
+   void ExpandCutLine(double cutLinePosition, BPS);
 
    /// Remove cut line, without expanding the audio in it
-   bool RemoveCutLine(double cutLinePosition);
+   bool RemoveCutLine(double cutLinePosition, BPS);
 
    /// Offset cutlines right to time 't0' by time amount 'len'
-   void OffsetCutLines(double t0, double len);
+   void OffsetCutLines(Beat t0, Beat len);
+   void OffsetCutLines(double t0, double len, BPS);
 
    //! Should be called upon project close.  Not balanced by unlocking calls.
    /*! @excsafety{No-fail} */
@@ -443,7 +451,8 @@ public:
    void SetIsPlaceholder(bool val) { mIsPlaceholder = val; }
 
    // used by commands which interact with clips using the keyboard
-   bool SharesBoundaryWithNextClip(const WaveClip* next) const;
+   bool SharesBoundaryWithNextClip(
+      const WaveClip* next, BPS /*not sure if we need this yet*/) const;
 
    void SetName(const wxString& name);
    const wxString& GetName() const;
@@ -462,9 +471,6 @@ public:
    constSamplePtr GetAppendBuffer(size_t ii) const;
    size_t GetAppendBufferLen() const;
 
-   double GetPlayoutStretchRatio() const;
-   void SetProjectTempo(double newTempo);
-
 private:
    sampleCount GetNumSamples() const;
    SampleFormats GetSampleFormats() const;
@@ -472,7 +478,8 @@ private:
 
    /// This name is consistent with WaveTrack::Clear. It performs a "Cut"
    /// operation (but without putting the cut audio to the clipboard)
-   void ClearSequence(double t0, double t1);
+   void ClearSequence(double t0, double t1, BPS projectTempo);
+   void ClearSequence(Beat t0, Beat t1);
 
    //! Restores state when an update loop over mSequences fails midway
    struct Transaction {
@@ -482,14 +489,13 @@ private:
 
       WaveClip &clip;
       std::vector<std::unique_ptr<Sequence>> sequences;
-      const double mTrimLeft,
-         mTrimRight;
+      const Pct mTrimLeft, mTrimRight;
       bool committed{ false };
    };
 
    Beat mSequenceOffset { 0 };
-   Beat mTrimLeft{ 0 };
-   Beat mTrimRight{ 0 };
+   Pct mTrimLeft{ 0 };
+   Pct mTrimRight{ 0 };
 
    int mRate;
    int mColourIndex;
@@ -516,12 +522,9 @@ private:
    bool mIsPlaceholder { false };
 
 private:
-   double GetPlayEndTime(const std::optional<double>& destinationTempo) const;
-   double GetPlayDuration(const std::optional<double>& destinationTempo) const;
-   double
-   GetPlayoutStretchRatio(const std::optional<double>& destinationTempo) const;
-   double
-   GetPlayoutStretchRatioInOtherProject(const std::optional<double>&) const;
+   sampleCount GetTrimLeftSamples(size_t ii) const;
+   double GetSequenceDuration(BPS) const;
+   Beat GetSequenceDuration() const;
 
    wxString mName;
    double mUiStretchRatio = 1.0;

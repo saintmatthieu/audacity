@@ -16,6 +16,7 @@
 #define __AUDACITY_WAVE_TRACK_SINK__
 
 #include "AudioGraphSink.h" // to inherit
+#include "Beat.h"
 #include "SampleCount.h"
 #include "SampleFormat.h"
 #include <memory>
@@ -39,7 +40,7 @@ public:
    /*!
     @copydoc DoConsume
     */
-   void Flush(Buffers &data, double t0, double t1);
+   void Flush(Buffers &data, double t0, double t1, BPS);
 
 private:
    /*!

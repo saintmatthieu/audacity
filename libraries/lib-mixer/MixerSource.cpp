@@ -76,9 +76,10 @@ size_t MixerSource::MixVariableRates(
    const double tstep = 1.0 / sequenceRate;
    const auto sampleSize = SAMPLE_SIZE(floatSample);
    // Find the last sample
-   const auto endPos = [mpLeader = mpLeader, mT1 = mT1, backwards]{
-      double endTime = mpLeader->GetEndTime();
-      double startTime = mpLeader->GetStartTime();
+   const auto endPos = [mpLeader = mpLeader, mT1 = mT1, backwards,
+                        tempo = mProjectTempo] {
+      double endTime = mpLeader->GetEndTime(tempo);
+      double startTime = mpLeader->GetStartTime(tempo);
       const double tEnd = backwards
          ? std::max(startTime, mT1)
          : std::min(endTime, mT1);
@@ -129,13 +130,13 @@ size_t MixerSource::MixVariableRates(
                dst.push_back(queue.data() + queueLen);
             constexpr auto iChannel = 0u;
             if (!mpLeader->GetFloats(
-                   iChannel, nChannels, dst.data(), pos, getLen, backwards,
-                   fillZero, mMayThrow))
+                   iChannel, nChannels, dst.data(), pos, getLen, mProjectTempo,
+                   backwards, fillZero, mMayThrow))
                for (size_t iChannel = 0; iChannel < nChannels; ++iChannel)
                   memset(dst[i], 0, sizeof(float) * getLen);
             mpLeader->GetEnvelopeValues(
                mEnvValues.data(), getLen, (pos).as_double() / sequenceRate,
-               backwards);
+               mProjectTempo, backwards);
             for (size_t iChannel = 0; iChannel < nChannels; ++iChannel) {
                const auto queue = mSampleQueue[iChannel].data();
                for (decltype(getLen) i = 0; i < getLen; i++)
@@ -220,9 +221,10 @@ size_t MixerSource::MixSameRate(unsigned nChannels, const size_t maxOut,
    const auto &[mT0, mT1, _, __] = *mTimesAndSpeed;
    const bool backwards = (mT1 < mT0);
    const auto sequenceRate = mpLeader->GetRate();
-   const double tEnd = [mpLeader = mpLeader, mT1 = mT1, backwards]{
-      const double sequenceEndTime = mpLeader->GetEndTime();
-      const double sequenceStartTime = mpLeader->GetStartTime();
+   const double tEnd = [mpLeader = mpLeader, mT1 = mT1, backwards,
+                        tempo = mProjectTempo] {
+      const double sequenceEndTime = mpLeader->GetEndTime(tempo);
+      const double sequenceStartTime = mpLeader->GetStartTime(tempo);
       return backwards
          ? std::max(sequenceStartTime, mT1)
          : std::min(sequenceEndTime, mT1);
@@ -249,12 +251,13 @@ size_t MixerSource::MixSameRate(unsigned nChannels, const size_t maxOut,
 
    constexpr auto iChannel = 0u;
    if (!mpLeader->GetFloats(
-          iChannel, nChannels, floatBuffers, pos, slen, backwards, fillZero,
-          mMayThrow))
+          iChannel, nChannels, floatBuffers, pos, slen, mProjectTempo,
+          backwards, fillZero, mMayThrow))
       for (size_t iChannel = 0; iChannel < nChannels; ++iChannel)
          memset(floatBuffers[iChannel], 0, sizeof(float) * slen);
 
-   mpLeader->GetEnvelopeValues(mEnvValues.data(), slen, t, backwards);
+   mpLeader->GetEnvelopeValues(
+      mEnvValues.data(), slen, t, mProjectTempo, backwards);
 
    for (size_t iChannel = 0; iChannel < nChannels; ++iChannel) {
       const auto pFloat = floatBuffers[iChannel];
@@ -281,23 +284,24 @@ void MixerSource::ZeroFill(
 }
 
 MixerSource::MixerSource(
-   const std::shared_ptr<const WideSampleSequence> &leader, size_t bufferSize,
-   double rate, const MixerOptions::Warp &options, bool highQuality,
+   const std::shared_ptr<const WideSampleSequence>& leader, size_t bufferSize,
+   double rate, const MixerOptions::Warp& options, bool highQuality,
    bool mayThrow, std::shared_ptr<TimesAndSpeed> pTimesAndSpeed,
-   const ArrayOf<bool> *pMap
-)  : mpLeader{ leader }
-   , mnChannels{ mpLeader->NChannels() }
-   , mRate{ rate }
-   , mEnvelope{ options.envelope }
-   , mMayThrow{ mayThrow }
-   , mTimesAndSpeed{ move(pTimesAndSpeed) }
-   , mSampleQueue{ initVector<float>(mnChannels, sQueueMaxLen) }
-   , mQueueStart{ 0 }
-   , mQueueLen{ 0 }
-   , mResampleParameters{ highQuality, mpLeader->GetRate(), rate, options }
-   , mResample( mnChannels )
-   , mEnvValues( std::max(sQueueMaxLen, bufferSize) )
-   , mpMap{ pMap }
+   const ArrayOf<bool>* pMap, BPS projectTempo)
+    : mpLeader { leader }
+    , mnChannels { mpLeader->NChannels() }
+    , mRate { rate }
+    , mEnvelope { options.envelope }
+    , mMayThrow { mayThrow }
+    , mTimesAndSpeed { move(pTimesAndSpeed) }
+    , mSampleQueue { initVector<float>(mnChannels, sQueueMaxLen) }
+    , mQueueStart { 0 }
+    , mQueueLen { 0 }
+    , mResampleParameters { highQuality, mpLeader->GetRate(), rate, options }
+    , mResample(mnChannels)
+    , mEnvValues(std::max(sQueueMaxLen, bufferSize))
+    , mpMap { pMap }
+    , mProjectTempo { projectTempo }
 {
    assert(mTimesAndSpeed);
    auto t0 = mTimesAndSpeed->mT0;

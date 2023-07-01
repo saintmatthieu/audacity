@@ -18,47 +18,50 @@
 namespace
 {
 TimeAndPitchInterface::Parameters
-GetStretchingParameters(const ClipInterface& clip)
+GetStretchingParameters(const ClipInterface& clip, BPS projectTempo)
 {
    TimeAndPitchInterface::Parameters params;
-   params.timeRatio = clip.GetStretchRatio();
+   params.timeRatio = clip.GetStretchRatio(projectTempo);
    return params;
 }
 
 sampleCount GetLastReadSample(
    const ClipInterface& clip, double durationToDiscard,
-   PlaybackDirection direction)
+   PlaybackDirection direction, BPS projectTempo)
 {
    if (direction == PlaybackDirection::forward)
-      return sampleCount {
-         clip.GetRate() * durationToDiscard / clip.GetStretchRatio() + .5
-      };
+      return sampleCount { clip.GetRate() * durationToDiscard /
+                              clip.GetStretchRatio(projectTempo) +
+                           .5 };
    else
-      return clip.GetPlaySamplesCount() - sampleCount {
-         clip.GetRate() * durationToDiscard / clip.GetStretchRatio() + .5
-      };
+      return clip.GetPlaySamplesCount() -
+             sampleCount { clip.GetRate() * durationToDiscard /
+                              clip.GetStretchRatio(projectTempo) +
+                           .5 };
 }
 
-sampleCount
-GetTotalNumSamplesToProduce(const ClipInterface& clip, double durationToDiscard)
+sampleCount GetTotalNumSamplesToProduce(
+   const ClipInterface& clip, double durationToDiscard, BPS projectTempo)
 {
    return sampleCount { (clip.GetPlaySamplesCount().as_double() -
                          durationToDiscard * clip.GetRate()) *
-                           clip.GetStretchRatio() +
+                           clip.GetStretchRatio(projectTempo) +
                         .5 };
 }
 } // namespace
 
 ClipSegment::ClipSegment(
-   const ClipInterface& clip, double durationToDiscard,
+   const ClipInterface& clip, BPS projectTempo, double durationToDiscard,
    PlaybackDirection direction)
     : mClip { clip }
-    , mLastReadSample { GetLastReadSample(clip, durationToDiscard, direction) }
+    , mBps { projectTempo }
+    , mLastReadSample { GetLastReadSample(
+         clip, durationToDiscard, direction, mBps) }
     , mTotalNumSamplesToProduce { GetTotalNumSamplesToProduce(
-         clip, durationToDiscard) }
+         clip, durationToDiscard, mBps) }
     , mPlaybackDirection { direction }
     , mStretcher { std::make_unique<StaffPadTimeAndPitch>(
-         clip.GetWidth(), *this, GetStretchingParameters(clip)) }
+         clip.GetWidth(), *this, GetStretchingParameters(clip, projectTempo)) }
 {
 }
 

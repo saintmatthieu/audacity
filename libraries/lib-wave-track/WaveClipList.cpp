@@ -5,7 +5,12 @@
 void WaveClipList::PushBack(WaveClipHolder clip)
 {
    if (mProjectTempo.has_value())
-      clip->SetProjectTempo(*mProjectTempo);
+   {
+      // WaveClipList was just for that ; now we wouldn't need WaveClipList at
+      // all.
+
+      // clip->SetProjectTempo(*mProjectTempo);
+   }
    mClips.push_back(std::move(clip));
 }
 
@@ -57,6 +62,11 @@ WaveClipHolder WaveClipList::operator[](size_t i) const
 void WaveClipList::SetProjectTempo(double newTempo)
 {
    for (const auto& clip : mClips)
-      clip->SetProjectTempo(newTempo);
+   {
+      // WaveClipList was just for that ; now we wouldn't need WaveClipList
+      // at all.
+
+      // clip->SetProjectTempo(newTempo);
+   }
    mProjectTempo = newTempo;
 }

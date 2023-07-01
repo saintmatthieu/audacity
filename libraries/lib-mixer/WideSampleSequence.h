@@ -11,6 +11,7 @@ Paul Licameli split from SampleFrame.h
 #define __AUDACITY_WIDE_SAMPLE_SEQUENCE_
 
 #include "AudioGraphChannel.h"
+#include "Beat.h"
 #include "ClientData.h"
 #include "SampleCount.h"
 #include "SampleFormat.h"
@@ -65,14 +66,14 @@ public:
     */
    bool GetFloats(
       size_t iChannel, size_t nBuffers, float* buffers[], sampleCount start,
-      size_t len, bool backwards = false, fillFormat fill = fillZero,
+      size_t len, BPS tempo, bool backwards = false, fillFormat fill = fillZero,
       bool mayThrow = true, sampleCount* pNumWithinClips = nullptr) const
    {
       // Cast the pointers to pass them to Get() which handles multiple
       // destination formats
       return Get(
          iChannel, nBuffers, reinterpret_cast<samplePtr*>(buffers), floatSample,
-         start, len, backwards, fill, mayThrow, pNumWithinClips);
+         start, len, tempo, backwards, fill, mayThrow, pNumWithinClips);
    }
 
    //! Retrieve samples of one of the channels from a sequence in a specified
@@ -85,15 +86,15 @@ public:
     */
    virtual bool Get(
       size_t iChannel, size_t nBuffers, samplePtr buffers[],
-      sampleFormat format, sampleCount start, size_t len, bool backward,
+      sampleFormat format, sampleCount start, size_t len, BPS, bool backward,
       fillFormat fill = fillZero, bool mayThrow = true,
       // Report how many samples were copied from within clips, rather than
       // filled according to fillFormat; but these were not necessarily one
       // contiguous range.
       sampleCount* pNumWithinClips = nullptr) const = 0;
 
-   virtual double GetStartTime() const = 0;
-   virtual double GetEndTime() const = 0;
+   virtual double GetStartTime(BPS) const = 0;
+   virtual double GetEndTime(BPS) const = 0;
    virtual double GetRate() const = 0;
 
    //! Convert correctly between an (absolute) time in seconds and a number of
@@ -135,7 +136,8 @@ public:
        `t0 - bufferLen / rate`
     */
    virtual void GetEnvelopeValues(
-      double* buffer, size_t bufferLen, double t0, bool backwards) const = 0;
+      double* buffer, size_t bufferLen, double t0, BPS tempo,
+      bool backwards) const = 0;
 };
 
 #endif

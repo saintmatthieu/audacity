@@ -15,6 +15,7 @@
 #define __AUDACITY_WIDE_SAMPLE_SOURCE__
 
 #include "AudioGraphSource.h" // to inherit
+#include "Beat.h"
 #include "SampleCount.h"
 #include <functional>
 
@@ -30,8 +31,9 @@ public:
     @pre `nChannels <= sequence.NChannels()`
     @post `Remaining()` == len
     */
-   WideSampleSource(const WideSampleSequence &sequence, size_t nChannels,
-      sampleCount start, sampleCount len, Poller pollUser);
+   WideSampleSource(
+      const WideSampleSequence& sequence, size_t nChannels, sampleCount start,
+      sampleCount len, Poller pollUser, BPS projectTempo);
    ~WideSampleSource() override;
 
    //! If constructed with positive length, then accepts buffers only when
@@ -41,7 +43,7 @@ public:
    //! Always true
    bool AcceptsBlockSize(size_t blockSize) const override;
 
-   std::optional<size_t> Acquire(Buffers &data, size_t bound) override;
+   std::optional<size_t> Acquire(Buffers& data, size_t bound) override;
    sampleCount Remaining() const override;
    //! Can test for user cancellation
    bool Release() override;
@@ -49,6 +51,7 @@ private:
    const WideSampleSequence &mSequence;
    const size_t mnChannels;
    const Poller mPollUser;
+   const BPS mProjectTempo;
 
    sampleCount mPos{};
    sampleCount mOutputRemaining{};

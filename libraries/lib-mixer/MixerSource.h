@@ -15,6 +15,7 @@
 #define __AUDACITY_MIXER_SOURCE__
 
 #include "AudioGraphSource.h"
+#include "Beat.h"
 #include "MixerOptions.h"
 #include "SampleCount.h"
 #include <memory>
@@ -43,7 +44,8 @@ public:
       double rate, const MixerOptions::Warp &options, bool highQuality,
       bool mayThrow, std::shared_ptr<TimesAndSpeed> pTimesAndSpeed,
       //! Null or else must have a lifetime enclosing this objects's
-      const ArrayOf<bool> *pMap
+      const ArrayOf<bool> *pMap,
+      BPS projectTempo
    );
    MixerSource(MixerSource&&) = default;
    MixerSource &operator=(MixerSource&&) = delete;
@@ -137,5 +139,7 @@ private:
    //! Remember how many channels were passed to Acquire()
    unsigned mMaxChannels{};
    size_t mLastProduced{};
+
+   const BPS mProjectTempo;
 };
 #endif

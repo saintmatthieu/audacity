@@ -47,12 +47,12 @@ float CachingPlayableSequence::GetChannelGain(int channel) const
 
 bool CachingPlayableSequence::Get(
    size_t iChannel, size_t nBuffers, samplePtr buffers[], sampleFormat format,
-   sampleCount start, size_t len, bool backwards, fillFormat fill,
+   sampleCount start, size_t len, BPS tempo, bool backwards, fillFormat fill,
    bool mayThrow, sampleCount* pNumWithinClips) const
 {
    assert(iChannel + nBuffers <= mWaveTrack.NChannels());
-   mCacheHolders =
-      mWaveTrack.GetSampleView(iChannel, nBuffers, start, len, backwards);
+   mCacheHolders = mWaveTrack.GetSampleView(
+      iChannel, nBuffers, start, len, tempo, backwards);
    assert(mCacheHolders.size() == nBuffers);
    for (auto i = 0u; i < mCacheHolders.size(); ++i)
       FillBufferFromTrackBlockSequence(
@@ -60,14 +60,14 @@ bool CachingPlayableSequence::Get(
    return !mCacheHolders.empty();
 }
 
-double CachingPlayableSequence::GetStartTime() const
+double CachingPlayableSequence::GetStartTime(BPS tempo) const
 {
-   return mWaveTrack.GetStartTime();
+   return mWaveTrack.GetStartTime(tempo);
 }
 
-double CachingPlayableSequence::GetEndTime() const
+double CachingPlayableSequence::GetEndTime(BPS tempo) const
 {
-   return mWaveTrack.GetEndTime();
+   return mWaveTrack.GetEndTime(tempo);
 }
 
 double CachingPlayableSequence::GetRate() const
@@ -86,9 +86,9 @@ bool CachingPlayableSequence::HasTrivialEnvelope() const
 }
 
 void CachingPlayableSequence::GetEnvelopeValues(
-   double* buffer, size_t bufferLen, double t0, bool backwards) const
+   double* buffer, size_t bufferLen, double t0, BPS tempo, bool backwards) const
 {
-   mWaveTrack.GetEnvelopeValues(buffer, bufferLen, t0, backwards);
+   mWaveTrack.GetEnvelopeValues(buffer, bufferLen, t0, tempo, backwards);
 }
 
 AudioGraph::ChannelType CachingPlayableSequence::GetChannelType() const

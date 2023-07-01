@@ -20,6 +20,7 @@
 #include <functional>
 #include <wx/longlong.h>
 
+#include "Beat.h"
 #include "ClientData.h"
 #include "Observer.h"
 // TrackAttachment needs to be a complete type for the Windows build, though
@@ -84,7 +85,7 @@ template<typename T>
     been added to a TrackList, or (directly or transitively) copied from such.
     (A track added by TrackList::RegisterPendingNewTrack() that is not yet applied is not
     considered added.)
- 
+
     TrackIds are assigned uniquely across projects. */
 class TrackId
 {
@@ -299,18 +300,19 @@ private:
 
    //! Find or create the destination track for a paste, maybe in a different project
    /*! @return A smart pointer to the track; its `use_count()` can tell whether it is new */
-   virtual Holder PasteInto( AudacityProject & ) const = 0;
+   virtual Holder
+   PasteInto(AudacityProject& otherProject, BPS otherProjectTempo) const = 0;
 
    //! Report times on the track where important intervals begin and end, for UI to snap to
    /*!
    Some intervals may be empty, and no ordering of the intervals is assumed.
    */
-   virtual ConstIntervals GetIntervals() const;
+   virtual ConstIntervals GetIntervals(BPS) const;
 
    /*! @copydoc GetIntervals()
    This overload exposes the extra data of the intervals as non-const
     */
-   virtual Intervals GetIntervals();
+   virtual Intervals GetIntervals(BPS);
 
  public:
    mutable std::pair<int, int> vrulerSize;
@@ -343,7 +345,7 @@ public:
    const ChannelGroupData &GetGroupData() const;
 
 protected:
-   
+
    /*!
     @param completeList only influences debug build consistency checking
     */
@@ -365,7 +367,7 @@ private:
    Track* GetLinkedTrack() const;
    //! Returns true for leaders of multichannel groups
    bool HasLinkedTrack() const noexcept;
-   
+
    //! Retrieve mNode with debug checks
    TrackNodePointer GetNode() const;
    //! Update mNode when Track is added to TrackList, or removed from it
@@ -375,7 +377,7 @@ private:
  // Keep in Track
 
  protected:
-   double              mOffset;
+    Beat mOffset;
 
  public:
 
@@ -404,15 +406,18 @@ private:
 
 public:
 
-   virtual double GetOffset() const = 0;
+   virtual double GetOffset(BPS tempo) const = 0;
 
-   void Offset(double t) { SetOffset(GetOffset() + t); }
-   virtual void SetOffset (double o) { mOffset = o; }
+   void Offset(double t, BPS tempo) { SetOffset(GetOffset(tempo) + t, tempo); }
+   virtual void SetOffset(double o, BPS tempo)
+   {
+      mOffset = Beat { tempo.get() * o };
+   }
 
    // Create a NEW track and modify this track
    // Return non-NULL or else throw
    // May assume precondition: t0 <= t1
-   virtual Holder Cut(double WXUNUSED(t0), double WXUNUSED(t1)) = 0;
+   virtual Holder Cut(double WXUNUSED(t0), double WXUNUSED(t1), BPS) = 0;
 
    // Create a NEW track and don't modify this track
    // Return non-NULL or else throw
@@ -420,23 +425,24 @@ public:
    // from those stored in a project
    // May assume precondition: t0 <= t1
    // Should invoke Track::Init
-   virtual Holder Copy
-      (double WXUNUSED(t0), double WXUNUSED(t1), bool forClipboard = true) const = 0;
+   virtual Holder Copy(
+      double WXUNUSED(t0), double WXUNUSED(t1), BPS,
+      bool forClipboard = true) const = 0;
 
    // May assume precondition: t0 <= t1
-   virtual void Clear(double WXUNUSED(t0), double WXUNUSED(t1)) = 0;
+   virtual void Clear(double WXUNUSED(t0), double WXUNUSED(t1), BPS) = 0;
 
-   virtual void Paste(double WXUNUSED(t), const Track * WXUNUSED(src)) = 0;
+   virtual void Paste(double WXUNUSED(t), BPS, const Track* WXUNUSED(src)) = 0;
 
    // This can be used to adjust a sync-lock selected track when the selection
    // is replaced by one of a different length.
-   virtual void SyncLockAdjust(double oldT1, double newT1);
+   virtual void SyncLockAdjust(double oldT1, double newT1, BPS);
 
    // May assume precondition: t0 <= t1
-   virtual void Silence(double WXUNUSED(t0), double WXUNUSED(t1)) = 0;
+   virtual void Silence(double WXUNUSED(t0), double WXUNUSED(t1), BPS) = 0;
 
    // May assume precondition: t0 <= t1
-   virtual void InsertSilence(double WXUNUSED(t), double WXUNUSED(len)) = 0;
+   virtual void InsertSilence(double WXUNUSED(t), double WXUNUSED(len), BPS) = 0;
 
 private:
    // Subclass responsibility implements only a part of Duplicate(), copying
@@ -494,8 +500,8 @@ public:
     */
    virtual std::optional<TranslatableString> GetErrorOpening() const;
 
-   virtual double GetStartTime() const = 0;
-   virtual double GetEndTime() const = 0;
+   virtual double GetStartTime(BPS) const = 0;
+   virtual double GetEndTime(BPS) const = 0;
 
    // Send a notification to subscribers when state of the track changes
    // To do: define values for the argument to distinguish different parts
@@ -525,7 +531,7 @@ ENUMERATE_TRACK_TYPE(Track);
 
 //! Encapsulate the checked down-casting of track pointers
 /*! Eliminates possibility of error -- and not quietly casting away const
- 
+
 Typical usage:
 ```
 if (auto wt = track_cast<const WaveTrack*>(track)) { ... }
@@ -565,9 +571,9 @@ template < typename TrackType > struct TrackIterRange;
 //! Iterator over only members of a TrackList of the specified subtype, optionally filtered by a predicate; past-end value dereferenceable, to nullptr
 /*! Does not suffer invalidation when an underlying std::list iterator is deleted, provided that is not
     equal to its current position or to the beginning or end iterator.
- 
+
     The filtering predicate is tested only when the iterator is constructed or advanced.
- 
+
     @tparam TrackType Track or a subclass, maybe const-qualified
  */
 template <
@@ -1142,10 +1148,10 @@ public:
    template<typename TrackKind>
       TrackKind *Add( const std::shared_ptr< TrackKind > &t )
          { return static_cast< TrackKind* >( DoAdd( t ) ); }
-   
+
    //! Removes linkage if track belongs to a group
    void UnlinkChannels(Track& track);
-   /** \brief Converts channels to a multichannel track. 
+   /** \brief Converts channels to a multichannel track.
    * @param first and the following must be in this list. Tracks should
    * not be a part of another group (not linked)
    * @param nChannels number of channels, for now only 2 channels supported
@@ -1194,10 +1200,10 @@ public:
    size_t NChannels() const;
    size_t Size() const { return Leaders().size(); }
 
-   double GetStartTime() const;
-   double GetEndTime() const;
+   double GetStartTime(BPS) const;
+   double GetEndTime(BPS) const;
 
-   double GetMinOffset() const;
+   double GetMinOffset(BPS) const;
 
 private:
    using ListOfTracks::size;
@@ -1233,7 +1239,7 @@ private:
 
    Track *GetPrev(Track * t, bool linked = false) const;
    Track *GetNext(Track * t, bool linked = false) const;
-   
+
    template < typename TrackType >
       TrackIter< TrackType >
          MakeTrackIterator( TrackNodePointer iter ) const

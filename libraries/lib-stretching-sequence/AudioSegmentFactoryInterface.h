@@ -10,6 +10,7 @@
 **********************************************************************/
 #pragma once
 
+#include "Beat.h"
 #include "SampleCount.h"
 
 #include <memory>
@@ -26,5 +27,5 @@ public:
 
    virtual std::vector<std::shared_ptr<AudioSegment>>
    CreateAudioSegmentSequence(
-      double playbackStartTime, PlaybackDirection) const = 0;
+      double playbackStartTime, BPS tempo, PlaybackDirection) const = 0;
 };

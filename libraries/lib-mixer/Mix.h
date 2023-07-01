@@ -13,6 +13,7 @@
 #define __AUDACITY_MIX__
 
 #include "AudioGraphBuffers.h"
+#include "Beat.h"
 #include "MixerOptions.h"
 #include "SampleFormat.h"
 
@@ -54,15 +55,13 @@ class MIXER_API Mixer {
        partners
     @post `BufferSize() <= outBufferSize` (equality when no inputs have stages)
     */
-   Mixer(Inputs inputs, bool mayThrow,
-         const WarpOptions &warpOptions,
-         double startTime, double stopTime,
-         unsigned numOutChannels, size_t outBufferSize, bool outInterleaved,
-         double outRate, sampleFormat outFormat,
-         bool highQuality = true,
-         //! Null or else must have a lifetime enclosing this object's
-         MixerSpec *mixerSpec = nullptr,
-         bool applytTrackGains = true);
+   Mixer(
+      Inputs inputs, bool mayThrow, const WarpOptions& warpOptions,
+      double startTime, double stopTime, unsigned numOutChannels,
+      size_t outBufferSize, bool outInterleaved, double outRate,
+      sampleFormat outFormat, BPS projectTempo, bool highQuality = true,
+      //! Null or else must have a lifetime enclosing this object's
+      MixerSpec* mixerSpec = nullptr, bool applytTrackGains = true);
 
    Mixer(const Mixer&) = delete;
    Mixer &operator=(const Mixer&) = delete;

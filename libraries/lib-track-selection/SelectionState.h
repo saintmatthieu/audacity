@@ -13,6 +13,7 @@ class AudacityProject;
 class Track;
 class TrackList;
 class ViewInfo;
+#include "Beat.h"
 #include "ClientData.h"
 #include <memory>
 #include <vector>
@@ -29,20 +30,19 @@ public:
    static SelectionState &Get( AudacityProject &project );
    static const SelectionState &Get( const AudacityProject &project );
 
-   static void SelectTrackLength
-      ( ViewInfo &viewInfo, Track &track, bool syncLocked );
+   static void SelectTrackLength(
+      ViewInfo& viewInfo, Track& track, bool syncLocked, BPS tempo);
 
-   void SelectTrack(
-      Track &track, bool selected, bool updateLastPicked );
+   void
+   SelectTrack(Track& track, bool selected, bool updateLastPicked);
    // Inclusive range of tracks, the limits specified in either order:
-   void SelectRangeOfTracks
-      ( TrackList &tracks, Track &sTrack, Track &eTrack );
-   void SelectNone( TrackList &tracks );
-   void ChangeSelectionOnShiftClick
-      ( TrackList &tracks, Track &track );
-   void HandleListSelection
-      ( TrackList &tracks, ViewInfo &viewInfo, Track &track,
-        bool shift, bool ctrl, bool syncLocked );
+   void SelectRangeOfTracks(
+      TrackList& tracks, Track& sTrack, Track& eTrack);
+   void SelectNone(TrackList& tracks);
+   void ChangeSelectionOnShiftClick(TrackList& tracks, Track& track);
+   void HandleListSelection(
+      TrackList& tracks, ViewInfo& viewInfo, Track& track, bool shift,
+      bool ctrl, bool syncLocked, BPS tempo);
 
 private:
    friend class SelectionStateChanger;

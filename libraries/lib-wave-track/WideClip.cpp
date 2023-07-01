@@ -57,7 +57,7 @@ double WideClip::GetPlayEndTime(BPS tempo) const
    return mChannels[0u]->GetPlayEndTime(tempo);
 }
 
-double WideClip::GetStretchRatio() const
+double WideClip::GetStretchRatio(BPS tempo) const
 {
-   return mChannels[0u]->GetStretchRatio();
+   return mChannels[0u]->GetStretchRatio(tempo);
 }

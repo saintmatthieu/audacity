@@ -13,6 +13,8 @@
 #include "Track.h"
 #include "Project.h"
 
+#include <numeric> // accumulate
+
 static const AudacityProject::AttachedObjects::RegisteredFactory key{
   [](AudacityProject &){ return std::make_shared< SelectionState >(); }
 };
@@ -31,7 +33,7 @@ const SelectionState &SelectionState::Get( const AudacityProject &project )
 // on, use the largest possible selection in the sync-lock group.
 // If it's a stereo track, do the same for the stereo channels.
 void SelectionState::SelectTrackLength
-( ViewInfo &viewInfo, Track &track, bool syncLocked )
+( ViewInfo &viewInfo, Track &track, bool syncLocked, BPS tempo )
 {
    auto trackRange = syncLocked
    // If we have a sync-lock group and sync-lock linking is on,
@@ -41,8 +43,16 @@ void SelectionState::SelectTrackLength
    // Otherwise, check for a stereo pair
    : TrackList::Channels(&track);
 
-   auto minOffset = trackRange.min( &Track::GetOffset );
-   auto maxEnd = trackRange.max( &Track::GetEndTime );
+   const auto minOffset = std::accumulate(
+      trackRange.begin(), trackRange.end(), DBL_MAX,
+      [tempo](double offset, const Track* track) {
+         return std::min(offset, track->GetOffset(tempo));
+      });
+   const auto maxEnd = std::accumulate(
+      trackRange.begin(), trackRange.end(), -DBL_MAX,
+      [tempo](double offset, const Track* track) {
+         return std::max(offset, track->GetEndTime(tempo));
+      });
 
    // PRL: double click or click on track control.
    // should this select all frequencies too?  I think not.
@@ -134,21 +144,21 @@ void SelectionState::ChangeSelectionOnShiftClick(
    mLastPickedTrack = pExtendFrom;
 }
 
-void SelectionState::HandleListSelection
-( TrackList &tracks, ViewInfo &viewInfo,
-  Track &track, bool shift, bool ctrl, bool syncLocked )
+void SelectionState::HandleListSelection(
+   TrackList& tracks, ViewInfo& viewInfo, Track& track, bool shift, bool ctrl,
+   bool syncLocked, BPS tempo)
 {
    // AS: If the shift button is being held down, invert
    //  the selection on this track.
    if (ctrl)
-      SelectTrack( track, !track.GetSelected(), true );
+      SelectTrack(track, !track.GetSelected(), true);
    else {
       if (shift && mLastPickedTrack.lock())
          ChangeSelectionOnShiftClick( tracks, track );
       else {
          SelectNone( tracks );
-         SelectTrack( track, true, true );
-         SelectTrackLength( viewInfo, track, syncLocked );
+         SelectTrack(track, true, true);
+         SelectTrackLength(viewInfo, track, syncLocked, tempo);
       }
    }
 }

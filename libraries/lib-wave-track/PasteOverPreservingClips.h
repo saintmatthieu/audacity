@@ -13,6 +13,8 @@
 #ifndef __AUDACITY_PASTE_OVER_PRESERVING_CLIPS__
 #define __AUDACITY_PASTE_OVER_PRESERVING_CLIPS__
 
+#include "ClipInterface.h"
+
 class sampleCount;
 class WaveTrack;
 
@@ -23,7 +25,7 @@ class WaveTrack;
  @param newContents begins at offset 0
  */
 WAVE_TRACK_API void PasteOverPreservingClips(
-   WaveTrack &oldTrack, sampleCount start, sampleCount len,
-   WaveTrack &newContents);
+   WaveTrack& oldTrack, sampleCount start, sampleCount len,
+   WaveTrack& newContents, BPS tempo);
 
 #endif

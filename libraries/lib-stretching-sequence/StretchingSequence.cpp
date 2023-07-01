@@ -35,10 +35,11 @@ StretchingSequence::StretchingSequence(
 {
 }
 
-void StretchingSequence::ResetCursor(double t, PlaybackDirection direction)
+void StretchingSequence::ResetCursor(
+   double t, BPS tempo, PlaybackDirection direction)
 {
    mAudioSegments =
-      mAudioSegmentFactory->CreateAudioSegmentSequence(t, direction);
+      mAudioSegmentFactory->CreateAudioSegmentSequence(t, tempo, direction);
    mActiveAudioSegmentIt = mAudioSegments.begin();
    mPlaybackDirection = direction;
    mExpectedStart = TimeToLongSamples(t);
@@ -47,8 +48,6 @@ void StretchingSequence::ResetCursor(double t, PlaybackDirection direction)
 bool StretchingSequence::GetNext(
    float* buffers[], size_t numChannels, size_t numSamples)
 {
-   if (!mExpectedStart.has_value())
-      ResetCursor(0., PlaybackDirection::forward);
    auto numProcessedSamples = 0u;
    while (numProcessedSamples < numSamples &&
           mActiveAudioSegmentIt != mAudioSegments.end())
@@ -91,11 +90,11 @@ float StretchingSequence::GetChannelGain(int channel) const
 
 bool StretchingSequence::Get(
    size_t iChannel, size_t nBuffers, samplePtr buffers[], sampleFormat format,
-   sampleCount start, size_t len, bool backwards, fillFormat fill,
+   sampleCount start, size_t len, BPS tempo, bool backwards, fillFormat fill,
    bool mayThrow, sampleCount* pNumWithinClips) const
 {
    return const_cast<StretchingSequence&>(*this).MutableGet(
-      iChannel, nBuffers, buffers, format, start, len, backwards);
+      iChannel, nBuffers, buffers, format, start, len, tempo, backwards);
 }
 
 bool StretchingSequence::IsLeader() const
@@ -113,14 +112,14 @@ bool StretchingSequence::GetMute() const
    return mSequence.GetMute();
 }
 
-double StretchingSequence::GetStartTime() const
+double StretchingSequence::GetStartTime(BPS tempo) const
 {
-   return mSequence.GetStartTime();
+   return mSequence.GetStartTime(tempo);
 }
 
-double StretchingSequence::GetEndTime() const
+double StretchingSequence::GetEndTime(BPS tempo) const
 {
-   return mSequence.GetEndTime();
+   return mSequence.GetEndTime(tempo);
 }
 
 double StretchingSequence::GetRate() const
@@ -139,9 +138,9 @@ bool StretchingSequence::HasTrivialEnvelope() const
 }
 
 void StretchingSequence::GetEnvelopeValues(
-   double* buffer, size_t bufferLen, double t0, bool backwards) const
+   double* buffer, size_t bufferLen, double t0, BPS tempo, bool backwards) const
 {
-   mSequence.GetEnvelopeValues(buffer, bufferLen, t0, backwards);
+   mSequence.GetEnvelopeValues(buffer, bufferLen, t0, tempo, backwards);
 }
 
 AudioGraph::ChannelType StretchingSequence::GetChannelType() const
@@ -150,7 +149,8 @@ AudioGraph::ChannelType StretchingSequence::GetChannelType() const
 }
 
 bool StretchingSequence::GetFloats(
-   float* buffers[], sampleCount start, size_t len, bool backwards) const
+   float* buffers[], sampleCount start, size_t len, BPS tempo,
+   bool backwards) const
 {
    std::vector<samplePtr> charBuffers;
    const auto nChannels = NChannels();
@@ -160,40 +160,38 @@ bool StretchingSequence::GetFloats(
    constexpr auto iChannel = 0u;
    return Get(
       iChannel, nChannels, charBuffers.data(), sampleFormat::floatSample, start,
-      len, backwards);
+      len, tempo, backwards);
 }
 
 bool StretchingSequence::MutableGet(
    size_t iChannel, size_t nBuffers, samplePtr buffers[], sampleFormat format,
-   sampleCount start, size_t len, bool backwards)
+   sampleCount start, size_t len, BPS tempo, bool backwards)
 {
    // StretchingSequence is not expected to be used for any other case.
    assert(iChannel == 0u);
    if (
       !mExpectedStart.has_value() || *mExpectedStart != start ||
-      (mPlaybackDirection == PlaybackDirection::backward != backwards))
+      (mPlaybackDirection == PlaybackDirection::backward != backwards) ||
+      !mExpectedTempo.has_value() || *mExpectedTempo != tempo)
    {
       const auto t = start.as_double() / mSequence.GetRate();
       ResetCursor(
-         t,
+         t, tempo,
          backwards ? PlaybackDirection::backward : PlaybackDirection::forward);
    }
    return GetNext(reinterpret_cast<float**>(buffers), nBuffers, len);
 }
 
 std::shared_ptr<StretchingSequence> StretchingSequence::Create(
-   const PlayableSequence& sequence, BPS projectTempo,
-   const ClipConstHolders& clips)
+   const PlayableSequence& sequence, const ClipConstHolders& clips)
 {
    return std::make_shared<StretchingSequence>(
-      sequence,
-      std::make_unique<AudioSegmentFactory>(
-         sequence.GetRate(), sequence.NChannels(), projectTempo, clips));
+      sequence, std::make_unique<AudioSegmentFactory>(
+                   sequence.GetRate(), sequence.NChannels(), clips));
 }
 
 std::shared_ptr<StretchingSequence> StretchingSequence::Create(
-   const PlayableSequence& sequence, BPS projectTempo, const ClipHolders& clips)
+   const PlayableSequence& sequence, const ClipHolders& clips)
 {
-   return Create(
-      sequence, projectTempo, ClipConstHolders { clips.begin(), clips.end() });
+   return Create(sequence, ClipConstHolders { clips.begin(), clips.end() });
 }

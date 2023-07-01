@@ -37,11 +37,10 @@ and TimeTrack.
 #endif
 
 Track::Track()
-:  vrulerSize(36,0)
+    : vrulerSize { 36, 0 }
+    , mIndex { 0 }
+    , mOffset { 0. }
 {
-   mIndex = 0;
-
-   mOffset = 0.0;
 }
 
 Track::Track(const Track &orig, ProtectedCreationArg&&)
@@ -198,12 +197,12 @@ void Track::DoSetLinkType(LinkType linkType, bool completeList)
 
    if (oldType == LinkType::None) {
       // Becoming linked
-   
+
       // First ensure there is no partner
       if (auto partner = GetLinkedTrack())
          partner->mpGroupData.reset();
       assert(!GetLinkedTrack());
-   
+
       // Change the link type
       MakeGroupData().mLinkType = linkType;
 
@@ -279,21 +278,21 @@ void Track::Notify(bool allChannels, int code)
       pList->DataEvent(SharedPointer(), allChannels, code);
 }
 
-void Track::SyncLockAdjust(double oldT1, double newT1)
+void Track::SyncLockAdjust(double oldT1, double newT1, BPS tempo)
 {
    if (newT1 > oldT1) {
       // Insert space within the track
 
-      if (oldT1 > GetEndTime())
+      if (oldT1 > GetEndTime(tempo))
          return;
 
-      auto tmp = Cut(oldT1, GetEndTime());
+      auto tmp = Cut(oldT1, GetEndTime(tempo), tempo);
 
-      Paste(newT1, tmp.get());
+      Paste(newT1, tempo, tmp.get());
    }
    else if (newT1 < oldT1) {
       // Remove from the track
-      Clear(newT1, oldT1);
+      Clear(newT1, oldT1, tempo);
    }
 }
 
@@ -721,11 +720,11 @@ void TrackList::Clear(bool sendEvent)
    for ( auto pTrack: *this )
    {
       pTrack->SetOwner({}, {});
-      
+
       if (sendEvent)
          DeletionEvent(pTrack->shared_from_this(), false);
    }
-   
+
    for ( auto pTrack: mPendingUpdates )
    {
       pTrack->SetOwner({}, {});
@@ -936,19 +935,28 @@ namespace {
    }
 }
 
-double TrackList::GetMinOffset() const
+double TrackList::GetMinOffset(BPS tempo) const
 {
-   return Accumulate(*this, &Track::GetOffset, DBL_MAX, std::min);
+   return std::accumulate(
+      begin(), end(), DBL_MAX, [tempo](double a, const Track* b) {
+         return std::min(a, b->GetOffset(tempo));
+      });
 }
 
-double TrackList::GetStartTime() const
+double TrackList::GetStartTime(BPS tempo) const
 {
-   return Accumulate(*this, &Track::GetStartTime, DBL_MAX, std::min);
+   return std::accumulate(
+      begin(), end(), DBL_MAX, [tempo](double a, const Track* b) {
+         return std::min(a, b->GetStartTime(tempo));
+      });
 }
 
-double TrackList::GetEndTime() const
+double TrackList::GetEndTime(BPS tempo) const
 {
-   return Accumulate(*this, &Track::GetEndTime, -DBL_MAX, std::max);
+   return std::accumulate(
+      begin(), end(), -DBL_MAX, [tempo](double a, const Track* b) {
+         return std::max(a, b->GetEndTime(tempo));
+      });
 }
 
 std::shared_ptr<Track>
@@ -1157,12 +1165,12 @@ bool Track::SupportsBasicEditing() const
    return true;
 }
 
-auto Track::GetIntervals() const -> ConstIntervals
+auto Track::GetIntervals(BPS) const -> ConstIntervals
 {
    return {};
 }
 
-auto Track::GetIntervals() -> Intervals
+auto Track::GetIntervals(BPS) -> Intervals
 {
    return {};
 }

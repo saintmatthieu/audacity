@@ -44,7 +44,7 @@ public:
    Beat GetPlayEndTime() const override;
    double GetPlayEndTime(BPS) const override;
 
-   double GetStretchRatio() const override;
+   double GetStretchRatio(BPS) const override;
 
 private:
    const std::array<std::shared_ptr<ClipInterface>, 2> mChannels;

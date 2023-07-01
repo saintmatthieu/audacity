@@ -156,9 +156,9 @@ bool AreAligned(const WaveClipPointers& a, const WaveClipPointers& b)
       // points and play start/end points of the first clip match
       // the corresponding points of the other clip
       return a->GetPlayStartTime() == b->GetPlayStartTime() &&
-         a->GetSequenceStartTime() == b->GetSequenceStartTime() &&
-         a->GetPlayEndTime() == b->GetPlayEndTime() &&
-         a->GetSequenceEndTime() == b->GetSequenceEndTime();
+             a->GetSequenceStartTime() == b->GetSequenceStartTime() &&
+             a->GetPlayEndTime() == b->GetPlayEndTime() &&
+             a->GetSequenceEndTime() == b->GetSequenceEndTime();
    };
 
    return std::mismatch(a.begin(), a.end(), b.begin(), compare).first == a.end();
@@ -295,26 +295,26 @@ WaveTrack::~WaveTrack()
 {
 }
 
-double WaveTrack::GetOffset() const
+double WaveTrack::GetOffset(BPS tempo) const
 {
-   return GetStartTime();
+   return GetStartTime(tempo);
 }
 
 /*! @excsafety{No-fail} */
-void WaveTrack::SetOffset(double o)
+void WaveTrack::SetOffset(double o, BPS tempo)
 {
    const auto trackList = GetOwner();
    if(trackList) {
       const auto project = trackList->GetOwner();
 
    }
-   double delta = o - GetOffset();
+   double delta = o - GetOffset(tempo);
 
    for (const auto &clip : mClipList.Get())
       // assume No-fail-guarantee
-      clip->Offset(delta);
+      clip->Offset(delta, tempo);
 
-   mOffset = o;
+   mOffset = Beat { tempo.get() * o };
 }
 
 void WaveTrack::SetProjectTempo(double newTempo)
@@ -386,34 +386,36 @@ auto WaveTrack::ClassTypeInfo() -> const TypeInfo &
    return typeInfo();
 }
 
-template< typename Container >
-static Container MakeIntervals(const WaveClipHolders &clips)
+template <typename Container>
+static Container MakeIntervals(const WaveClipHolders& clips, BPS tempo)
 {
    Container result;
    for (const auto &clip: clips) {
-      result.emplace_back( clip->GetPlayStartTime(), clip->GetPlayEndTime(),
-         std::make_unique<WaveTrack::IntervalData>( clip ) );
+      result.emplace_back(
+         clip->GetPlayStartTime(tempo), clip->GetPlayEndTime(tempo),
+         std::make_unique<WaveTrack::IntervalData>(clip));
    }
    return result;
 }
 
-Track::Holder WaveTrack::PasteInto( AudacityProject &project ) const
+Track::Holder
+WaveTrack::PasteInto(AudacityProject& project, BPS otherProjectTempo) const
 {
    auto &trackFactory = WaveTrackFactory::Get( project );
    auto &pSampleBlockFactory = trackFactory.GetSampleBlockFactory();
    auto pNewTrack = EmptyCopy( pSampleBlockFactory );
-   pNewTrack->Paste(0.0, this);
+   pNewTrack->Paste(0.0, otherProjectTempo, this);
    return pNewTrack;
 }
 
-auto WaveTrack::GetIntervals() const -> ConstIntervals
+auto WaveTrack::GetIntervals(BPS tempo) const -> ConstIntervals
 {
-   return MakeIntervals<ConstIntervals>( mClipList.Get() );
+   return MakeIntervals<ConstIntervals>(mClipList.Get(), tempo);
 }
 
-auto WaveTrack::GetIntervals() -> Intervals
+auto WaveTrack::GetIntervals(BPS tempo) -> Intervals
 {
-   return MakeIntervals<Intervals>( mClipList.Get() );
+   return MakeIntervals<Intervals>(mClipList.Get(), tempo);
 }
 
 const WaveClip* WaveTrack::FindClipByName(const wxString& name) const
@@ -474,10 +476,9 @@ void WaveTrack::SetRate(double newRate)
 void WaveTrack::SetClipRates(double newRate)
 {
    auto ratio = GetRate() / newRate;
-   for (const auto &clip : mClipList.Get()) {
-      clip->SetRate((int)newRate);
-      clip->SetSequenceStartTime( clip->GetSequenceStartTime() * ratio );
-   }
+   constexpr auto reposition = true;
+   for (const auto &clip : mClipList.Get())
+      clip->SetRate((int)newRate, reposition);
 }
 
 float WaveTrack::GetGain() const
@@ -577,7 +578,7 @@ void WaveTrack::ConvertToSampleFormat(sampleFormat format,
 }
 
 
-bool WaveTrack::IsEmpty(double t0, double t1) const
+bool WaveTrack::IsEmpty(double t0, double t1, BPS tempo) const
 {
    if (t0 > t1)
       return true;
@@ -585,10 +586,13 @@ bool WaveTrack::IsEmpty(double t0, double t1) const
    //wxPrintf("Searching for overlap in %.6f...%.6f\n", t0, t1);
    for (const auto &clip : mClipList.Get())
    {
-      if (!clip->BeforeOrAtPlayStartTime(t1) && !clip->AfterOrAtPlayEndTime(t0)) {
-         //wxPrintf("Overlapping clip: %.6f...%.6f\n",
-         //       clip->GetStartTime(),
-         //       clip->GetEndTime());
+      if (
+         !clip->BeforeOrAtPlayStartTime(t1, tempo) &&
+         !clip->AfterOrAtPlayEndTime(t0, tempo))
+      {
+         // wxPrintf("Overlapping clip: %.6f...%.6f\n",
+         //       clip->GetStartTime(tempo),
+         //       clip->GetEndTime(tempo));
          // We found a clip that overlaps this region
          return false;
       }
@@ -599,34 +603,34 @@ bool WaveTrack::IsEmpty(double t0, double t1) const
    return true;
 }
 
-Track::Holder WaveTrack::Cut(double t0, double t1)
+Track::Holder WaveTrack::Cut(double t0, double t1, BPS tempo)
 {
    if (t1 < t0)
       THROW_INCONSISTENCY_EXCEPTION;
 
-   auto tmp = Copy(t0, t1);
+   auto tmp = Copy(t0, t1, tempo);
 
-   Clear(t0, t1);
+   Clear(t0, t1, tempo);
 
    return tmp;
 }
 
 /*! @excsafety{Strong} */
-Track::Holder WaveTrack::SplitCut(double t0, double t1)
+Track::Holder WaveTrack::SplitCut(double t0, double t1, BPS tempo)
 {
    if (t1 < t0)
       THROW_INCONSISTENCY_EXCEPTION;
 
    // SplitCut is the same as 'Copy', then 'SplitDelete'
-   auto tmp = Copy(t0, t1);
+   auto tmp = Copy(t0, t1, tempo);
 
-   SplitDelete(t0, t1);
+   SplitDelete(t0, t1, tempo);
 
    return tmp;
 }
 
 #if 0
-Track::Holder WaveTrack::CutAndAddCutLine(double t0, double t1)
+Track::Holder WaveTrack::CutAndAddCutLine(double t0, double t1, BPS tempo)
 {
    if (t1 < t0)
       THROW_INCONSISTENCY_EXCEPTION;
@@ -645,33 +649,38 @@ Track::Holder WaveTrack::CutAndAddCutLine(double t0, double t1)
 //Trim trims within a clip, rather than trimming everything.
 //If a bound is outside a clip, it trims everything.
 /*! @excsafety{Weak} */
-void WaveTrack::Trim (double t0, double t1)
+void WaveTrack::Trim(double t0, double t1, BPS tempo)
 {
    bool inside0 = false;
    bool inside1 = false;
 
    for (const auto &clip : mClipList.Get())
    {
-      if(t1 > clip->GetPlayStartTime() && t1 < clip->GetPlayEndTime())
+      if (
+         t1 > clip->GetPlayStartTime(tempo) && t1 < clip->GetPlayEndTime(tempo))
       {
-         clip->SetTrimRight(clip->GetTrimRight() + clip->GetPlayEndTime() - t1);
+         clip->SetTrimRight(
+            clip->GetTrimRight(tempo) + clip->GetPlayEndTime(tempo) - t1, tempo);
          inside1 = true;
       }
 
-      if(t0 > clip->GetPlayStartTime() && t0 < clip->GetPlayEndTime())
+      if (
+         t0 > clip->GetPlayStartTime(tempo) && t0 < clip->GetPlayEndTime(tempo))
       {
-         clip->SetTrimLeft(clip->GetTrimLeft() + t0 - clip->GetPlayStartTime());
+         clip->SetTrimLeft(
+            clip->GetTrimLeft(tempo) + t0 - clip->GetPlayStartTime(tempo),
+            tempo);
          inside0 = true;
       }
    }
 
    //if inside0 is false, then the left selector was between
    //clips, so DELETE everything to its left.
-   if(!inside1 && t1 < GetEndTime())
-      Clear(t1,GetEndTime());
+   if(!inside1 && t1 < GetEndTime(tempo))
+      Clear(t1,GetEndTime(tempo), tempo);
 
-   if(!inside0 && t0 > GetStartTime())
-      SplitDelete(GetStartTime(), t0);
+   if(!inside0 && t0 > GetStartTime(tempo))
+      SplitDelete(GetStartTime(tempo), t0, tempo);
 }
 
 
@@ -688,7 +697,8 @@ WaveTrack::Holder WaveTrack::EmptyCopy(
    return result;
 }
 
-Track::Holder WaveTrack::Copy(double t0, double t1, bool forClipboard) const
+Track::Holder
+WaveTrack::Copy(double t0, double t1, BPS tempo, bool forClipboard) const
 {
    if (t1 < t0)
       THROW_INCONSISTENCY_EXCEPTION;
@@ -701,7 +711,9 @@ Track::Holder WaveTrack::Copy(double t0, double t1, bool forClipboard) const
    // Duplicate command and I changed its behavior in that case.
    for (const auto &clip : mClipList.Get())
    {
-      if (t0 <= clip->GetPlayStartTime() && t1 >= clip->GetPlayEndTime())
+      if (
+         t0 <= clip->GetPlayStartTime(tempo) &&
+         t1 >= clip->GetPlayEndTime(tempo))
       {
          // Whole clip is in copy region
          //wxPrintf("copy: clip %i is in copy region\n", (int)clip);
@@ -709,20 +721,20 @@ Track::Holder WaveTrack::Copy(double t0, double t1, bool forClipboard) const
          newTrack->mClipList.PushBack
             (std::make_shared<WaveClip>(*clip, mpFactory, ! forClipboard));
          WaveClip *const newClip = newTrack->mClipList.Back().get();
-         newClip->Offset(-t0);
+         newClip->Offset(-t0, tempo);
       }
-      else if (clip->CountSamples(t0, t1) >= 1)
+      else if (clip->CountSamples(t0, t1, tempo) >= 1)
       {
          // Clip is affected by command
          //wxPrintf("copy: clip %i is affected by command\n", (int)clip);
 
-         auto newClip =
-            std::make_shared<WaveClip>(*clip, mpFactory, !forClipboard, t0, t1);
+         auto newClip = std::make_shared<WaveClip>(
+            *clip, mpFactory, !forClipboard, t0, t1, tempo);
          newClip->SetName(clip->GetName());
 
-         newClip->Offset(-t0);
-         if (newClip->GetPlayStartTime() < 0)
-            newClip->SetPlayStartTime(0);
+         newClip->Offset(-t0, tempo);
+         if (newClip->GetPlayStartTime(tempo) < 0)
+            newClip->SetPlayStartTime(0, tempo);
 
          newTrack->mClipList.PushBack(std::move(newClip)); // transfer ownership
       }
@@ -732,8 +744,9 @@ Track::Holder WaveTrack::Copy(double t0, double t1, bool forClipboard) const
    // clip representing that whitespace
    // PRL:  Only if we want the track for pasting into other tracks.  Not if it
    // goes directly into a project as in the Duplicate command.
-   if (forClipboard &&
-       newTrack->GetEndTime() + 1.0 / newTrack->GetRate() < t1 - t0)
+   if (
+      forClipboard &&
+      newTrack->GetEndTime(tempo) + 1.0 / newTrack->GetRate() < t1 - t0)
    {
       // TODO wide wave tracks -- match clip width of newTrack
       auto placeholder = std::make_shared<WaveClip>(1, mpFactory,
@@ -741,29 +754,30 @@ Track::Holder WaveTrack::Copy(double t0, double t1, bool forClipboard) const
          static_cast<int>(newTrack->GetRate()),
          0 /*colourindex*/);
       placeholder->SetIsPlaceholder(true);
-      placeholder->InsertSilence(0, (t1 - t0) - newTrack->GetEndTime());
-      placeholder->Offset(newTrack->GetEndTime());
+      placeholder->InsertSilence(
+         0, (t1 - t0) - newTrack->GetEndTime(tempo), tempo);
+      placeholder->Offset(newTrack->GetEndTime(tempo), tempo);
       newTrack->mClipList.PushBack(std::move(placeholder)); // transfer ownership
    }
 
    return result;
 }
 
-Track::Holder WaveTrack::CopyNonconst(double t0, double t1)
+Track::Holder WaveTrack::CopyNonconst(double t0, double t1, BPS tempo)
 {
-   return Copy(t0, t1);
+   return Copy(t0, t1, tempo);
 }
 
 /*! @excsafety{Strong} */
-void WaveTrack::Clear(double t0, double t1)
+void WaveTrack::Clear(double t0, double t1, BPS tempo)
 {
-   HandleClear(t0, t1, false, false);
+   HandleClear(t0, t1, tempo, false, false);
 }
 
 /*! @excsafety{Strong} */
-void WaveTrack::ClearAndAddCutLine(double t0, double t1)
+void WaveTrack::ClearAndAddCutLine(double t0, double t1, BPS tempo)
 {
-   HandleClear(t0, t1, true, false);
+   HandleClear(t0, t1, tempo, true, false);
 }
 
 namespace {
@@ -813,20 +827,22 @@ namespace {
 //
 /*! @excsafety{Weak} -- This WaveTrack remains destructible in case of AudacityException.
 But some of its cutline clips may have been destroyed. */
-void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
-                              double t1, // End of time to clear
-                              const Track *src, // What to paste
-                              bool preserve, // Whether to reinsert splits/cuts
-                              bool merge, // Whether to remove 'extra' splits
-                              const TimeWarper *effectWarper // How does time change
-                              )
+void WaveTrack::ClearAndPaste(
+   double t0, // Start of time to clear
+   double t1, // End of time to clear
+   BPS tempo,
+   const Track* src,              // What to paste
+   bool preserve,                 // Whether to reinsert splits/cuts
+   bool merge,                    // Whether to remove 'extra' splits
+   const TimeWarper* effectWarper // How does time change
+)
 {
-   double dur = std::min(t1 - t0, src->GetEndTime());
+   double dur = std::min(t1 - t0, src->GetEndTime(tempo));
 
    // If duration is 0, then it's just a plain paste
    if (dur == 0.0) {
       // use Weak-guarantee
-      Paste(t0, src);
+      Paste(t0, tempo, src);
       return;
    }
 
@@ -856,7 +872,7 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
    t1 = LongSamplesToTime(TimeToLongSamples(t1));
 
    // Save the cut/split lines whether preserving or not since merging
-   // needs to know if a clip boundary is being crossed since Paste()
+   // needs to know if a clip boundary is being crossed since Paste(tempo)
    // will add split lines around the pasted clip if so.
    for (const auto &clip : mClipList.Get()) {
       double st;
@@ -864,28 +880,28 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
       // Remember clip boundaries as locations to split
       // we need to copy clips, trims and names, because the original ones
       // could be changed later during Clear/Paste routines
-      st = LongSamplesToTime(TimeToLongSamples(clip->GetPlayStartTime()));
+      st = LongSamplesToTime(TimeToLongSamples(clip->GetPlayStartTime(tempo)));
       if (st >= t0 && st <= t1) {
          auto it = get_split(st);
-         if (clip->GetTrimLeft() != 0)
+         if (clip->GetTrimLeft(tempo) != 0)
          {
             //keep only hidden left part
             it->right = std::make_shared<WaveClip>(*clip, mpFactory, false);
-            it->right->SetTrimLeft(.0);
-            it->right->ClearRight(clip->GetPlayStartTime());
+            it->right->SetTrimLeft(.0, tempo);
+            it->right->ClearRight(clip->GetPlayStartTime(tempo), tempo);
          }
          it->rightClipName = clip->GetName();
       }
 
-      st = LongSamplesToTime(TimeToLongSamples(clip->GetPlayEndTime()));
+      st = LongSamplesToTime(TimeToLongSamples(clip->GetPlayEndTime(tempo)));
       if (st >= t0 && st <= t1) {
          auto it = get_split(st);
-         if (clip->GetTrimRight() != 0)
+         if (clip->GetTrimRight(tempo) != 0)
          {
             //keep only hidden right part
             it->left = std::make_shared<WaveClip>(*clip, mpFactory, false);
-            it->left->SetTrimRight(.0);
-            it->left->ClearLeft(clip->GetPlayEndTime());
+            it->left->SetTrimRight(.0, tempo);
+            it->left->ClearLeft(clip->GetPlayEndTime(tempo), tempo);
          }
          it->leftClipName = clip->GetName();
       }
@@ -895,14 +911,15 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
       // May erase from cutlines, so don't use range-for
       for (auto it = cutlines.begin(); it != cutlines.end(); ) {
          WaveClip *cut = it->get();
-         double cs = LongSamplesToTime(TimeToLongSamples(clip->GetSequenceStartTime() +
-                                                         cut->GetSequenceStartTime()));
+         double cs = LongSamplesToTime(TimeToLongSamples(
+            clip->GetSequenceStartTime(tempo) +
+            cut->GetSequenceStartTime(tempo)));
 
          // Remember cut point
          if (cs >= t0 && cs <= t1) {
 
             // Remember the absolute offset and add to our cuts array.
-            cut->SetSequenceStartTime(cs);
+            cut->SetSequenceStartTime(cs, tempo);
             cuts.push_back(std::move(*it)); // transfer ownership!
             it = cutlines.erase(it);
          }
@@ -914,17 +931,17 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
    const auto tolerance = 2.0 / GetRate();
 
    // Now, clear the selection
-   HandleClear(t0, t1, false, false);
+   HandleClear(t0, t1, tempo, false, false);
    {
 
       // And paste in the NEW data
-      Paste(t0, src);
+      Paste(t0, tempo, src);
       {
          // First, merge the NEW clip(s) in with the existing clips
          if (merge && splits.size() > 0)
          {
             // Now t1 represents the absolute end of the pasted data.
-            t1 = t0 + src->GetEndTime();
+            t1 = t0 + src->GetEndTime(tempo);
 
             // Get a sorted array of the clips
             auto clips = SortedClipArray();
@@ -936,7 +953,8 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
                for (const auto clip : clips) {
                   // Merge this clip and the previous clip if the end time
                   // falls within it and this isn't the first clip in the track.
-                  if (fabs(t1 - clip->GetPlayStartTime()) < tolerance) {
+                  if (fabs(t1 - clip->GetPlayStartTime(tempo)) < tolerance)
+                  {
                      if (prev)
                         MergeClips(GetClipIndex(prev), GetClipIndex(clip));
                      break;
@@ -961,7 +979,7 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
                   MergeClips(GetClipIndex(prev), GetClipIndex(clip));
                   break;
                }
-               if (fabs(t0 - clip->GetPlayEndTime()) < tolerance)
+               if (fabs(t0 - clip->GetPlayEndTime(tempo)) < tolerance)
                   // Merge this clip and the next clip if the start time
                   // falls within it and this isn't the last clip in the track.
                   prev = clip;
@@ -974,33 +992,33 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
       // Restore cut/split lines
       if (preserve) {
 
-         auto attachLeft = [](WaveClip &target, WaveClip &src)
-         {
+         auto attachLeft = [tempo](WaveClip& target, WaveClip& src) {
             assert(target.GetWidth() == src.GetWidth());
-            assert(target.GetTrimLeft() == 0);
-            if (target.GetTrimLeft() != 0)
+            assert(target.GetTrimLeft(tempo) == 0);
+            if (target.GetTrimLeft(tempo) != 0)
                return;
 
-            auto trim = src.GetPlayEndTime() - src.GetPlayStartTime();
-            auto success = target.Paste(target.GetPlayStartTime(), src);
+            auto trim = src.GetPlayEndTime(tempo) - src.GetPlayStartTime(tempo);
+            auto success =
+               target.Paste(target.GetPlayStartTime(tempo), tempo, src);
             assert(success); // because of precondition above
-            target.SetTrimLeft(trim);
-            //Play start time needs to be adjusted after
-            //prepending data to the sequence
-            target.Offset(-trim);
+            target.SetTrimLeft(trim, tempo);
+            // Play start time needs to be adjusted aft, tempoer
+            // prepending data to the sequence
+            target.Offset(-trim, tempo);
          };
 
-         auto attachRight = [](WaveClip &target, WaveClip &src)
-         {
+         auto attachRight = [tempo](WaveClip& target, WaveClip& src) {
             assert(target.GetWidth() == src.GetWidth());
-            assert(target.GetTrimRight() == 0);
-            if (target.GetTrimRight() != 0)
+            assert(target.GetTrimRight(tempo) == 0);
+            if (target.GetTrimRight(tempo) != 0)
                return;
 
-            auto trim = src.GetPlayEndTime() - src.GetPlayStartTime();
-            auto success = target.Paste(target.GetPlayEndTime(), src);
+            auto trim = src.GetPlayEndTime(tempo) - src.GetPlayStartTime(tempo);
+            auto success =
+               target.Paste(target.GetPlayEndTime(tempo), tempo, src);
             assert(success); // because of precondition above
-            target.SetTrimRight(trim);
+            target.SetTrimRight(trim, tempo);
          };
 
          // Restore the split lines and trims, transforming the position appropriately
@@ -1011,13 +1029,13 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
                // Clips in split began as copies of a clip in the track,
                // therefore have the same width, satisfying preconditions to
                // attach
-               if (clip->StrictlyWithinPlayRegion(at))
+               if (clip->StrictlyWithinPlayRegion(at, tempo))
                {
                   auto newClip =
                      std::make_shared<WaveClip>(*clip, mpFactory, true);
 
-                  clip->ClearRight(at);
-                  newClip->ClearLeft(at);
+                  clip->ClearRight(at, tempo);
+                  newClip->ClearLeft(at, tempo);
                   if (split.left)
                      // clip was cleared right
                      attachRight(*clip, *split.left);
@@ -1028,13 +1046,17 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
                   assert(success); // copied clip has same width and factory
                   break;
                }
-               else if (clip->GetPlayStartSample() == TimeToLongSamples(at) && split.right)
+               else if (
+                  clip->GetPlayStartSample(tempo) == TimeToLongSamples(at) &&
+                  split.right)
                {
                   // precondition satisfied because... ??
                   attachLeft(*clip, *split.right);
                   break;
                }
-               else if (clip->GetPlayEndSample() == TimeToLongSamples(at) && split.left)
+               else if (
+                  clip->GetPlayEndSample(tempo) == TimeToLongSamples(at) &&
+                  split.left)
                {
                   // precondition satisfied because... ??
                   attachRight(*clip, *split.left);
@@ -1049,9 +1071,13 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
             auto s = TimeToLongSamples(warper->Warp(split.time));
             for (auto& clip : GetClips())
             {
-               if (split.rightClipName.has_value() && clip->GetPlayStartSample() == s)
+               if (
+                  split.rightClipName.has_value() &&
+                  clip->GetPlayStartSample(tempo) == s)
                   clip->SetName(*split.rightClipName);
-               else if (split.leftClipName.has_value() && clip->GetPlayEndSample() == s)
+               else if (
+                  split.leftClipName.has_value() &&
+                  clip->GetPlayEndSample(tempo) == s)
                   clip->SetName(*split.leftClipName);
             }
          }
@@ -1061,19 +1087,19 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
             double st;
             double et;
 
-            st = clip->GetPlayStartTime();
-            et = clip->GetPlayEndTime();
+            st = clip->GetPlayStartTime(tempo);
+            et = clip->GetPlayEndTime(tempo);
 
             // Scan the cuts for any that live within this clip
             for (auto it = cuts.begin(); it != cuts.end();) {
                WaveClip *cut = it->get();
                //cutlines in this array were orphaned previously
-               double cs = cut->GetSequenceStartTime();
+               double cs = cut->GetSequenceStartTime(tempo);
 
                // Offset the cut from the start of the clip and add it to
                // this clips cutlines.
                if (cs >= st && cs <= et) {
-                  cut->SetSequenceStartTime(warper->Warp(cs) - st);
+                  cut->SetSequenceStartTime(warper->Warp(cs) - st, tempo);
                   clip->GetCutLines().push_back( std::move(*it) ); // transfer ownership!
                   it = cuts.erase(it);
                }
@@ -1086,11 +1112,11 @@ void WaveTrack::ClearAndPaste(double t0, // Start of time to clear
 }
 
 /*! @excsafety{Strong} */
-void WaveTrack::SplitDelete(double t0, double t1)
+void WaveTrack::SplitDelete(double t0, double t1, BPS tempo)
 {
    bool addCutLines = false;
    bool split = true;
-   HandleClear(t0, t1, addCutLines, split);
+   HandleClear(t0, t1, tempo, addCutLines, split);
 }
 
 namespace
@@ -1158,8 +1184,8 @@ bool WaveTrack::AddClip(const std::shared_ptr<WaveClip> &clip)
 }
 
 /*! @excsafety{Strong} */
-void WaveTrack::HandleClear(double t0, double t1,
-                            bool addCutLines, bool split)
+void WaveTrack::HandleClear(
+   double t0, double t1, BPS tempo, bool addCutLines, bool split)
 {
    // For debugging, use an ASSERT so that we stop
    // closer to the problem.
@@ -1178,8 +1204,11 @@ void WaveTrack::HandleClear(double t0, double t1,
    {
       for (const auto &clip : mClipList.Get())
       {
-         if (!clip->BeforeOrAtPlayStartTime(t1) && !clip->AfterOrAtPlayEndTime(t0) &&
-               (clip->BeforeOrAtPlayStartTime(t0) || clip->AfterOrAtPlayEndTime(t1)))
+         if (
+            !clip->BeforeOrAtPlayStartTime(t1, tempo) &&
+            !clip->AfterOrAtPlayEndTime(t0, tempo) &&
+            (clip->BeforeOrAtPlayStartTime(t0, tempo) ||
+             clip->AfterOrAtPlayEndTime(t1, tempo)))
          {
             addCutLines = false;
             break;
@@ -1189,12 +1218,16 @@ void WaveTrack::HandleClear(double t0, double t1,
 
    for (const auto &clip : mClipList.Get())
    {
-      if (clip->BeforeOrAtPlayStartTime(t0) && clip->AfterOrAtPlayEndTime(t1))
+      if (
+         clip->BeforeOrAtPlayStartTime(t0, tempo) &&
+         clip->AfterOrAtPlayEndTime(t1, tempo))
       {
          // Whole clip must be deleted - remember this
          clipsToDelete.push_back(clip.get());
       }
-      else if (!clip->BeforeOrAtPlayStartTime(t1) && !clip->AfterOrAtPlayEndTime(t0))
+      else if (
+         !clip->BeforeOrAtPlayStartTime(t1, tempo) &&
+         !clip->AfterOrAtPlayEndTime(t0, tempo))
       {
          // Clip data is affected by command
          if (addCutLines)
@@ -1204,7 +1237,7 @@ void WaveTrack::HandleClear(double t0, double t1,
             clipsToDelete.push_back( clip.get() );
             auto newClip =
                std::make_shared<WaveClip>(*clip, mpFactory, true);
-            newClip->ClearAndAddCutLine( t0, t1 );
+            newClip->ClearAndAddCutLine(t0, t1, tempo);
             clipsToAdd.push_back( std::move( newClip ) );
          }
          else
@@ -1212,7 +1245,8 @@ void WaveTrack::HandleClear(double t0, double t1,
             if (split) {
                // Three cases:
 
-               if (clip->BeforeOrAtPlayStartTime(t0)) {
+               if (clip->BeforeOrAtPlayStartTime(t0, tempo))
+               {
                   // Delete from the left edge
 
                   // Don't modify this clip in place, because we want a strong
@@ -1220,10 +1254,11 @@ void WaveTrack::HandleClear(double t0, double t1,
                   clipsToDelete.push_back( clip.get() );
                   auto newClip =
                      std::make_shared<WaveClip>(*clip, mpFactory, true);
-                  newClip->TrimLeft(t1 - clip->GetPlayStartTime());
+                  newClip->TrimLeft(t1 - clip->GetPlayStartTime(tempo), tempo);
                   clipsToAdd.push_back( std::move( newClip ) );
                }
-               else if (clip->AfterOrAtPlayEndTime(t1)) {
+               else if (clip->AfterOrAtPlayEndTime(t1, tempo))
+               {
                   // Delete to right edge
 
                   // Don't modify this clip in place, because we want a strong
@@ -1231,7 +1266,7 @@ void WaveTrack::HandleClear(double t0, double t1,
                   clipsToDelete.push_back( clip.get() );
                   auto newClip =
                      std::make_shared<WaveClip>(*clip, mpFactory, true);
-                  newClip->TrimRight(clip->GetPlayEndTime() - t0);
+                  newClip->TrimRight(clip->GetPlayEndTime(tempo) - t0, tempo);
 
                   clipsToAdd.push_back( std::move( newClip ) );
                }
@@ -1241,12 +1276,13 @@ void WaveTrack::HandleClear(double t0, double t1,
 
                   auto leftClip =
                      std::make_shared<WaveClip>(*clip, mpFactory, true);
-                  leftClip->TrimRight(clip->GetPlayEndTime() - t0);
+                  leftClip->TrimRight(clip->GetPlayEndTime(tempo) - t0, tempo);
                   clipsToAdd.push_back(std::move(leftClip));
 
                   auto rightClip =
                      std::make_shared<WaveClip>(*clip, mpFactory, true);
-                  rightClip->TrimLeft(t1 - rightClip->GetPlayStartTime());
+                  rightClip->TrimLeft(
+                     t1 - rightClip->GetPlayStartTime(tempo), tempo);
                   clipsToAdd.push_back(std::move(rightClip));
 
                   clipsToDelete.push_back(clip.get());
@@ -1262,7 +1298,7 @@ void WaveTrack::HandleClear(double t0, double t1,
                   std::make_shared<WaveClip>(*clip, mpFactory, true);
 
                // clip->Clear keeps points < t0 and >= t1 via Envelope::CollapseRegion
-               newClip->Clear(t0,t1);
+               newClip->Clear(t0, t1, tempo);
 
                clipsToAdd.push_back( std::move( newClip ) );
             }
@@ -1279,8 +1315,8 @@ void WaveTrack::HandleClear(double t0, double t1,
       // or we're using the "don't move other clips" mode
       for (const auto& clip : mClipList.Get())
       {
-         if (clip->BeforeOrAtPlayStartTime(t1))
-            clip->Offset(-(t1 - t0));
+         if (clip->BeforeOrAtPlayStartTime(t1, tempo))
+            clip->Offset(-(t1 - t0), tempo);
       }
    }
 
@@ -1298,19 +1334,20 @@ void WaveTrack::HandleClear(double t0, double t1,
       mClipList.PushBack(std::move(clip)); // transfer ownership
 }
 
-void WaveTrack::SyncLockAdjust(double oldT1, double newT1)
+void WaveTrack::SyncLockAdjust(double oldT1, double newT1, BPS tempo)
 {
    if (newT1 > oldT1) {
       // Insert space within the track
 
-      // JKC: This is a rare case where using >= rather than > on a float matters.
-      // GetEndTime() looks through the clips and may give us EXACTLY the same
-      // value as T1, when T1 was set to be at the end of one of those clips.
-      if (oldT1 >= GetEndTime())
+      // JKC: This is a rare case where using >= rather than > on a float
+      // matters. GetEndTime(tempo) looks through the clips and may give us
+      // EXACTLY the same value as T1, when T1 was set to be at the end of one
+      // of those clips.
+      if (oldT1 >= GetEndTime(tempo))
          return;
 
       // If track is empty at oldT1 insert whitespace; otherwise, silence
-      if (IsEmpty(oldT1, oldT1))
+      if (IsEmpty(oldT1, oldT1, tempo))
       {
          // Check if clips can move
          if (EditClipsCanMove.Read()) {
@@ -1318,8 +1355,8 @@ void WaveTrack::SyncLockAdjust(double oldT1, double newT1)
             const auto rate = GetRate();
             for(const auto& clip : mClipList.Get())
             {
-               if (clip->GetPlayStartTime() > oldT1 - (1.0 / rate))
-                  clip->Offset(offset);
+               if (clip->GetPlayStartTime(tempo) > oldT1 - (1.0 / rate))
+                  clip->Offset(offset, tempo);
             }
          }
          return;
@@ -1330,17 +1367,17 @@ void WaveTrack::SyncLockAdjust(double oldT1, double newT1)
          auto tmp = std::shared_ptr<WaveTrack>(
             new WaveTrack(mpFactory, GetSampleFormat(), GetRate()));
 
-         tmp->InsertSilence(0.0, newT1 - oldT1);
+         tmp->InsertSilence(0.0, newT1 - oldT1, tempo);
          tmp->Flush();
-         Paste(oldT1, tmp.get());
+         Paste(oldT1, tempo, tmp.get());
       }
    }
    else if (newT1 < oldT1) {
-      Clear(newT1, oldT1);
+      Clear(newT1, oldT1, tempo);
    }
 }
 
-void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
+void WaveTrack::PasteWaveTrack(double t0, BPS tempo, const WaveTrack* other)
 {
     //
     // Pasting is a bit complicated, because with the existence of multiclip mode,
@@ -1368,11 +1405,11 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
 
     //wxPrintf("paste: we have at least one clip\n");
 
-    const bool singleClipMode = other->GetNumClips() == 1 &&
-        std::abs(other->GetStartTime()) < LongSamplesToTime(1) * 0.5;
+    const bool singleClipMode =
+       other->GetNumClips() == 1 &&
+       std::abs(other->GetStartTime(tempo)) < LongSamplesToTime(1) * 0.5;
 
-    const double insertDuration =
-       other->GetEndTimeInOtherProject(mProjectTempo);
+    const double insertDuration = other->GetEndTime(tempo);
     const auto rate = GetRate();
     if (insertDuration != 0 && insertDuration < 1.0 / rate)
         // PRL:  I added this check to avoid violations of preconditions in other WaveClip and Sequence
@@ -1390,15 +1427,15 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
     if (editClipCanMove) {
         if (!singleClipMode) {
             // We need to insert multiple clips, so split the current clip and ...
-            SplitAt(t0);
+            SplitAt(t0, tempo);
         }
         //else if there is a clip at t0 insert new clip inside it and ...
 
         // ... move everything to the right
         for (const auto& clip : mClipList.Get())
         {
-            if (clip->GetPlayStartTime() > t0 - (1.0 / rate))
-                clip->Offset(insertDuration);
+           if (clip->GetPlayStartTime(tempo) > t0 - (1.0 / rate))
+              clip->Offset(insertDuration, tempo);
         }
     }
 
@@ -1413,19 +1450,21 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
         {
             if (editClipCanMove)
             {
-                if (clip->StrictlyWithinPlayRegion(t0))
-                {
-                    //wxPrintf("t0=%.6f: inside clip is %.6f ... %.6f\n",
-                    //       t0, clip->GetStartTime(), clip->GetEndTime());
-                    insideClip = clip.get();
-                    break;
+               if (clip->StrictlyWithinPlayRegion(t0, tempo))
+               {
+                  // wxPrintf("t0=%.6f: inside clip is %.6f ... %.6f\n",
+                  //       t0, clip->GetStartTime(tempo),
+                  //       clip->GetEndTime(tempo));
+                  insideClip = clip.get();
+                  break;
                 }
             }
             else
             {
                 // If clips are immovable we also allow prepending to clips
-                if (clip->StrictlyWithinPlayRegion(t0) ||
-                    TimeToLongSamples(t0) == clip->GetPlayStartSample())
+                if (
+                   clip->StrictlyWithinPlayRegion(t0, tempo) ||
+                   TimeToLongSamples(t0) == clip->GetPlayStartSample(tempo))
                 {
                     insideClip = clip.get();
                     break;
@@ -1443,21 +1482,22 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
                 // check if we can paste without having to move other clips
                 for (const auto& clip : mClipList.Get())
                 {
-                    if (clip->GetPlayStartTime() > insideClip->GetPlayStartTime() &&
-                        insideClip->GetPlayEndTime() + insertDuration >
-                        clip->GetPlayStartTime())
-                        // Strong-guarantee in case of this path
-                        // not that it matters.
-                        throw SimpleMessageBoxException{
-                           ExceptionType::BadUserAction,
-                              XO("There is not enough room available to paste the selection"),
-                              XO("Warning"),
-                              "Error:_Insufficient_space_in_track"
-                    };
+                   if (
+                      clip->GetPlayStartTime(tempo) >
+                         insideClip->GetPlayStartTime(tempo) &&
+                      insideClip->GetPlayEndTime(tempo) + insertDuration >
+                         clip->GetPlayStartTime(tempo))
+                      // Strong-guarantee in case of this path
+                      // not that it matters.
+                      throw SimpleMessageBoxException {
+                         ExceptionType::BadUserAction,
+                         XO("There is not enough room available to paste the selection"),
+                         XO("Warning"), "Error:_Insufficient_space_in_track"
+                      };
                 }
             }
             if (auto *pClip = other->GetClipByIndex(0)) {
-               bool success = insideClip->Paste(t0, *pClip);
+               bool success = insideClip->Paste(t0, tempo, *pClip);
                // TODO wide wave tracks -- prove success, or propagate failure,
                // or we might throw a MessageBoxException
                // (which would require a change in base class Track)
@@ -1472,15 +1512,16 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
     // Insert NEW clips
     //wxPrintf("paste: multi clip mode!\n");
 
-    if (!editClipCanMove && !IsEmpty(t0, t0 + insertDuration - 1.0 / rate))
-        // Strong-guarantee in case of this path
-        // not that it matters.
-        throw SimpleMessageBoxException{
-           ExceptionType::BadUserAction,
-           XO("There is not enough room available to paste the selection"),
-           XO("Warning"),
-           "Error:_Insufficient_space_in_track"
-    };
+    if (
+       !editClipCanMove &&
+       !IsEmpty(t0, t0 + insertDuration - 1.0 / rate, tempo))
+       // Strong-guarantee in case of this path
+       // not that it matters.
+       throw SimpleMessageBoxException {
+          ExceptionType::BadUserAction,
+          XO("There is not enough room available to paste the selection"),
+          XO("Warning"), "Error:_Insufficient_space_in_track"
+       };
 
     for (const auto& clip : other->mClipList.Get())
     {
@@ -1490,7 +1531,7 @@ void WaveTrack::PasteWaveTrack(double t0, const WaveTrack* other)
             auto newClip =
                 std::make_unique<WaveClip>(*clip, mpFactory, true);
             newClip->Resample(rate);
-            newClip->Offset(t0);
+            newClip->Offset(t0, tempo);
             newClip->MarkChanged();
             if (pastingFromTempTrack)
                 //Clips from the tracks which aren't bound to any TrackList are
@@ -1531,16 +1572,16 @@ bool WaveTrack::RateConsistencyCheck() const
 }
 
 /*! @excsafety{Weak} */
-void WaveTrack::Paste(double t0, const Track *src)
+void WaveTrack::Paste(double t0, BPS tempo, const Track* src)
 {
    if (auto other = dynamic_cast<const WaveTrack*>(src))
-      PasteWaveTrack(t0, other);
+      PasteWaveTrack(t0, tempo, other);
    else
       // THROW_INCONSISTENCY_EXCEPTION; // ?
       (void)0;// Empty if intentional.
 }
 
-void WaveTrack::Silence(double t0, double t1)
+void WaveTrack::Silence(double t0, double t1, BPS tempo)
 {
    if (t1 < t0)
       THROW_INCONSISTENCY_EXCEPTION;
@@ -1550,8 +1591,8 @@ void WaveTrack::Silence(double t0, double t1)
 
    for (const auto &clip : mClipList.Get())
    {
-      auto clipStart = clip->GetPlayStartSample();
-      auto clipEnd = clip->GetPlayEndSample();
+      auto clipStart = clip->GetPlayStartSample(tempo);
+      auto clipEnd = clip->GetPlayEndSample(tempo);
 
       if (clipEnd > start && clipStart < end)
       {
@@ -1565,7 +1606,7 @@ void WaveTrack::Silence(double t0, double t1)
 }
 
 /*! @excsafety{Strong} */
-void WaveTrack::InsertSilence(double t, double len)
+void WaveTrack::InsertSilence(double t, double len, BPS tempo)
 {
    // Nothing to do, if length is zero.
    // Fixes Bug 1626
@@ -1580,7 +1621,7 @@ void WaveTrack::InsertSilence(double t, double len)
       // TODO wide wave tracks -- match clip width
       auto clip = std::make_shared<WaveClip>(1,
          mpFactory, mFormat, GetRate(), this->GetWaveColorIndex());
-      clip->InsertSilence(0, len);
+      clip->InsertSilence(0, len, tempo);
       // use No-fail-guarantee
       mClipList.PushBack( std::move( clip ) );
       return;
@@ -1588,18 +1629,20 @@ void WaveTrack::InsertSilence(double t, double len)
    else {
       // Assume at most one clip contains t
       const auto end = mClipList.End();
-      const auto it = std::find_if( mClipList.Begin(), end,
-         [&](const WaveClipHolder &clip) { return clip->StrictlyWithinPlayRegion(t); } );
+      const auto it =
+         std::find_if(mClipList.Begin(), end, [&](const WaveClipHolder& clip) {
+            return clip->StrictlyWithinPlayRegion(t, tempo);
+         });
 
       // use Strong-guarantee
       if (it != end)
-         it->get()->InsertSilence(t, len);
+         it->get()->InsertSilence(t, len, tempo);
 
       // use No-fail-guarantee
       for (const auto &clip : mClipList.Get())
       {
-         if (clip->BeforeOrAtPlayStartTime(t))
-            clip->Offset(len);
+         if (clip->BeforeOrAtPlayStartTime(t, tempo))
+            clip->Offset(len, tempo);
       }
    }
 }
@@ -1607,7 +1650,7 @@ void WaveTrack::InsertSilence(double t, double len)
 //Performs the opposite of Join
 //Analyses selected region for possible Joined clips and disjoins them
 /*! @excsafety{Weak} */
-void WaveTrack::Disjoin(double t0, double t1)
+void WaveTrack::Disjoin(double t0, double t1, BPS tempo)
 {
    auto minSamples = TimeToLongSamples( WAVETRACK_MERGE_POINT_TOLERANCE );
    const size_t maxAtOnce = 1048576;
@@ -1618,8 +1661,8 @@ void WaveTrack::Disjoin(double t0, double t1)
    // TODO wide wave tracks -- only need to change width
    const size_t width = 1;
    for (const auto &clip : mClipList.Get()) {
-      double startTime = clip->GetPlayStartTime();
-      double endTime = clip->GetPlayEndTime();
+      double startTime = clip->GetPlayStartTime(tempo);
+      double endTime = clip->GetPlayEndTime(tempo);
 
       if( endTime < t0 || startTime > t1 )
          continue;
@@ -1693,12 +1736,12 @@ void WaveTrack::Disjoin(double t0, double t1)
    for( unsigned int i = 0; i < regions.size(); i++ )
    {
       const Region &region = regions.at(i);
-      SplitDelete(region.start, region.end );
+      SplitDelete(region.start, region.end, tempo);
    }
 }
 
 /*! @excsafety{Weak} */
-void WaveTrack::Join(double t0, double t1)
+void WaveTrack::Join(double t0, double t1, BPS tempo)
 {
    // Merge all WaveClips overlapping selection into one
 
@@ -1708,15 +1751,18 @@ void WaveTrack::Join(double t0, double t1)
    const auto rate = GetRate();
    for (const auto &clip: mClipList.Get())
    {
-      if (clip->GetPlayStartTime() < t1 - (1.0 / rate) &&
-          clip->GetPlayEndTime() - (1.0 / rate) > t0) {
+      if (
+         clip->GetPlayStartTime(tempo) < t1 - (1.0 / rate) &&
+         clip->GetPlayEndTime(tempo) - (1.0 / rate) > t0)
+      {
 
          // Put in sorted order
          auto it = clipsToDelete.begin(), end = clipsToDelete.end();
          for (; it != end; ++it)
-            if ((*it)->GetPlayStartTime() > clip->GetPlayStartTime())
+            if ((*it)->GetPlayStartTime(tempo) > clip->GetPlayStartTime(tempo))
                break;
-         //wxPrintf("Insert clip %.6f at position %d\n", clip->GetStartTime(), i);
+         // wxPrintf("Insert clip %.6f at position %d\n",
+         // clip->GetStartTime(tempo), i);
          clipsToDelete.insert(it, clip.get());
       }
    }
@@ -1725,30 +1771,33 @@ void WaveTrack::Join(double t0, double t1)
    if( clipsToDelete.size() == 0 )
       return;
 
-   auto t = clipsToDelete[0]->GetPlayStartTime();
+   auto t = clipsToDelete[0]->GetPlayStartTime(tempo);
    //preserve left trim data if any
-   newClip = CreateClip(clipsToDelete[0]->GetSequenceStartTime(),
+   newClip = CreateClip(
+      clipsToDelete[0]->GetSequenceStartTime(),
       clipsToDelete[0]->GetName());
 
    for (const auto &clip : clipsToDelete)
    {
-      //wxPrintf("t=%.6f adding clip (offset %.6f, %.6f ... %.6f)\n",
-      //       t, clip->GetOffset(), clip->GetStartTime(), clip->GetEndTime());
+      // wxPrintf("t=%.6f adding clip (offset %.6f, %.6f ... %.6f)\n",
+      //       t, clip->GetOffset(), clip->GetStartTime(tempo),
+      //       clip->GetEndTime(tempo));
 
-      if (clip->GetPlayStartTime() - t > (1.0 / rate)) {
-         double addedSilence = (clip->GetPlayStartTime() - t);
+      if (clip->GetPlayStartTime(tempo) - t > (1.0 / rate))
+      {
+         double addedSilence = (clip->GetPlayStartTime(tempo) - t);
          //wxPrintf("Adding %.6f seconds of silence\n");
-         auto offset = clip->GetPlayStartTime();
+         auto offset = clip->GetPlayStartTime(tempo);
          auto value = clip->GetEnvelope()->GetValue( offset );
-         newClip->AppendSilence( addedSilence, value );
+         newClip->AppendSilence(addedSilence, tempo, value);
          t += addedSilence;
       }
 
       //wxPrintf("Pasting at %.6f\n", t);
-      bool success = newClip->Paste(t, *clip);
+      bool success = newClip->Paste(t, tempo, *clip);
       assert(success); // promise of CreateClip
 
-      t = newClip->GetPlayEndTime();
+      t = newClip->GetPlayEndTime(tempo);
 
       auto it = FindClip(mClipList.Get(), clip);
       mClipList.Erase(it); // deletes the clip
@@ -1764,54 +1813,6 @@ bool WaveTrack::Append(constSamplePtr buffer, sampleFormat format,
    constSamplePtr buffers[]{ buffer };
    return RightmostOrNewClip()
       ->Append(buffers, format, len, stride, effectiveFormat);
-}
-
-size_t WaveTrack::GetBestBlockSize(sampleCount s) const
-{
-   auto bestBlockSize = GetMaxBlockSize();
-
-   for (const auto &clip : mClipList.Get())
-   {
-      auto startSample = clip->GetPlayStartSample();
-      auto endSample = clip->GetPlayEndSample();
-      if (s >= startSample && s < endSample)
-      {
-         // ignore extra channels (this function will soon be removed)
-         bestBlockSize = clip->GetSequence(0)
-            ->GetBestBlockSize(s - clip->GetSequenceStartSample());
-         break;
-      }
-   }
-
-   return bestBlockSize;
-}
-
-size_t WaveTrack::GetMaxBlockSize() const
-{
-   decltype(GetMaxBlockSize()) maxblocksize = 0;
-   for (const auto &clip : mClipList.Get())
-      for (size_t ii = 0, width = clip->GetWidth(); ii < width; ++ii)
-         maxblocksize = std::max(maxblocksize,
-            clip->GetSequence(ii)->GetMaxBlockSize());
-
-   if (maxblocksize == 0)
-   {
-      // We really need the maximum block size, so create a
-      // temporary sequence to get it.
-      maxblocksize =
-         Sequence{ mpFactory, SampleFormats{mFormat, mFormat} }
-            .GetMaxBlockSize();
-   }
-
-   wxASSERT(maxblocksize > 0);
-
-   return maxblocksize;
-}
-
-size_t WaveTrack::GetIdealBlockSize()
-{
-   // ignore extra channels (this function will soon be removed)
-   return NewestOrNewClip()->GetSequence(0)->GetIdealBlockSize();
 }
 
 /*! @excsafety{Mixed} */
@@ -1915,13 +1916,15 @@ XMLTagHandler *WaveTrack::HandleXMLChild(const std::string_view& tag)
           .CallObjectAccessor(tag, *this) )
       return pChild;
 
+   assert(false);
+   constexpr BPS tempo { 120 }; // todo(mhodgkinson) what do we do here?
    //
    // This is legacy code (1.2 and previous) and is not called for NEW projects!
    //
    if (tag == "sequence" || tag == "envelope")
    {
       // This is a legacy project, so set the cached offset
-      NewestOrNewClip()->SetSequenceStartTime(mLegacyProjectFileOffset);
+      NewestOrNewClip()->SetSequenceStartTime(mLegacyProjectFileOffset, tempo);
 
       // Legacy project file tracks are imported as one single wave clip
       if (tag == "sequence")
@@ -1935,7 +1938,7 @@ XMLTagHandler *WaveTrack::HandleXMLChild(const std::string_view& tag)
    if (tag == "waveblock")
    {
       // This is a legacy project, so set the cached offset
-      NewestOrNewClip()->SetSequenceStartTime(mLegacyProjectFileOffset);
+      NewestOrNewClip()->SetSequenceStartTime(mLegacyProjectFileOffset, tempo);
       Sequence *pSeq = NewestOrNewClip()->GetSequence(0);
       return pSeq;
    }
@@ -2019,7 +2022,7 @@ ClipConstHolders WaveTrack::GetClipInterfaces() const
    return wideClips;
 }
 
-double WaveTrack::GetStartTime() const
+double WaveTrack::GetStartTime(BPS tempo) const
 {
    bool found = false;
    double best = 0.0;
@@ -2031,26 +2034,18 @@ double WaveTrack::GetStartTime() const
       if (!found)
       {
          found = true;
-         best = clip->GetPlayStartTime();
+         best = clip->GetPlayStartTime(tempo);
       }
-      else if (clip->GetPlayStartTime() < best)
-         best = clip->GetPlayStartTime();
+      else if (clip->GetPlayStartTime(tempo) < best)
+         best = clip->GetPlayStartTime(tempo);
 
    return best;
 }
 
-double WaveTrack::GetEndTime() const
+double WaveTrack::GetEndTime(BPS tempo) const
 {
    return GetEndTime(
-      [](const WaveClip& clip) { return clip.GetPlayEndTime(); });
-}
-
-double WaveTrack::GetEndTimeInOtherProject(
-   const std::optional<double>& otherProjectTempo) const
-{
-   return GetEndTime([otherProjectTempo](const WaveClip& clip) {
-      return clip.GetPlayEndTimeInOtherProject(otherProjectTempo);
-   });
+      [tempo](const WaveClip& clip) { return clip.GetPlayEndTime(tempo); });
 }
 
 double WaveTrack::GetEndTime(
@@ -2079,8 +2074,8 @@ double WaveTrack::GetEndTime(
 // expressed relative to t=0.0 at the track's sample rate.
 //
 
-std::pair<float, float> WaveTrack::GetMinMax(
-   double t0, double t1, bool mayThrow) const
+std::pair<float, float>
+WaveTrack::GetMinMax(double t0, double t1, BPS tempo, bool mayThrow) const
 {
    std::pair<float, float> results {
       // we need these at extremes to make sure we find true min and max
@@ -2099,11 +2094,13 @@ std::pair<float, float> WaveTrack::GetMinMax(
 
    for (const auto &clip: mClipList.Get())
    {
-      if (t1 >= clip->GetPlayStartTime() && t0 <= clip->GetPlayEndTime())
+      if (
+         t1 >= clip->GetPlayStartTime(tempo) &&
+         t0 <= clip->GetPlayEndTime(tempo))
       {
          clipFound = true;
          // TODO wide wave tracks -- choose correct channel
-         auto clipResults = clip->GetMinMax(0, t0, t1, mayThrow);
+         auto clipResults = clip->GetMinMax(0, t0, t1, tempo, mayThrow);
          if (clipResults.first < results.first)
             results.first = clipResults.first;
          if (clipResults.second > results.second)
@@ -2119,7 +2116,7 @@ std::pair<float, float> WaveTrack::GetMinMax(
    return results;
 }
 
-float WaveTrack::GetRMS(double t0, double t1, bool mayThrow) const
+float WaveTrack::GetRMS(double t0, double t1, BPS tempo, bool mayThrow) const
 {
    if (t0 > t1) {
       if (mayThrow)
@@ -2135,16 +2132,20 @@ float WaveTrack::GetRMS(double t0, double t1, bool mayThrow) const
 
    for (const auto &clip: mClipList.Get())
    {
-      // If t1 == clip->GetStartTime() or t0 == clip->GetEndTime(), then the clip
-      // is not inside the selection, so we don't want it.
-      // if (t1 >= clip->GetStartTime() && t0 <= clip->GetEndTime())
-      if (t1 >= clip->GetPlayStartTime() && t0 <= clip->GetPlayEndTime())
+      // If t1 == clip->GetStartTime(tempo) or t0 == clip->GetEndTime(tempo),
+      // then the clip is not inside the selection, so we don't want it. if (t1
+      // >= clip->GetStartTime(tempo) && t0 <= clip->GetEndTime(tempo))
+      if (
+         t1 >= clip->GetPlayStartTime(tempo) &&
+         t0 <= clip->GetPlayEndTime(tempo))
       {
-         auto clipStart = clip->TimeToSequenceSamples(std::max(t0, clip->GetPlayStartTime()));
-         auto clipEnd = clip->TimeToSequenceSamples(std::min(t1, clip->GetPlayEndTime()));
+         auto clipStart = clip->TimeToSequenceSamples(
+            std::max(t0, clip->GetPlayStartTime(tempo)), tempo);
+         auto clipEnd = clip->TimeToSequenceSamples(
+            std::min(t1, clip->GetPlayEndTime(tempo)), tempo);
 
          // TODO wide wave tracks -- choose correct channel
-         float cliprms = clip->GetRMS(0, t0, t1, mayThrow);
+         float cliprms = clip->GetRMS(0, t0, t1, tempo, mayThrow);
 
          sumsq += cliprms * cliprms * (clipEnd - clipStart).as_float();
          length += (clipEnd - clipStart);
@@ -2155,232 +2156,29 @@ float WaveTrack::GetRMS(double t0, double t1, bool mayThrow) const
 
 bool WaveTrack::Get(
    size_t iChannel, size_t nBuffers, samplePtr buffers[], sampleFormat format,
-   sampleCount start, size_t len, bool backwards, fillFormat fill,
+   sampleCount start, size_t len, BPS tempo, bool backwards, fillFormat fill,
    bool mayThrow, sampleCount* pNumWithinClips) const
 {
-   const auto nChannels = NChannels();
-   assert(iChannel + nBuffers <= nChannels); // precondition
-   const auto pOwner = GetOwner();
-   if (!pOwner) {
-      //! an un-owned track should have reported one channel only
-      assert(nChannels == 1);
-      nBuffers = std::min<size_t>(nBuffers, 1);
-   }
-   std::optional<TrackIter<const WaveTrack>> iter;
-   auto pTrack = this;
-   if (pOwner) {
-      iter.emplace(pOwner->Find<const WaveTrack>(this).advance(iChannel));
-      pTrack = **iter;
-   }
-   return std::all_of(buffers, buffers + nBuffers, [&](samplePtr buffer) {
-      const auto result = pTrack->GetOne(
-         buffer, format, start, len, backwards, fill, mayThrow,
-         pNumWithinClips);
-      if (iter)
-         pTrack = *(++ *iter);
-      return result;
-   });
-}
-
-bool WaveTrack::GetOne(
-   samplePtr buffer, sampleFormat format, sampleCount start, size_t len,
-   bool backwards, fillFormat fill, bool mayThrow,
-   sampleCount* pNumWithinClips) const
-{
-   if (backwards)
-      start -= len;
-   // Simple optimization: When this buffer is completely contained within one clip,
-   // don't clear anything (because we won't have to). Otherwise, just clear
-   // everything to be on the safe side.
-   bool doClear = true;
-   bool result = true;
-   sampleCount samplesCopied = 0;
-   for (const auto &clip: mClipList.Get())
-   {
-      if (start >= clip->GetPlayStartSample() && start+len <= clip->GetPlayEndSample())
-      {
-         doClear = false;
-         break;
-      }
-   }
-   if (doClear)
-   {
-      // Usually we fill in empty space with zero
-      if( fill == fillZero )
-         ClearSamples(buffer, format, 0, len);
-      // but we don't have to.
-      else if( fill==fillTwo )
-      {
-         wxASSERT( format==floatSample );
-         float * pBuffer = (float*)buffer;
-         for(size_t i=0;i<len;i++)
-            pBuffer[i]=2.0f;
-      }
-      else
-      {
-         wxFAIL_MSG(wxT("Invalid fill format"));
-      }
-   }
-
-   // Iterate the clips.  They are not necessarily sorted by time.
-   for (const auto &clip: mClipList.Get())
-   {
-      auto clipStart = clip->GetPlayStartSample();
-      auto clipEnd = clip->GetPlayEndSample();
-
-      if (clipEnd > start && clipStart < start+len)
-      {
-         // Clip sample region and Get/Put sample region overlap
-         auto samplesToCopy =
-            std::min( start+len - clipStart, clip->GetPlaySamplesCount() );
-         auto startDelta = clipStart - start;
-         decltype(startDelta) inclipDelta = 0;
-         if (startDelta < 0)
-         {
-            inclipDelta = -startDelta; // make positive value
-            samplesToCopy -= inclipDelta;
-            // samplesToCopy is now either len or
-            //    (clipEnd - clipStart) - (start - clipStart)
-            //    == clipEnd - start > 0
-            // samplesToCopy is not more than len
-            //
-            startDelta = 0;
-            // startDelta is zero
-         }
-         else {
-            // startDelta is nonnegative and less than len
-            // samplesToCopy is positive and not more than len
-         }
-
-         if (!clip->GetSamples(0,
-               (samplePtr)(((char*)buffer) +
-                           startDelta.as_size_t() *
-                           SAMPLE_SIZE(format)),
-               format, inclipDelta, samplesToCopy.as_size_t(), mayThrow ))
-            result = false;
-         else
-            samplesCopied += samplesToCopy;
-      }
-   }
-   if( pNumWithinClips )
-      *pNumWithinClips = samplesCopied;
-   if (result == true && backwards)
-      ReverseSamples(buffer, format, 0, len);
-   return result;
+   // A WaveTrack isn't capable of returning samples, since it cannot stretch
+   // raw data to the project tempo.
+   assert(false);
+   return false;
 }
 
 std::vector<ChannelSampleView> WaveTrack::GetSampleView(
    size_t iChannel, size_t nBuffers, sampleCount start, size_t length,
-   bool backwards) const
+   BPS tempo, bool backwards) const
 {
-   const auto nChannels = NChannels();
-   assert(iChannel + nBuffers <= nChannels); // precondition
-   const auto pOwner = GetOwner();
-   if (!pOwner)
-   {
-      //! an un-owned track should have reported one channel only
-      assert(nChannels == 1);
-      nBuffers = std::min<size_t>(nBuffers, 1);
-   }
-   std::vector<ChannelSampleView> result;
-   std::optional<TrackIter<const WaveTrack>> iter;
-   auto pTrack = this;
-   if (pOwner) {
-      iter.emplace(pOwner->Find<const WaveTrack>(this).advance(iChannel));
-      pTrack = **iter;
-   }
-   for (auto i = 0u; i < nBuffers; ++i)
-   {
-      result.push_back(pTrack->GetOneSampleView(start, length, backwards));
-      if (iter)
-         pTrack = *(++*iter);
-   }
-   return result;
-}
-
-ChannelSampleView WaveTrack::GetOneSampleView(
-   sampleCount start, size_t length, bool backwards) const
-{
-   if (backwards)
-      start -= length;
-   WaveClipConstHolders intersectingClips;
-   auto t0 = LongSamplesToTime(start);
-   const auto t1 = t0 + static_cast<double>(length) / GetRate();
-   for (const auto& clip : mClipList.Get())
-      if (t0 < clip->GetPlayEndTime() && clip->GetPlayStartTime() < t1)
-         intersectingClips.push_back(clip);
-   if (intersectingClips.empty())
-      return { AudioSegmentSampleView(length) };
-   std::sort(
-      intersectingClips.begin(), intersectingClips.end(),
-      [](const auto& a, const auto& b) {
-         return a->GetPlayStartTime() < b->GetPlayStartTime();
-      });
-   std::vector<AudioSegmentSampleView> segments;
-   segments.reserve(intersectingClips.size());
-   for (auto i = 0u; i < intersectingClips.size();++i)
-   {
-      const auto& clip = intersectingClips[i];
-      const auto clipStartTime = clip->GetPlayStartTime();
-      if (t0 < clipStartTime) {
-         const auto numSamples = TimeToLongSamples(clipStartTime - t0);
-         segments.push_back(AudioSegmentSampleView(numSamples));
-         t0 = clipStartTime;
-      }
-      const auto clipT0 = t0 - clipStartTime;
-      const auto clipS0 = TimeToLongSamples(clipT0);
-      // By substitution,
-      //    (len - length) / rate = t0 - clipT0,
-      // and since
-      //    t0 - clipT0 <= 0,
-      // then `length >= len`. `as_size_t` won't narrow.
-      const auto len = TimeToLongSamples(t1 - clipT0).as_size_t();
-      auto newSegment = clip->GetSampleView(0u, clipS0, len);
-      t0 += newSegment.GetSampleCount().as_double() / GetRate();
-      segments.push_back(std::move(newSegment));
-   }
-   return segments;
+   assert(false);
+   return {};
 }
 
 /*! @excsafety{Weak} */
-void WaveTrack::Set(constSamplePtr buffer, sampleFormat format,
-   sampleCount start, size_t len, sampleFormat effectiveFormat)
+void WaveTrack::Set(
+   constSamplePtr buffer, sampleFormat format, sampleCount start, size_t len,
+   BPS tempo, sampleFormat effectiveFormat)
 {
-   for (const auto &clip: mClipList.Get())
-   {
-      auto clipStart = clip->GetPlayStartSample();
-      auto clipEnd = clip->GetPlayEndSample();
-
-      if (clipEnd > start && clipStart < start+len)
-      {
-         // Clip sample region and Get/Put sample region overlap
-         auto samplesToCopy =
-            std::min( start+len - clipStart, clip->GetPlaySamplesCount() );
-         auto startDelta = clipStart - start;
-         decltype(startDelta) inclipDelta = 0;
-         if (startDelta < 0)
-         {
-            inclipDelta = -startDelta; // make positive value
-            samplesToCopy -= inclipDelta;
-            // samplesToCopy is now either len or
-            //    (clipEnd - clipStart) - (start - clipStart)
-            //    == clipEnd - start > 0
-            // samplesToCopy is not more than len
-            //
-            startDelta = 0;
-            // startDelta is zero
-         }
-         else {
-            // startDelta is nonnegative and less than len
-            // samplesToCopy is positive and not more than len
-         }
-
-         clip->SetSamples(0,
-            buffer + startDelta.as_size_t() * SAMPLE_SIZE(format),
-            format, inclipDelta, samplesToCopy.as_size_t(), effectiveFormat );
-         clip->MarkChanged();
-      }
-   }
+   assert(false);
 }
 
 sampleFormat WaveTrack::WidestEffectiveFormat() const
@@ -2409,7 +2207,7 @@ bool WaveTrack::HasTrivialEnvelope() const
 }
 
 void WaveTrack::GetEnvelopeValues(
-   double* buffer, size_t bufferLen, double t0, bool backwards) const
+   double* buffer, size_t bufferLen, double t0, BPS tempo, bool backwards) const
 {
    if (backwards)
       t0 -= bufferLen / GetRate();
@@ -2435,8 +2233,8 @@ void WaveTrack::GetEnvelopeValues(
    for (const auto &clip: mClipList.Get())
    {
       // IF clip intersects startTime..endTime THEN...
-      auto dClipStartTime = clip->GetPlayStartTime();
-      auto dClipEndTime = clip->GetPlayEndTime();
+      auto dClipStartTime = clip->GetPlayStartTime(tempo);
+      auto dClipEndTime = clip->GetPlayEndTime(tempo);
       if ((dClipStartTime < endTime) && (dClipEndTime > startTime))
       {
          auto rbuf = buffer;
@@ -2457,7 +2255,8 @@ void WaveTrack::GetEnvelopeValues(
 
          if (rt0 + rlen*tstep > dClipEndTime)
          {
-            auto nClipLen = clip->GetPlayEndSample() - clip->GetPlayStartSample();
+            auto nClipLen =
+               clip->GetPlayEndSample(tempo) - clip->GetPlayStartSample(tempo);
 
             if (nClipLen <= 0) // Testing for bug 641, this problem is consistently '== 0', but doesn't hurt to check <.
                return;
@@ -2481,37 +2280,43 @@ void WaveTrack::GetEnvelopeValues(
 
 // When the time is both the end of a clip and the start of the next clip, the
 // latter clip is returned.
-WaveClip* WaveTrack::GetClipAtTime(double time)
+WaveClip* WaveTrack::GetClipAtTime(double time, BPS tempo)
 {
 
    const auto clips = SortedClipArray();
-   auto p = std::find_if(clips.rbegin(), clips.rend(), [&] (WaveClip* const& clip) {
-      return time >= clip->GetPlayStartTime() && time <= clip->GetPlayEndTime(); });
+   auto p =
+      std::find_if(clips.rbegin(), clips.rend(), [&](WaveClip* const& clip) {
+         return time >= clip->GetPlayStartTime(tempo) &&
+                time <= clip->GetPlayEndTime(tempo);
+      });
 
-   // When two clips are immediately next to each other, the GetPlayEndTime() of the first clip
-   // and the GetPlayStartTime() of the second clip may not be exactly equal due to rounding errors.
-   // If "time" is the end time of the first of two such clips, and the end time is slightly
-   // less than the start time of the second clip, then the first rather than the
-   // second clip is found by the above code. So correct this.
-   if (p != clips.rend() && p != clips.rbegin() &&
-      time == (*p)->GetPlayEndTime() &&
-      (*p)->SharesBoundaryWithNextClip(*(p-1))) {
+   // When two clips are immediately next to each other, the
+   // GetPlayEndTime(tempo) of the first clip and the GetPlayStartTime(tempo) of
+   // the second clip may not be exactly equal due to rounding errors. If "time"
+   // is the end time of the first of two such clips, and the end time is
+   // slightly less than the start time of the second clip, then the first
+   // rather than the second clip is found by the above code. So correct this.
+   if (
+      p != clips.rend() && p != clips.rbegin() &&
+      time == (*p)->GetPlayEndTime(tempo) &&
+      (*p)->SharesBoundaryWithNextClip(*(p - 1), tempo))
+   {
       p--;
    }
 
    return p != clips.rend() ? *p : nullptr;
 }
 
-Envelope* WaveTrack::GetEnvelopeAtTime(double time)
+Envelope* WaveTrack::GetEnvelopeAtTime(double time, BPS tempo)
 {
-   WaveClip* clip = GetClipAtTime(time);
+   WaveClip* clip = GetClipAtTime(time, tempo);
    if (clip)
       return clip->GetEnvelope();
    else
       return NULL;
 }
 
-WaveClip* WaveTrack::CreateClip(double offset, const wxString& name)
+WaveClip* WaveTrack::CreateClip(Beat offset, const wxString& name)
 {
    // TODO wide wave tracks -- choose clip width correctly for the track
    auto clip = std::make_shared<WaveClip>(1,
@@ -2546,11 +2351,11 @@ WaveClip* WaveTrack::RightmostOrNewClip()
    {
       auto it = mClipList.Begin();
       WaveClip *rightmost = (*it++).get();
-      double maxOffset = rightmost->GetPlayStartTime();
+      Beat maxOffset = rightmost->GetPlayStartTime();
       for (auto end = mClipList.End(); it != end; ++it)
       {
          WaveClip *clip = it->get();
-         double offset = clip->GetPlayStartTime();
+         Beat offset = clip->GetPlayStartTime();
          if (maxOffset < offset)
             maxOffset = offset, rightmost = clip;
       }
@@ -2584,9 +2389,8 @@ int WaveTrack::GetNumClips() const
 }
 
 bool WaveTrack::CanOffsetClips(
-   const std::vector<WaveClip*> &clips,
-   double amount,
-   double *allowedAmount /* = NULL */)
+   const std::vector<WaveClip*>& clips, BPS tempo, double amount,
+   double* allowedAmount /* = NULL */)
 {
    if (allowedAmount)
       *allowedAmount = amount;
@@ -2597,26 +2401,35 @@ bool WaveTrack::CanOffsetClips(
       return clips.end() != std::find( clips.begin(), clips.end(), clip );
    };
 
+   const Beat beatAmount { amount * tempo.get() };
+
    for (const auto &c: mClipList.Get()) {
       if ( moving( c.get() ) )
          continue;
       for (const auto clip : clips) {
-         if (c->GetPlayStartTime() < clip->GetPlayEndTime() + amount &&
-            c->GetPlayEndTime() > clip->GetPlayStartTime() + amount)
+         if (
+            c->GetPlayStartTime() < clip->GetPlayEndTime() + beatAmount &&
+            c->GetPlayEndTime() > clip->GetPlayStartTime() + beatAmount)
          {
             if (!allowedAmount)
                return false; // clips overlap
 
             if (amount > 0)
             {
-               if (c->GetPlayStartTime() - clip->GetPlayEndTime() < *allowedAmount)
-                  *allowedAmount = c->GetPlayStartTime() - clip->GetPlayEndTime();
+               if (
+                  c->GetPlayStartTime(tempo) - clip->GetPlayEndTime(tempo) <
+                  *allowedAmount)
+                  *allowedAmount =
+                     c->GetPlayStartTime(tempo) - clip->GetPlayEndTime(tempo);
                if (*allowedAmount < 0)
                   *allowedAmount = 0;
             } else
             {
-               if (c->GetPlayEndTime() - clip->GetPlayStartTime() > *allowedAmount)
-                  *allowedAmount = c->GetPlayEndTime() - clip->GetPlayStartTime();
+               if (
+                  c->GetPlayEndTime(tempo) - clip->GetPlayStartTime(tempo) >
+                  *allowedAmount)
+                  *allowedAmount =
+                     c->GetPlayEndTime(tempo) - clip->GetPlayStartTime(tempo);
                if (*allowedAmount > 0)
                   *allowedAmount = 0;
             }
@@ -2631,7 +2444,8 @@ bool WaveTrack::CanOffsetClips(
 
       // Check if the NEW calculated amount would not violate
       // any other constraint
-      if (!CanOffsetClips(clips, *allowedAmount, nullptr)) {
+      if (!CanOffsetClips(clips, tempo, *allowedAmount, nullptr))
+      {
          *allowedAmount = 0; // play safe and don't allow anything
          return false;
       }
@@ -2642,13 +2456,15 @@ bool WaveTrack::CanOffsetClips(
 }
 
 bool WaveTrack::CanInsertClip(
-   WaveClip* clip,  double &slideBy, double &tolerance) const
+   WaveClip* clip, BPS tempo, double& slideBy, double& tolerance) const
 {
    for (const auto &c : mClipList.Get())
    {
       //VS: Do we need to take into account sample rate difference?
-      double d1 = c->GetPlayStartTime() - (clip->GetPlayEndTime()+slideBy);
-      double d2 = (clip->GetPlayStartTime()+slideBy) - c->GetPlayEndTime();
+      double d1 =
+         c->GetPlayStartTime(tempo) - (clip->GetPlayEndTime(tempo) + slideBy);
+      double d2 =
+         (clip->GetPlayStartTime(tempo) + slideBy) - c->GetPlayEndTime(tempo);
       if ( (d1<0) &&  (d2<0) )
       {
          // clips overlap.
@@ -2680,24 +2496,24 @@ bool WaveTrack::CanInsertClip(
 }
 
 /*! @excsafety{Weak} */
-void WaveTrack::Split( double t0, double t1 )
+void WaveTrack::Split(double t0, double t1, BPS tempo)
 {
-   SplitAt( t0 );
+   SplitAt(t0, tempo);
    if( t0 != t1 )
-      SplitAt( t1 );
+      SplitAt(t1, tempo);
 }
 
 /*! @excsafety{Weak} */
-void WaveTrack::SplitAt(double t)
+void WaveTrack::SplitAt(double t, BPS tempo)
 {
    for (const auto &c : mClipList.Get())
    {
-      if (c->StrictlyWithinPlayRegion(t))
+      if (c->StrictlyWithinPlayRegion(t, tempo))
       {
          t = LongSamplesToTime(TimeToLongSamples(t));
          auto newClip = std::make_unique<WaveClip>( *c, mpFactory, true );
-         c->TrimRightTo(t);// put t on a sample
-         newClip->TrimLeftTo(t);
+         c->TrimRightTo(t, tempo); // put t on a sample
+         newClip->TrimLeftTo(t, tempo);
 
          // This could invalidate the iterators for the loop!  But we return
          // at once so it's okay
@@ -2709,17 +2525,18 @@ void WaveTrack::SplitAt(double t)
 
 // Expand cut line (that is, re-insert audio, then DELETE audio saved in cut line)
 /*! @excsafety{Strong} */
-void WaveTrack::ExpandCutLine(double cutLinePosition, double* cutlineStart,
-                              double* cutlineEnd)
+void WaveTrack::ExpandCutLine(
+   BPS tempo, double cutLinePosition, double* cutlineStart, double* cutlineEnd)
 {
    bool editClipCanMove = GetEditClipsCanMove();
 
    // Find clip which contains this cut line
    double start = 0, end = 0;
    auto pEnd = mClipList.End();
-   auto pClip = std::find_if( mClipList.Begin(), pEnd,
-      [&](const WaveClipHolder &clip) {
-         return clip->FindCutLine(cutLinePosition, &start, &end); } );
+   auto pClip =
+      std::find_if(mClipList.Begin(), pEnd, [&](const WaveClipHolder& clip) {
+         return clip->FindCutLine(cutLinePosition, tempo, &start, &end);
+      });
    if (pClip != pEnd)
    {
       auto &clip = *pClip;
@@ -2729,8 +2546,10 @@ void WaveTrack::ExpandCutLine(double cutLinePosition, double* cutlineStart,
          // is enough room to expand the cut line
          for (const auto &clip2: mClipList.Get())
          {
-            if (clip2->GetPlayStartTime() > clip->GetPlayStartTime() &&
-                clip->GetPlayEndTime() + end - start > clip2->GetPlayStartTime())
+            if (
+               clip2->GetPlayStartTime(tempo) > clip->GetPlayStartTime(tempo) &&
+               clip->GetPlayEndTime(tempo) + end - start >
+                  clip2->GetPlayStartTime(tempo))
                // Strong-guarantee in case of this path
                throw SimpleMessageBoxException{
                   ExceptionType::BadUserAction,
@@ -2741,7 +2560,7 @@ void WaveTrack::ExpandCutLine(double cutLinePosition, double* cutlineStart,
           }
       }
 
-      clip->ExpandCutLine(cutLinePosition);
+      clip->ExpandCutLine(cutLinePosition, tempo);
 
       // Strong-guarantee provided that the following gives No-fail-guarantee
 
@@ -2755,17 +2574,17 @@ void WaveTrack::ExpandCutLine(double cutLinePosition, double* cutlineStart,
       {
          for (const auto &clip2 : mClipList.Get())
          {
-            if (clip2->GetPlayStartTime() > clip->GetPlayStartTime())
-               clip2->Offset(end - start);
+            if (clip2->GetPlayStartTime(tempo) > clip->GetPlayStartTime(tempo))
+               clip2->Offset(end - start, tempo);
          }
       }
    }
 }
 
-bool WaveTrack::RemoveCutLine(double cutLinePosition)
+bool WaveTrack::RemoveCutLine(double cutLinePosition, BPS tempo)
 {
    for (const auto &clip : mClipList.Get())
-      if (clip->RemoveCutLine(cutLinePosition))
+      if (clip->RemoveCutLine(cutLinePosition, tempo))
          return true;
 
    return false;
@@ -2807,9 +2626,10 @@ namespace {
       Cont1 clips;
       for (const auto &clip : mClips)
          clips.push_back(clip.get());
-      std::sort(clips.begin(), clips.end(),
-         [](const WaveClip *a, const WaveClip *b)
-      { return a->GetPlayStartTime() < b->GetPlayStartTime(); });
+      std::sort(
+         clips.begin(), clips.end(), [](const WaveClip* a, const WaveClip* b) {
+            return a->GetPlayStartTime() < b->GetPlayStartTime();
+         });
       return clips;
    }
 }
@@ -2923,7 +2743,9 @@ ProjectFormatExtensionsRegistry::Extension smartClipsExtension(
       {
          for (const auto& clip : wt->GetAllClips())
          {
-            if (clip->GetTrimLeft() > 0.0 || clip->GetTrimRight() > 0.0)
+            if (
+               clip->GetTrimLeft() > Beat { 0.0 } ||
+               clip->GetTrimRight() > Beat { 0.0 })
                return { 3, 1, 0, 0 };
          }
       }

@@ -12,6 +12,7 @@
 #ifndef __AUDACITY_AUDIO_IO_SEQUENCES__
 #define __AUDACITY_AUDIO_IO_SEQUENCES__
 
+#include "Beat.h"
 #include "WideSampleSequence.h"
 
 /*!
@@ -66,7 +67,7 @@ struct MIXER_API RecordableSequence {
    //! Flush must be called after last Append
    virtual void Flush() = 0;
 
-   virtual void InsertSilence(double t, double len) = 0;
+   virtual void InsertSilence(double t, double len, BPS) = 0;
 };
 
 using RecordableSequences = std::vector<std::shared_ptr<RecordableSequence>>;

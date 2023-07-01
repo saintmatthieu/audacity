@@ -68,43 +68,39 @@ size_t FindBufferSize(const Mixer::Inputs &inputs, size_t bufferSize)
 }
 }
 
-Mixer::Mixer(Inputs inputs,
-   const bool mayThrow,
-   const WarpOptions &warpOptions,
-   const double startTime, const double stopTime,
-   const unsigned numOutChannels,
-   const size_t outBufferSize, const bool outInterleaved,
-   double outRate, sampleFormat outFormat,
-   const bool highQuality, MixerSpec *const mixerSpec,
-   const bool applyTrackGains
-)  : mNumChannels{ numOutChannels }
-   , mInputs{ move(inputs) }
-   , mBufferSize{ FindBufferSize(mInputs, outBufferSize) }
-   , mApplyTrackGains{ applyTrackGains }
-   , mHighQuality{ highQuality }
-   , mFormat{ outFormat }
-   , mInterleaved{ outInterleaved }
+Mixer::Mixer(
+   Inputs inputs, const bool mayThrow, const WarpOptions& warpOptions,
+   const double startTime, const double stopTime, const unsigned numOutChannels,
+   const size_t outBufferSize, const bool outInterleaved, double outRate,
+   sampleFormat outFormat, BPS projectTempo, const bool highQuality,
+   MixerSpec* const mixerSpec, const bool applyTrackGains)
+    : mNumChannels { numOutChannels }
+    , mInputs { move(inputs) }
+    , mBufferSize { FindBufferSize(mInputs, outBufferSize) }
+    , mApplyTrackGains { applyTrackGains }
+    , mHighQuality { highQuality }
+    , mFormat { outFormat }
+    , mInterleaved { outInterleaved }
 
-   , mTimesAndSpeed{ std::make_shared<TimesAndSpeed>( TimesAndSpeed{
-      startTime, stopTime, warpOptions.initialSpeed, startTime
-   } ) }
+    , mTimesAndSpeed { std::make_shared<TimesAndSpeed>(TimesAndSpeed {
+         startTime, stopTime, warpOptions.initialSpeed, startTime }) }
 
-   // PRL:  Bug2536: see other comments below for the last, padding argument
-   // TODO: more-than-two-channels
-   // Issue 3565 workaround:  allocate one extra buffer when applying a
-   // GVerb effect stage.  It is simply discarded
-   // See also issue 3854, when the number of out channels expected by the
-   // plug-in is yet larger
-   , mFloatBuffers{ 3, mBufferSize, 1, 1 }
+    // PRL:  Bug2536: see other comments below for the last, padding argument
+    // TODO: more-than-two-channels
+    // Issue 3565 workaround:  allocate one extra buffer when applying a
+    // GVerb effect stage.  It is simply discarded
+    // See also issue 3854, when the number of out channels expected by the
+    // plug-in is yet larger
+    , mFloatBuffers { 3, mBufferSize, 1, 1 }
 
-   // non-interleaved
-   , mTemp{ initVector<float>(mNumChannels, mBufferSize) }
-   , mBuffer{ initVector<SampleBuffer>(mInterleaved ? 1 : mNumChannels,
-      [format = mFormat,
-         size = mBufferSize * (mInterleaved ? mNumChannels : 1)
-      ](auto &buffer){ buffer.Allocate(size, format); }
-   )}
-   , mEffectiveFormat{ floatSample }
+    // non-interleaved
+    , mTemp { initVector<float>(mNumChannels, mBufferSize) }
+    , mBuffer { initVector<SampleBuffer>(
+         mInterleaved ? 1 : mNumChannels,
+         [format = mFormat,
+          size = mBufferSize * (mInterleaved ? mNumChannels : 1)](
+            auto& buffer) { buffer.Allocate(size, format); }) }
+    , mEffectiveFormat { floatSample }
 {
    assert(BufferSize() <= outBufferSize);
    const auto nChannelsIn =
@@ -143,9 +139,10 @@ Mixer::Mixer(Inputs inputs,
       }
       auto increment = finally([&]{ i += sequence->NChannels(); });
 
-      auto &source = mSources.emplace_back(sequence, BufferSize(), outRate,
-         warpOptions, highQuality, mayThrow, mTimesAndSpeed,
-         (pMixerSpec ? &pMixerSpec->mMap[i] : nullptr));
+      auto& source = mSources.emplace_back(
+         sequence, BufferSize(), outRate, warpOptions, highQuality, mayThrow,
+         mTimesAndSpeed, (pMixerSpec ? &pMixerSpec->mMap[i] : nullptr),
+         projectTempo);
       AudioGraph::Source *pDownstream = &source;
       for (const auto &stage : input.stages) {
          // Make a mutable copy of stage.settings

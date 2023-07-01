@@ -12,12 +12,12 @@
 
 #include "AudioSegment.h"
 #include "AudioSegmentSampleView.h"
+#include "ClipInterface.h"
 #include "PlaybackDirection.h"
 #include "TimeAndPitchInterface.h"
 
 #include <memory>
 
-class ClipInterface;
 using ChannelSampleViews = std::vector<AudioSegmentSampleView>;
 
 class STRETCHING_SEQUENCE_API ClipSegment final :
@@ -26,7 +26,8 @@ class STRETCHING_SEQUENCE_API ClipSegment final :
 {
 public:
    ClipSegment(
-      const ClipInterface&, double durationToDiscard, PlaybackDirection);
+      const ClipInterface&, BPS projectTempo, double durationToDiscard,
+      PlaybackDirection);
 
    // AudioSegment
    size_t GetFloats(std::vector<float*>& buffers, size_t numSamples) override;
@@ -37,6 +38,7 @@ private:
    void Pull(float* const*, size_t samplesPerChannel) override;
 
    const ClipInterface& mClip;
+   const BPS mBps;
    sampleCount mLastReadSample = 0;
    const sampleCount mTotalNumSamplesToProduce;
    sampleCount mTotalNumSamplesProduced = 0;

@@ -21,22 +21,21 @@ class STRETCHING_SEQUENCE_API AudioSegmentFactory final :
 {
 public:
    AudioSegmentFactory(
-      int sampleRate, int numChannels, BPS projectTempo,
-      const ClipConstHolders& clips);
+      int sampleRate, int numChannels, const ClipConstHolders& clips);
 
    std::vector<std::shared_ptr<AudioSegment>> CreateAudioSegmentSequence(
-      double playbackStartTime, PlaybackDirection) const override;
+      double playbackStartTime, BPS tempo, PlaybackDirection) const override;
 
 private:
    std::vector<std::shared_ptr<AudioSegment>>
-   CreateAudioSegmentSequenceForward(double playbackStartTime) const;
+   CreateAudioSegmentSequenceForward(double playbackStartTime, BPS tempo) const;
 
    std::vector<std::shared_ptr<AudioSegment>>
-   CreateAudioSegmentSequenceBackward(double playbackStartTime) const;
+   CreateAudioSegmentSequenceBackward(
+      double playbackStartTime, BPS tempo) const;
 
 private:
    const ClipConstHolders mClips;
    const int mSampleRate;
    const int mNumChannels;
-   const BPS mBps;
 };
