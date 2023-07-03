@@ -198,7 +198,7 @@ struct EffectReverb::Instance
 
    // Realtime section
 
-   bool RealtimeInitialize(EffectSettings& settings, double sampleRate) override
+   bool RealtimeInitialize(EffectSettings &settings, double sampleRate, BPS tempo) override
    {
       SetBlockSize(512);
       mSlaves.clear();
@@ -259,7 +259,7 @@ struct EffectReverb::Instance
                               is.mPreDelay, is.mStereoWidth, is.mToneLow, is.mToneHigh   );
                }
             }
-         }         
+         }
 
          mLastAppliedSettings = incomingSettings;
       }
@@ -431,7 +431,7 @@ size_t EffectReverb::Instance::InstanceProcess(EffectSettings& settings, EffectR
       ichans[c] = inBlock[c];
       ochans[c] = outBlock[c];
    }
-   
+
    float const dryMult = rs.mWetOnly ? 0 : dB_to_linear(rs.mDryGain);
 
    auto remaining = blockLen;
@@ -464,7 +464,7 @@ size_t EffectReverb::Instance::InstanceProcess(EffectSettings& settings, EffectR
       {
          for (decltype(len) i = 0; i < len; i++)
          {
-            ochans[0][i] = dryMult * 
+            ochans[0][i] = dryMult *
                            state.mP[0].dry[i] +
                            state.mP[0].wet[0][i];
          }
@@ -641,7 +641,7 @@ bool operator==(const EffectReverbSettings& a, const EffectReverbSettings& b)
             && (a.mWetGain      == b.mWetGain)
             && (a.mDryGain      == b.mDryGain)
             && (a.mStereoWidth  == b.mStereoWidth)
-            && (a.mWetOnly      == b.mWetOnly);           
+            && (a.mWetOnly      == b.mWetOnly);
 }
 
 bool OnlySimpleParametersChanged(const EffectReverbSettings& a, const EffectReverbSettings& b)
@@ -664,7 +664,7 @@ bool OnlySimpleParametersChanged(const EffectReverbSettings& a, const EffectReve
 
                (a.mRoomSize     == b.mRoomSize)
             && (a.mPreDelay     == b.mPreDelay)
-            && (a.mStereoWidth  == b.mStereoWidth);           
+            && (a.mStereoWidth  == b.mStereoWidth);
 
    return oneSimpleParameterChanged && allNonSimpleParametersStayedTheSame;
 }

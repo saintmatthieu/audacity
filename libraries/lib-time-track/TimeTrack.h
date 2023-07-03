@@ -48,22 +48,24 @@ class TIME_TRACK_API TimeTrack final : public Track {
 
    bool SupportsBasicEditing() const override;
 
-   Holder PasteInto( AudacityProject & ) const override;
+   Holder PasteInto(AudacityProject&, BPS) const override;
 
-   Holder Cut( double t0, double t1 ) override;
-   Holder Copy( double t0, double t1, bool forClipboard ) const override;
-   void Clear(double t0, double t1) override;
-   void Paste(double t, const Track * src) override;
-   void Silence(double t0, double t1) override;
-   void InsertSilence(double t, double len) override;
+   Holder Cut(double t0, double t1, BPS) override;
+   Holder Copy(double t0, double t1, BPS, bool forClipboard) const override;
+   void Clear(double t0, double t1, BPS) override;
+   void Paste(double t, BPS, const Track* src) override;
+   void Silence(double t0, double t1, BPS) override;
+   void InsertSilence(double t, double len, BPS) override;
 
    // TimeTrack parameters
 
-   double GetOffset() const override { return 0.0; }
-   void SetOffset(double /* t */) override {}
+   double GetOffset(BPS) const override { return 0.0; }
+   void SetOffset(double /* t */, BPS) override
+   {
+   }
 
-   double GetStartTime() const override { return 0.0; }
-   double GetEndTime() const override { return 0.0; }
+   double GetStartTime(BPS) const override { return 0.0; }
+   double GetEndTime(BPS) const override { return 0.0; }
 
    // XMLTagHandler callback methods for loading and saving
 

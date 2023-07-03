@@ -39,17 +39,21 @@ class VST3_API VST3Instance
    std::vector<std::unique_ptr<VST3Instance>> mProcessors;
 
 public:
-   VST3Instance(const PerTrackEffect& effect, VST3::Hosting::Module& module, const VST3::Hosting::ClassInfo& effectClassInfo);
+   VST3Instance(
+      const PerTrackEffect& effect, VST3::Hosting::Module& module,
+      const VST3::Hosting::ClassInfo& effectClassInfo);
    ~VST3Instance() override;
 
    VST3Instance(const VST3Instance&) = delete;
    VST3Instance& operator=(const VST3Instance&) = delete;
 
    size_t GetTailSize() const override;
-   bool RealtimeAddProcessor(EffectSettings& settings, EffectOutputs *pOutputs,
-      unsigned numChannels, float sampleRate) override;
+   bool RealtimeAddProcessor(
+      EffectSettings& settings, EffectOutputs* pOutputs, unsigned numChannels,
+      float sampleRate) override;
    bool RealtimeFinalize(EffectSettings& settings) noexcept override;
-   bool RealtimeInitialize(EffectSettings& settings, double sampleRate) override;
+   bool RealtimeInitialize(
+      EffectSettings& settings, double sampleRate) override;
    bool RealtimeProcessStart(MessagePackage& package) override;
    size_t RealtimeProcess(size_t group, EffectSettings& settings, const float* const* inBuf, float* const* outBuf,
       size_t numSamples) override;

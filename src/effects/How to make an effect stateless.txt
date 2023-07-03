@@ -7,32 +7,32 @@ Let use use EffectEcho as an example.
 
    In header file:
        before the effect definition, define a struct EffectEchoSettings containing the settings.
-       Cut the class members which qualify for settings and paste them in this new struct; 
-       give them defaults that are equal to the defaults found 
+       Cut the class members which qualify for settings and paste them in this new struct;
+       give them defaults that are equal to the defaults found
 
        Base class remains as original, i.e. either StatefulPerTrackEffect or StatefulEffect
-       
+
        Declare a private EffectEchoSettings mSettings;
-       
+
        REMOVE the members of the effect that go into the settings. REPLACE instead with EffectEchoSettings mSettings; in the effect and then do what is needed to fix compilation and running:
-          
+
        Modify FetchParameters: it must now return the address of mSettings, not of the effect
-    
+
        Update pointers-to-members in EffectParameter declarations
 
-       
 
-    
+
+
    In cpp file:
        Insert sufficient auto& echoSettings = mSettings; (which changes later) and echoSettings. (which won't need more change) to fix compilation
-        
+
        Go to the constructor and remove call to
 
          Parameters().Reset(*this);
 
        As the initializations it did, now happen in the constructor of EffectEchoSettings because we use in-struct initializers with the same default values as in the EffectParmeters.
-        
-    
+
+
 2) "Define validator"  (reference commit: 2592061)
 
 
@@ -53,7 +53,7 @@ Let use use EffectEcho as an example.
     In cpp file:
 
        add class definition in the .cpp with mSettings:
-    
+
            struct EffectEcho::Validator
               : EffectUIValidator
            {
@@ -106,12 +106,12 @@ Let use use EffectEcho as an example.
 
            return true;
         }
-        
+
         If the effect has an override of ::TransferDataToWindow():
         copy its steps into the ValidateUI() function above
         (actually, transform in-place ::TransferDataToWindow like it was done in 2592061)
-        
-        
+
+
 
 
     - modify PopulateOrExchange to make it belong to the Validator
@@ -119,7 +119,7 @@ Let use use EffectEcho as an example.
       -- it should now return void
 
     - reimplement Effect::PopulateOrExchange:
-    
+
         std::unique_ptr<EffectUIValidator>
         EffectEcho::PopulateOrExchange(ShuttleGui& S, EffectSettingsAccess& access)
         {
@@ -147,17 +147,17 @@ Let use use EffectEcho as an example.
     - remove the section BEGIN_EVENT_TABLE... END_EVENT_TABLE (in .cpp)
 
     - cut (from .h) all declarations of wxWidgets (wxTextCtrl, wxSlider etc.) and paste them in the validator definition (in .cpp)
-    
+
     - cut (from .h) all declarations of handlers like void On***Slider, On***Text and paste them in the validator definition (in .cpp)
       IMPORTANT: at the end of all the handlers, add a call to ValidateUI();
 
     - in Validator::PopulateOrExchange
       -- remove the calls to .Id(...) on the ShuttleGui
       -- just after every creation of a widget, add a line like:
-      
+
             BindTo(*mFreqT, wxEVT_TEXT, &Validator::OnFreqText);
-         
-         where: 
+
+         where:
          1st arg is the just created widget
          2nd arg is either wxEVT_TEXT or wxEVT_SLIDER or wxEVT_CHECKBOX according to the widget type
          3rd arg is the handler which is meant to handle events coming from the widget
@@ -168,7 +168,7 @@ Let use use EffectEcho as an example.
         bool EffectWahwah::Validator::UpdateUI()
 
       leaving the contents which is there, but adding at the top:
-         
+
          // get the settings from the MessageBuffer and write them to our local copy
          const auto& settings = mAccess.Get();
 
@@ -184,33 +184,33 @@ Let use use EffectEcho as an example.
 
 
 
-3) "Define the instance"  
+3) "Define the instance"
    (reference commit: 5961be1 - however since then, the following has changed:
      - some methods of Instance have a different signature
      - MakeInstance now takes no args
      - the instance does not inherit EffectInstanceWithSampleRate anymore (?))
 
-    In header file, 
-    
+    In header file,
+
         add in public section:
-    
+
             struct Instance;
 
             std::shared_ptr<EffectInstance> MakeInstance() const override;
 
-        Identify members that represent state - comment them out 
-        
+        Identify members that represent state - comment them out
+
         remove decls of methods: ProcessInitialize, ProcessFinalize, ProcessBlock
                                  RealtimeInitialize, RealtimeAddProcessor, RealtimeFinalize,  RealtimeProcess
 
 
     In cpp file,
-    
+
         add:
-    
+
         struct EffectEcho::Instance
            : public PerTrackEffect::Instance
-           , public EffectInstanceWithBlockSize           
+           , public EffectInstanceWithBlockSize
         {
            explicit Instance(const PerTrackEffect& effect)
               : PerTrackEffect::Instance{ effect }
@@ -223,9 +223,9 @@ Let use use EffectEcho as an example.
               const float* const* inBlock, float* const* outBlock, size_t blockLen)  override;
 
            bool ProcessFinalize(void) override; // not every effect needs this
-           
+
            /* you will need these for realtime-capable effects
-           
+
            bool RealtimeInitialize(EffectSettings& settings) override;
 
            bool RealtimeAddProcessor(EffectSettings& settings,
@@ -236,7 +236,7 @@ Let use use EffectEcho as an example.
            size_t RealtimeProcess(int group, EffectSettings& settings,
               const float* const* inbuf, float* const* outbuf, size_t numSamples)
               override;
-           
+
            */
 
            // << MEMBERS WHICH REPRESENT STATE which you commented out earlier >>
@@ -248,54 +248,54 @@ Let use use EffectEcho as an example.
         {
            return std::make_shared<Instance>(*this);
         }
-        
-        
-    Make the Effect::Process*** methods belong to the instance by: 
-    
+
+
+    Make the Effect::Process*** methods belong to the instance by:
+
     - prepending ::Instance where needed
 
     - replacing the lines you added in step 1:
-    
+
         auto& echoSettings = mSettings;
-            
-      with this 
-    
+
+      with this
+
         // temporary - in the final step this will be replaced by
         // auto& echoSettings = GetSettings(settings);
         //
         auto& echoSettings = static_cast<const EffectEcho&>(mProcessor).mSettings;
 
-    
+
 
 
 4) "Real Statelessness" (reference commit: 231bf76)
 
     In header file:
-    
-    - make the effect inherit:  
-      
+
+    - make the effect inherit:
+
       -- EffectWithSettings<EffectEchoSettings, PerTrackEffect> if the effect is per-track
       -- EffectWithSettings<EffectEchoSettings,         Effect> otherwise
-    
+
     - remove the FetchParameters method
-    
+
     - remove mSettings member
 
 
     In cpp file:
-    
+
     - add const to arg EffectEchoSettings& in the Validator constructor
-    
+
     - turn Validator::mSettings from a reference to a non-reference
-    
+
     - go to ProcessInitialize, ProcessBlock, ProcessFinalize, RealtimeInitialize etc.; remove the downcast and enable the commented out GetSettings
-    
+
     - go to Validator::ValidateUI, uncomment the line //EffectEcho::GetSettings(settings) = mSettings;
 
     - go to Validator::UpdateUI, uncomment the line //mSettings = GetSettings(settings);
 
     - in the effect's ::PopulateOrExchange, uncomment/comment lines as prescribed
-    
+
     - in general, settings are not taken anymore from the effect, like in:
 
          auto& ms = static_cast<const EffectWahwah&>(mProcessor).mSettings;

@@ -37,7 +37,7 @@ struct EffectBassTrebleSettings
    static constexpr double bassDefault   = 0.0;
    static constexpr double trebleDefault = 0.0;
    static constexpr double gainDefault   = 0.0;
-   static constexpr bool   linkDefault   = false;   
+   static constexpr bool   linkDefault   = false;
 
    double mBass  { bassDefault   };
    double mTreble{ trebleDefault };
@@ -51,7 +51,7 @@ class EffectBassTreble final : public EffectWithSettings<
 >
 {
 public:
-   
+
    static const ComponentInterfaceSymbol Symbol;
 
    EffectBassTreble();

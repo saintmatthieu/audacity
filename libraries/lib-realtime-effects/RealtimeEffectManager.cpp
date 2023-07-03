@@ -1,11 +1,11 @@
 /**********************************************************************
- 
+
  Audacity: A Digital Audio Editor
- 
+
  RealtimeEffectManager.cpp
- 
+
  Paul Licameli split from EffectManager.cpp
- 
+
  **********************************************************************/
 #include "RealtimeEffectManager.h"
 #include "RealtimeEffectState.h"
@@ -51,7 +51,7 @@ bool RealtimeEffectManager::IsActive() const noexcept
 }
 
 void RealtimeEffectManager::Initialize(
-   RealtimeEffects::InitializationScope &scope, double sampleRate)
+   RealtimeEffects::InitializationScope& scope, double sampleRate, BPS tempo)
 {
    // (Re)Set processor parameters
    mRates.clear();
@@ -62,8 +62,8 @@ void RealtimeEffectManager::Initialize(
    mActive = true;
 
    // Tell each state to get ready for action
-   VisitAll([&scope, sampleRate](RealtimeEffectState &state, bool) {
-      scope.mInstances.push_back(state.Initialize(sampleRate));
+   VisitAll([&scope, sampleRate, tempo](RealtimeEffectState& state, bool) {
+      scope.mInstances.push_back(state.Initialize(sampleRate, tempo));
    });
 
    // Leave suspended state
@@ -71,17 +71,16 @@ void RealtimeEffectManager::Initialize(
 }
 
 void RealtimeEffectManager::AddSequence(
-   RealtimeEffects::InitializationScope &scope,
-   const WideSampleSequence &sequence, unsigned chans, float rate)
+   RealtimeEffects::InitializationScope& scope,
+   const WideSampleSequence& sequence, unsigned chans, float rate, BPS tempo)
 {
    mSequences.push_back(&sequence);
    mRates.insert({&sequence, rate});
 
-   VisitGroup(sequence,
-      [&](RealtimeEffectState & state, bool) {
-         scope.mInstances.push_back(state.AddSequence(sequence, chans, rate));
-      }
-   );
+   VisitGroup(sequence, [&](RealtimeEffectState& state, bool) {
+      scope.mInstances.push_back(
+         state.AddSequence(sequence, chans, rate, tempo));
+   });
 }
 
 void RealtimeEffectManager::Finalize() noexcept
@@ -233,10 +232,9 @@ void RealtimeEffectManager::AllListsLock::Reset()
    }
 }
 
-std::shared_ptr<RealtimeEffectState>
-RealtimeEffectManager::MakeNewState(
-   RealtimeEffects::InitializationScope *pScope,
-   WideSampleSequence *pSequence, const PluginID &id)
+std::shared_ptr<RealtimeEffectState> RealtimeEffectManager::MakeNewState(
+   RealtimeEffects::InitializationScope* pScope, WideSampleSequence* pSequence,
+   const PluginID& id, BPS tempo)
 {
    if (!pScope && mActive)
       return nullptr;
@@ -244,7 +242,7 @@ RealtimeEffectManager::MakeNewState(
    auto &state = *pNewState;
    if (pScope && mActive) {
       // Adding a state while playback is in-flight
-      auto pInstance = state.Initialize(pScope->mSampleRate);
+      auto pInstance = state.Initialize(pScope->mSampleRate, tempo);
       pScope->mInstances.push_back(pInstance);
       for (auto &sequence : mSequences) {
          // Add all sequences to a per-project state, but add only the same
@@ -252,8 +250,8 @@ RealtimeEffectManager::MakeNewState(
          if (pSequence && pSequence != sequence)
             continue;
          auto rate = mRates[sequence];
-         auto pInstance2 =
-            state.AddSequence(*sequence, pScope->mNumPlaybackChannels, rate);
+         auto pInstance2 = state.AddSequence(
+            *sequence, pScope->mNumPlaybackChannels, rate, tempo);
          if (pInstance2 != pInstance)
             pScope->mInstances.push_back(pInstance2);
       }
@@ -271,11 +269,11 @@ FindStates(AudacityProject &project, WideSampleSequence *pSequence) {
 }
 
 std::shared_ptr<RealtimeEffectState> RealtimeEffectManager::AddState(
-   RealtimeEffects::InitializationScope *pScope,
-   WideSampleSequence *pSequence, const PluginID & id)
+   RealtimeEffects::InitializationScope* pScope, WideSampleSequence* pSequence,
+   const PluginID& id, BPS tempo)
 {
    auto &states = FindStates(mProject, pSequence);
-   auto pState = MakeNewState(pScope, pSequence, id);
+   auto pState = MakeNewState(pScope, pSequence, id, tempo);
    if (!pState)
       return nullptr;
 
@@ -290,14 +288,14 @@ std::shared_ptr<RealtimeEffectState> RealtimeEffectManager::AddState(
 }
 
 std::shared_ptr<RealtimeEffectState> RealtimeEffectManager::ReplaceState(
-   RealtimeEffects::InitializationScope *pScope,
-   WideSampleSequence *pSequence, size_t index, const PluginID & id)
+   RealtimeEffects::InitializationScope* pScope, WideSampleSequence* pSequence,
+   size_t index, const PluginID& id, BPS tempo)
 {
    auto &states = FindStates(mProject, pSequence);
    auto pOldState = states.GetStateAt(index);
    if (!pOldState)
       return nullptr;
-   auto pNewState = MakeNewState(pScope, pSequence, id);
+   auto pNewState = MakeNewState(pScope, pSequence, id, tempo);
    if (!pNewState)
       return nullptr;
 

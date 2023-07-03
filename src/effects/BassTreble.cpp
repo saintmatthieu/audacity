@@ -354,7 +354,7 @@ void EffectBassTreble::Editor::PopulateOrExchange(ShuttleGui & S)
       }
       S.EndMultiColumn();
    }
-   S.EndStatic();   
+   S.EndStatic();
 }
 
 bool EffectBassTreble::Editor::UpdateUI()
@@ -384,7 +384,7 @@ bool EffectBassTreble::Editor::UpdateUI()
 void EffectBassTreble::Instance::InstanceInit(EffectSettings& settings, EffectBassTrebleState& data, float sampleRate)
 {
    auto& ms = GetSettings(settings);
-   
+
    data.samplerate = sampleRate;
    data.slope = 0.4f;   // same slope for both filters
    data.hzBass = 250.0f;   // could be tunable in a more advanced version

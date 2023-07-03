@@ -30,7 +30,7 @@
 #define M_PI 3.1415926535897932384626433832795
 #endif
 #ifndef M_PI_2
-#define M_PI_2 1.57079632679489661923132169163975 
+#define M_PI_2 1.57079632679489661923132169163975
 #endif
 
 #include <wx/checkbox.h>
@@ -286,7 +286,7 @@ struct EffectDistortion::Instance
 
    // Used by Soft Clipping but could be used for other tables.
    // Log curve formula: y = T + (((e^(RT - Rx)) - 1) / -R)
-   // where R is the ratio, T is the threshold, and x is from T to 1. 
+   // where R is the ratio, T is the threshold, and x is from T to 1.
    inline float LogCurve(double threshold, float value, double ratio);
 
    // Used by Cubic curve but could be used for other tables
@@ -389,7 +389,7 @@ bool EffectDistortion::Instance::RealtimeInitialize(EffectSettings &, double)
 }
 
 bool EffectDistortion::Instance::RealtimeAddProcessor(
-   EffectSettings & settings, EffectOutputs *, unsigned, float sampleRate)
+   EffectSettings & settings, EffectOutputs *, unsigned, float sampleRate, BPS tempo)
 {
    EffectDistortionState slave;
 
@@ -441,7 +441,7 @@ OptionalMessage EffectDistortion::DoLoadFactoryPreset(int id, EffectSettings& se
       return {};
    }
 
-   GetSettings(settings) = FactoryPresets[id].params;   
+   GetSettings(settings) = FactoryPresets[id].params;
 
    return { nullptr };
 }
@@ -452,10 +452,10 @@ OptionalMessage EffectDistortion::DoLoadFactoryPreset(int id, EffectSettings& se
 std::unique_ptr<EffectEditor>
 EffectDistortion::MakeEditor(ShuttleGui& S, EffectInstance& instance,
    EffectSettingsAccess& access, const EffectOutputs* pOutputs) const
-{   
+{
    auto& settings = access.Get();
    auto& myEffSettings = GetSettings(settings);
-   
+
    auto result = std::make_unique<Editor>(*this, dynamic_cast<EffectDistortion::Instance&>(instance), access, myEffSettings);
    result->PopulateOrExchange(S);
    return result;
@@ -495,7 +495,7 @@ void EffectDistortion::Editor::PopulateOrExchange(ShuttleGui& S)
          S.SetStretchyCol(2);
          {
             // Allow space for first Column
-            S.AddSpace(250,0); S.AddSpace(0,0); S.AddSpace(0,0); S.AddSpace(0,0); 
+            S.AddSpace(250,0); S.AddSpace(0,0); S.AddSpace(0,0); S.AddSpace(0,0);
 
             // Upper threshold control
             mThresholdTxt = S.AddVariableText(defaultLabel(0),
@@ -518,7 +518,7 @@ void EffectDistortion::Editor::PopulateOrExchange(ShuttleGui& S)
             S.AddSpace(20, 0);
 
             BindTo(*mThresholdS, wxEVT_SLIDER, &Editor::OnThresholdSlider);
-            
+
             // Noise floor control
             mNoiseFloorTxt = S.AddVariableText(defaultLabel(1),
                false, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
@@ -550,7 +550,7 @@ void EffectDistortion::Editor::PopulateOrExchange(ShuttleGui& S)
          S.SetStretchyCol(2);
          {
             // Allow space for first Column
-            S.AddSpace(250,0); S.AddSpace(0,0); S.AddSpace(0,0); S.AddSpace(0,0); 
+            S.AddSpace(250,0); S.AddSpace(0,0); S.AddSpace(0,0); S.AddSpace(0,0);
 
             // Parameter1 control
             mParam1Txt = S.AddVariableText(defaultLabel(2),
@@ -572,7 +572,7 @@ void EffectDistortion::Editor::PopulateOrExchange(ShuttleGui& S)
             S.AddSpace(20, 0);
 
             BindTo(*mParam1S, wxEVT_SLIDER, &Editor::OnParam1Slider);
-            
+
             // Parameter2 control
             mParam2Txt = S.AddVariableText(defaultLabel(3),
                false, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
@@ -594,7 +594,7 @@ void EffectDistortion::Editor::PopulateOrExchange(ShuttleGui& S)
             BindTo(*mParam2S, wxEVT_SLIDER, &Editor::OnParam2Slider);
 
             S.AddSpace(20, 0);
-            
+
             // Repeats control
             mRepeatsTxt = S.AddVariableText(defaultLabel(4),
                false, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
@@ -655,7 +655,7 @@ bool EffectDistortion::Editor::UpdateUI()
 void EffectDistortion::Instance::InstanceInit(EffectDistortionState& data, EffectSettings& settings, float sampleRate)
 {
    auto& ms = GetSettings(settings);
-  
+
    data.samplerate = sampleRate;
    data.skipcount = 0;
    data.tablechoiceindx = ms.mTableChoiceIndx;
@@ -683,7 +683,7 @@ size_t EffectDistortion::Instance::InstanceProcess(EffectSettings &settings,
    const float *const *inBlock, float *const *outBlock, size_t blockLen)
 {
    auto& ms = GetSettings(settings);
-   
+
    const float *ibuf = inBlock[0];
    float *obuf = outBlock[0];
 
@@ -800,7 +800,7 @@ void EffectDistortion::Editor::OnThresholdSlider(wxCommandEvent& evt)
 
    const double thresholdDB = (double)evt.GetInt() / Threshold_dB.scale;
    ms.mThreshold_dB = wxMax(LINEAR_TO_DB(thresholdDB), Threshold_dB.min);
-   
+
    mThresholdT->GetValidator()->TransferToWindow();
 
    ValidateUI();
@@ -1339,7 +1339,7 @@ void EffectDistortion::Instance::CubicTable(const EffectDistortionSettings& ms)
 
    double stepsize = amount / STEPS;
    double x = -amount;
-   
+
    if (amount == 0) {
       for (int i = 0; i < TABLESIZE; i++) {
          mTable[i] = (i / (double)STEPS) - 1.0;
@@ -1413,7 +1413,7 @@ void EffectDistortion::Instance::Leveller(const EffectDistortionSettings& ms)
    gainLimits[1] = noiseFloor;
    /* In the original Leveller effect, behaviour was undefined for threshold > 20 dB.
     * If we want to support > 20 dB we need to scale the points to keep them non-decreasing.
-    * 
+    *
     * if (noiseFloor > gainLimits[2]) {
     *    for (int i = 3; i < numPoints; i++) {
     *    gainLimits[i] = noiseFloor + ((1 - noiseFloor)*((gainLimits[i] - 0.1) / 0.9));

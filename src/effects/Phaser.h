@@ -75,7 +75,7 @@ class EffectPhaser final : public EffectWithSettings<
 >
 {
 public:
-   
+
    static const ComponentInterfaceSymbol Symbol;
 
    EffectPhaser();

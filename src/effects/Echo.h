@@ -35,7 +35,7 @@ class EffectEcho final : public EffectWithSettings<
 >
 {
 public:
-   
+
    static const ComponentInterfaceSymbol Symbol;
 
    EffectEcho();
@@ -65,7 +65,7 @@ public:
 
 private:
    // EffectEcho implementation
-   
+
 
    const EffectParameterMethods& Parameters() const override;
 

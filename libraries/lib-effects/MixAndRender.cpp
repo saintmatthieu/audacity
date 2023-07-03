@@ -12,6 +12,7 @@ Paul Licameli split from Mix.cpp
 
 #include "BasicUI.h"
 #include "Mix.h"
+#include "ProjectTimeSignature.h"
 #include "RealtimeEffectList.h"
 #include "StretchingSequence.h"
 #include "WaveTrack.h"
@@ -19,13 +20,12 @@ Paul Licameli split from Mix.cpp
 using WaveTrackConstArray = std::vector < std::shared_ptr < const WaveTrack > >;
 
 //TODO-MB: wouldn't it make more sense to DELETE the time track after 'mix and render'?
-void MixAndRender(const TrackIterRange<const WaveTrack> &trackRange,
-   const Mixer::WarpOptions &warpOptions,
-   const wxString &newTrackName,
-   WaveTrackFactory *trackFactory,
-   double rate, sampleFormat format,
-   double startTime, double endTime,
-   WaveTrack::Holder &uLeft, WaveTrack::Holder &uRight)
+void MixAndRender(
+   const TrackIterRange<const WaveTrack>& trackRange,
+   const Mixer::WarpOptions& warpOptions, const wxString& newTrackName,
+   WaveTrackFactory* trackFactory, double rate, sampleFormat format,
+   double startTime, double endTime, WaveTrack::Holder& uLeft,
+   WaveTrack::Holder& uRight, ProjectTimeSignature& timeSignature)
 {
    uLeft.reset(), uRight.reset();
    if (trackRange.empty())
@@ -68,12 +68,13 @@ void MixAndRender(const TrackIterRange<const WaveTrack> &trackRange,
 
    Mixer::Inputs waveArray;
 
+   const BPS tempo { timeSignature.GetTempo() * 60 };
    for (auto wt : trackRange) {
       const auto stretchingSequence =
          StretchingSequence::Create(*wt, wt->GetClipInterfaces());
       waveArray.emplace_back(stretchingSequence, GetEffectStages(*wt));
-      tstart = wt->GetStartTime();
-      tend = wt->GetEndTime();
+      tstart = wt->GetStartTime(tempo);
+      tend = wt->GetEndTime(tempo);
       if (tend > mixEndTime)
          mixEndTime = tend;
       // try and get the start time. If the track is empty we will get 0,
@@ -111,17 +112,18 @@ void MixAndRender(const TrackIterRange<const WaveTrack> &trackRange,
    else
       /* i18n-hint: noun, means a track, made by mixing other tracks */
       mixLeft->SetName(newTrackName);
-   mixLeft->SetOffset(mixStartTime);
+   mixLeft->SetOffset(mixStartTime, tempo);
 
    // TODO: more-than-two-channels
    decltype(mixLeft) mixRight{};
    if (!mono) {
       mixRight = trackFactory->Create(format, rate);
-      mixRight->SetOffset(mixStartTime);
+      mixRight->SetOffset(mixStartTime, tempo);
    }
 
-
-   auto maxBlockLen = mixLeft->GetIdealBlockSize();
+   // todo(mhodgkinson) have to review this, there's probably no need for it
+   // anymore.
+   constexpr auto maxBlockLen = 32768; // mixLeft->GetIdealBlockSize();
 
    // If the caller didn't specify a time range, use the whole range in which
    // any input track had clips in it.
@@ -130,11 +132,11 @@ void MixAndRender(const TrackIterRange<const WaveTrack> &trackRange,
       endTime = mixEndTime;
    }
 
-   Mixer mixer(move(waveArray),
+   Mixer mixer(
+      move(waveArray),
       // Throw to abort mix-and-render if read fails:
-      true, warpOptions,
-      startTime, endTime, mono ? 1 : 2, maxBlockLen, false,
-      rate, format);
+      true, warpOptions, startTime, endTime, mono ? 1 : 2, maxBlockLen, false,
+      rate, format, tempo);
 
    using namespace BasicUI;
    auto updateResult = ProgressResult::Success;
@@ -227,7 +229,7 @@ GetEffectStages(const WaveTrack &track)
  WaveTrack, like AudacityProject, has a registry for attachment of serializable
  data.  RealtimeEffectList exposes an interface for serialization.  This is
  where we connect them.
- 
+
  There is also registration for serialization of the project-wide master effect
  stack (whether or not UI makes it available).
  */

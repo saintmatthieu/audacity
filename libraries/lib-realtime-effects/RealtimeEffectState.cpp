@@ -278,7 +278,7 @@ struct RealtimeEffectState::Access final : EffectSettingsAccess {
       if (auto pState = mwState.lock()) {
          if (auto pAccessState = pState->GetAccessState()) {
             assert(pAccessState->mMainThreadId == std::this_thread::get_id());
-            
+
             if (pAccessState->mState.mInitialized)
             {
                std::unique_lock lk(pAccessState->mLockForCV);
@@ -357,7 +357,8 @@ const EffectInstanceFactory *RealtimeEffectState::GetEffect()
    return mPlugin;
 }
 
-std::shared_ptr<EffectInstance> RealtimeEffectState::MakeInstance()
+std::shared_ptr<EffectInstance>
+RealtimeEffectState::MakeInstance()
 {
    mMovedMessage.reset();
    mMessage.reset();
@@ -375,7 +376,7 @@ std::shared_ptr<EffectInstance> RealtimeEffectState::MakeInstance()
 }
 
 std::shared_ptr<EffectInstance>
-RealtimeEffectState::EnsureInstance(double sampleRate)
+RealtimeEffectState::EnsureInstance(double sampleRate, BPS tempo)
 {
    if (!mPlugin)
       return {};
@@ -395,6 +396,7 @@ RealtimeEffectState::EnsureInstance(double sampleRate)
       // PRL: conserving pre-3.2.0 behavior, but I don't know why this arbitrary
       // number was important
       pInstance->SetBlockSize(512);
+      pInstance->SetTempo(tempo);
 
       if (!pInstance->RealtimeInitialize(mMainSettings.settings, sampleRate))
          return {};
@@ -414,7 +416,7 @@ std::shared_ptr<EffectInstance> RealtimeEffectState::GetInstance()
 }
 
 std::shared_ptr<EffectInstance>
-RealtimeEffectState::Initialize(double sampleRate)
+RealtimeEffectState::Initialize(double sampleRate, BPS tempo)
 {
    if (!mPlugin)
       return {};
@@ -422,7 +424,7 @@ RealtimeEffectState::Initialize(double sampleRate)
    mCurrentProcessor = 0;
    mGroups.clear();
    mLatency = {};
-   return EnsureInstance(sampleRate);
+   return EnsureInstance(sampleRate, tempo);
 }
 
 namespace {
@@ -453,11 +455,11 @@ void AllocateChannelsToProcessors(
 
 //! Set up processors to be visited repeatedly in Process.
 /*! The iteration over channels in AddSequence and Process must be the same */
-std::shared_ptr<EffectInstance>
-RealtimeEffectState::AddSequence(
-   const WideSampleSequence &sequence, unsigned chans, float sampleRate)
+std::shared_ptr<EffectInstance> RealtimeEffectState::AddSequence(
+   const WideSampleSequence& sequence, unsigned chans, float sampleRate,
+   BPS tempo)
 {
-   auto pInstance = EnsureInstance(sampleRate);
+   auto pInstance = EnsureInstance(sampleRate, tempo);
    if (!pInstance)
       return {};
    if (!mPlugin)
@@ -469,8 +471,8 @@ RealtimeEffectState::AddSequence(
    [&](unsigned, unsigned){
       // Add a NEW processor
       if (pInstance->RealtimeAddProcessor(
-         mWorkerSettings.settings, mOutputs.get(), numAudioIn, sampleRate)
-      ) {
+             mWorkerSettings.settings, mOutputs.get(), numAudioIn, sampleRate))
+      {
          mCurrentProcessor++;
          return true;
       }

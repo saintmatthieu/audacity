@@ -27,17 +27,17 @@ bool StatefulEffectBase::Instance::Init()
 }
 
 bool StatefulEffectBase::Instance::RealtimeInitialize(
-   EffectSettings &settings, double sampleRate)
+   EffectSettings& settings, double sampleRate)
 {
    return GetEffect().RealtimeInitialize(settings, sampleRate);
 }
 
-bool StatefulEffectBase::Instance::
-RealtimeAddProcessor(EffectSettings &settings,
-   EffectOutputs *pOutputs, unsigned numChannels, float sampleRate)
+bool StatefulEffectBase::Instance::RealtimeAddProcessor(
+   EffectSettings& settings, EffectOutputs* pOutputs, unsigned numChannels,
+   float sampleRate)
 {
-   return GetEffect()
-      .RealtimeAddProcessor(settings, pOutputs, numChannels, sampleRate);
+   return GetEffect().RealtimeAddProcessor(
+      settings, pOutputs, numChannels, sampleRate);
 }
 
 bool StatefulEffectBase::Instance::RealtimeSuspend()
@@ -102,8 +102,7 @@ bool StatefulEffectBase::Instance::NeedsDither() const
 bool StatefulEffectBase::Instance::ProcessInitialize(
    EffectSettings &settings, double sampleRate, ChannelNames chanMap)
 {
-   return GetEffect()
-      .ProcessInitialize(settings, sampleRate, chanMap);
+   return GetEffect().ProcessInitialize(settings, sampleRate, chanMap);
 }
 
 bool StatefulEffectBase::Instance::ProcessFinalize() noexcept
@@ -132,13 +131,14 @@ unsigned StatefulEffectBase::GetAudioOutCount() const
    return 0;
 }
 
-bool StatefulEffectBase::RealtimeInitialize(EffectSettings &, double)
+bool StatefulEffectBase::RealtimeInitialize(EffectSettings&, double)
 {
    return false;
 }
 
-bool StatefulEffectBase::RealtimeAddProcessor(EffectSettings &settings,
-   EffectOutputs *, unsigned numChannels, float sampleRate)
+bool StatefulEffectBase::RealtimeAddProcessor(
+   EffectSettings& settings, EffectOutputs*, unsigned numChannels,
+   float sampleRate)
 {
    return true;
 }
@@ -191,7 +191,7 @@ bool StatefulEffectBase::NeedsDither() const
 }
 
 bool StatefulEffectBase::ProcessInitialize(
-   EffectSettings &, double, ChannelNames)
+   EffectSettings&, double, ChannelNames)
 {
    return true;
 }

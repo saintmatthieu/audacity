@@ -19,9 +19,8 @@
 
 namespace {
 std::vector<std::shared_ptr<EffectInstance>> MakeInstances(
-   const EffectStage::Factory &factory,
-   EffectSettings &settings, double sampleRate,
-   const WideSampleSequence &sequence,
+   const EffectStage::Factory& factory, EffectSettings& settings,
+   double sampleRate, const WideSampleSequence& sequence,
    std::optional<sampleCount> genLength, int channel)
 {
    std::vector<std::shared_ptr<EffectInstance>> instances;
@@ -40,11 +39,11 @@ std::vector<std::shared_ptr<EffectInstance>> MakeInstances(
       if (!pInstance->ProcessInitialize(settings, sampleRate, map))
          throw std::exception{};
       instances.resize(ii);
-   
+
       // Beware generators with zero in count
       if (genLength)
          count = nChannels;
-   
+
       instances.push_back(move(pInstance));
 
       // Advance ii
@@ -57,17 +56,19 @@ std::vector<std::shared_ptr<EffectInstance>> MakeInstances(
 }
 }
 
-EffectStage::EffectStage(CreateToken, int channel,
-   Source &upstream, Buffers &inBuffers,
-   const Factory &factory, EffectSettings &settings,
-   double sampleRate, std::optional<sampleCount> genLength,
-   const WideSampleSequence &sequence
-)  : mUpstream{ upstream }, mInBuffers{ inBuffers }
-   , mInstances{ MakeInstances(factory, settings, sampleRate, sequence,
-      genLength, channel) }
-   , mSettings{ settings }, mSampleRate{ sampleRate }
-   , mIsProcessor{ !genLength.has_value() }
-   , mDelayRemaining{ genLength ? *genLength : sampleCount::max() }
+EffectStage::EffectStage(
+   CreateToken, int channel, Source& upstream, Buffers& inBuffers,
+   const Factory& factory, EffectSettings& settings, double sampleRate,
+   std::optional<sampleCount> genLength,
+   const WideSampleSequence& sequence)
+    : mUpstream { upstream }
+    , mInBuffers { inBuffers }
+    , mInstances { MakeInstances(
+         factory, settings, sampleRate, sequence, genLength, channel) }
+    , mSettings { settings }
+    , mSampleRate { sampleRate }
+    , mIsProcessor { !genLength.has_value() }
+    , mDelayRemaining { genLength ? *genLength : sampleCount::max() }
 {
    assert(upstream.AcceptsBlockSize(inBuffers.BlockSize()));
    assert(this->AcceptsBlockSize(inBuffers.BlockSize()));
@@ -76,17 +77,16 @@ EffectStage::EffectStage(CreateToken, int channel,
    mInBuffers.Rewind();
 }
 
-auto EffectStage::Create(int channel,
-   Source &upstream, Buffers &inBuffers,
-   const Factory &factory, EffectSettings &settings,
-   double sampleRate, std::optional<sampleCount> genLength,
-   const WideSampleSequence &sequence
-) -> std::unique_ptr<EffectStage>
+auto EffectStage::Create(
+   int channel, Source& upstream, Buffers& inBuffers, const Factory& factory,
+   EffectSettings& settings, double sampleRate,
+   std::optional<sampleCount> genLength, const WideSampleSequence& sequence)
+   -> std::unique_ptr<EffectStage>
 {
    try {
-      return std::make_unique<EffectStage>(CreateToken{}, channel,
-         upstream, inBuffers, factory, settings, sampleRate, genLength,
-         sequence);
+      return std::make_unique<EffectStage>(
+         CreateToken {}, channel, upstream, inBuffers, factory, settings,
+         sampleRate, genLength, sequence);
    }
    catch (const std::exception &) {
       return nullptr;

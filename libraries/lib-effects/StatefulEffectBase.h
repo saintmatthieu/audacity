@@ -14,6 +14,7 @@
 #ifndef __AUDACITY_STATEFUL_EFFECT_BASE__
 #define __AUDACITY_STATEFUL_EFFECT_BASE__
 
+#include "Beat.h"
 #include "EffectPlugin.h"
 
 class sampleCount;
@@ -32,11 +33,11 @@ public:
 
       size_t GetBlockSize() const override;
       size_t SetBlockSize(size_t maxBlockSize) override;
-   
-      bool RealtimeInitialize(EffectSettings &settings, double sampleRate)
-         override;
-      bool RealtimeAddProcessor(EffectSettings &settings,
-         EffectOutputs *pOutputs,
+
+      bool RealtimeInitialize(
+         EffectSettings& settings, double sampleRate) override;
+      bool RealtimeAddProcessor(
+         EffectSettings& settings, EffectOutputs* pOutputs,
          unsigned numChannels, float sampleRate) override;
       bool RealtimeSuspend() override;
       bool RealtimeResume() override;
@@ -51,7 +52,7 @@ public:
       unsigned GetAudioOutCount() const override;
 
       bool NeedsDither() const override;
-      
+
       bool ProcessInitialize(EffectSettings &settings,
          double sampleRate, ChannelNames chanMap) override;
 
@@ -77,14 +78,16 @@ public:
      @copydoc StatefulEffectBase::Instance::RealtimeInitialize()
      Default implementation does nothing, returns false
    */
-   virtual bool RealtimeInitialize(EffectSettings &settings, double sampleRate);
+   virtual bool
+   RealtimeInitialize(EffectSettings& settings, double sampleRate);
 
    /*!
      @copydoc StatefulEffectBase::Instance::RealtimeAddProcessor()
      Default implementation does nothing, returns true
    */
-   virtual bool RealtimeAddProcessor(EffectSettings &settings,
-      EffectOutputs *pOutputs, unsigned numChannels, float sampleRate);
+   virtual bool RealtimeAddProcessor(
+      EffectSettings& settings, EffectOutputs* pOutputs, unsigned numChannels,
+      float sampleRate);
 
    /*!
      @copydoc StatefulEffectBase::Instance::RealtimeSuspend()
@@ -162,7 +165,8 @@ public:
    /*!
     @copydoc StatefulEffectBase::Instance::ProcessInitialize()
     */
-   virtual bool ProcessInitialize(EffectSettings &settings, double sampleRate,
+   virtual bool ProcessInitialize(
+      EffectSettings& settings, double sampleRate,
       ChannelNames chanMap = nullptr);
 
    /*!

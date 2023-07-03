@@ -16,6 +16,7 @@
 
 #include "AudioGraphSink.h" // to inherit
 #include "AudioGraphSource.h" // to inherit
+#include "Beat.h"
 #include "Effect.h" // to inherit
 #include "MemoryX.h"
 #include "SampleCount.h"
@@ -40,20 +41,34 @@ public:
 
    class EFFECTS_API Instance : public virtual EffectInstanceEx {
    public:
-      explicit Instance(const PerTrackEffect &processor)
-         : mProcessor{ processor }
-      {}
+      explicit Instance(
+         const PerTrackEffect& processor)
+          : mProcessor { processor }
+      {
+      }
       ~Instance() override;
-   
+
       //! Uses the other virtual functions of this class
       bool Process(EffectSettings &settings) final;
 
-      bool ProcessInitialize(EffectSettings &settings,
-         double sampleRate, ChannelNames chanMap) override;
+      bool ProcessInitialize(
+         EffectSettings& settings, double sampleRate,
+         ChannelNames chanMap) override;
 
       bool ProcessFinalize() noexcept override;
+
+      void SetTempo(BPS tempo) override
+      {
+         mTempo = tempo;
+      }
+      std::optional<BPS> GetTempo() const override
+      {
+         return mTempo;
+      }
+
    protected:
       const PerTrackEffect &mProcessor;
+      std::optional<BPS> mTempo;
    };
 
 protected:
@@ -69,7 +84,7 @@ protected:
 private:
    using Buffers = AudioGraph::Buffers;
 
-   bool ProcessPass(Instance &instance, EffectSettings &settings);
+   bool ProcessPass(Instance& instance, EffectSettings& settings);
    using Factory = std::function<std::shared_ptr<EffectInstance>()>;
    /*!
     Previous contents of inBuffers and outBuffers are ignored
@@ -82,11 +97,11 @@ private:
 
     @pre `channel < track.NChannels()`
     */
-   static bool ProcessTrack(int channel,
-      const Factory &factory, EffectSettings &settings,
-      AudioGraph::Source &source, AudioGraph::Sink &sink,
-      std::optional<sampleCount> genLength,
-      double sampleRate, const SampleTrack &track, const SampleTrack &leader,
-      Buffers &inBuffers, Buffers &outBuffers);
+   static bool ProcessTrack(
+      int channel, const Factory& factory, EffectSettings& settings,
+      AudioGraph::Source& source, AudioGraph::Sink& sink,
+      std::optional<sampleCount> genLength, double sampleRate, BPS tempo,
+      const SampleTrack& track, const SampleTrack& leader, Buffers& inBuffers,
+      Buffers& outBuffers);
 };
 #endif

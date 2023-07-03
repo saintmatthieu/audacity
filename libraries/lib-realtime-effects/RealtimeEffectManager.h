@@ -1,11 +1,11 @@
 /**********************************************************************
- 
+
  Audacity: A Digital Audio Editor
- 
+
  RealtimeEffectManager.h
- 
+
  Paul Licameli split from EffectManager.h
- 
+
  **********************************************************************/
 
 #ifndef __AUDACITY_REALTIME_EFFECT_MANAGER__
@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Beat.h"
 #include "ClientData.h"
 #include "Observer.h"
 #include "PluginProvider.h" // for PluginID
@@ -74,9 +75,8 @@ public:
     @post result: `!result || result->GetEffect() != nullptr`
     */
    std::shared_ptr<RealtimeEffectState> AddState(
-      RealtimeEffects::InitializationScope *pScope,
-      WideSampleSequence *pSequence,
-      const PluginID & id);
+      RealtimeEffects::InitializationScope* pScope,
+      WideSampleSequence* pSequence, const PluginID& id, BPS tempo);
 
    //! Main thread replaces a global or per-sequence effect
    /*!
@@ -88,10 +88,11 @@ public:
 
     @post result: `!result || result->GetEffect() != nullptr`
     */
+   // todo(mhodgkinson) why this would need tempo is not obvious.
    std::shared_ptr<RealtimeEffectState> ReplaceState(
       RealtimeEffects::InitializationScope *pScope,
       WideSampleSequence *pSequence,
-      size_t index, const PluginID & id);
+      size_t index, const PluginID & id, BPS tempo);
 
    //! Main thread removes a global or per-sequence effect
    /*!
@@ -125,18 +126,20 @@ public:
 private:
    friend RealtimeEffects::InitializationScope;
 
-   std::shared_ptr<RealtimeEffectState>
-   MakeNewState(RealtimeEffects::InitializationScope *pScope,
-      WideSampleSequence *pSequence,
-      const PluginID &id);
+   std::shared_ptr<RealtimeEffectState> MakeNewState(
+      RealtimeEffects::InitializationScope* pScope,
+      WideSampleSequence* pSequence, const PluginID& id, BPS tempo);
 
    //! Main thread begins to define a set of sequences for playback
-   void Initialize(RealtimeEffects::InitializationScope &scope,
-      double sampleRate);
+   void Initialize(
+      RealtimeEffects::InitializationScope& scope, double sampleRate,
+      BPS tempo);
    //! Main thread adds one sequence (passing the first of one or more
    //! channels), still before playback
-   void AddSequence(RealtimeEffects::InitializationScope &scope,
-      const WideSampleSequence &sequence, unsigned chans, float rate);
+   void AddSequence(
+      RealtimeEffects::InitializationScope& scope,
+      const WideSampleSequence& sequence, unsigned chans, float rate,
+      BPS tempo);
    //! Main thread cleans up after playback
    void Finalize() noexcept;
 
@@ -222,13 +225,14 @@ public:
    InitializationScope() {}
    explicit InitializationScope(
       std::weak_ptr<AudacityProject> wProject, double sampleRate,
-      unsigned numPlaybackChannels
-   )  : mSampleRate{ sampleRate }
-      , mwProject{ move(wProject) }
-      , mNumPlaybackChannels{ numPlaybackChannels }
+      unsigned numPlaybackChannels, BPS tempo)
+       : mSampleRate { sampleRate }
+       , mwProject { move(wProject) }
+       , mNumPlaybackChannels { numPlaybackChannels }
    {
       if (auto pProject = mwProject.lock())
-         RealtimeEffectManager::Get(*pProject).Initialize(*this, sampleRate);
+         RealtimeEffectManager::Get(*pProject).Initialize(
+            *this, sampleRate, tempo);
    }
    InitializationScope( InitializationScope &&other ) = default;
    InitializationScope& operator=( InitializationScope &&other ) = default;
@@ -239,11 +243,14 @@ public:
    }
 
    void AddSequence(const WideSampleSequence &sequence,
-      unsigned chans, float rate)
+      unsigned chans, float rate, BPS tempo)
    {
+      // todo(mhodgkinson) seems strange that both ctor and this function take
+      // `chans` and `rate` as arguments ; aren't this supposed to be the same values ?
+      // Anyways: for now we do the same with tempo.
       if (auto pProject = mwProject.lock())
-         RealtimeEffectManager::Get(*pProject)
-            .AddSequence(*this, sequence, chans, rate);
+         RealtimeEffectManager::Get(*pProject).AddSequence(
+            *this, sequence, chans, rate, tempo);
    }
 
    std::vector<std::shared_ptr<EffectInstance>> mInstances;

@@ -10,7 +10,7 @@
 namespace
 {
    unsigned CountChannels(Steinberg::Vst::IComponent* component,
-   const Steinberg::Vst::MediaTypes mediaType, 
+   const Steinberg::Vst::MediaTypes mediaType,
    const Steinberg::Vst::BusDirection busDirection,
    const Steinberg::Vst::BusType busType)
    {
@@ -32,8 +32,10 @@ namespace
    }
 }
 
-VST3Instance::VST3Instance(const PerTrackEffect& effect, VST3::Hosting::Module& module, const VST3::Hosting::ClassInfo& effectClassInfo)
-   : Instance(effect)
+VST3Instance::VST3Instance(
+   const PerTrackEffect& effect, VST3::Hosting::Module& module,
+   const VST3::Hosting::ClassInfo& effectClassInfo)
+    : Instance(effect)
 {
    ReloadUserOptions();
    mWrapper = std::make_unique<VST3Wrapper>(module, effectClassInfo);
@@ -47,8 +49,8 @@ size_t VST3Instance::GetTailSize() const
    return Instance::GetTailSize();
 }
 
-bool VST3Instance::RealtimeAddProcessor(EffectSettings& settings,
-   EffectOutputs *, unsigned, float sampleRate)
+bool VST3Instance::RealtimeAddProcessor(
+   EffectSettings& settings, EffectOutputs*, unsigned, float sampleRate)
 {
    if (!mRecruited) {
       // Assign self to the first processor
@@ -57,8 +59,8 @@ bool VST3Instance::RealtimeAddProcessor(EffectSettings& settings,
    }
    // Assign another instance with independent state to other processors
    auto &effect = static_cast<const PerTrackEffect&>(mProcessor);
-   auto uProcessor =
-      std::make_unique<VST3Instance>(effect, mWrapper->GetModule(), mWrapper->GetEffectClassInfo());
+   auto uProcessor = std::make_unique<VST3Instance>(
+      effect, mWrapper->GetModule(), mWrapper->GetEffectClassInfo());
    if (!uProcessor->RealtimeInitialize(settings, sampleRate))
       return false;
    mProcessors.push_back(move(uProcessor));
@@ -77,7 +79,7 @@ return GuardedCall<bool>([&]{
 });
 }
 
-bool VST3Instance::RealtimeInitialize(EffectSettings& settings, double sampleRate)
+bool VST3Instance::RealtimeInitialize(EffectSettings &settings, double sampleRate)
 {
    if(mWrapper->Initialize(settings, sampleRate, Steinberg::Vst::kRealtime, mProcessingBlockSize))
    {
@@ -164,7 +166,7 @@ size_t VST3Instance::GetBlockSize() const
 
 size_t VST3Instance::SetBlockSize(size_t maxBlockSize)
 {
-   mProcessingBlockSize = 
+   mProcessingBlockSize =
       static_cast<Steinberg::int32>(std::min(maxBlockSize, mUserBlockSize));
    return mProcessingBlockSize;
 }

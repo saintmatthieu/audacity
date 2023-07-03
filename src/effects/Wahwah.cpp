@@ -233,7 +233,7 @@ bool EffectWahwah::Instance::RealtimeInitialize(EffectSettings &, double)
 }
 
 bool EffectWahwah::Instance::RealtimeAddProcessor(
-   EffectSettings &settings, EffectOutputs *, unsigned, float sampleRate)
+   EffectSettings &settings, EffectOutputs *, unsigned, float sampleRate, BPS tempo)
 {
    EffectWahwah::Instance slave(mProcessor);
 
@@ -283,7 +283,7 @@ void EffectWahwah::Editor::PopulateOrExchange(ShuttleGui & S)
    S.StartMultiColumn(3, wxEXPAND);
    {
       S.SetStretchyCol(2);
-   
+
       mFreqT = S
          .Validator<FloatingPointValidator<double>>(
             5, &ms.mFreq, NumValidatorStyle::ONE_TRAILING_ZERO, Freq.min, Freq.max)
@@ -381,7 +381,7 @@ bool EffectWahwah::Editor::UpdateUI()
    mResS->SetValue((int)(ms.mRes * Res.scale));
    mFreqOfsS->SetValue((int)(ms.mFreqOfs * FreqOfs.scale));
    mOutGainS->SetValue((int)(ms.mOutGain * OutGain.scale));
-   
+
    return true;
 }
 
@@ -416,7 +416,7 @@ size_t EffectWahwah::Instance::InstanceProcess(EffectSettings& settings,
    const float *const *inBlock, float *const *outBlock, size_t blockLen)
 {
    auto& ms = GetSettings(settings);
-   
+
    const float *ibuf = inBlock[0];
    float *obuf = outBlock[0];
    double frequency, omega, sn, cs, alpha;

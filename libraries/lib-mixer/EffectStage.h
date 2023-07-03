@@ -41,17 +41,16 @@ public:
 
     @pre `channel < sequence.NChannels()`
     */
-   EffectStage(CreateToken, int channel, Source &upstream, Buffers &inBuffers,
-      const Factory &factory, EffectSettings &settings,
-      double sampleRate,
-      std::optional<sampleCount> genLength, const WideSampleSequence &sequence);
+   EffectStage(
+      CreateToken, int channel, Source& upstream, Buffers& inBuffers,
+      const Factory& factory, EffectSettings& settings, double sampleRate,
+      std::optional<sampleCount> genLength, const WideSampleSequence& sequence);
 
    //! Satisfies postcondition of constructor or returns null
-   static std::unique_ptr<EffectStage> Create(int channel,
-      Source &upstream, Buffers &inBuffers,
-      const Factory &factory, EffectSettings &settings,
-      double sampleRate,
-      std::optional<sampleCount> genLength, const WideSampleSequence &sequence);
+   static std::unique_ptr<EffectStage> Create(
+      int channel, Source& upstream, Buffers& inBuffers, const Factory& factory,
+      EffectSettings& settings, double sampleRate,
+      std::optional<sampleCount> genLength, const WideSampleSequence& sequence);
 
    EffectStage(const EffectStage&) = delete;
    EffectStage &operator =(const EffectStage &) = delete;

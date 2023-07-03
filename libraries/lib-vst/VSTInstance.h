@@ -26,13 +26,9 @@ class VST_API VSTInstance final : public PerTrackEffect::Instance,
    public VSTWrapper
 {
 public:
-
-   VSTInstance(const PerTrackEffect&   effect,
-                     const PluginPath& path,
-                     size_t            blockSize,
-                     size_t            userBlockSize,
-                     bool              useLatency
-                    );
+   VSTInstance(
+      const PerTrackEffect& effect, const PluginPath& path, size_t blockSize,
+      size_t userBlockSize, bool useLatency);
 
    ~VSTInstance() override;
 
@@ -45,10 +41,11 @@ public:
    size_t SetBlockSize(size_t maxBlockSize) override;
    size_t GetBlockSize() const override;
 
-   bool RealtimeInitialize(EffectSettings& settings, double sampleRate)
-      override;
-   bool RealtimeAddProcessor(EffectSettings& settings, EffectOutputs *pOutputs,
-      unsigned numChannels, float sampleRate) override;
+   bool
+   RealtimeInitialize(EffectSettings& settings, double sampleRate) override;
+   bool RealtimeAddProcessor(
+      EffectSettings& settings, EffectOutputs* pOutputs, unsigned numChannels,
+      float sampleRate) override;
    bool RealtimeFinalize(EffectSettings& settings) noexcept override;
    bool RealtimeSuspend() override;
    bool RealtimeResume() override;

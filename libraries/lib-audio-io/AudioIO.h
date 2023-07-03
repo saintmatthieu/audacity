@@ -15,6 +15,7 @@
 
 #include "AudioIOBase.h" // to inherit
 #include "AudioIOSequences.h"
+#include "Beat.h"
 #include "PlaybackSchedule.h" // member variable
 
 #include <functional>
@@ -169,7 +170,7 @@ public:
    std::shared_ptr< AudioIOListener > GetListener() const
       { return mListener.lock(); }
    void SetListener( const std::shared_ptr< AudioIOListener > &listener);
-   
+
    // Part of the callback
    int CallbackDoSeek();
 
@@ -211,7 +212,7 @@ public:
       float *outputMeterFloats
    );
    void DrainInputBuffers(
-      constSamplePtr inputBuffer, 
+      constSamplePtr inputBuffer,
       unsigned long framesPerBuffer,
       const PaStreamCallbackFlags statusFlags,
       float * tempFloats
@@ -220,7 +221,7 @@ public:
       unsigned long framesPerBuffer
    );
    void DoPlaythrough(
-      constSamplePtr inputBuffer, 
+      constSamplePtr inputBuffer,
       float *outputBuffer,
       unsigned long framesPerBuffer,
       float *outputMeterFloats
@@ -317,7 +318,7 @@ public:
    std::atomic<bool>   mAudioThreadShouldCallSequenceBufferExchangeOnce;
    std::atomic<bool>   mAudioThreadSequenceBufferExchangeLoopRunning;
    std::atomic<bool>   mAudioThreadSequenceBufferExchangeLoopActive;
-      
+
    std::atomic<Acknowledge>  mAudioThreadAcknowledge;
 
    // Async start/stop + wait of AudioThread processing.
@@ -434,17 +435,17 @@ public:
    /*!
     @post result: `!result || result->GetEffect() != nullptr`
     */
-   std::shared_ptr<RealtimeEffectState>
-   AddState(AudacityProject &project,
-      WideSampleSequence *pSequence, const PluginID & id);
+   std::shared_ptr<RealtimeEffectState> AddState(
+      AudacityProject& project, WideSampleSequence* pSequence,
+      const PluginID& id, BPS tempo);
 
    //! Forwards to RealtimeEffectManager::ReplaceState with proper init scope
    /*!
     @post result: `!result || result->GetEffect() != nullptr`
     */
-   std::shared_ptr<RealtimeEffectState>
-   ReplaceState(AudacityProject &project,
-      WideSampleSequence *pSequence, size_t index, const PluginID & id);
+   std::shared_ptr<RealtimeEffectState> ReplaceState(
+      AudacityProject& project, WideSampleSequence* pSequence, size_t index,
+      const PluginID& id, BPS tempo);
 
    //! Forwards to RealtimeEffectManager::RemoveState with proper init scope
    void RemoveState(AudacityProject &project,
@@ -471,10 +472,10 @@ public:
     * `sequences.playbackSequences`
     */
 
-   int StartStream(const TransportSequences &sequences,
-      double t0, double t1,
+   int StartStream(
+      const TransportSequences& sequences, double t0, double t1, BPS tempo,
       double mixerLimit, //!< Time at which mixer stops producing, maybe > t1
-      const AudioIOStartStreamOptions &options);
+      const AudioIOStartStreamOptions& options);
 
    /** \brief Stop recording, playback or input monitoring.
     *
@@ -487,7 +488,7 @@ public:
    void SeekStream(double seconds) { mSeek = seconds; }
 
    using PostRecordingAction = std::function<void()>;
-   
+
    //! Enqueue action for main thread idle time, not before the end of any recording in progress
    /*! This may be called from non-main threads */
    void CallAfterRecording(PostRecordingAction action);
@@ -660,6 +661,7 @@ private:
    PostRecordingAction mPostRecordingAction;
 
    bool mDelayingActions{ false };
+   const BPS mProjectTempo;
 };
 
 AUDIO_IO_API extern BoolSetting SoundActivatedRecord;

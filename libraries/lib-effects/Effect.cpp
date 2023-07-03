@@ -368,15 +368,15 @@ bool Effect::TrackGroupProgress(
 }
 
 void Effect::GetBounds(
-   const WaveTrack &track, const WaveTrack *pRight,
-   sampleCount *start, sampleCount *len)
+   const WaveTrack& track, const WaveTrack* pRight, BPS tempo,
+   sampleCount* start, sampleCount* len)
 {
-   auto t0 = std::max( mT0, track.GetStartTime() );
-   auto t1 = std::min( mT1, track.GetEndTime() );
+   auto t0 = std::max(mT0, track.GetStartTime(tempo));
+   auto t1 = std::min(mT1, track.GetEndTime(tempo));
 
    if ( pRight ) {
-      t0 = std::min( t0, std::max( mT0, pRight->GetStartTime() ) );
-      t1 = std::max( t1, std::min( mT1, pRight->GetEndTime() ) );
+      t0 = std::min(t0, std::max(mT0, pRight->GetStartTime(tempo)));
+      t1 = std::max(t1, std::min(mT1, pRight->GetEndTime(tempo)));
    }
 
    if (t1 > t0) {

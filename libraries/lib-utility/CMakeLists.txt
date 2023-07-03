@@ -16,6 +16,7 @@ correspond to things in the standard.
 ]]#
 
 set( SOURCES
+   Beat.h
    BufferedStreamReader.cpp
    BufferedStreamReader.h
    CFResources.cpp

@@ -141,11 +141,12 @@ bool TimeTrack::SupportsBasicEditing() const
    return false;
 }
 
-Track::Holder TimeTrack::PasteInto( AudacityProject &project ) const
+Track::Holder
+TimeTrack::PasteInto(AudacityProject& otherProject, BPS otherProjectTempo) const
 {
    // Maintain uniqueness of the time track!
    std::shared_ptr<TimeTrack> pNewTrack;
-   if( auto pTrack = *TrackList::Get( project ).Any<TimeTrack>().begin() )
+   if( auto pTrack = *TrackList::Get( otherProject ).Any<TimeTrack>().begin() )
       pNewTrack = pTrack->SharedPointer<TimeTrack>();
    else
       pNewTrack = std::make_shared<TimeTrack>();
@@ -155,20 +156,20 @@ Track::Holder TimeTrack::PasteInto( AudacityProject &project ) const
    // And for import we agree to replace the track contents completely
    pNewTrack->CleanState();
    pNewTrack->Init(*this);
-   pNewTrack->Paste(0.0, this);
+   pNewTrack->Paste(0.0, otherProjectTempo, this);
    pNewTrack->SetRangeLower(this->GetRangeLower());
    pNewTrack->SetRangeUpper(this->GetRangeUpper());
    return pNewTrack;
 }
 
-Track::Holder TimeTrack::Cut( double t0, double t1 )
+Track::Holder TimeTrack::Cut(double t0, double t1, BPS tempo)
 {
-   auto result = Copy( t0, t1, false );
-   Clear( t0, t1 );
+   auto result = Copy(t0, t1, tempo, false);
+   Clear(t0, t1, tempo);
    return result;
 }
 
-Track::Holder TimeTrack::Copy( double t0, double t1, bool ) const
+Track::Holder TimeTrack::Copy(double t0, double t1, BPS tempo, bool) const
 {
    auto result = std::make_shared<TimeTrack>(*this, ProtectedCreationArg{}, &t0, &t1);
    result->Init(*this);
@@ -185,13 +186,14 @@ double GetRate(const Track &track) {
 }
 }
 
-void TimeTrack::Clear(double t0, double t1)
+void TimeTrack::Clear(double t0, double t1, BPS tempo)
 {
    auto sampleTime = 1.0 / GetRate(*this);
-   mEnvelope->CollapseRegion( t0, t1, sampleTime );
+   // todo(mhodgkinson) this will need tempo
+   mEnvelope->CollapseRegion(t0, t1, sampleTime);
 }
 
-void TimeTrack::Paste(double t, const Track * src)
+void TimeTrack::Paste(double t, BPS tempo, const Track* src)
 {
    bool bOk = src && src->TypeSwitch< bool >( [&] (const TimeTrack &tt) {
       auto sampleTime = 1.0 / GetRate(*this);
@@ -205,11 +207,11 @@ void TimeTrack::Paste(double t, const Track * src)
       (void)0;// intentionally do nothing.
 }
 
-void TimeTrack::Silence(double WXUNUSED(t0), double WXUNUSED(t1))
+void TimeTrack::Silence(double WXUNUSED(t0), double WXUNUSED(t1), BPS WXUNUSED(tempo))
 {
 }
 
-void TimeTrack::InsertSilence(double t, double len)
+void TimeTrack::InsertSilence(double t, double len, BPS tempo)
 {
    mEnvelope->InsertSpace(t, len);
 }

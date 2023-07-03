@@ -74,7 +74,7 @@ class EffectDistortion final : public EffectWithSettings<
 {
 public:
    struct Params;
-   
+
    static const ComponentInterfaceSymbol Symbol;
 
    EffectDistortion();

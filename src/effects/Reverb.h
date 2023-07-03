@@ -54,7 +54,7 @@ class EffectReverb final : public EffectWithSettings<
 {
 public:
 
-   
+
    static const ComponentInterfaceSymbol Symbol;
 
    EffectReverb();
@@ -93,7 +93,7 @@ private:
 
 
 private:
-   
+
    const EffectParameterMethods& Parameters() const override;
 
 static constexpr EffectParameter RoomSize{ &EffectReverbSettings::mRoomSize,  L"RoomSize",

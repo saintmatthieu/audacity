@@ -125,16 +125,17 @@ AudioIO *AudioIO::Get()
 }
 
 struct AudioIoCallback::TransportState {
-   TransportState(std::weak_ptr<AudacityProject> wOwningProject,
-      const ConstPlayableSequences &playbackSequences,
-      unsigned numPlaybackChannels, double sampleRate)
+   TransportState(
+      std::weak_ptr<AudacityProject> wOwningProject,
+      const ConstPlayableSequences& playbackSequences,
+      unsigned numPlaybackChannels, double sampleRate, BPS tempo)
    {
       if (auto pOwningProject = wOwningProject.lock();
           pOwningProject && numPlaybackChannels > 0) {
          // Setup for realtime playback at the rate of the realtime
          // stream, not the rate of the sample sequence.
          mpRealtimeInitialization.emplace(
-            move(wOwningProject), sampleRate, numPlaybackChannels);
+            move(wOwningProject), sampleRate, numPlaybackChannels, tempo);
          // The following adds a new effect processor for each logical sequence.
          for (size_t i = 0, cnt = playbackSequences.size(); i < cnt; ++i) {
             // An array only of non-null leaders should be given to us
@@ -143,8 +144,8 @@ struct AudioIoCallback::TransportState {
                assert(false);
                continue;
             }
-            mpRealtimeInitialization
-               ->AddSequence(*vt, numPlaybackChannels, sampleRate);
+            mpRealtimeInitialization->AddSequence(
+               *vt, numPlaybackChannels, sampleRate, tempo);
          }
       }
    }
@@ -338,27 +339,28 @@ AudioIO::~AudioIO()
    mAudioThread.join();
 }
 
-std::shared_ptr<RealtimeEffectState>
-AudioIO::AddState(AudacityProject &project,
-   WideSampleSequence *pSequence, const PluginID & id)
+std::shared_ptr<RealtimeEffectState> AudioIO::AddState(
+   AudacityProject& project, WideSampleSequence* pSequence, const PluginID& id,
+   BPS tempo)
 {
    RealtimeEffects::InitializationScope *pInit = nullptr;
    if (mpTransportState && mpTransportState->mpRealtimeInitialization)
       if (auto pProject = GetOwningProject(); pProject.get() == &project)
          pInit = &*mpTransportState->mpRealtimeInitialization;
-   return RealtimeEffectManager::Get(project).AddState(pInit, pSequence, id);
+   return RealtimeEffectManager::Get(project).AddState(
+      pInit, pSequence, id, tempo);
 }
 
-std::shared_ptr<RealtimeEffectState>
-AudioIO::ReplaceState(AudacityProject &project,
-   WideSampleSequence *pSequence, size_t index, const PluginID & id)
+std::shared_ptr<RealtimeEffectState> AudioIO::ReplaceState(
+   AudacityProject& project, WideSampleSequence* pSequence, size_t index,
+   const PluginID& id, BPS tempo)
 {
    RealtimeEffects::InitializationScope *pInit = nullptr;
    if (mpTransportState && mpTransportState->mpRealtimeInitialization)
       if (auto pProject = GetOwningProject(); pProject.get() == &project)
          pInit = &*mpTransportState->mpRealtimeInitialization;
-   return RealtimeEffectManager::Get(project)
-      .ReplaceState(pInit, pSequence, index, id);
+   return RealtimeEffectManager::Get(project).ReplaceState(
+      pInit, pSequence, index, id, tempo);
 }
 
 void AudioIO::RemoveState(AudacityProject &project,
@@ -646,7 +648,7 @@ bool AudioIO::StartPortAudioStream(const AudioIOStartStreamOptions &options,
                (latencyDuration / 1000.0) :
                // Otherwise, use the (likely incorrect) latency reported by PA
                stream->outputLatency;
-         
+
          mHardwarePlaybackLatencyFrames = lrint(outputLatency * mRate);
 #ifdef __WXGTK__
          // DV: When using ALSA PortAudio does not report the buffer size.
@@ -773,9 +775,9 @@ void AudioIO::StartMonitoring( const AudioIOStartStreamOptions &options )
    }
 }
 
-int AudioIO::StartStream(const TransportSequences &sequences,
-   double t0, double t1, double mixerLimit,
-   const AudioIOStartStreamOptions &options)
+int AudioIO::StartStream(
+   const TransportSequences& sequences, double t0, double t1, BPS tempo,
+   double mixerLimit, const AudioIOStartStreamOptions& options)
 {
    // precondition
    assert(std::all_of(
@@ -951,8 +953,8 @@ int AudioIO::StartStream(const TransportSequences &sequences,
          return 0;
    }
 
-   mpTransportState = std::make_unique<TransportState>(mOwningProject,
-      mPlaybackSequences, mNumPlaybackChannels, mRate);
+   mpTransportState = std::make_unique<TransportState>(
+      mOwningProject, mPlaybackSequences, mNumPlaybackChannels, mRate, tempo);
 
 #ifdef EXPERIMENTAL_AUTOMATED_INPUT_LEVEL_ADJUSTMENT
    AILASetStartTime();
@@ -1252,15 +1254,15 @@ bool AudioIO::AllocateBuffers(
                mPlaybackMixers.emplace_back(std::make_unique<Mixer>(
                   move(mixSequences),
                   // Don't throw for read errors, just play silence:
-                  false,
-                  warpOptions, startTime, endTime, pSequence->NChannels(),
-                  std::max( mPlaybackSamplesToCopy, mPlaybackQueueMinimum ),
+                  false, warpOptions, startTime, endTime,
+                  pSequence->NChannels(),
+                  std::max(mPlaybackSamplesToCopy, mPlaybackQueueMinimum),
                   false, // not interleaved
-                  mRate, floatSample,
-                  false, // low quality dithering and resampling
+                  mRate, floatSample, mProjectTempo,
+                  false,   // low quality dithering and resampling
                   nullptr, // no custom mix-down
-                  false // don't apply gains
-               ));
+                  false    // don't apply gains
+                  ));
             }
 
             const auto timeQueueSize = 1 +
@@ -1552,7 +1554,7 @@ void AudioIO::StopStream()
                auto duration = interval.second;
                for (auto &sequence : mCaptureSequences) {
                   GuardedCall([&] {
-                     sequence->InsertSilence(start, duration);
+                     sequence->InsertSilence(start, duration, mProjectTempo);
                   });
                }
             }

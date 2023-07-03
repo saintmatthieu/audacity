@@ -27,7 +27,8 @@ VST3EffectBase::~VST3EffectBase() = default;
 VST3EffectBase::VST3EffectBase(
    std::shared_ptr<VST3::Hosting::Module> module,
    VST3::Hosting::ClassInfo effectClassInfo)
-      : mModule(std::move(module)), mEffectClassInfo(std::move(effectClassInfo))
+    : mModule(std::move(module))
+    , mEffectClassInfo(std::move(effectClassInfo))
 {
 }
 

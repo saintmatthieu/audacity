@@ -67,11 +67,11 @@ public:
    const EffectOutputs *GetOutputs() const { return mMovedOutputs.get(); }
 
    //! Main thread sets up for playback
-   std::shared_ptr<EffectInstance> Initialize(double rate);
+   std::shared_ptr<EffectInstance> Initialize(double rate, BPS tempo);
    //! Main thread sets up this state before adding it to lists
-   std::shared_ptr<EffectInstance>
-   AddSequence(
-      const WideSampleSequence &sequence, unsigned chans, float sampleRate);
+   std::shared_ptr<EffectInstance> AddSequence(
+      const WideSampleSequence& sequence, unsigned chans, float sampleRate,
+      BPS tempo);
    //! Worker thread begins a batch of samples
    /*! @param running means no pause or deactivation of containing list */
    bool ProcessStart(bool running);
@@ -119,7 +119,7 @@ public:
 private:
 
    std::shared_ptr<EffectInstance> MakeInstance();
-   std::shared_ptr<EffectInstance> EnsureInstance(double rate);
+   std::shared_ptr<EffectInstance> EnsureInstance(double rate, BPS tempo /*todo(mhodgkinson) still needed?*/);
 
    struct Access;
    struct AccessState;
@@ -134,7 +134,7 @@ private:
    }
 
    PluginID mID;
-   
+
    //! Stateful instance made by the plug-in
    std::weak_ptr<EffectInstance> mwInstance;
    //! Stateless effect object
@@ -184,7 +184,7 @@ private:
    /*! @name Members that do not change during processing
     @{
     */
-    
+
    std::unordered_map<const WideSampleSequence *, std::pair<size_t, double>>
       mGroups;
 

@@ -397,7 +397,7 @@ void AudioUnitInstance::EventListener(const AudioUnitEvent *inEvent,
       }
       return;
    }
-   
+
    if (inEvent->mEventType != kAudioUnitEvent_ParameterValueChange)
       return;
 

@@ -158,11 +158,9 @@ Mixer::Mixer(
                ? move(stage.mpFirstInstance)
                : stage.factory();
          };
-         auto &pNewDownstream =
-         mStages.emplace_back(EffectStage::Create(-1,
-            *pDownstream, stageInput,
-            factory, settings, outRate, std::nullopt, *sequence
-         ));
+         auto& pNewDownstream = mStages.emplace_back(EffectStage::Create(
+            -1, *pDownstream, stageInput, factory, settings, outRate,
+            std::nullopt, *sequence));
          if (pNewDownstream)
             pDownstream = pNewDownstream.get();
          else {

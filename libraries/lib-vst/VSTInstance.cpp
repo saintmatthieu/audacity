@@ -156,8 +156,9 @@ bool VSTInstance::RealtimeInitialize(EffectSettings &settings, double sampleRate
    return ProcessInitialize(settings, sampleRate, {});
 }
 
-bool VSTInstance::RealtimeAddProcessor(EffectSettings &settings,
-   EffectOutputs *, unsigned numChannels, float sampleRate)
+bool VSTInstance::RealtimeAddProcessor(
+   EffectSettings& settings, EffectOutputs*, unsigned numChannels,
+   float sampleRate)
 {
    if (!mRecruited)
    {
@@ -168,8 +169,8 @@ bool VSTInstance::RealtimeAddProcessor(EffectSettings &settings,
 
    auto &effect = static_cast<const PerTrackEffect &>(mProcessor);
    auto slave = std::make_unique<VSTInstance>(
-      const_cast<PerTrackEffect &>(effect),
-      mPath, mBlockSize, mUserBlockSize, mUseLatency);
+      const_cast<PerTrackEffect&>(effect), mPath, mBlockSize, mUserBlockSize,
+      mUseLatency);
 
    slave->SetBlockSize(mBlockSize);
 
@@ -448,18 +449,13 @@ void VSTInstance::Automate(int index, float value)
    }
 }
 
-VSTInstance::VSTInstance
-(
-   const PerTrackEffect& effect,
-   const PluginPath& path,
-   size_t            blockSize,
-   size_t            userBlockSize,
-   bool              useLatency
-)
+VSTInstance::VSTInstance(
+   const PerTrackEffect& effect, const PluginPath& path, size_t blockSize,
+   size_t userBlockSize, bool useLatency)
 
-   : PerTrackEffect::Instance(effect)
-   , VSTWrapper(path)
-   , mUseLatency{ useLatency }
+    : PerTrackEffect::Instance(effect)
+    , VSTWrapper(path)
+    , mUseLatency { useLatency }
 {
    // what also happens in the effect ctor
    //

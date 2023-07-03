@@ -72,7 +72,7 @@ class EffectWahwah final : public EffectWithSettings<
 >
 {
 public:
-      
+
    static const ComponentInterfaceSymbol Symbol;
 
    EffectWahwah();

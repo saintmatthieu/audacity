@@ -110,8 +110,8 @@ struct EffectPhaser::Editor
    void OnPhaseText(wxCommandEvent& evt);
    void OnFreqText(wxCommandEvent& evt);
    void OnGainText(wxCommandEvent& evt);
-      
-   
+
+
    void EnableApplyFromValidate()
    {
       EnableApply(mUIParent, mUIParent->Validate());
@@ -121,7 +121,7 @@ struct EffectPhaser::Editor
    {
       return EnableApply(mUIParent, mUIParent->TransferDataFromWindow());
    }
-   
+
 };
 
 
@@ -251,7 +251,7 @@ bool EffectPhaser::Instance::RealtimeInitialize(EffectSettings&, double)
 }
 
 bool EffectPhaser::Instance::RealtimeAddProcessor(
-   EffectSettings& settings, EffectOutputs *, unsigned, float sampleRate)
+   EffectSettings& settings, EffectOutputs *, unsigned, float sampleRate, BPS tempo)
 {
    EffectPhaser::Instance slave(mProcessor);
 

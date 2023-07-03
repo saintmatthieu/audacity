@@ -45,7 +45,7 @@ public:
    VST3EffectBase(VST3EffectBase&&) = delete;
    VST3EffectBase& operator=(const VST3EffectBase&) = delete;
    VST3EffectBase& operator=(VST3EffectBase&) = delete;
-   
+
    ~VST3EffectBase() override;
 
    PluginPath GetPath() const override;

@@ -16,6 +16,7 @@ Paul Licameli split from Mix.h
 #include "SampleFormat.h"
 #include "Track.h"
 
+class ProjectTimeSignature;
 class WaveTrack;
 class WaveTrackFactory;
 
@@ -40,14 +41,11 @@ class WaveTrackFactory;
  * @pre `trackRange` iterates over leaders only
  */
 void EFFECTS_API MixAndRender(
-   const TrackIterRange<const WaveTrack> &trackRange,
-   const Mixer::WarpOptions &warpOptions,
-   const wxString &newTrackName,
-   WaveTrackFactory *factory,
-   double rate, sampleFormat format,
-   double startTime, double endTime,
-   std::shared_ptr<WaveTrack> &uLeft,
-   std::shared_ptr<WaveTrack> &uRight);
+   const TrackIterRange<const WaveTrack>& trackRange,
+   const Mixer::WarpOptions& warpOptions, const wxString& newTrackName,
+   WaveTrackFactory* factory, double rate, sampleFormat format,
+   double startTime, double endTime, std::shared_ptr<WaveTrack>& uLeft,
+   std::shared_ptr<WaveTrack>& uRight, ProjectTimeSignature& timeSignature);
 
 enum ChannelName : int;
 using ChannelNames = const ChannelName *;

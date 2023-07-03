@@ -131,13 +131,13 @@ bool EffectSettingsManager::CopySettingsContents(
 
 EffectInstance::~EffectInstance() = default;
 
-bool EffectInstance::RealtimeInitialize(EffectSettings &, double)
+bool EffectInstance::RealtimeInitialize(EffectSettings&, double)
 {
    return false;
 }
 
 bool EffectInstance::RealtimeAddProcessor(
-   EffectSettings &, EffectOutputs *, unsigned, float)
+   EffectSettings&, EffectOutputs*, unsigned, float)
 {
    return true;
 }

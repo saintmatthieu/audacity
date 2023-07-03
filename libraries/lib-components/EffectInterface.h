@@ -6,7 +6,7 @@
 
    Leland Lucius
 
-   Copyright (c) 2014, Audacity Team 
+   Copyright (c) 2014, Audacity Team
    All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
@@ -36,12 +36,13 @@
    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
    POSSIBILITY OF SUCH DAMAGE.
-   
+
 **********************************************************************/
 
 #ifndef __AUDACITY_EFFECTINTERFACE_H__
 #define __AUDACITY_EFFECTINTERFACE_H__
 
+#include "Beat.h"
 #include "ComponentInterface.h"
 #include "ComponentInterfaceSymbol.h"
 #include "EffectAutomationParameters.h"
@@ -234,7 +235,7 @@ private:
 
 /*************************************************************************************//**
 
-\class EffectDefinitionInterface 
+\class EffectDefinitionInterface
 
 \brief EffectDefinitionInterface is a ComponentInterface that adds some basic
 read-only information about effect properties, and getting and setting of
@@ -460,6 +461,10 @@ public:
    // Suggest a block size, but the return is the size that was really set:
    virtual size_t SetBlockSize(size_t maxBlockSize) = 0;
 
+   virtual std::optional<BPS> GetTempo() const = 0;
+
+   virtual void SetTempo(BPS tempo) = 0;
+
    //! How many input buffers to allocate at once
    /*!
     If the instance processes channels independently, this can return 1
@@ -482,15 +487,16 @@ public:
     Other member functions related to realtime return true or zero, but will not
     be called, unless a derived class overrides RealtimeInitialize.
     */
-   virtual bool RealtimeInitialize(EffectSettings &settings, double sampleRate);
+   virtual bool
+   RealtimeInitialize(EffectSettings& settings, double sampleRate);
 
    /*!
     @return success
     Default implementation does nothing, returns true
     */
    virtual bool RealtimeAddProcessor(
-      EffectSettings &settings, EffectOutputs *pOutputs,
-      unsigned numChannels, float sampleRate);
+      EffectSettings& settings, EffectOutputs* pOutputs, unsigned numChannels,
+      float sampleRate);
 
    /*!
     @return success
@@ -573,8 +579,8 @@ public:
        the pointer
     @post `GetAudioInCount()` and `GetAudioOutCount()` are well defined
     */
-   virtual bool ProcessInitialize(EffectSettings &settings,
-      double sampleRate, ChannelNames chanMap) = 0;
+   virtual bool ProcessInitialize(
+      EffectSettings& settings, double sampleRate, ChannelNames chanMap) = 0;
 
    //! Called at end of destructive processing, for each (mono/stereo) track
    //! Default implementation does nothing, returns true
@@ -619,8 +625,8 @@ public:
 
     @post `true` (no promises that the result isn't null)
     */
-   virtual std::shared_ptr<EffectInstance> MakeInstance() const = 0;
-
+   virtual std::shared_ptr<EffectInstance>
+   MakeInstance() const = 0;
 };
 
 //! Component of a configuration key path, for last-used destructive settings

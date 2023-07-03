@@ -12,6 +12,7 @@
 #ifndef __AUDACITY_EFFECT__
 #define __AUDACITY_EFFECT__
 
+#include "Beat.h"
 #include "EffectBase.h"
 
 #define BUILTIN_EFFECT_PREFIX wxT("Built-in Effect: ")
@@ -143,8 +144,8 @@ protected:
 
    // Calculates the start time and length in samples for one or two channels
    void GetBounds(
-      const WaveTrack &track, const WaveTrack *pRight,
-      sampleCount *start, sampleCount *len);
+      const WaveTrack& track, const WaveTrack* pRight, BPS projectTempo,
+      sampleCount* start, sampleCount* len);
 
    // Use this method to copy the input tracks to mOutputTracks, if
    // doing the processing on them, and replacing the originals only on success (and not cancel).
