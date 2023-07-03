@@ -32,15 +32,16 @@ public:
    // Copies region
    LabelStruct(const SelectedRegion& region, const wxString &aTitle);
    // Copies region but then overwrites other times
-   LabelStruct(const SelectedRegion& region, double t0, double t1,
-               const wxString &aTitle);
+   LabelStruct(
+      const SelectedRegion& region, double t0, double t1, BPS labTempo,
+      const wxString& aTitle);
    const SelectedRegion &getSelectedRegion() const { return selectedRegion; }
-   double getDuration() const { return selectedRegion.duration(); }
+   double getDuration(BPS labTempo) const { return selectedRegion.duration(labTempo); }
    double getT0(BPS labTempo) const { return selectedRegion.t0(labTempo); }
    double getT1(BPS labTempo) const { return selectedRegion.t1(labTempo); }
    // Returns true iff the label got inverted:
-   bool AdjustEdge( int iEdge, double fNewTime);
-   void MoveLabel( int iEdge, double fNewTime);
+   bool AdjustEdge( int iEdge, double fNewTime, BPS labTempo);
+   void MoveLabel( int iEdge, double fNewTime, BPS labTempo);
 
    struct BadFormatException {};
    static LabelStruct Import(wxTextFile &file, int &index);
@@ -161,11 +162,11 @@ public:
    //Track::Holder SplitCut(double b, double e) /* not override */;
    //bool SplitDelete(double b, double e) /* not override */;
 
-   void ShiftLabelsOnInsert(double length, double pt);
-   void ChangeLabelsOnReverse(double b, double e);
-   void ScaleLabels(double b, double e, double change);
-   double AdjustTimeStampOnScale(double t, double b, double e, double change);
-   void WarpLabels(const TimeWarper &warper);
+   void ShiftLabelsOnInsert(double length, double pt, BPS labTempo);
+   void ChangeLabelsOnReverse(double b, double e, BPS labTempo);
+   void ScaleLabels(double b, double e, double change, BPS labTempo);
+   double AdjustTimeStampOnScale(double t, double b, double e, double change, BPS labTempo);
+   void WarpLabels(const TimeWarper &warper, BPS labTempo);
 
    // Returns tab-separated text of all labels completely within given region
    wxString GetTextOfLabels(double t0, double t1) const;

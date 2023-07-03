@@ -326,17 +326,19 @@ void Effect::UnsetBatchProcessing()
    (void ) LoadUserPreset(GetSavedStateGroup(), dummySettings);
 }
 
-bool Effect::Delegate(Effect &delegate, EffectSettings &settings,
-   InstanceFinder finder)
+bool Effect::Delegate(
+   Effect& delegate, EffectSettings& settings, InstanceFinder finder)
 {
    if (!finder)
       finder = DefaultInstanceFinder(delegate);
 
    NotifyingSelectedRegion region;
-   region.setTimes( mT0, mT1 );
+   assert(mProjectTempo.has_value()); // todo(mhodgkinson) verify this
+   region.setTimes( mT0, mT1, *mProjectTempo );
 
-   return delegate.DoEffect(settings, finder, mProjectRate, mTracks, mFactory,
-      region, mUIFlags, nullptr);
+   return delegate.DoEffect(
+      settings, finder, mProjectRate, *mProjectTempo, mTracks, mFactory, region,
+      mUIFlags, nullptr);
 }
 
 bool Effect::TotalProgress(double frac, const TranslatableString &msg) const

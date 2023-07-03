@@ -56,7 +56,7 @@ void SelectionState::SelectTrackLength
 
    // PRL: double click or click on track control.
    // should this select all frequencies too?  I think not.
-   viewInfo.selectedRegion.setTimes(minOffset, maxEnd);
+   viewInfo.selectedRegion.setTimes(minOffset, maxEnd, tempo);
 }
 
 void SelectionState::SelectTrack(

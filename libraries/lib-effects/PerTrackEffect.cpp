@@ -286,7 +286,7 @@ bool PerTrackEffect::ProcessPass(Instance& instance, EffectSettings& settings)
          if (bGoodResult)
             sink.Flush(
                outBuffers, mT0,
-               ViewInfo::Get(*FindProject()).selectedRegion.t1(), tempo);
+               ViewInfo::Get(*FindProject()).selectedRegion.t1(tempo), tempo);
          if (!bGoodResult)
             return;
          ++count;

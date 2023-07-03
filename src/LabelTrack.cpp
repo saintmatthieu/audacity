@@ -121,7 +121,7 @@ Track::Holder LabelTrack::PasteInto( AudacityProject &, BPS labTempo ) const
 template<typename IntervalType>
 static IntervalType DoMakeInterval(const LabelStruct &label, size_t index, BPS labTempo)
 {
-   return { label.getT0(), label.getT1(), labTempo,
+   return { label.getT0(labTempo), label.getT1(labTempo), labTempo,
             std::make_unique<LabelTrack::IntervalData>(index) };
 }
 
@@ -170,7 +170,7 @@ LabelTrack::~LabelTrack()
 void LabelTrack::SetOffset(double dOffset, BPS labTempo)
 {
    for (auto &labelStruct: mLabels)
-      labelStruct.selectedRegion.move(dOffset);
+      labelStruct.selectedRegion.move(dOffset, labTempo);
 }
 
 void LabelTrack::Clear(double b, double e, BPS labTempo)
@@ -181,7 +181,7 @@ void LabelTrack::Clear(double b, double e, BPS labTempo)
       LabelStruct::TimeRelations relation =
                         labelStruct.RegionRelation(b, e, this);
       if (relation == LabelStruct::BEFORE_LABEL)
-         labelStruct.selectedRegion.move(- (e-b));
+         labelStruct.selectedRegion.move(- (e-b), labTempo);
       else if (relation == LabelStruct::SURROUNDS_LABEL) {
          DeleteLabel( i );
          --i;
@@ -189,11 +189,11 @@ void LabelTrack::Clear(double b, double e, BPS labTempo)
       else if (relation == LabelStruct::ENDS_IN_LABEL)
          labelStruct.selectedRegion.setTimes(
             b,
-            labelStruct.getT1() - (e - b));
+            labelStruct.getT1(labTempo) - (e - b), labTempo);
       else if (relation == LabelStruct::BEGINS_IN_LABEL)
-         labelStruct.selectedRegion.setT1(b);
+         labelStruct.selectedRegion.setT1(b, labTempo);
       else if (relation == LabelStruct::WITHIN_LABEL)
-         labelStruct.selectedRegion.moveT1( - (e-b));
+         labelStruct.selectedRegion.moveT1( - (e-b), labTempo);
    }
 }
 
@@ -222,44 +222,44 @@ bool LabelTrack::SplitDelete(double b, double e)
 }
 #endif
 
-void LabelTrack::ShiftLabelsOnInsert(double length, double pt)
+void LabelTrack::ShiftLabelsOnInsert(double length, double pt, BPS labTempo)
 {
    for (auto &labelStruct: mLabels) {
       LabelStruct::TimeRelations relation =
                         labelStruct.RegionRelation(pt, pt, this);
 
       if (relation == LabelStruct::BEFORE_LABEL)
-         labelStruct.selectedRegion.move(length);
+         labelStruct.selectedRegion.move(length, labTempo);
       else if (relation == LabelStruct::WITHIN_LABEL)
-         labelStruct.selectedRegion.moveT1(length);
+         labelStruct.selectedRegion.moveT1(length, labTempo);
    }
 }
 
-void LabelTrack::ChangeLabelsOnReverse(double b, double e)
+void LabelTrack::ChangeLabelsOnReverse(double b, double e, BPS labTempo)
 {
    for (auto &labelStruct: mLabels) {
       if (labelStruct.RegionRelation(b, e, this) ==
                                     LabelStruct::SURROUNDS_LABEL)
       {
-         double aux     = b + (e - labelStruct.getT1());
+         double aux     = b + (e - labelStruct.getT1(labTempo));
          labelStruct.selectedRegion.setTimes(
             aux,
-            e - (labelStruct.getT0() - b));
+            e - (labelStruct.getT0(labTempo) - b));
       }
    }
    SortLabels();
 }
 
-void LabelTrack::ScaleLabels(double b, double e, double change)
+void LabelTrack::ScaleLabels(double b, double e, double change, BPS labTempo)
 {
    for (auto &labelStruct: mLabels) {
       labelStruct.selectedRegion.setTimes(
-         AdjustTimeStampOnScale(labelStruct.getT0(), b, e, change),
-         AdjustTimeStampOnScale(labelStruct.getT1(), b, e, change));
+         AdjustTimeStampOnScale(labelStruct.getT0(labTempo), b, e, change),
+         AdjustTimeStampOnScale(labelStruct.getT1(labTempo), b, e, change));
    }
 }
 
-double LabelTrack::AdjustTimeStampOnScale(double t, double b, double e, double change)
+double LabelTrack::AdjustTimeStampOnScale(double t, double b, double e, double change, BPS labTempo)
 {
 //t is the time stamp we'll be changing
 //b and e are the selection start and end
@@ -278,11 +278,11 @@ double LabelTrack::AdjustTimeStampOnScale(double t, double b, double e, double c
 // Move the labels in the track according to the given TimeWarper.
 // (If necessary this could be optimised by ignoring labels that occur before a
 // specified time, as in most cases they don't need to move.)
-void LabelTrack::WarpLabels(const TimeWarper &warper) {
+void LabelTrack::WarpLabels(const TimeWarper &warper, BPS labTempo) {
    for (auto &labelStruct: mLabels) {
       labelStruct.selectedRegion.setTimes(
-         warper.Warp(labelStruct.getT0()),
-         warper.Warp(labelStruct.getT1()));
+         warper.Warp(labelStruct.getT0(labTempo)),
+         warper.Warp(labelStruct.getT1(labTempo)));
    }
 
    // This should not be needed, assuming the warper is nondecreasing, but
@@ -304,13 +304,13 @@ LabelStruct::LabelStruct(const SelectedRegion &region,
 }
 
 LabelStruct::LabelStruct(const SelectedRegion &region,
-                         double t0, double t1,
+                         double t0, double t1, BPS labTempo,
                          const wxString& aTitle)
 : selectedRegion(region)
 , title(aTitle)
 {
    // Overwrite the times
-   selectedRegion.setTimes(t0, t1);
+   selectedRegion.setTimes(t0, t1, labTempo);
 
    updated = false;
    width = 0;
@@ -339,10 +339,10 @@ double LabelTrack::GetStartTime(BPS labTempo) const
    if (mLabels.empty())
       return 0.0;
    else
-      return mLabels[0].getT0();
+      return mLabels[0].getT0(labTempo);
 }
 
-double LabelTrack::GetEndTime() const
+double LabelTrack::GetEndTime(BPS labTempo) const
 {
    //we need to scan through all the labels, because the last
    //label might not have the right-most end (if there is overlap).
@@ -351,7 +351,7 @@ double LabelTrack::GetEndTime() const
 
    double end = 0.0;
    for (auto &labelStruct: mLabels) {
-      const double t1 = labelStruct.getT1();
+      const double t1 = labelStruct.getT1(labTempo);
       if(t1 > end)
          end = t1;
    }
@@ -367,27 +367,27 @@ Track::Holder LabelTrack::Clone() const
 
 // Adjust label's left or right boundary, depending which is requested.
 // Return true iff the label flipped.
-bool LabelStruct::AdjustEdge( int iEdge, double fNewTime)
+bool LabelStruct::AdjustEdge( int iEdge, double fNewTime, BPS labTempo)
 {
    updated = true;
    if( iEdge < 0 )
-      return selectedRegion.setT0(fNewTime);
+      return selectedRegion.setT0(fNewTime, labTempo);
    else
-      return selectedRegion.setT1(fNewTime);
+      return selectedRegion.setT1(fNewTime, labTempo);
 }
 
 // We're moving the label.  Adjust both left and right edge.
-void LabelStruct::MoveLabel( int iEdge, double fNewTime)
+void LabelStruct::MoveLabel( int iEdge, double fNewTime, BPS labTempo)
 {
-   double fTimeSpan = getDuration();
+   double fTimeSpan = getDuration(labTempo);
 
    if( iEdge < 0 )
    {
-      selectedRegion.setTimes(fNewTime, fNewTime+fTimeSpan);
+      selectedRegion.setTimes(fNewTime, fNewTime+fTimeSpan, labTempo);
    }
    else
    {
-      selectedRegion.setTimes(fNewTime-fTimeSpan, fNewTime);
+      selectedRegion.setTimes(fNewTime-fTimeSpan, fNewTime, labTempo);
    }
    updated = true;
 }
@@ -422,7 +422,7 @@ LabelStruct LabelStruct::Import(wxTextFile &file, int &index)
       else
          token = toker.GetNextToken();
 
-      sr.setTimes( t0, t1 );
+      sr.setTimes( t0, t1 , labTempo);
 
       title = token;
    }
@@ -467,8 +467,8 @@ LabelStruct LabelStruct::Import(wxTextFile &file, int &index)
 void LabelStruct::Export(wxTextFile &file) const
 {
    file.AddLine(wxString::Format(wxT("%s\t%s\t%s"),
-      Internat::ToString(getT0(), FLT_DIG),
-      Internat::ToString(getT1(), FLT_DIG),
+      Internat::ToString(getT0(labTempo), FLT_DIG),
+      Internat::ToString(getT1(labTempo), FLT_DIG),
       title
    ));
 
@@ -505,18 +505,18 @@ auto LabelStruct::RegionRelation(
       // than the length of the label if the selection is within the label or
       // matching exactly a (region) label.
 
-      if (reg_t0 < getT0() && reg_t1 > getT1())
+      if (reg_t0 < getT0(labTempo) && reg_t1 > getT1(labTempo))
          return SURROUNDS_LABEL;
-      else if (reg_t1 < getT0())
+      else if (reg_t1 < getT0(labTempo))
          return BEFORE_LABEL;
-      else if (reg_t0 > getT1())
+      else if (reg_t0 > getT1(labTempo))
          return AFTER_LABEL;
 
-      else if (reg_t0 >= getT0() && reg_t0 <= getT1() &&
-               reg_t1 >= getT0() && reg_t1 <= getT1())
+      else if (reg_t0 >= getT0(labTempo) && reg_t0 <= getT1(labTempo) &&
+               reg_t1 >= getT0(labTempo) && reg_t1 <= getT1(labTempo))
          return WITHIN_LABEL;
 
-      else if (reg_t0 >= getT0() && reg_t0 <= getT1())
+      else if (reg_t0 >= getT0(labTempo) && reg_t0 <= getT1(labTempo))
          return BEGINS_IN_LABEL;
       else
          return ENDS_IN_LABEL;
@@ -533,22 +533,22 @@ auto LabelStruct::RegionRelation(
       // The first test catches bordered point-labels and selected-through
       // region-labels; move it to third and selection edges become inclusive
       // WRT point-labels.
-      if (reg_t0 <= getT0() && reg_t1 >= getT1())
+      if (reg_t0 <= getT0(labTempo) && reg_t1 >= getT1(labTempo))
          return SURROUNDS_LABEL;
-      else if (reg_t1 <= getT0())
+      else if (reg_t1 <= getT0(labTempo))
          return BEFORE_LABEL;
-      else if (reg_t0 >= getT1())
+      else if (reg_t0 >= getT1(labTempo))
          return AFTER_LABEL;
 
       // At this point, all point labels should have returned.
 
-      else if (reg_t0 > getT0() && reg_t0 < getT1() &&
-               reg_t1 > getT0() && reg_t1 < getT1())
+      else if (reg_t0 > getT0(labTempo) && reg_t0 < getT1(labTempo) &&
+               reg_t1 > getT0(labTempo) && reg_t1 < getT1(labTempo))
          return WITHIN_LABEL;
 
       // Knowing that none of the other relations match simplifies remaining
       // tests
-      else if (reg_t0 > getT0() && reg_t0 < getT1())
+      else if (reg_t0 > getT0(labTempo) && reg_t0 < getT1(labTempo))
          return BEGINS_IN_LABEL;
       else
          return ENDS_IN_LABEL;
@@ -714,8 +714,8 @@ Track::Holder LabelTrack::Copy(double t0, double t1, bool) const
       if (relation == LabelStruct::SURROUNDS_LABEL) {
          LabelStruct l {
             labelStruct.selectedRegion,
-            labelStruct.getT0() - t0,
-            labelStruct.getT1() - t0,
+            labelStruct.getT0(labTempo) - t0,
+            labelStruct.getT1(labTempo) - t0,
             labelStruct.title
          };
          lt->mLabels.push_back(l);
@@ -733,7 +733,7 @@ Track::Holder LabelTrack::Copy(double t0, double t1, bool) const
          LabelStruct l {
             labelStruct.selectedRegion,
             0,
-            labelStruct.getT1() - t0,
+            labelStruct.getT1(labTempo) - t0,
             labelStruct.title
          };
          lt->mLabels.push_back(l);
@@ -741,7 +741,7 @@ Track::Holder LabelTrack::Copy(double t0, double t1, bool) const
       else if (relation == LabelStruct::ENDS_IN_LABEL) {
          LabelStruct l {
             labelStruct.selectedRegion,
-            labelStruct.getT0() - t0,
+            labelStruct.getT0(labTempo) - t0,
             t1 - t0,
             labelStruct.title
          };
@@ -760,14 +760,14 @@ bool LabelTrack::PasteOver(double t, const Track * src)
       int len = mLabels.size();
       int pos = 0;
 
-      while (pos < len && mLabels[pos].getT0() < t)
+      while (pos < len && mLabels[pos].getT0(labTempo) < t)
          pos++;
 
       for (auto &labelStruct: sl.mLabels) {
          LabelStruct l {
             labelStruct.selectedRegion,
-            labelStruct.getT0() + t,
-            labelStruct.getT1() + t,
+            labelStruct.getT0(labTempo) + t,
+            labelStruct.getT1(labTempo) + t,
             labelStruct.title
          };
          mLabels.insert(mLabels.begin() + pos++, l);
@@ -827,14 +827,14 @@ bool LabelTrack::Repeat(double t0, double t1, int n)
             const LabelStruct &label = mLabels[i];
             LabelStruct l {
                label.selectedRegion,
-               label.getT0() + j * tLen,
-               label.getT1() + j * tLen,
+               label.getT0(labTempo) + j * tLen,
+               label.getT1(labTempo) + j * tLen,
                label.title
             };
 
             // Figure out where to insert
             while (pos < mLabels.size() &&
-                   mLabels[pos].getT0() < l.getT0())
+                   mLabels[pos].getT0(labTempo) < l.getT0(labTempo))
                pos++;
             mLabels.insert(mLabels.begin() + pos, l);
          }
@@ -885,7 +885,7 @@ void LabelTrack::Silence(double t0, double t1)
          LabelStruct l {
             label.selectedRegion,
             t1,
-            label.getT1(),
+            label.getT1(labTempo),
             label.title
          };
 
@@ -919,14 +919,14 @@ void LabelTrack::Silence(double t0, double t1)
 void LabelTrack::InsertSilence(double t, double len)
 {
    for (auto &labelStruct: mLabels) {
-      double t0 = labelStruct.getT0();
-      double t1 = labelStruct.getT1();
+      double t0 = labelStruct.getT0(labTempo);
+      double t1 = labelStruct.getT1(labTempo);
       if (t0 >= t)
          t0 += len;
 
       if (t1 >= t)
          t1 += len;
-      labelStruct.selectedRegion.setTimes(t0, t1);
+      labelStruct.selectedRegion.setTimes(t0, t1, labTempo);
    }
 }
 
@@ -948,7 +948,7 @@ int LabelTrack::AddLabel(const SelectedRegion &selectedRegion,
    int len = mLabels.size();
    int pos = 0;
 
-   while (pos < len && mLabels[pos].getT0() < selectedRegion.t0())
+   while (pos < len && mLabels[pos].getT0(labTempo) < selectedRegion.t0())
       pos++;
 
    mLabels.insert(mLabels.begin() + pos, l);
@@ -982,14 +982,14 @@ void LabelTrack::SortLabels()
    while (true)
    {
       // Find the next disorder
-      while (i < nn && mLabels[i - 1].getT0() <= mLabels[i].getT0())
+      while (i < nn && mLabels[i - 1].getT0(labTempo) <= mLabels[i].getT0(labTempo))
          ++i;
       if (i >= nn)
          break;
 
       // Where must element i sink to?  At most i - 1, maybe less
       int j = i - 2;
-      while( (j >= 0) && (mLabels[j].getT0() > mLabels[i].getT0()) )
+      while( (j >= 0) && (mLabels[j].getT0(labTempo) > mLabels[i].getT0(labTempo)) )
          --j;
       ++j;
 
@@ -1012,8 +1012,8 @@ wxString LabelTrack::GetTextOfLabels(double t0, double t1) const
    wxString retVal;
 
    for (auto &labelStruct: mLabels) {
-      if (labelStruct.getT0() >= t0 &&
-          labelStruct.getT1() <= t1)
+      if (labelStruct.getT0(labTempo) >= t0 &&
+          labelStruct.getT1(labTempo) <= t1)
       {
          if (!firstLabel)
             retVal += '\t';
@@ -1032,15 +1032,15 @@ int LabelTrack::FindNextLabel(const SelectedRegion& currentRegion)
    if (!mLabels.empty()) {
       int len = (int) mLabels.size();
       if (miLastLabel >= 0 && miLastLabel + 1 < len
-         && currentRegion.t0() == mLabels[miLastLabel].getT0()
-         && currentRegion.t0() == mLabels[miLastLabel + 1].getT0() ) {
+         && currentRegion.t0() == mLabels[miLastLabel].getT0(labTempo)
+         && currentRegion.t0() == mLabels[miLastLabel + 1].getT0(labTempo) ) {
          i = miLastLabel + 1;
       }
       else {
          i = 0;
-         if (currentRegion.t0() < mLabels[len - 1].getT0()) {
+         if (currentRegion.t0() < mLabels[len - 1].getT0(labTempo)) {
             while (i < len &&
-                  mLabels[i].getT0() <= currentRegion.t0()) {
+                  mLabels[i].getT0(labTempo) <= currentRegion.t0()) {
                i++;
             }
          }
@@ -1058,15 +1058,15 @@ int LabelTrack::FindNextLabel(const SelectedRegion& currentRegion)
    if (!mLabels.empty()) {
       int len = (int) mLabels.size();
       if (miLastLabel > 0 && miLastLabel < len
-         && currentRegion.t0() == mLabels[miLastLabel].getT0()
-         && currentRegion.t0() == mLabels[miLastLabel - 1].getT0() ) {
+         && currentRegion.t0() == mLabels[miLastLabel].getT0(labTempo)
+         && currentRegion.t0() == mLabels[miLastLabel - 1].getT0(labTempo) ) {
          i = miLastLabel - 1;
       }
       else {
          i = len - 1;
-         if (currentRegion.t0() > mLabels[0].getT0()) {
+         if (currentRegion.t0() > mLabels[0].getT0(labTempo)) {
             while (i >=0  &&
-                  mLabels[i].getT0() >= currentRegion.t0()) {
+                  mLabels[i].getT0(labTempo) >= currentRegion.t0()) {
                i--;
             }
          }

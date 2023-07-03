@@ -32,13 +32,13 @@ class TIME_FREQUENCY_SELECTION_API NotifyingSelectedRegion
 {
 public:
    // Expose SelectedRegion's const accessors
-   double t0 () const { return mRegion.t0(); }
-   double t1 () const { return mRegion.t1(); }
+   double t0 (BPS tempo) const { return mRegion.t0(tempo); }
+   double t1 (BPS tempo) const { return mRegion.t1(tempo); }
    double f0 () const { return mRegion.f0(); }
    double f1 () const { return mRegion.f1(); }
    double fc () const { return mRegion.fc(); }
    bool isPoint() const { return mRegion.isPoint(); }
-   double duration() const { return mRegion.duration(); }
+   double duration(BPS tempo) const { return mRegion.duration(tempo); }
 
    // Writing and reading of persistent fields -- the read is mutating but
    // does not emit events
@@ -57,21 +57,21 @@ public:
 
    // These are the event-emitting operations
    NotifyingSelectedRegion& operator = ( const SelectedRegion &other );
-   
-   // Returns true iff the bounds got swapped
-   bool setTimes(double t0, double t1);
 
    // Returns true iff the bounds got swapped
-   bool setT0(double t, bool maySwap = true);
+   bool setTimes(double t0, double t1, BPS tempo);
 
    // Returns true iff the bounds got swapped
-   bool setT1(double t, bool maySwap = true);
+   bool setT0(double t, BPS tempo, bool maySwap = true);
+
+   // Returns true iff the bounds got swapped
+   bool setT1(double t, BPS tempo, bool maySwap = true);
 
    void collapseToT0();
 
    void collapseToT1();
 
-   void move(double delta);
+   void move(double delta, BPS tempo);
 
    // Returns true iff the bounds got swapped
    bool setFrequencies(double f0, double f1);

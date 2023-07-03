@@ -73,14 +73,14 @@ public:
    virtual ~NoteTrack();
 
    using Holder = std::shared_ptr<NoteTrack>;
-   
+
 private:
    Track::Holder Clone() const override;
 
 public:
-   double GetOffset() const override;
-   double GetStartTime() const override;
-   double GetEndTime() const override;
+   double GetOffset(BPS tempo) const override;
+   double GetStartTime(BPS tempo) const override;
+   double GetEndTime(BPS tempo) const override;
 
    Alg_seq &GetSeq() const;
 
@@ -96,19 +96,19 @@ public:
    void SetSequence(std::unique_ptr<Alg_seq> &&seq);
    void PrintSequence();
 
-   Alg_seq *MakeExportableSeq(std::unique_ptr<Alg_seq> &cleanup) const;
+   Alg_seq *MakeExportableSeq(std::unique_ptr<Alg_seq> &cleanup, BPS tempo) const;
    bool ExportMIDI(const wxString &f) const;
-   bool ExportAllegro(const wxString &f) const;
+   bool ExportAllegro(const wxString &f, BPS tempo) const;
 
    // High-level editing
-   Track::Holder Cut  (double t0, double t1) override;
-   Track::Holder Copy (double t0, double t1, bool forClipboard = true) const override;
-   bool Trim (double t0, double t1) /* not override */;
-   void Clear(double t0, double t1) override;
-   void Paste(double t, const Track *src) override;
-   void Silence(double t0, double t1) override;
-   void InsertSilence(double t, double len) override;
-   bool Shift(double t) /* not override */;
+   Track::Holder Cut  (double t0, double t1, BPS tempo) override;
+   Track::Holder Copy (double t0, double t1, BPS tempo, bool forClipboard = true) const override;
+   bool Trim (double t0, double t1, BPS tempo) /* not override */;
+   void Clear(double t0, double t1, BPS tempo) override;
+   void Paste(double t, BPS tempo, const Track* src) override;
+   void Silence(double t0, double t1, BPS tempo) override;
+   void InsertSilence(double t, double len, BPS tempo) override;
+   bool Shift(double t, BPS tempo) /* not override */;
 
 #ifdef EXPERIMENTAL_MIDI_OUT
    float GetVelocity() const {
@@ -204,10 +204,10 @@ public:
    const TypeInfo &GetTypeInfo() const override;
    static const TypeInfo &ClassTypeInfo();
 
-   Track::Holder PasteInto( AudacityProject & ) const override;
+   Track::Holder PasteInto( AudacityProject &, BPS tempo ) const override;
 
-   ConstIntervals GetIntervals() const override;
-   Intervals GetIntervals() override;
+   ConstIntervals GetIntervals(BPS tempo) const override;
+   Intervals GetIntervals(BPS tempo) override;
 
  private:
 #ifdef EXPERIMENTAL_MIDI_OUT

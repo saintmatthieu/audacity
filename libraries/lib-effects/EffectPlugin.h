@@ -79,14 +79,13 @@ public:
     @return true on success
     */
    virtual bool DoEffect(
-      EffectSettings &settings, //!< Always given; only for processing
-      const InstanceFinder &finder,
-      double projectRate, TrackList *list,
-      WaveTrackFactory *factory, NotifyingSelectedRegion &selectedRegion,
-      unsigned flags,
-      const EffectSettingsAccessPtr &pAccess = nullptr
-         //!< Sometimes given; only for UI
-   ) = 0;
+      EffectSettings& settings, //!< Always given; only for processing
+      const InstanceFinder& finder, double projectRate, BPS projectTempo,
+      TrackList* list, WaveTrackFactory* factory,
+      NotifyingSelectedRegion& selectedRegion, unsigned flags,
+      const EffectSettingsAccessPtr& pAccess = nullptr
+      //!< Sometimes given; only for UI
+      ) = 0;
 };
 
 /***************************************************************************//**

@@ -48,31 +48,31 @@ NotifyingSelectedRegion& NotifyingSelectedRegion::operator =
    return *this;
 }
 
-bool NotifyingSelectedRegion::setTimes(double t0, double t1)
+bool NotifyingSelectedRegion::setTimes(double t0, double t1, BPS tempo)
 {
    bool result = false;
-   if ( mRegion.t0() != t0 || mRegion.t1() != t1 ) {
-      result = mRegion.setTimes( t0, t1 );
+   if ( mRegion.t0(tempo) != t0 || mRegion.t1(tempo) != t1 ) {
+      result = mRegion.setTimes( t0, t1, tempo );
       Notify();
    }
    return result;
 }
 
-bool NotifyingSelectedRegion::setT0(double t, bool maySwap)
+bool NotifyingSelectedRegion::setT0(double t, BPS tempo, bool maySwap)
 {
    bool result = false;
-   if ( mRegion.t0() != t ) {
-      result = mRegion.setT0( t, maySwap );
+   if ( mRegion.t0(tempo) != t ) {
+      result = mRegion.setT0( t, tempo, maySwap );
       Notify();
    }
    return result;
 }
 
-bool NotifyingSelectedRegion::setT1(double t, bool maySwap)
+bool NotifyingSelectedRegion::setT1(double t, BPS tempo, bool maySwap)
 {
    bool result = false;
-   if ( mRegion.t1() != t ) {
-      result = mRegion.setT1( t, maySwap );
+   if ( mRegion.t1(tempo) != t ) {
+      result = mRegion.setT1( t, tempo, maySwap );
       Notify();
    }
    return result;
@@ -80,7 +80,9 @@ bool NotifyingSelectedRegion::setT1(double t, bool maySwap)
 
 void NotifyingSelectedRegion::collapseToT0()
 {
-   if ( mRegion.t0() !=  mRegion.t1() ) {
+   const BPS anyTempo { 1.0 };
+   if (mRegion.t0(anyTempo) != mRegion.t1(anyTempo))
+   {
       mRegion.collapseToT0();
       Notify();
    }
@@ -88,16 +90,18 @@ void NotifyingSelectedRegion::collapseToT0()
 
 void NotifyingSelectedRegion::collapseToT1()
 {
-   if ( mRegion.t0() !=  mRegion.t1() ) {
+   const BPS anyTempo { 1.0 };
+   if (mRegion.t0(anyTempo) != mRegion.t1(anyTempo))
+   {
       mRegion.collapseToT1();
       Notify();
    }
 }
 
-void NotifyingSelectedRegion::move(double delta)
+void NotifyingSelectedRegion::move(double delta, BPS tempo)
 {
    if (delta != 0) {
-      mRegion.move( delta );
+      mRegion.move(delta, tempo);
       Notify();
    }
 }

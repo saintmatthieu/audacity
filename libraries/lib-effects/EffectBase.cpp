@@ -51,22 +51,20 @@ double EffectBase::GetDefaultDuration()
 // the recursive paths into this function via Effect::Delegate are simplified,
 // and we don't have both EffectSettings and EffectSettingsAccessPtr
 // If pAccess is not null, settings should have come from its Get()
-bool EffectBase::DoEffect(EffectSettings &settings,
-   const InstanceFinder &finder,
-   double projectRate,
-   TrackList *list,
-   WaveTrackFactory *factory,
-   NotifyingSelectedRegion &selectedRegion,
-   unsigned flags,
-   const EffectSettingsAccessPtr &pAccess)
+bool EffectBase::DoEffect(
+   EffectSettings& settings, const InstanceFinder& finder, double projectRate,
+   BPS tempo, TrackList* list, WaveTrackFactory* factory,
+   NotifyingSelectedRegion& selectedRegion, unsigned flags,
+   const EffectSettingsAccessPtr& pAccess)
 {
    auto cleanup0 = valueRestorer(mUIFlags, flags);
-   wxASSERT(selectedRegion.duration() >= 0.0);
+   wxASSERT(selectedRegion.duration(tempo) >= 0.0 );
 
    mOutputTracks.reset();
 
    mFactory = factory;
    mProjectRate = projectRate;
+   mProjectTempo = tempo;
 
    SetTracks(list);
    // Don't hold a dangling pointer when done
@@ -115,8 +113,8 @@ bool EffectBase::DoEffect(EffectSettings &settings,
       newTrack->SetSelected(true);
    }
 
-   mT0 = selectedRegion.t0();
-   mT1 = selectedRegion.t1();
+   mT0 = selectedRegion.t0(tempo);
+   mT1 = selectedRegion.t1(tempo);
    if (mT1 > mT0)
    {
       // there is a selection: let's fit in there...
@@ -201,7 +199,7 @@ bool EffectBase::DoEffect(EffectSettings &settings,
 
    if (returnVal && (mT1 >= mT0 ))
    {
-      selectedRegion.setTimes(mT0, mT1);
+      selectedRegion.setTimes(mT0, mT1, tempo);
    }
 
    success = returnVal;

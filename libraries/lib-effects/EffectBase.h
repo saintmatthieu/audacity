@@ -42,13 +42,13 @@ public:
     */
    virtual std::any BeginPreview(const EffectSettings &settings);
 
-   bool DoEffect(EffectSettings &settings, //!< Always given; only for processing
-      const InstanceFinder &finder,
-      double projectRate, TrackList *list,
-      WaveTrackFactory *factory, NotifyingSelectedRegion &selectedRegion,
-      unsigned flags,
-      const EffectSettingsAccessPtr &pAccess //!< Sometimes given; only for UI
-   ) override;
+   bool DoEffect(
+      EffectSettings& settings, //!< Always given; only for processing
+      const InstanceFinder& finder, double projectRate, BPS tempo,
+      TrackList* list, WaveTrackFactory* factory,
+      NotifyingSelectedRegion& selectedRegion, unsigned flags,
+      const EffectSettingsAccessPtr& pAccess //!< Sometimes given; only for UI
+      ) override;
 
    static std::optional<InstancePointer> FindInstance(EffectPlugin &plugin);
    static InstanceFinder DefaultInstanceFinder(EffectPlugin &plugin);
@@ -114,6 +114,7 @@ public:
    BasicUI::ProgressDialog *mProgress{}; // Temporary pointer, NOT deleted in destructor.
    double         mProjectRate{}; // Sample rate of the project - NEW tracks should
                                // be created with this rate...
+   std::optional<BPS> mProjectTempo;
    WaveTrackFactory   *mFactory{};
    double         mT0{};
    double         mT1{};
