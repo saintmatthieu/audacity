@@ -119,9 +119,12 @@ class ConstTrackInterval {
 public:
 
    /*! @pre `start <= end` */
-   ConstTrackInterval( double start, double end,
-      std::unique_ptr<TrackIntervalData> pExtra = {} )
-   : start{ start }, end{ end }, pExtra{ std::move( pExtra ) }
+   ConstTrackInterval(
+      double start, double end, BPS tempo,
+      std::unique_ptr<TrackIntervalData> pExtra = {})
+       : start { Beat { tempo.get() * start } }
+       , end { Beat { tempo.get() * end } }
+       , pExtra { std::move(pExtra) }
    {
       wxASSERT( start <= end );
    }
@@ -129,12 +132,12 @@ public:
    ConstTrackInterval( ConstTrackInterval&& ) = default;
    ConstTrackInterval &operator=( ConstTrackInterval&& ) = default;
 
-   double Start() const { return start; }
-   double End() const { return end; }
+   double Start(BPS tempo) const { return start / tempo; }
+   double End(BPS tempo) const { return end / tempo; }
    const TrackIntervalData *Extra() const { return pExtra.get(); }
 
 private:
-   double start, end;
+   Beat start, end;
 protected:
    // TODO C++17: use std::any instead
    std::unique_ptr< TrackIntervalData > pExtra;

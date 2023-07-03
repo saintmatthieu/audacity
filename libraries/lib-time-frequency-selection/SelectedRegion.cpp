@@ -26,6 +26,7 @@ void SelectedRegion::WriteXMLAttributes
  const char *legacyT0Name, const char *legacyT1Name) const
 // may throw
 {
+   // todo(mhodgkinson) solve this!
    xmlFile.WriteAttr(legacyT0Name, t0(), 10);
    xmlFile.WriteAttr(legacyT1Name, t1(), 10);
 #ifdef EXPERIMENTAL_SPECTRAL_EDITING

@@ -110,49 +110,48 @@ auto LabelTrack::ClassTypeInfo() -> const TypeInfo &
    return typeInfo();
 }
 
-Track::Holder LabelTrack::PasteInto( AudacityProject & ) const
+Track::Holder LabelTrack::PasteInto( AudacityProject &, BPS labTempo ) const
 {
    auto pNewTrack = std::make_shared<LabelTrack>();
    pNewTrack->Init(*this);
-   pNewTrack->Paste(0.0, this);
+   pNewTrack->Paste(0.0, labTempo, this);
    return pNewTrack;
 }
 
 template<typename IntervalType>
-static IntervalType DoMakeInterval(const LabelStruct &label, size_t index)
+static IntervalType DoMakeInterval(const LabelStruct &label, size_t index, BPS labTempo)
 {
-   return {
-      label.getT0(), label.getT1(),
-      std::make_unique<LabelTrack::IntervalData>( index ) };
+   return { label.getT0(), label.getT1(), labTempo,
+            std::make_unique<LabelTrack::IntervalData>(index) };
 }
 
-auto LabelTrack::MakeInterval( size_t index ) const -> ConstInterval
+auto LabelTrack::MakeInterval( size_t index, BPS labTempo ) const -> ConstInterval
 {
-   return DoMakeInterval<ConstInterval>(mLabels[index], index);
+   return DoMakeInterval<ConstInterval>(mLabels[index], index, labTempo);
 }
 
-auto LabelTrack::MakeInterval( size_t index ) -> Interval
+auto LabelTrack::MakeInterval(size_t index, BPS labTempo) -> Interval
 {
-   return DoMakeInterval<Interval>(mLabels[index], index);
+   return DoMakeInterval<Interval>(mLabels[index], index, labTempo);
 }
 
 template< typename Container, typename LabelTrack >
-static Container DoMakeIntervals(LabelTrack &track)
+static Container DoMakeIntervals(LabelTrack &track, BPS labTempo)
 {
    Container result;
    for (size_t ii = 0, nn = track.GetNumLabels(); ii < nn; ++ii)
-      result.emplace_back( track.MakeInterval( ii ) );
+      result.emplace_back( track.MakeInterval( ii, labTempo ) );
    return result;
 }
 
-auto LabelTrack::GetIntervals() const -> ConstIntervals
+auto LabelTrack::GetIntervals(BPS labTempo) const -> ConstIntervals
 {
-   return DoMakeIntervals<ConstIntervals>(*this);
+   return DoMakeIntervals<ConstIntervals>(*this, labTempo);
 }
 
-auto LabelTrack::GetIntervals() -> Intervals
+auto LabelTrack::GetIntervals(BPS labTempo) -> Intervals
 {
-   return DoMakeIntervals<Intervals>(*this);
+   return DoMakeIntervals<Intervals>(*this, labTempo);
 }
 
 void LabelTrack::SetLabel( size_t iLabel, const LabelStruct &newLabel )
@@ -168,13 +167,13 @@ LabelTrack::~LabelTrack()
 {
 }
 
-void LabelTrack::SetOffset(double dOffset)
+void LabelTrack::SetOffset(double dOffset, BPS labTempo)
 {
    for (auto &labelStruct: mLabels)
       labelStruct.selectedRegion.move(dOffset);
 }
 
-void LabelTrack::Clear(double b, double e)
+void LabelTrack::Clear(double b, double e, BPS labTempo)
 {
    // May DELETE labels, so use subscripts to iterate
    for (size_t i = 0; i < mLabels.size(); ++i) {
@@ -330,12 +329,12 @@ void LabelTrack::SetSelected( bool s )
          this->SharedPointer<LabelTrack>(), {}, -1, -1 });
 }
 
-double LabelTrack::GetOffset() const
+double LabelTrack::GetOffset(BPS labTempo) const
 {
-   return mOffset;
+   return mOffset / labTempo;
 }
 
-double LabelTrack::GetStartTime() const
+double LabelTrack::GetStartTime(BPS labTempo) const
 {
    if (mLabels.empty())
       return 0.0;
@@ -424,7 +423,7 @@ LabelStruct LabelStruct::Import(wxTextFile &file, int &index)
          token = toker.GetNextToken();
 
       sr.setTimes( t0, t1 );
-      
+
       title = token;
    }
 

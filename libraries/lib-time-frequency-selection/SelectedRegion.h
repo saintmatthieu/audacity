@@ -30,6 +30,7 @@
 #include <math.h>
 #include <string_view>
 
+#include "Beat.h"
 #include "XMLMethodRegistry.h"
 
 class XMLWriter;
@@ -91,9 +92,18 @@ public:
 
    // Accessors
 
-   double t0() const { return mT0; }
-   double t1() const { return mT1; }
-   double duration() const { return mT1 - mT0; }
+   double t0(BPS labTempo) const
+   {
+      return mT0 / labTempo;
+   }
+   double t1(BPS labTempo) const
+   {
+      return mT1 / labTempo;
+   }
+   double duration(BPS labTempo) const
+   {
+      return (mT1 - mT0) / labTempo;
+   }
    bool isPoint() const { return mT1 <= mT0; }
 
 #ifdef EXPERIMENTAL_SPECTRAL_EDITING
@@ -112,8 +122,9 @@ public:
    // PRL: to do: more integrity checks
 
    // Returns true iff the bounds got swapped
-   bool setT0(double t, bool maySwap = true) {
-      mT0 = t;
+   bool setT0(double t, BPS labTempo, bool maySwap = true)
+   {
+      mT0 = Beat { t * labTempo.get() };
       if (maySwap)
          return ensureOrdering();
       else {
@@ -124,8 +135,9 @@ public:
    }
 
    // Returns true iff the bounds got swapped
-   bool setT1(double t, bool maySwap = true) {
-      mT1 = t;
+   bool setT1(double t, BPS labTempo, bool maySwap = true)
+   {
+      mT1 = Beat { t * labTempo.get() };
       if (maySwap)
          return ensureOrdering();
       else {
@@ -136,20 +148,23 @@ public:
    }
 
    // Returns true iff the bounds got swapped
-   bool setTimes(double t0, double t1) {
-      mT0 = t0;
-      mT1 = t1;
+   bool setTimes(double t0, double t1, BPS labTempo)
+   {
+      mT0 = Beat { t0 * labTempo.get() };
+      mT1 = Beat { t1 * labTempo.get() };
       return ensureOrdering();
    }
 
    // Returns true iff the bounds got swapped
-   bool moveT0(double delta, bool maySwap = true) {
-      return setT0(mT0 + delta, maySwap);
+   bool moveT0(double delta, BPS labTempo, bool maySwap = true)
+   {
+      return setT0(mT0 + Beat { delta * labTempo.get() }, labTempo, maySwap);
    }
 
    // Returns true iff the bounds got swapped
-   bool moveT1(double delta, bool maySwap = true) {
-      return setT1(mT1 + delta, maySwap);
+   bool moveT1(double delta, BPS labTempo, bool maySwap = true)
+   {
+      return setT1(mT1 + Beat { delta * labTempo.get() }, labTempo, maySwap);
    }
 
    void move(double delta) {
@@ -232,10 +247,10 @@ public:
    Mutators(
       const char *legacyT0Name, const char* legacyT1Name);
 
-   bool ensureOrdering() 
+   bool ensureOrdering()
    {
       if (mT1 < mT0) {
-         const double t = mT1;
+         const Beat t = mT1;
          mT1 = mT0;
          mT0 = t;
          return true;
@@ -280,8 +295,8 @@ private:
       ;
    }
 
-   double mT0;
-   double mT1;
+   Beat mT0;
+   Beat mT1;
 #ifdef EXPERIMENTAL_SPECTRAL_EDITING
    double mF0; // low frequency
    double mF1; // high frequency

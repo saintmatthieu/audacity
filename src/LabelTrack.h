@@ -36,8 +36,8 @@ public:
                const wxString &aTitle);
    const SelectedRegion &getSelectedRegion() const { return selectedRegion; }
    double getDuration() const { return selectedRegion.duration(); }
-   double getT0() const { return selectedRegion.t0(); }
-   double getT1() const { return selectedRegion.t1(); }
+   double getT0(BPS labTempo) const { return selectedRegion.t0(labTempo); }
+   double getT1(BPS labTempo) const { return selectedRegion.t1(labTempo); }
    // Returns true iff the label got inverted:
    bool AdjustEdge( int iEdge, double fNewTime);
    void MoveLabel( int iEdge, double fNewTime);
@@ -110,13 +110,13 @@ class AUDACITY_DLL_API LabelTrack final
 
    void SetLabel( size_t iLabel, const LabelStruct &newLabel );
 
-   void SetOffset(double dOffset) override;
+   void SetOffset(double dOffset, BPS labTempo) override;
 
    void SetSelected(bool s) override;
 
-   double GetOffset() const override;
-   double GetStartTime() const override;
-   double GetEndTime() const override;
+   double GetOffset(BPS labTempo) const override;
+   double GetStartTime(BPS labTempo) const override;
+   double GetEndTime(BPS labTempo) const override;
 
    using Holder = std::shared_ptr<LabelTrack>;
 
@@ -128,15 +128,17 @@ public:
    XMLTagHandler *HandleXMLChild(const std::string_view& tag) override;
    void WriteXML(XMLWriter &xmlFile) const override;
 
-   Track::Holder Cut  (double t0, double t1) override;
-   Track::Holder Copy (double t0, double t1, bool forClipboard = true) const override;
-   void Clear(double t0, double t1) override;
-   void Paste(double t, const Track * src) override;
+   Track::Holder Cut(double t0, double t1, BPS labTempo) override;
+   Track::Holder Copy(
+      double t0, double t1, BPS labTempo,
+      bool forClipboard = true) const override;
+   void Clear(double t0, double t1, BPS labTempo) override;
+   void Paste(double t, BPS labTempo, const Track* src) override;
    bool Repeat(double t0, double t1, int n);
-   void SyncLockAdjust(double oldT1, double newT1) override;
+   void SyncLockAdjust(double oldT1, double newT1, BPS labTempo) override;
 
-   void Silence(double t0, double t1) override;
-   void InsertSilence(double t, double len) override;
+   void Silence(double t0, double t1, BPS labTempo) override;
+   void InsertSilence(double t, double len, BPS labTempo) override;
 
    void Import(wxTextFile & f);
    void Export(wxTextFile & f) const;
@@ -174,18 +176,18 @@ public:
    const TypeInfo &GetTypeInfo() const override;
    static const TypeInfo &ClassTypeInfo();
 
-   Track::Holder PasteInto( AudacityProject & ) const override;
+   Track::Holder PasteInto(AudacityProject&, BPS labTempo) const override;
 
    struct IntervalData final : Track::IntervalData {
       size_t index;
       explicit IntervalData(size_t index) : index{index} {};
    };
-   ConstInterval MakeInterval ( size_t index ) const;
-   Interval MakeInterval ( size_t index );
-   ConstIntervals GetIntervals() const override;
-   Intervals GetIntervals() override;
+   ConstInterval MakeInterval(size_t index, BPS labTempo) const;
+   Interval MakeInterval(size_t index, BPS labTempo);
+   ConstIntervals GetIntervals(BPS labTempo) const override;
+   Intervals GetIntervals(BPS labTempo) override;
 
- public:
+public:
    void SortLabels();
 
  private:
