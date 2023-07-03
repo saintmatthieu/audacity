@@ -40,6 +40,7 @@ set( LIBRARIES
    lib-project-rate-interface
    lib-sample-track-interface
    lib-stretching-sequence-interface
+   lib-tempo-interface
    lib-track-selection-interface
 )
 audacity_library( lib-wave-track "${SOURCES}" "${LIBRARIES}"

@@ -10,6 +10,7 @@ Paul Licameli
 
 #include "SelectedRegion.h"
 
+#include "BeatsPerMinute.h"
 #include "XMLWriter.h"
 #include "XMLAttributeValueView.h"
 
@@ -26,9 +27,9 @@ void SelectedRegion::WriteXMLAttributes
  const char *legacyT0Name, const char *legacyT1Name) const
 // may throw
 {
-   // todo(mhodgkinson) solve this!
-   xmlFile.WriteAttr(legacyT0Name, t0(), 10);
-   xmlFile.WriteAttr(legacyT1Name, t1(), 10);
+   const BPS tempo { BeatsPerMinute.Read() / 60.0 };
+   xmlFile.WriteAttr(legacyT0Name, t0(tempo), 10);
+   xmlFile.WriteAttr(legacyT1Name, t1(tempo), 10);
 #ifdef EXPERIMENTAL_SPECTRAL_EDITING
    if (f0() >= 0)
       xmlFile.WriteAttr(sDefaultF0Name, f0(), 10);
@@ -41,29 +42,28 @@ bool SelectedRegion::HandleXMLAttribute
 (const std::string_view &attr, const XMLAttributeValueView &value,
  const char *legacyT0Name, const char *legacyT1Name)
 {
-   // Keep this function consistent with the table in the next!
-   typedef bool (SelectedRegion::*Setter)(double, bool);
-   Setter setter = 0;
-   if (attr == legacyT0Name)
-      setter = &SelectedRegion::setT0;
-   else if (attr == legacyT1Name)
-      setter = &SelectedRegion::setT1;
-#ifdef EXPERIMENTAL_SPECTRAL_EDITING
-   else if (attr == sDefaultF0Name)
-      setter = &SelectedRegion::setF0;
-   else if (attr == sDefaultF1Name)
-      setter = &SelectedRegion::setF1;
-#endif
-   else
-      return false;
-
    double dblValue;
 
    if (!value.TryGet(dblValue))
       return false;
 
-   // False means don't flip time or frequency boundaries
-   (void)(this->*setter)(dblValue, false);
+   const BPS tempo { BeatsPerMinute.Read() / 60.0 };
+   // Keep this function consistent with the table in the next!
+   typedef bool (SelectedRegion::*Setter)(double, bool);
+   Setter setter = 0;
+   if (attr == legacyT0Name)
+      setT0(dblValue, tempo);
+   else if (attr == legacyT1Name)
+      setT1(dblValue, tempo);
+#ifdef EXPERIMENTAL_SPECTRAL_EDITING
+   else if (attr == sDefaultF0Name)
+      setF0(dblValue);
+   else if (attr == sDefaultF1Name)
+      setF1(dblValue);
+#endif
+   else
+      return false;
+
    return true;
 }
 

@@ -12,6 +12,7 @@ set( SOURCES
 set( LIBRARIES
    lib-project-history-interface
    lib-screen-geometry-interface
+   lib-tempo-interface
 )
 audacity_library( lib-time-frequency-selection "${SOURCES}" "${LIBRARIES}"
    "" ""

@@ -39,6 +39,7 @@ set( SOURCES
 set( LIBRARIES
    lib-math-interface
    lib-project-rate-interface
+   lib-tempo-interface
    lib-utility-interface
 )
 audacity_library( lib-numeric-formats "${SOURCES}" "${LIBRARIES}"

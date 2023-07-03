@@ -55,6 +55,7 @@ set( LIBRARIES
    lib-time-and-pitch
    lib-mixer
    lib-stretching-sequence
+   lib-tempo
 )
 
 if ( ${_OPT}has_networking )

@@ -11,6 +11,7 @@
 #include "ProjectTimeSignature.h"
 
 #include "Beats.h"
+#include "BeatsPerMinute.h"
 #include "Project.h"
 #include "XMLAttributeValueView.h"
 #include "XMLWriter.h"

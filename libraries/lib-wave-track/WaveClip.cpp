@@ -20,6 +20,7 @@
 #include <vector>
 #include <wx/log.h>
 
+#include "BeatsPerMinute.h"
 #include "BasicUI.h"
 #include "Sequence.h"
 #include "Prefs.h"
@@ -390,26 +391,22 @@ bool WaveClip::HandleXMLTag(const std::string_view& tag, const AttributesList &a
          {
             if (!value.TryGet(dblValue))
                return false;
-            // todo(mhodgkinson): Here's a difficulty: compatibility.
-            // When saving and loading a project, the project tempo is also
-            // saved or loaded, so it exists. We will need this information to
-            // convert from and to time.
-            assert(false);
-            // SetSequenceStartTime(dblValue);
+            const BPS tempo { BeatsPerMinute.Read() / 60.0 };
+            SetSequenceStartTime(dblValue, tempo);
          }
          else if (attr == "trimLeft")
          {
             if (!value.TryGet(dblValue))
                return false;
-            assert(false);
-            // SetTrimLeft(dblValue);
+            const BPS tempo { BeatsPerMinute.Read() / 60.0 };
+            SetTrimLeft(dblValue, tempo);
          }
          else if (attr == "trimRight")
          {
             if (!value.TryGet(dblValue))
                return false;
-            assert(false);
-            // SetTrimRight(dblValue);
+            const BPS tempo { BeatsPerMinute.Read() / 60.0 };
+            SetTrimRight(dblValue, tempo);
          }
          else if (attr == "clipStretchRatio")
          {
@@ -421,9 +418,7 @@ bool WaveClip::HandleXMLTag(const std::string_view& tag, const AttributesList &a
          {
             if (!value.TryGet(dblValue))
                return false;
-            // todo(mhodgkinson): same thing here
-            assert(false);
-            // mSequenceTempo = dblValue;
+            mSequenceTempo = BPS { dblValue };
          }
          else if (attr == "name")
          {
@@ -489,16 +484,20 @@ XMLTagHandler *WaveClip::HandleXMLChild(const std::string_view& tag)
 void WaveClip::WriteXML(XMLWriter &xmlFile) const
 // may throw
 {
-   // todo(mhodgkinson) same thing here
-   assert(false);
+   const BPS tempo { BeatsPerMinute.Read() / 60.0 };
 
    xmlFile.StartTag(wxT("waveclip"));
-   // xmlFile.WriteAttr(wxT("offset"), mSequenceOffset, 8);
+   xmlFile.WriteAttr(wxT("offset"), mSequenceOffset / tempo, 8);
    // For compatibility with older projects, convert trim values to time
-   // xmlFile.WriteAttr(wxT("trimLeft"), mTrimLeft, 8);
-   // xmlFile.WriteAttr(wxT("trimRight"), mTrimRight, 8);
+   // todo(mhodgkinson) solve this
+   assert(false);
+   const auto playDuration = GetPlayDuration(tempo);
+   const double trimLeft = mTrimLeft.get() * playDuration;
+   const double trimRight = mTrimRight.get() * playDuration;
+   xmlFile.WriteAttr(wxT("trimLeft"), trimLeft, 8);
+   xmlFile.WriteAttr(wxT("trimRight"), trimRight, 8);
    xmlFile.WriteAttr(wxT("clipStretchRatio"), mUiStretchRatio, 8);
-   // xmlFile.WriteAttr(wxT("sourceTempo"), mSequenceTempo, 8);
+   xmlFile.WriteAttr(wxT("sourceTempo"), mSequenceTempo.get(), 8);
    xmlFile.WriteAttr(wxT("name"), mName);
    xmlFile.WriteAttr(wxT("colorindex"), mColourIndex );
 

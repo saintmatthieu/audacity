@@ -13,8 +13,6 @@ Michael Papadopoulos split from Decibels.h
 
 #include "Prefs.h"
 
-//! The tempo used for drawing the Beats & Measures ruler
-extern NUMERIC_FORMATS_API DoubleSetting BeatsPerMinute;
 //! The upper time signature of the Beats & Measures ruler
 extern NUMERIC_FORMATS_API IntSetting UpperTimeSignature;
 //! The lower time signature of the Beats & Measures ruler

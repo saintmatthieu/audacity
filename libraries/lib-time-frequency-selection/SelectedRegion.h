@@ -158,18 +158,18 @@ public:
    // Returns true iff the bounds got swapped
    bool moveT0(double delta, BPS labTempo, bool maySwap = true)
    {
-      return setT0(mT0 + Beat { delta * labTempo.get() }, labTempo, maySwap);
+      return setT0(mT0 / labTempo + delta, labTempo, maySwap);
    }
 
    // Returns true iff the bounds got swapped
    bool moveT1(double delta, BPS labTempo, bool maySwap = true)
    {
-      return setT1(mT1 + Beat { delta * labTempo.get() }, labTempo, maySwap);
+      return setT1(mT1 / labTempo + delta, labTempo, maySwap);
    }
 
-   void move(double delta) {
-      mT0 += delta;
-      mT1 += delta;
+   void move(double delta, BPS labTempo) {
+      mT0 += Beat { labTempo.get() * delta };
+      mT1 += Beat { labTempo.get() * delta };
    }
 
    void collapseToT0() { mT1 = mT0; }
