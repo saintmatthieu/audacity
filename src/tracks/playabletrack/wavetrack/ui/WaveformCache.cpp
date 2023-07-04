@@ -91,14 +91,16 @@ bool WaveClipWaveformCache::GetWaveDisplay(
    }
    else {
       const double tstep = 1.0 / pixelsPerSecond;
-      const auto rate = clip.GetRate();
-      const double samplesPerPixel = rate * tstep;
+      const auto sampleRate = clip.GetRate();
+      const auto stretchRatio = clip.GetPlayoutStretchRatio();
+      const auto uiSamplesPerSecond = sampleRate / stretchRatio;
+      const double samplesPerPixel = uiSamplesPerSecond * tstep;
 
       // Make a tolerant comparison of the pps values in this wise:
       // accumulated difference of times over the number of pixels is less than
       // a sample period.
       const bool ppsMatch = waveCache &&
-         (fabs(tstep - 1.0 / waveCache->pps) * numPixels < (1.0 / rate));
+         (fabs(tstep - 1.0 / waveCache->pps) * numPixels < (1.0 / uiSamplesPerSecond));
 
       const bool match =
          waveCache &&
@@ -124,9 +126,9 @@ bool WaveClipWaveformCache::GetWaveDisplay(
       double correction = 0.0;
       size_t copyBegin = 0, copyEnd = 0;
       if (match) {
-         findCorrection(oldCache->where, oldCache->len, numPixels,
-            t0, rate, samplesPerPixel,
-            oldX0, correction);
+         findCorrection(
+            oldCache->where, oldCache->len, numPixels, t0, sampleRate,
+            stretchRatio, samplesPerPixel, oldX0, correction);
          // Remember our first pixel maps to oldX0 in the old cache,
          // possibly out of bounds.
          // For what range of pixels can data be copied?
@@ -138,14 +140,16 @@ bool WaveClipWaveformCache::GetWaveDisplay(
       if (!(copyEnd > copyBegin))
          oldCache.reset(0);
 
-      waveCache = std::make_unique<WaveCache>(numPixels, pixelsPerSecond, rate, t0, mDirty);
+      waveCache = std::make_unique<WaveCache>(
+         numPixels, pixelsPerSecond, sampleRate, t0, mDirty);
       min = &waveCache->min[0];
       max = &waveCache->max[0];
       rms = &waveCache->rms[0];
       pWhere = &waveCache->where;
 
-      fillWhere(*pWhere, numPixels, 0.0, correction,
-         t0, rate, samplesPerPixel);
+      fillWhere(
+         *pWhere, numPixels, 0.0, correction, t0, sampleRate, stretchRatio,
+         samplesPerPixel);
 
       // The range of pixels we must fetch from the Sequence:
       p0 = (copyBegin > 0) ? 0 : copyEnd;

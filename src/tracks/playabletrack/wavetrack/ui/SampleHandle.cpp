@@ -95,7 +95,7 @@ namespace {
       const auto xx = std::max<ZoomInfo::int64>(0, viewInfo.TimeToPosition(time));
       ZoomInfo::Intervals intervals;
       const double rate = wt->GetRate();
-      viewInfo.FindIntervals(rate, intervals, width);
+      viewInfo.FindIntervals(intervals, width);
       ZoomInfo::Intervals::const_iterator it = intervals.begin(),
          end = intervals.end(), prev;
       wxASSERT(it != end && it->position == 0);

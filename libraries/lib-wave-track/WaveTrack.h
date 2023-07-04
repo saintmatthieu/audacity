@@ -116,6 +116,7 @@ private:
 
    double GetOffset() const override;
    void SetOffset(double o) override;
+   void SetProjectTempo(double newTempo);
 
    bool LinkConsistencyFix(bool doFix, bool completeList) override;
 
@@ -609,6 +610,10 @@ private:
    void DoSetGain(float value);
 
    void PasteWaveTrack(double t0, const WaveTrack* other);
+   double GetEndTime(
+      const std::function<double(const WaveClip&)>& endTimeGetter) const;
+   double GetEndTimeInOtherProject(
+      const std::optional<double>& otherProjectTempo) const;
 
    //! Whether all clips have a common rate
    bool RateConsistencyCheck() const;
@@ -621,6 +626,7 @@ private:
    wxCriticalSection mFlushCriticalSection;
    wxCriticalSection mAppendCriticalSection;
    double mLegacyProjectFileOffset;
+   std::optional<double> mProjectTempo;
 };
 
 ENUMERATE_TRACK_TYPE(WaveTrack);
