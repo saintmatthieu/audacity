@@ -38,14 +38,8 @@ AudioSegmentFactory::CreateAudioSegmentSequence(
 std::vector<std::shared_ptr<AudioSegment>>
 AudioSegmentFactory::CreateAudioSegmentSequenceForward(double t0) const
 {
-   ClipConstHolders sortedClips { mClips };
-   std::sort(
-      sortedClips.begin(), sortedClips.end(),
-      [](const ClipConstHolder& a, const ClipConstHolder& b) {
-         return a->GetPlayStartTime() < b->GetPlayStartTime();
-      });
    std::vector<std::shared_ptr<AudioSegment>> segments;
-   for (const auto& clip : sortedClips)
+   for (const auto& clip : mClips)
    {
       if (clip->GetPlayStartTime() > t0)
       {
@@ -67,14 +61,8 @@ AudioSegmentFactory::CreateAudioSegmentSequenceForward(double t0) const
 std::vector<std::shared_ptr<AudioSegment>>
 AudioSegmentFactory::CreateAudioSegmentSequenceBackward(double t0) const
 {
-   ClipConstHolders sortedClips { mClips };
-   std::sort(
-      sortedClips.begin(), sortedClips.end(),
-      [&](const ClipConstHolder& a, const ClipConstHolder& b) {
-         return a->GetPlayEndTime() > b->GetPlayEndTime();
-      });
    std::vector<std::shared_ptr<AudioSegment>> segments;
-   for (const auto& clip : sortedClips)
+   for (const auto& clip : mClips)
    {
       if (clip->GetPlayEndTime() < t0)
       {

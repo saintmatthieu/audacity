@@ -20,6 +20,9 @@ class STRETCHING_SEQUENCE_API AudioSegmentFactory final :
     public AudioSegmentFactoryInterface
 {
 public:
+   /*
+    * @pre clips[i]->GetStartTime() <= clips[i+1]->GetStartTime()
+    */
    AudioSegmentFactory(
       int sampleRate, int numChannels, const ClipConstHolders& clips);
 

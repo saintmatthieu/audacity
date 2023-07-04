@@ -27,8 +27,15 @@ using ClipConstHolders = std::vector<std::shared_ptr<const ClipInterface>>;
 class STRETCHING_SEQUENCE_API StretchingSequence final : public PlayableSequence
 {
 public:
+   /*!
+    * @pre clips[i]->GetStartTime() <= clips[i+1]->GetStartTime()
+    */
    static std::shared_ptr<StretchingSequence>
    Create(const PlayableSequence&, const ClipConstHolders& clips);
+
+   /*!
+    * @copydoc Create(const PlayableSequence&, const ClipConstHolders&)
+    */
    static std::shared_ptr<StretchingSequence>
    Create(const PlayableSequence&, const ClipHolders& clips);
 
