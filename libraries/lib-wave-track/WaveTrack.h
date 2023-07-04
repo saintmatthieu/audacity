@@ -585,7 +585,8 @@ private:
    //
 
    /*!
-    @invariant all are non-null and match `this->GetWidth()`
+    * Do not call `mClips.push_back` directly. Use `InsertClip` instead.
+    * @invariant all are non-null and match `this->GetWidth()`
     */
    WaveClipHolders mClips;
 
@@ -612,6 +613,9 @@ private:
 
    //! Whether all clips have a common rate
    bool RateConsistencyCheck() const;
+
+   //! Inserts in order, beside doing other maintenance work
+   void InsertClip(WaveClipHolder clip);
 
    SampleBlockFactoryPtr mpFactory;
 
