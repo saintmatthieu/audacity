@@ -595,6 +595,8 @@ private:
 
 private:
    void SetClipRates(double newRate);
+   void DoOnProjectTempoChange(
+      const std::optional<double>& oldTempo, double newTempo) override;
 
    bool GetOne(
       samplePtr buffer, sampleFormat format, sampleCount start, size_t len,

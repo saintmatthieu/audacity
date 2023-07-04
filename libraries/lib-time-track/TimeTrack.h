@@ -101,6 +101,9 @@ class TIME_TRACK_API TimeTrack final : public Track {
  private:
    void CleanState();
 
+   void DoOnProjectTempoChange(
+      const std::optional<double>& oldTempo, double newTempo) override;
+
    std::unique_ptr<BoundedEnvelope> mEnvelope;
    bool             mDisplayLog;
    bool             mRescaleXMLValues; // needed for backward-compatibility with older project files
