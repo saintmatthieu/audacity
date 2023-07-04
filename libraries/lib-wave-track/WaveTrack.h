@@ -370,9 +370,9 @@ private:
       { return reinterpret_cast< const WaveClipConstHolders& >( mClips ); }
 
    /**
-    * @brief Get access to the (visible) clips in the tracks, in unspecified
-    * order.
+    * @brief Get access to the (visible) clips in the tracks, in order.
     * @pre `IsLeader()`
+    * @post clips[i]->GetStartTime() <= clips[i+1]->GetStartTime()
     */
    ClipConstHolders GetClipInterfaces() const;
 
