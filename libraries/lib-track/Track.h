@@ -84,7 +84,7 @@ template<typename T>
     been added to a TrackList, or (directly or transitively) copied from such.
     (A track added by TrackList::RegisterPendingNewTrack() that is not yet applied is not
     considered added.)
- 
+
     TrackIds are assigned uniquely across projects. */
 class TrackId
 {
@@ -343,7 +343,7 @@ public:
    const ChannelGroupData &GetGroupData() const;
 
 protected:
-   
+
    /*!
     @param completeList only influences debug build consistency checking
     */
@@ -365,7 +365,7 @@ private:
    Track* GetLinkedTrack() const;
    //! Returns true for leaders of multichannel groups
    bool HasLinkedTrack() const noexcept;
-   
+
    //! Retrieve mNode with debug checks
    TrackNodePointer GetNode() const;
    //! Update mNode when Track is added to TrackList, or removed from it
@@ -408,6 +408,9 @@ public:
 
    void Offset(double t) { SetOffset(GetOffset() + t); }
    virtual void SetOffset (double o) { mOffset = o; }
+
+   // method to set project tempo on track
+   void OnProjectTempoChange(double newTempo);
 
    // Create a NEW track and modify this track
    // Return non-NULL or else throw
@@ -519,13 +522,19 @@ public:
 
    // Return true iff the attribute is recognized.
    bool HandleCommonXMLAttribute(const std::string_view& attr, const XMLAttributeValueView& valueView);
+
+private:
+   virtual void DoOnProjectTempoChange(
+      const std::optional<double>& oldTempo, double newTempo) = 0;
+
+   std::optional<double> mProjectTempo;
 };
 
 ENUMERATE_TRACK_TYPE(Track);
 
 //! Encapsulate the checked down-casting of track pointers
 /*! Eliminates possibility of error -- and not quietly casting away const
- 
+
 Typical usage:
 ```
 if (auto wt = track_cast<const WaveTrack*>(track)) { ... }
@@ -565,9 +574,9 @@ template < typename TrackType > struct TrackIterRange;
 //! Iterator over only members of a TrackList of the specified subtype, optionally filtered by a predicate; past-end value dereferenceable, to nullptr
 /*! Does not suffer invalidation when an underlying std::list iterator is deleted, provided that is not
     equal to its current position or to the beginning or end iterator.
- 
+
     The filtering predicate is tested only when the iterator is constructed or advanced.
- 
+
     @tparam TrackType Track or a subclass, maybe const-qualified
  */
 template <
@@ -1142,10 +1151,10 @@ public:
    template<typename TrackKind>
       TrackKind *Add( const std::shared_ptr< TrackKind > &t )
          { return static_cast< TrackKind* >( DoAdd( t ) ); }
-   
+
    //! Removes linkage if track belongs to a group
    void UnlinkChannels(Track& track);
-   /** \brief Converts channels to a multichannel track. 
+   /** \brief Converts channels to a multichannel track.
    * @param first and the following must be in this list. Tracks should
    * not be a part of another group (not linked)
    * @param nChannels number of channels, for now only 2 channels supported
@@ -1233,7 +1242,7 @@ private:
 
    Track *GetPrev(Track * t, bool linked = false) const;
    Track *GetNext(Track * t, bool linked = false) const;
-   
+
    template < typename TrackType >
       TrackIter< TrackType >
          MakeTrackIterator( TrackNodePointer iter ) const

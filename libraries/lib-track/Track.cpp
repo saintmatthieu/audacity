@@ -44,8 +44,9 @@ Track::Track()
    mOffset = 0.0;
 }
 
-Track::Track(const Track &orig, ProtectedCreationArg&&)
-: vrulerSize( orig.vrulerSize )
+Track::Track(const Track& orig, ProtectedCreationArg&&)
+    : vrulerSize { orig.vrulerSize }
+    , mProjectTempo { orig.mProjectTempo }
 {
    mIndex = 0;
    mOffset = orig.mOffset;
@@ -198,12 +199,12 @@ void Track::DoSetLinkType(LinkType linkType, bool completeList)
 
    if (oldType == LinkType::None) {
       // Becoming linked
-   
+
       // First ensure there is no partner
       if (auto partner = GetLinkedTrack())
          partner->mpGroupData.reset();
       assert(!GetLinkedTrack());
-   
+
       // Change the link type
       MakeGroupData().mLinkType = linkType;
 
@@ -721,11 +722,11 @@ void TrackList::Clear(bool sendEvent)
    for ( auto pTrack: *this )
    {
       pTrack->SetOwner({}, {});
-      
+
       if (sendEvent)
          DeletionEvent(pTrack->shared_from_this(), false);
    }
-   
+
    for ( auto pTrack: mPendingUpdates )
    {
       pTrack->SetOwner({}, {});
@@ -1244,6 +1245,12 @@ bool Track::IsAlignedWithLeader() const
       return leader != this && leader->GetLinkType() == Track::LinkType::Aligned;
    }
    return false;
+}
+
+void Track::OnProjectTempoChange(double newTempo)
+{
+   DoOnProjectTempoChange(mProjectTempo, newTempo);
+   mProjectTempo = newTempo;
 }
 
 // Undo/redo handling of selection changes
