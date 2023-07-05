@@ -482,7 +482,7 @@ bool EffectAutoDuck::ApplyDuckFade(int trackNum, WaveTrack* t,
          buf[ ( i - pos ).as_size_t() ] *= DB_TO_LINEAR(gain);
       }
 
-      t->Set((samplePtr)buf.get(), floatSample, pos, len);
+      t->Set(SetTag{}, (samplePtr)buf.get(), floatSample, pos, len);
 
       pos += len;
 

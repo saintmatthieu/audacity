@@ -146,7 +146,7 @@ bool EffectRepair::ProcessOne(int count, WaveTrack * track,
    Floats buffer{ len };
    track->GetFloats(GetTag{},buffer.get(), start, len);
    InterpolateAudio(buffer.get(), len, repairStart, repairLen);
-   track->Set((samplePtr)&buffer[repairStart], floatSample,
+   track->Set(SetTag{}, (samplePtr)&buffer[repairStart], floatSample,
       start + repairStart, repairLen,
       // little repairs shouldn't force dither on rendering:
       narrowestSampleFormat

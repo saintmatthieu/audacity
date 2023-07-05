@@ -2327,7 +2327,7 @@ ChannelSampleView WaveTrack::GetOneSampleView(
 }
 
 /*! @excsafety{Weak} */
-void WaveTrack::Set(constSamplePtr buffer, sampleFormat format,
+void WaveTrack::Set(SetTag, constSamplePtr buffer, sampleFormat format,
    sampleCount start, size_t len, sampleFormat effectiveFormat)
 {
    for (const auto &clip: mClips)

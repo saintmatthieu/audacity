@@ -165,7 +165,7 @@ bool EffectTwoPassSimpleMono::ProcessOne(WaveTrack * track, WaveTrack * outTrack
       //Processing succeeded. copy the newly-changed samples back
       //onto the track.
       if (mSecondPassDisabled || mPass != 0) {
-         outTrack->Set((samplePtr)buffer1.get(), floatSample, s - samples1, samples1);
+         outTrack->Set(SetTag{}, (samplePtr)buffer1.get(), floatSample, s - samples1, samples1);
       }
       else {
          outTrack->Append((samplePtr)buffer1.get(), floatSample, samples1);
@@ -206,7 +206,7 @@ bool EffectTwoPassSimpleMono::ProcessOne(WaveTrack * track, WaveTrack * outTrack
    //Processing succeeded. copy the newly-changed samples back
    //onto the track.
    if (mSecondPassDisabled || mPass != 0) {
-      outTrack->Set((samplePtr)buffer1.get(), floatSample, s - samples1, samples1);
+      outTrack->Set(SetTag{}, (samplePtr)buffer1.get(), floatSample, s - samples1, samples1);
    }
    else {
       outTrack->Append((samplePtr)buffer1.get(), floatSample, samples1);

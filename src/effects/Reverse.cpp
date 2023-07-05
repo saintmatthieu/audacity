@@ -239,9 +239,9 @@ bool EffectReverse::ProcessOneClip(int count, WaveTrack *track,
          buffer2[block-i-1] = tmp;
       }
       // Don't dither on later rendering if only reversing samples
-      track->Set((samplePtr)buffer1.get(), floatSample, first, block,
+      track->Set(SetTag{}, (samplePtr)buffer1.get(), floatSample, first, block,
          narrowestSampleFormat);
-      track->Set((samplePtr)buffer2.get(), floatSample, second, block,
+      track->Set(SetTag{}, (samplePtr)buffer2.get(), floatSample, second, block,
          narrowestSampleFormat);
 
       len -= 2 * block;

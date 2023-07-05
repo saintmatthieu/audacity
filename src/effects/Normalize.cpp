@@ -427,7 +427,7 @@ bool EffectNormalize::ProcessOne(
       ProcessData(buffer.get(), block, offset);
 
       //Copy the newly-changed samples back onto the track.
-      track->Set((samplePtr) buffer.get(), floatSample, s, block);
+      track->Set(SetTag{}, (samplePtr) buffer.get(), floatSample, s, block);
 
       //Increment s one blockfull of samples
       s += block;

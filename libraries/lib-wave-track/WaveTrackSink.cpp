@@ -64,10 +64,10 @@ void WaveTrackSink::DoConsume(Buffers &data)
    if (inputBufferCnt > 0) {
       // Some data still unwritten
       if (mIsProcessor) {
-         mLeft.Set(data.GetReadPosition(0),
+         mLeft.Set(SetTag{}, data.GetReadPosition(0),
             floatSample, mOutPos, inputBufferCnt, mEffectiveFormat);
          if (mpRight)
-            mpRight->Set(data.GetReadPosition(1),
+            mpRight->Set(SetTag{}, data.GetReadPosition(1),
                floatSample, mOutPos, inputBufferCnt, mEffectiveFormat);
       }
       else if (mGenLeft) {

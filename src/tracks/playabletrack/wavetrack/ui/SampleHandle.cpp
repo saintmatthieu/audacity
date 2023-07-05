@@ -290,7 +290,10 @@ UIHandle::Result SampleHandle::Click
       }
       //Set the sample to the point of the mouse event
       // Don't require dithering later
-      mClickedTrack->Set((samplePtr)newSampleRegion.get(), floatSample,
+
+      // Client must account for stretching. Easier would be if Set took time
+      // and num. samples, or in this case, time interval.
+      mClickedTrack->Set(SetTag{}, (samplePtr)newSampleRegion.get(), floatSample,
          mClickedStartSample - SMOOTHING_BRUSH_RADIUS,
          1 + 2 * SMOOTHING_BRUSH_RADIUS,
          narrowestSampleFormat);
@@ -309,7 +312,7 @@ UIHandle::Result SampleHandle::Click
 
       //Set the sample to the point of the mouse event
       // Don't require dithering later
-      mClickedTrack->Set(
+      mClickedTrack->Set(SetTag{},
          (samplePtr)&newLevel, floatSample, mClickedStartSample, 1,
          narrowestSampleFormat);
 
@@ -385,7 +388,7 @@ UIHandle::Result SampleHandle::Drag
    const auto size = ( end - start + 1 ).as_size_t();
    if (size == 1) {
       // Don't require dithering later
-      mClickedTrack->Set(
+      mClickedTrack->Set(SetTag{},
          (samplePtr)&newLevel, floatSample, start, size, narrowestSampleFormat);
    }
    else {
@@ -399,7 +402,7 @@ UIHandle::Result SampleHandle::Drag
              (s0 - mLastDragSample).as_float();
       }
       // Don't require dithering later
-      mClickedTrack->Set(
+      mClickedTrack->Set(SetTag{},
          (samplePtr)&values[0], floatSample, start, size, narrowestSampleFormat);
    }
 

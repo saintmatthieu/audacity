@@ -288,7 +288,7 @@ private:
     Set samples in the unique channel
     TODO wide wave tracks -- overloads to set one or all channels
     */
-   void Set(constSamplePtr buffer, sampleFormat format,
+   void Set(SetTag, constSamplePtr buffer, sampleFormat format,
       sampleCount start, size_t len,
       sampleFormat effectiveFormat = widestSampleFormat /*!<
          Make the effective format of the data at least the minumum of this

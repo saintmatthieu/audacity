@@ -187,7 +187,7 @@ bool EffectClickRemoval::ProcessOne(int count, WaveTrack * track, sampleCount st
       }
 
       if (mbDidSomething) // RemoveClicks() actually did something.
-         track->Set((samplePtr) buffer.get(), floatSample, start + s, block);
+         track->Set(SetTag{}, (samplePtr) buffer.get(), floatSample, start + s, block);
 
       s += block;
 

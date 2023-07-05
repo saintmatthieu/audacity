@@ -485,7 +485,7 @@ void EffectLoudness::StoreBufferBlock(TrackIterRange<WaveTrack> range,
    for(auto channel : range)
    {
       // Copy the newly-changed samples back onto the track.
-      channel->Set((samplePtr) mTrackBuffer[idx].get(), floatSample, pos, len);
+      channel->Set(SetTag{}, (samplePtr) mTrackBuffer[idx].get(), floatSample, pos, len);
       ++idx;
    }
 }

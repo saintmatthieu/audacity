@@ -104,7 +104,7 @@ bool EffectSimpleMono::ProcessOne(WaveTrack * track,
 
       //Processing succeeded. copy the newly-changed samples back
       //onto the track.
-      track->Set((samplePtr) buffer.get(), floatSample, s, block);
+      track->Set(SetTag{}, (samplePtr) buffer.get(), floatSample, s, block);
 
       //Increment s one blockfull of samples
       s += block;
