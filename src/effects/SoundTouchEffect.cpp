@@ -389,7 +389,7 @@ bool EffectSoundTouch::ProcessStereoResults(soundtouch::SoundTouch *pSoundTouch,
 void EffectSoundTouch::Finalize(WaveTrack* orig, WaveTrack* out, const TimeWarper &warper)
 {
    if (mPreserveLength) {
-      auto newLen = out->GetPlaySamplesCount();
+      auto newLen = out->TimeToLongSamples(out->GetPlayDuration());
       auto oldLen = out->TimeToLongSamples(mCurT1) - out->TimeToLongSamples(mCurT0);
 
       // Pad output track to original length since SoundTouch may remove samples

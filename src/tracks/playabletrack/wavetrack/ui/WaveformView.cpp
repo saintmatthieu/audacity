@@ -459,7 +459,7 @@ void DrawIndividualSamples(TrackPanelDrawingContext &context, size_t channel,
    double rate = clip->GetRate();
    const double t0 = std::max(0.0, zoomInfo.PositionToTime(0, -leftOffset) - toffset);
    const auto s0 = sampleCount(floor(t0 * rate));
-   const auto snSamples = clip->GetPlaySamplesCount();
+   const auto snSamples = clip->GetVisibleSampleCount();
    if (s0 > snSamples)
       return;
 
@@ -791,7 +791,7 @@ void DrawClipWaveform(TrackPanelDrawingContext &context, size_t channel,
       if (portion.inFisheye) {
          if (!showIndividualSamples) {
             fisheyeDisplay.Allocate();
-            const auto numSamples = clip->GetPlaySamplesCount();
+            const auto numSamples = clip->GetVisibleSampleCount();
             // Get wave display data for different magnification
             int jj = 0;
             for (; jj < rectPortion.width; ++jj) {
@@ -1013,12 +1013,12 @@ void WaveformView::Draw(
       const auto hasSolo = artist->hasSolo;
       bool muted = (hasSolo || wt->GetMute()) &&
       !wt->GetSolo();
-      
+
 #if defined(__WXMAC__)
       wxAntialiasMode aamode = dc.GetGraphicsContext()->GetAntialiasMode();
       dc.GetGraphicsContext()->SetAntialiasMode(wxANTIALIAS_NONE);
 #endif
-      
+
       auto waveTrackView = GetWaveTrackView().lock();
       wxASSERT(waveTrackView.use_count());
 
@@ -1095,7 +1095,7 @@ BEGIN_POPUP_MENU(WaveColorMenuTable)
       const auto &track = *static_cast<WaveTrack*>(pData->pTrack);
       auto &project = pData->project;
       bool unsafe = ProjectAudioIO::Get( project ).IsAudioActive();
-      
+
       menu.Check( id, id == me.IdOfWaveColor( track.GetWaveColorIndex() ) );
       menu.Enable( id, !unsafe );
    };

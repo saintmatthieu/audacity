@@ -540,14 +540,13 @@ void WaveTrack::SetWaveColorIndex(int colorIndex)
    mWaveColorIndex = colorIndex;
 }
 
-sampleCount WaveTrack::GetPlaySamplesCount() const
+double WaveTrack::GetPlayDuration() const
 {
-    sampleCount result{ 0 };
-
-    for (const auto& clip : mClips)
-        result += clip->GetPlaySamplesCount();
-
-    return result;
+   if (mClips.empty())
+      return 0.;
+   else
+      return mClips.back()->GetPlayEndTime() -
+             mClips.front()->GetPlayStartTime();
 }
 
 sampleCount WaveTrack::GetSequenceSamplesCount() const
@@ -2222,7 +2221,7 @@ bool WaveTrack::GetOne(
       {
          // Clip sample region and Get/Put sample region overlap
          auto samplesToCopy =
-            std::min( start+len - clipStart, clip->GetPlaySamplesCount() );
+            std::min(start + len - clipStart, clip->GetVisibleSampleCount());
          auto startDelta = clipStart - start;
          decltype(startDelta) inclipDelta = 0;
          if (startDelta < 0)
@@ -2340,7 +2339,7 @@ void WaveTrack::Set(constSamplePtr buffer, sampleFormat format,
       {
          // Clip sample region and Get/Put sample region overlap
          auto samplesToCopy =
-            std::min( start+len - clipStart, clip->GetPlaySamplesCount() );
+            std::min(start + len - clipStart, clip->GetVisibleSampleCount());
          auto startDelta = clipStart - start;
          decltype(startDelta) inclipDelta = 0;
          if (startDelta < 0)

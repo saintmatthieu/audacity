@@ -673,13 +673,11 @@ void DrawClipSpectrum(TrackPanelDrawingContext &context,
          const double time = zoomInfo.PositionToTime(ii, -leftOffset) - tOffset;
          specCache.where[ii - begin] = sampleCount(0.5 + rate * time);
       }
-      specCache.Populate
-         (settings, sequence,
-          0, 0, numPixels,
-          clip->GetPlaySamplesCount(),
-          tOffset, rate,
-          0 // FIXME: PRL -- make reassignment work with fisheye
-       );
+      specCache.Populate(
+         settings, sequence, 0, 0, numPixels, clip->GetVisibleSampleCount(),
+         tOffset, rate,
+         0 // FIXME: PRL -- make reassignment work with fisheye
+      );
    }
 
    // build color gradient tables (not thread safe)

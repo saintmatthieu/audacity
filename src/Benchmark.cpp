@@ -422,12 +422,13 @@ void BenchmarkDialog::OnRun( wxCommandEvent & WXUNUSED(event))
    // as we're about to do).
    t->GetEndTime();
 
-   if (t->GetClipByIndex(0)->GetPlaySamplesCount() != nChunks * chunkSize) {
-      Printf( XO("Expected len %lld, track len %lld.\n")
-         .Format(
-            nChunks * chunkSize,
-            t->GetClipByIndex(0)->GetPlaySamplesCount()
-               .as_long_long() ) );
+   if (t->GetClipByIndex(0)->GetVisibleSampleCount() != nChunks * chunkSize)
+   {
+      Printf(
+         XO("Expected len %lld, track len %lld.\n")
+            .Format(
+               nChunks * chunkSize,
+               t->GetClipByIndex(0)->GetVisibleSampleCount().as_long_long()));
       goto fail;
    }
 
@@ -456,11 +457,11 @@ void BenchmarkDialog::OnRun( wxCommandEvent & WXUNUSED(event))
          Printf( XO("Trial %d\n").Format( z ) );
          Printf( XO("Cut (%lld, %lld) failed.\n")
             .Format( (x0 * chunkSize), (x0 + xlen) * chunkSize) );
-         Printf( XO("Expected len %lld, track len %lld.\n")
-            .Format(
-               nChunks * chunkSize,
-               t->GetClipByIndex(0)->GetPlaySamplesCount()
-                  .as_long_long() ) );
+         Printf(XO("Expected len %lld, track len %lld.\n")
+                   .Format(
+                      nChunks * chunkSize, t->GetClipByIndex(0)
+                                              ->GetVisibleSampleCount()
+                                              .as_long_long()));
          goto fail;
       }
 
@@ -479,13 +480,14 @@ void BenchmarkDialog::OnRun( wxCommandEvent & WXUNUSED(event))
          goto fail;
       }
 
-      if (t->GetClipByIndex(0)->GetPlaySamplesCount() != nChunks * chunkSize) {
+      if (t->GetClipByIndex(0)->GetVisibleSampleCount() != nChunks * chunkSize)
+      {
          Printf( XO("Trial %d\n").Format( z ) );
-         Printf( XO("Expected len %lld, track len %lld.\n")
-            .Format(
-               nChunks * chunkSize,
-               t->GetClipByIndex(0)->GetPlaySamplesCount()
-                  .as_long_long() ) );
+         Printf(XO("Expected len %lld, track len %lld.\n")
+                   .Format(
+                      nChunks * chunkSize, t->GetClipByIndex(0)
+                                              ->GetVisibleSampleCount()
+                                              .as_long_long()));
          goto fail;
       }
 
