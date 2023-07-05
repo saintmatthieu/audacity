@@ -100,9 +100,9 @@ long resampleCB(void *cb_data, SBSMSFrame *data)
    // does not seem to let us report error codes, so use this roundabout to
    // stop the effect early.
    try {
-      r->leftTrack->GetFloats(
+      r->leftTrack->GetFloats(GetTag{},
          (r->leftBuffer.get()), r->offset, blockSize);
-      r->rightTrack->GetFloats(
+      r->rightTrack->GetFloats(GetTag{},
          (r->rightBuffer.get()), r->offset, blockSize);
    }
    catch ( ... ) {
@@ -311,7 +311,7 @@ bool EffectSBSMS::Process(EffectInstance &, EffectSettings &)
                    static_cast<_sbsms_::SampleCountType>
                       ( samplesToProcess.as_long_long() ),
                    0, nullptr);
-               
+
             }
             else {
               rb.bPitch = false;
@@ -332,7 +332,7 @@ bool EffectSBSMS::Process(EffectInstance &, EffectSettings &)
                    0,
                    rb.quality.get());
             }
-            
+
             Resampler resampler(outResampleCB,&rb,outSlideType);
 
             audio outBuf[SBSMSOutBlockSize];
@@ -356,7 +356,7 @@ bool EffectSBSMS::Process(EffectInstance &, EffectSettings &)
             rb.outputLeftTrack = leftTrack.EmptyCopy();
             if(rightTrack)
                rb.outputRightTrack = rightTrack->EmptyCopy();
-   
+
             long pos = 0;
             long outputCount = -1;
 

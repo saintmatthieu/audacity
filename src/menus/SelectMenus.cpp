@@ -44,7 +44,7 @@ double NearestZeroCrossing
       auto s = one->TimeToLongSamples(t0);
       // fillTwo to ensure that missing values are treated as 2, and hence do
       // not get used as zero crossings.
-      one->GetFloats(oneDist.get(),
+      one->GetFloats(GetTag{},oneDist.get(),
                s - (int)oneWindowSize/2, oneWindowSize, fillTwo);
 
 
@@ -166,7 +166,7 @@ double GridMove
 {
    auto& projectSnap = ProjectSnap::Get(project);
    auto &viewInfo = ViewInfo::Get( project );
-   
+
    auto result = projectSnap.SingleStep(t, minPix >= 0).time;
 
    if (

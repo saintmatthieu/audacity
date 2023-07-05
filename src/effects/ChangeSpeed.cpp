@@ -480,7 +480,7 @@ bool EffectChangeSpeed::ProcessOne(WaveTrack * track,
       );
 
       //Get the samples from the track and put them in the buffer
-      track->GetFloats(inBuffer.get(), samplePos, blockSize);
+      track->GetFloats(GetTag{},inBuffer.get(), samplePos, blockSize);
 
       const auto results = resample.Process(mFactor,
                                     inBuffer.get(),

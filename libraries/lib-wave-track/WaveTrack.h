@@ -53,6 +53,10 @@ using ChannelSampleView = std::vector<AudioSegmentSampleView>;
 
 class Envelope;
 
+struct SetTag
+{
+};
+
 class WAVE_TRACK_API WaveTrack final : public WritableSampleTrack
 {
 public:
@@ -272,7 +276,7 @@ private:
    /// guaranteed that the same samples are affected.
    ///
 
-   bool Get(
+   bool Get(GetTag,
       size_t iChannel, size_t nBuffers, samplePtr buffers[],
       sampleFormat format, sampleCount start, size_t len, bool backwards,
       fillFormat fill = fillZero, bool mayThrow = true,

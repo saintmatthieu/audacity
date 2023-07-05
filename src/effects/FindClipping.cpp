@@ -171,7 +171,7 @@ bool EffectFindClipping::ProcessOne(LabelTrack * lt,
 
          block = limitSampleBufferSize( blockSize, len - s );
 
-         wt->GetFloats(buffer.get(), start + s, block);
+         wt->GetFloats(GetTag{},buffer.get(), start + s, block);
          ptr = buffer.get();
       }
 

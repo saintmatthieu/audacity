@@ -441,7 +441,7 @@ void FrequencyPlotDialog::Populate()
    // -------------------------------------------------------------------
    // ROW 5: Spacer
    // -------------------------------------------------------------------
-   
+
    S.AddSpace(5);
 
    S.SetBorder(2);
@@ -605,7 +605,7 @@ void FrequencyPlotDialog::GetAudio()
          }
          mData = Floats{ mDataLen };
          // Don't allow throw for bad reads
-         track->GetFloats(mData.get(), start, mDataLen,
+         track->GetFloats(GetTag{},mData.get(), start, mDataLen,
                     fillZero, false);
       }
       else {
@@ -620,7 +620,7 @@ void FrequencyPlotDialog::GetAudio()
          auto start = track->TimeToLongSamples(selectedRegion.t0());
          Floats buffer2{ mDataLen };
          // Again, stop exceptions
-         track->GetFloats(buffer2.get(), start, mDataLen,
+         track->GetFloats(GetTag{},buffer2.get(), start, mDataLen,
                     fillZero, false);
          for (size_t i = 0; i < mDataLen; i++)
             mData[i] += buffer2[i];
@@ -692,7 +692,7 @@ void FrequencyPlotDialog::DrawPlot()
       }
 
       memDC.SelectObject(wxNullBitmap);
-      
+
       mFreqPlot->Refresh();
 
       Refresh();

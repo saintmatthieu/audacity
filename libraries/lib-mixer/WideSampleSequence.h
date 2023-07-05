@@ -22,6 +22,10 @@ using SequenceAttachments = ClientData::Site<
    WideSampleSequence, ClientData::Cloneable<>, ClientData::DeepCopying
 >;
 
+struct GetTag
+{
+};
+
 //! An interface for random-access fetches from a collection of streams of
 //! samples, associated with the same time; also defines an envelope that
 //! applies to all the streams.
@@ -65,14 +69,14 @@ public:
     @return false when `mayThrow` is false and not all samples could be
        retrieved
     */
-   bool GetFloats(
+   bool GetFloats(GetTag,
       size_t iChannel, size_t nBuffers, float* buffers[], sampleCount start,
       size_t len, bool backwards = false, fillFormat fill = fillZero,
       bool mayThrow = true, sampleCount* pNumWithinClips = nullptr) const
    {
       // Cast the pointers to pass them to Get() which handles multiple
       // destination formats
-      return Get(
+      return Get(GetTag{},
          iChannel, nBuffers, reinterpret_cast<samplePtr*>(buffers), floatSample,
          start, len, backwards, fill, mayThrow, pNumWithinClips);
    }
@@ -85,7 +89,7 @@ public:
     @param backward retrieves samples from `start` (inclusive) to `start + len`
     if false, else from `start` (exclusive) to `start - len` in reverse order.
     */
-   virtual bool Get(
+   virtual bool Get(GetTag,
       size_t iChannel, size_t nBuffers, samplePtr buffers[],
       sampleFormat format, sampleCount start, size_t len, bool backward,
       fillFormat fill = fillZero, bool mayThrow = true,

@@ -34,7 +34,7 @@ public:
    const WideSampleSequence* DoGetDecorated() const override;
    size_t NChannels() const override;
    float GetChannelGain(int channel) const override;
-   bool Get(
+   bool Get(GetTag,
       size_t iChannel, size_t nBuffers, samplePtr buffers[],
       sampleFormat format, sampleCount start, size_t len, bool backwards,
       fillFormat fill = fillZero, bool mayThrow = true,

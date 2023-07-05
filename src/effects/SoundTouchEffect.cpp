@@ -217,7 +217,7 @@ bool EffectSoundTouch::ProcessOne(soundtouch::SoundTouch *pSoundTouch,
             limitSampleBufferSize( track->GetBestBlockSize(s), end - s ));
 
          //Get the samples from the track and put them in the buffer
-         track->GetFloats(buffer.get(), s, block);
+         track->GetFloats(GetTag{},buffer.get(), s, block);
 
          //Add samples to SoundTouch
          pSoundTouch->putSamples(buffer.get(), block);
@@ -298,8 +298,8 @@ bool EffectSoundTouch::ProcessStereo(soundtouch::SoundTouch *pSoundTouch,
          );
 
          // Get the samples from the tracks and put them in the buffers.
-         leftTrack->GetFloats((leftBuffer.get()), sourceSampleCount, blockSize);
-         rightTrack->GetFloats((rightBuffer.get()), sourceSampleCount, blockSize);
+         leftTrack->GetFloats(GetTag{},(leftBuffer.get()), sourceSampleCount, blockSize);
+         rightTrack->GetFloats(GetTag{},(rightBuffer.get()), sourceSampleCount, blockSize);
 
          // Interleave into soundTouchBuffer.
          for (decltype(blockSize) index = 0; index < blockSize; index++) {

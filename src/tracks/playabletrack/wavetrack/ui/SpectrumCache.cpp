@@ -174,7 +174,7 @@ bool SpecCache::CalculateOneSpectrum
             floats.resize(myLen);
             auto data = floats.data();
             constexpr auto backwards = false;
-            if (sequence.GetFloats(
+            if (sequence.GetFloats(GetTag{},
                    0u, 1u, &data,
                    sampleCount(floor(0.5 + from.as_double() + offset * rate)),
                    myLen, backwards, fillZero,

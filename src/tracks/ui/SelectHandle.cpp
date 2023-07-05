@@ -555,7 +555,7 @@ UIHandle::Result SelectHandle::Click
    if ( selectChange )
       // Do not start a drag
       return RefreshAll | Cancelled;
-   
+
    auto &selectionState = SelectionState::Get( *pProject );
    if (event.LeftDClick() && !event.ShiftDown()) {
       auto &trackList = TrackList::Get( *pProject );
@@ -859,7 +859,7 @@ UIHandle::Result SelectHandle::Drag
                   static_cast<WaveTrack*>(pTrack.get()),
                   viewInfo, y, mRect.y, mRect.height);
    #endif
-         
+
          AdjustSelection(pProject, viewInfo, x, mRect.x, clickedTrack.get());
       }
    }
@@ -923,7 +923,7 @@ HitTestPreview SelectHandle::Preview
             // No keyboard preference defined for opening Preferences dialog
             /* i18n-hint: These are the names of a menu and a command in that menu */
             keyStr = _("Edit, Preferences...");
-         
+
          /* i18n-hint: %s is usually replaced by "Ctrl+P" for Windows/Linux, "Command+," for Mac */
          tip = XO("Multi-Tool Mode: %s for Mouse and Keyboard Preferences.")
             .Format( keyStr );
@@ -1000,7 +1000,7 @@ UIHandle::Result SelectHandle::Release
       mSelectionStateChanger->Commit();
       mSelectionStateChanger.reset();
    }
-   
+
    if (mUseSnap && (mSnapStart.outCoord != -1 || mSnapEnd.outCoord != -1))
       return RefreshAll;
    else
@@ -1366,7 +1366,7 @@ void SelectHandle::StartSnappingFreqSelection
             end - start));
    const auto effectiveLength = std::max(minLength, length);
    frequencySnappingData.resize(effectiveLength, 0.0f);
-   pTrack->GetFloats(
+   pTrack->GetFloats(GetTag{},
       &frequencySnappingData[0],
       start, length, fillZero,
       // Don't try to cope with exceptions, just read zeroes instead.

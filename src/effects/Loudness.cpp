@@ -441,7 +441,7 @@ void EffectLoudness::LoadBufferBlock(TrackIterRange<WaveTrack> range,
    int idx = 0;
    for(auto channel : range)
    {
-      channel->GetFloats(mTrackBuffer[idx].get(), pos, len );
+      channel->GetFloats(GetTag{},mTrackBuffer[idx].get(), pos, len );
       ++idx;
    }
    mTrackBufferLen = len;

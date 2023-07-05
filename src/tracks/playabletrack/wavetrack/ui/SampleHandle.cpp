@@ -128,7 +128,7 @@ UIHandlePtr SampleHandle::HitTest
    float oneSample;
    const double rate = wavetrack->GetRate();
    const auto s0 = (sampleCount)(tt * rate + 0.5);
-   if (! wavetrack->GetFloats(&oneSample, s0, 1, fillZero,
+   if (! wavetrack->GetFloats(GetTag{},&oneSample, s0, 1, fillZero,
          // Do not propagate exception but return a failure value
          false) )
       return {};
@@ -148,7 +148,7 @@ UIHandlePtr SampleHandle::HitTest
    const bool dB = !settings.isLinear();
    int yValue = GetWaveYPos(oneSample * envValue,
       zoomMin, zoomMax,
-      rect.height, dB, true, 
+      rect.height, dB, true,
       settings.dBRange, false) + rect.y;
 
    // Get y position of mouse (in pixels)
@@ -240,7 +240,7 @@ UIHandle::Result SampleHandle::Click
       Floats newSampleRegion{ 1 + 2 * (size_t)SMOOTHING_BRUSH_RADIUS };
 
       //Get a sample  from the track to do some tricks on.
-      mClickedTrack->GetFloats(sampleRegion.get(),
+      mClickedTrack->GetFloats(GetTag{},sampleRegion.get(),
          mClickedStartSample - SMOOTHING_KERNEL_RADIUS - SMOOTHING_BRUSH_RADIUS,
          sampleRegionSize);
 
@@ -458,7 +458,7 @@ float SampleHandle::FindSampleEditingLevel
    auto &settings = WaveformSettings::Get(*mClickedTrack);
    const bool dB = !settings.isLinear();
    float newLevel =
-      ::ValueOfPixel(yy, height, false, dB, 
+      ::ValueOfPixel(yy, height, false, dB,
          settings.dBRange, zoomMin, zoomMax);
 
    //Take the envelope into account

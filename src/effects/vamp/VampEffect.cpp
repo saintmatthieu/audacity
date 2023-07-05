@@ -448,12 +448,12 @@ bool VampEffect::Process(EffectInstance &, EffectSettings &)
 
          if (left)
          {
-            left->GetFloats(data[0].get(), pos, request);
+            left->GetFloats(GetTag{},data[0].get(), pos, request);
          }
 
          if (right)
          {
-            right->GetFloats(data[1].get(), pos, request);
+            right->GetFloats(GetTag{},data[1].get(), pos, request);
          }
 
          if (request < block)

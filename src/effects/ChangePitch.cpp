@@ -455,7 +455,7 @@ void EffectChangePitch::DeduceFrequencies()
       Floats freq{ windowSize / 2 };
       Floats freqa{ windowSize / 2, true };
 
-      track->GetFloats(buffer.get(), start, analyzeSize);
+      track->GetFloats(GetTag{},buffer.get(), start, analyzeSize);
       for(unsigned i = 0; i < numWindows; i++) {
          ComputeSpectrum(buffer.get() + i * windowSize, windowSize,
                          windowSize, rate, freq.get(), true);

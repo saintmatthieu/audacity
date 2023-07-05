@@ -89,7 +89,7 @@ float StretchingSequence::GetChannelGain(int channel) const
    return mSequence.GetChannelGain(channel);
 }
 
-bool StretchingSequence::Get(
+bool StretchingSequence::Get(GetTag,
    size_t iChannel, size_t nBuffers, samplePtr buffers[], sampleFormat format,
    sampleCount start, size_t len, bool backwards, fillFormat fill,
    bool mayThrow, sampleCount* pNumWithinClips) const
@@ -158,7 +158,7 @@ bool StretchingSequence::GetFloats(
    for (auto i = 0u; i < nChannels; ++i)
       charBuffers.push_back(reinterpret_cast<samplePtr>(buffers[i]));
    constexpr auto iChannel = 0u;
-   return Get(
+   return Get(GetTag{},
       iChannel, nChannels, charBuffers.data(), sampleFormat::floatSample, start,
       len, backwards);
 }

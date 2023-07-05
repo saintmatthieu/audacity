@@ -311,7 +311,7 @@ void OnPunchAndRoll(const CommandContext &context)
       if (getLen > 0) {
          float *const samples = data.data();
          const sampleCount pos = wt->TimeToLongSamples(t1);
-         wt->GetFloats(samples, pos, getLen);
+         wt->GetFloats(GetTag{},samples, pos, getLen);
       }
       crossfadeData.push_back(std::move(data));
    }
@@ -333,7 +333,7 @@ void OnPunchAndRoll(const CommandContext &context)
       for (auto &pTrack : tracks)
          if (pTrack->IsLeader())
             transportTracks.playbackSequences.push_back(pTrack);
-      
+
    // Unlike with the usual recording, a track may be chosen both for playback
    // and recording.
    std::copy(tracks.begin(), tracks.end(),

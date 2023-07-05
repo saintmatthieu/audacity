@@ -40,7 +40,7 @@ const EffectParameterMethods& EffectPaulstretch::Parameters() const
    return parameters;
 }
 
-/// \brief Class that helps EffectPaulStretch.  It does the FFTs and inner loop 
+/// \brief Class that helps EffectPaulStretch.  It does the FFTs and inner loop
 /// of the effect.
 class PaulStretch
 {
@@ -350,7 +350,7 @@ bool EffectPaulstretch::ProcessOne(WaveTrack *track,double t0,double t1,int coun
          decltype(len) s=0;
 
          while (s < len) {
-            track->GetFloats(bufferptr0, start + s, nget);
+            track->GetFloats(GetTag{},bufferptr0, start + s, nget);
             stretch.process(buffer0.get(), nget);
 
             if (first_time) {
@@ -360,7 +360,7 @@ bool EffectPaulstretch::ProcessOne(WaveTrack *track,double t0,double t1,int coun
             s += nget;
 
             if (first_time){//blend the start of the selection
-               track->GetFloats(fade_track_smps.get(), start, fade_len);
+               track->GetFloats(GetTag{},fade_track_smps.get(), start, fade_len);
                first_time = false;
                for (size_t i = 0; i < fade_len; i++){
                   float fi = (float)i / (float)fade_len;
@@ -369,7 +369,7 @@ bool EffectPaulstretch::ProcessOne(WaveTrack *track,double t0,double t1,int coun
                }
             }
             if (s >= len){//blend the end of the selection
-               track->GetFloats(fade_track_smps.get(), end - fade_len, fade_len);
+               track->GetFloats(GetTag{},fade_track_smps.get(), end - fade_len, fade_len);
                for (size_t i = 0; i < fade_len; i++){
                   float fi = (float)i / (float)fade_len;
                   auto i2 = bufsize / 2 - 1 - i;
@@ -398,7 +398,7 @@ bool EffectPaulstretch::ProcessOne(WaveTrack *track,double t0,double t1,int coun
          track->Paste(t0, outputTrack.get());
          m_t1 = mT0 + outputTrack->GetEndTime();
       }
-      
+
       return !cancelled;
    }
    catch ( const std::bad_alloc& ) {

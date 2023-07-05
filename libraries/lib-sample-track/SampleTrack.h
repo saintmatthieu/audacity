@@ -51,12 +51,12 @@ public:
    using WideSampleSequence::GetFloats;
 
    //! "narrow" overload fetches first channel only
-   bool GetFloats(float *buffer, sampleCount start, size_t len,
+   bool GetFloats(GetTag, float *buffer, sampleCount start, size_t len,
       fillFormat fill = fillZero, bool mayThrow = true,
       sampleCount * pNumWithinClips = nullptr) const
    {
       constexpr auto backwards = false;
-      return GetFloats(
+      return GetFloats(GetTag{},
          0, 1, &buffer, start, len, backwards, fill, mayThrow, pNumWithinClips);
    }
 };

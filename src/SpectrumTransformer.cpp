@@ -363,7 +363,7 @@ bool TrackSpectrumTransformer::Process( const WindowProcessor &processor,
          start + len - samplePos);
 
       //Get the samples from the track and put them in the buffer
-      track->GetFloats(buffer.data(), samplePos, blockSize);
+      track->GetFloats(GetTag{},buffer.data(), samplePos, blockSize);
       samplePos += blockSize;
 
       bLoopSuccess = ProcessSamples(processor, buffer.data(), blockSize);

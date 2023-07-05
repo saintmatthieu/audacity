@@ -129,7 +129,7 @@ bool EffectTwoPassSimpleMono::ProcessOne(WaveTrack * track, WaveTrack * outTrack
       std::min( maxblock, track->GetBestBlockSize(start) ), end - start );
 
    //Get the samples from the track and put them in the buffer
-   track->GetFloats(buffer1.get(), start, samples1);
+   track->GetFloats(GetTag{},buffer1.get(), start, samples1);
 
    // Process the first buffer with a NULL previous buffer
    if (mPass == 0)
@@ -151,7 +151,7 @@ bool EffectTwoPassSimpleMono::ProcessOne(WaveTrack * track, WaveTrack * outTrack
       );
 
       //Get the samples from the track and put them in the buffer
-      track->GetFloats(buffer2.get(), s, samples2);
+      track->GetFloats(GetTag{},buffer2.get(), s, samples2);
 
       //Process the buffer.  If it fails, clean up and exit.
       if (mPass == 0)

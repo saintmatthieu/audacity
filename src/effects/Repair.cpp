@@ -144,7 +144,7 @@ bool EffectRepair::ProcessOne(int count, WaveTrack * track,
                               size_t repairStart, size_t repairLen)
 {
    Floats buffer{ len };
-   track->GetFloats(buffer.get(), start, len);
+   track->GetFloats(GetTag{},buffer.get(), start, len);
    InterpolateAudio(buffer.get(), len, repairStart, repairLen);
    track->Set((samplePtr)&buffer[repairStart], floatSample,
       start + repairStart, repairLen,

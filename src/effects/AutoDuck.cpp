@@ -224,8 +224,8 @@ bool EffectAutoDuck::Process(EffectInstance &, EffectSettings &)
       while (pos < end)
       {
          const auto len = limitSampleBufferSize( kBufSize, end - pos );
-         
-         mControlTrack->GetFloats(buf.get(), pos, len);
+
+         mControlTrack->GetFloats(GetTag{},buf.get(), pos, len);
 
          for (auto i = pos; i < pos + len; i++)
          {
@@ -463,7 +463,7 @@ bool EffectAutoDuck::ApplyDuckFade(int trackNum, WaveTrack* t,
    {
       const auto len = limitSampleBufferSize( kBufSize, end - pos );
 
-      t->GetFloats(buf.get(), pos, len);
+      t->GetFloats(GetTag{},buf.get(), pos, len);
 
       for (auto i = pos; i < pos + len; i++)
       {

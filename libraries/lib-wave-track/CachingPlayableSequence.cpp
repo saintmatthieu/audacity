@@ -50,7 +50,7 @@ float CachingPlayableSequence::GetChannelGain(int channel) const
    return mWaveTrack.GetChannelGain(channel);
 }
 
-bool CachingPlayableSequence::Get(
+bool CachingPlayableSequence::Get(GetTag,
    size_t iChannel, size_t nBuffers, samplePtr buffers[], sampleFormat format,
    sampleCount start, size_t len, bool backwards, fillFormat fill,
    bool mayThrow, sampleCount* pNumWithinClips) const

@@ -150,7 +150,7 @@ bool EffectNormalize::Process(EffectInstance &, EffectSettings &)
             : topMsg +
                // TODO: more-than-two-channels-message
                XO("Analyzing first track of stereo pair: %s").Format( trackName );
-         
+
          // Analysis loop over channels collects offsets and extent
          for (auto channel : range) {
             float offset = 0;
@@ -361,7 +361,7 @@ bool EffectNormalize::AnalyseTrackData(const WaveTrack * track, const Translatab
       );
 
       //Get the samples from the track and put them in the buffer
-      track->GetFloats(buffer.get(), s, block, fillZero, true, &blockSamples);
+      track->GetFloats(GetTag{},buffer.get(), s, block, fillZero, true, &blockSamples);
       totalSamples += blockSamples;
 
       //Process the buffer.
@@ -421,7 +421,7 @@ bool EffectNormalize::ProcessOne(
       );
 
       //Get the samples from the track and put them in the buffer
-      track->GetFloats(buffer.get(), s, block);
+      track->GetFloats(GetTag{},buffer.get(), s, block);
 
       //Process the buffer.
       ProcessData(buffer.get(), block, offset);

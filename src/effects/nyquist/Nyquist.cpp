@@ -2531,7 +2531,7 @@ int NyquistEffect::GetCallback(float *buffer, int ch,
       // mCurBuffer[ch] = std::make_unique_for_overwrite(mCurBufferLen[ch]);
       mCurBuffer[ch] = Buffer{ safenew float[ mCurBufferLen[ch] ] };
       try {
-         mCurTrack[ch]->GetFloats( mCurBuffer[ch].get(),
+         mCurTrack[ch]->GetFloats(GetTag{}, mCurBuffer[ch].get(),
             mCurBufferStart[ch], mCurBufferLen[ch]);
       }
       catch ( ... ) {

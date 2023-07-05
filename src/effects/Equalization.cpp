@@ -196,7 +196,7 @@ bool EffectEqualization::VisitSettings(
    // Curve point parameters -- how many isn't known statically
    {
       curves[0].points.clear();
-   
+
       for (int i = 0; i < 200; i++)
       {
          const wxString nameFreq = wxString::Format("f%i",i);
@@ -288,7 +288,7 @@ EffectEqualization::LoadFactoryPreset(int id, EffectSettings &settings) const
    if (index < 0)
       return {};
 
-   // mParams = 
+   // mParams =
    wxString params = FactoryPresets[index].values;
 
    CommandParameters eap(params);
@@ -483,7 +483,7 @@ bool EffectEqualization::ProcessOne(int count, WaveTrack * t,
    {
       auto block = limitSampleBufferSize( idealBlockLen, len );
 
-      t->GetFloats(buffer.get(), s, block);
+      t->GetFloats(GetTag{},buffer.get(), s, block);
 
       for(size_t i = 0; i < block; i += L)   //go through block in lumps of length L
       {

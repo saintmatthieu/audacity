@@ -96,7 +96,7 @@ static const size_t DEF_BlendFrameCount = 100;
 
 // Lower bound on the amount of silence to find at a time -- this avoids
 // detecting silence repeatedly in low-frequency sounds.
-static const double DEF_MinTruncMs = 0.001; 
+static const double DEF_MinTruncMs = 0.001;
 
 // Typical fraction of total time taken by detection (better to guess low)
 const double detectFrac = 0.4;
@@ -188,7 +188,7 @@ bool EffectTruncSilence::LoadSettings(
       if (!parms.ReadAndVerify( ActIndex.key, &temp, ActIndex.def,
          kActionStrings, nActions, kObsoleteActions, nObsoleteActions))
          return false;
-   
+
       // TODO:  fix this when settings are really externalized
       const_cast<int&>(mActionIndex) = temp;
    }
@@ -442,7 +442,7 @@ bool EffectTruncSilence::DoRemoval
       // Don't waste time cutting nothing.
       if( cutLen == 0.0 )
          continue;
-      
+
       totalCutLen += cutLen;
 
       double cutStart = (r->start + r->end - cutLen) / 2;
@@ -475,8 +475,8 @@ bool EffectTruncSilence::DoRemoval
             auto t1 = wt.TimeToLongSamples(cutStart) - blendFrames / 2;
             auto t2 = wt.TimeToLongSamples(cutEnd) - blendFrames / 2;
 
-            wt.GetFloats(buf1.get(), t1, blendFrames);
-            wt.GetFloats(buf2.get(), t2, blendFrames);
+            wt.GetFloats(GetTag{},buf1.get(), t1, blendFrames);
+            wt.GetFloats(GetTag{},buf2.get(), t2, blendFrames);
 
             for (decltype(blendFrames) i = 0; i < blendFrames; ++i)
             {
@@ -601,7 +601,7 @@ bool EffectTruncSilence::Analyze(RegionList& silenceList,
       auto count = limitSampleBufferSize( blockLen, end - *index );
 
       // Fill buffer
-      wt->GetFloats((buffer.get()), *index, count);
+      wt->GetFloats(GetTag{},(buffer.get()), *index, count);
 
       // Look for silenceList in current block
       for (decltype(count) i = 0; i < count; ++i) {

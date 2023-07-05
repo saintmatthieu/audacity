@@ -95,7 +95,7 @@ bool EffectSimpleMono::ProcessOne(WaveTrack * track,
          limitSampleBufferSize( track->GetBestBlockSize(s), end - s );
 
       //Get the samples from the track and put them in the buffer
-      track->GetFloats(buffer.get(), s, block);
+      track->GetFloats(GetTag{},buffer.get(), s, block);
 
       //Process the buffer.  If it fails, clean up and exit.
       if (!ProcessSimpleMono(buffer.get(), block))

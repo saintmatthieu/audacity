@@ -281,7 +281,7 @@ MixerTrackCluster::MixerTrackCluster(wxWindow* parent,
    mToggleButton_Mute->SetAlternateImages(
       1,
       *(mMixerBoard->mImageMuteUp), *(mMixerBoard->mImageMuteOver),
-      *(mMixerBoard->mImageMuteDown), *(mMixerBoard->mImageMuteDown), 
+      *(mMixerBoard->mImageMuteDown), *(mMixerBoard->mImageMuteDown),
       *(mMixerBoard->mImageMuteDisabled));
 
    ctrlPos.y += MUTE_SOLO_HEIGHT;
@@ -289,7 +289,7 @@ MixerTrackCluster::MixerTrackCluster(wxWindow* parent,
       safenew AButton(this, ID_TOGGLEBUTTON_SOLO,
                   ctrlPos, ctrlSize,
                   *(mMixerBoard->mImageSoloUp), *(mMixerBoard->mImageSoloOver),
-                  *(mMixerBoard->mImageSoloDown), *(mMixerBoard->mImageSoloDown), 
+                  *(mMixerBoard->mImageSoloDown), *(mMixerBoard->mImageSoloDown),
                   *(mMixerBoard->mImageSoloDisabled),
                   true); // toggle button
    mToggleButton_Solo->SetName(_("Solo"));
@@ -611,7 +611,7 @@ void MixerTrackCluster::UpdateMeter(const double t0, const double t1)
    Floats tempFloatsArray{ nFrames };
    decltype(tempFloatsArray) meterFloatsArray;
    // Don't throw on read error in this drawing update routine
-   bool bSuccess = pTrack->GetFloats(tempFloatsArray.get(),
+   bool bSuccess = pTrack->GetFloats(GetTag{},tempFloatsArray.get(),
       startSample, nFrames, fillZero, false);
    if (bSuccess)
    {
@@ -626,7 +626,7 @@ void MixerTrackCluster::UpdateMeter(const double t0, const double t1)
 
       if (GetRight())
          // Again, don't throw
-         bSuccess = GetRight()->GetFloats(tempFloatsArray.get(),
+         bSuccess = GetRight()->GetFloats(GetTag{},tempFloatsArray.get(),
             startSample, nFrames, fillZero, false);
 
       if (bSuccess)
@@ -1224,7 +1224,7 @@ void MixerBoard::CreateMuteSoloImages()
    wxBitmap bitmap(mMuteSoloWidth, MUTE_SOLO_HEIGHT,24);
    dc.SelectObject(bitmap);
    wxRect bev(0, 0, mMuteSoloWidth, MUTE_SOLO_HEIGHT);
-   
+
    const bool up=true;
    const bool down=false;
 
