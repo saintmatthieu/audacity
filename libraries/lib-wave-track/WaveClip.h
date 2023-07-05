@@ -155,7 +155,6 @@ public:
    // Always gives non-negative answer, not more than sample sequence length
    // even if t0 really falls outside that range
    sampleCount TimeToSequenceSamples(double t) const;
-   sampleCount ToSequenceSamples(sampleCount s) const;
 
    int GetRate() const { return mRate; }
 
@@ -174,10 +173,6 @@ public:
    double GetSequenceStartTime() const noexcept;
    void SetSequenceStartTime(double startTime);
    double GetSequenceEndTime() const;
-   //! Returns the index of the first sample of the underlying sequence
-   sampleCount GetSequenceStartSample() const;
-   //! Returns the index of the sample next after the last sample of the underlying sequence
-   sampleCount GetSequenceEndSample() const;
    //! Returns the total number of samples in all underlying sequences
    //! (but not counting the cutlines)
    sampleCount GetSequenceSamplesCount() const;

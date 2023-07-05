@@ -1780,8 +1780,9 @@ size_t WaveTrack::GetBestBlockSize(sampleCount s) const
       if (s >= startSample && s < endSample)
       {
          // ignore extra channels (this function will soon be removed)
-         bestBlockSize = clip->GetSequence(0)
-            ->GetBestBlockSize(s - clip->GetSequenceStartSample());
+         // todo(mhodgkinson) replace with `s - startSample + clip->GetHiddenLeftSampleCount()`
+         // bestBlockSize = clip->GetSequence(0)
+         //    ->GetBestBlockSize(s - clip->GetSequenceStartSample());
          break;
       }
    }

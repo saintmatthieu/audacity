@@ -56,6 +56,7 @@ public:
       sampleCount * pNumWithinClips = nullptr) const
    {
       constexpr auto backwards = false;
+      // ok
       return GetFloats(GetTag{},
          0, 1, &buffer, start, len, backwards, fill, mayThrow, pNumWithinClips);
    }

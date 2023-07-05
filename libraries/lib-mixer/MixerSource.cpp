@@ -128,6 +128,7 @@ size_t MixerSource::MixVariableRates(
             for (auto& queue : mSampleQueue)
                dst.push_back(queue.data() + queueLen);
             constexpr auto iChannel = 0u;
+            // Ok - stretching sequence underneath.
             if (!mpLeader->GetFloats(GetTag{},
                    iChannel, nChannels, dst.data(), pos, getLen, backwards,
                    fillZero, mMayThrow))
@@ -248,6 +249,7 @@ size_t MixerSource::MixSameRate(unsigned nChannels, const size_t maxOut,
    );
 
    constexpr auto iChannel = 0u;
+   // Ok - stretching sequence underneath.
    if (!mpLeader->GetFloats(GetTag{},
           iChannel, nChannels, floatBuffers, pos, slen, backwards, fillZero,
           mMayThrow))

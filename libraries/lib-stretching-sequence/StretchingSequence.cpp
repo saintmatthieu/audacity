@@ -158,6 +158,7 @@ bool StretchingSequence::GetFloats(
    for (auto i = 0u; i < nChannels; ++i)
       charBuffers.push_back(reinterpret_cast<samplePtr>(buffers[i]));
    constexpr auto iChannel = 0u;
+   // ok
    return Get(GetTag{},
       iChannel, nChannels, charBuffers.data(), sampleFormat::floatSample, start,
       len, backwards);

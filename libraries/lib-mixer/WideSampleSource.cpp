@@ -69,6 +69,7 @@ std::optional<size_t> WideSampleSource::Acquire(Buffers &data, size_t bound)
          buffers[0] = &data.GetWritePosition(0) + mFetched;
       if (mnChannels > 1)
          buffers[1] = &data.GetWritePosition(1) + mFetched;
+      // Would be ok if `mSequence` were a stretching sequence.
       mSequence.GetFloats(GetTag{}, 0, mnChannels, buffers, mPos, fetch);
       mPos += fetch;
       mFetched += fetch;

@@ -76,6 +76,7 @@ public:
    {
       // Cast the pointers to pass them to Get() which handles multiple
       // destination formats
+      // Ok
       return Get(GetTag{},
          iChannel, nBuffers, reinterpret_cast<samplePtr*>(buffers), floatSample,
          start, len, backwards, fill, mayThrow, pNumWithinClips);

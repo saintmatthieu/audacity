@@ -605,6 +605,10 @@ void FrequencyPlotDialog::GetAudio()
          }
          mData = Floats{ mDataLen };
          // Don't allow throw for bad reads
+
+         // Would be Ok with a stretching sequence.
+         // PlotSpectrum allows selecting regions and showing the spectrogram for that part.
+         // I suppose that should be stretched.
          track->GetFloats(GetTag{},mData.get(), start, mDataLen,
                     fillZero, false);
       }
