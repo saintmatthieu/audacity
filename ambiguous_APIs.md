@@ -44,34 +44,6 @@ LGTM
 <br/>
 <br/>
 
-`GetSequenceStartSample()`
-Can be removed, since in the only remaining use of it,
-```cpp
-size_t WaveTrack::GetBestBlockSize(sampleCount s) const
-{
-   auto bestBlockSize = GetMaxBlockSize();
-
-   for (const auto &clip : mClips)
-   {
-      auto startSample = clip->GetPlayStartSample();
-      auto endSample = clip->GetPlayEndSample();
-      if (s >= startSample && s < endSample)
-      {
-         // ignore extra channels (this function will soon be removed)
-         bestBlockSize = clip->GetSequence(0)
-            ->GetBestBlockSize(s - clip->GetSequenceStartSample());
-         break;
-      }
-   }
-
-   return bestBlockSize;
-}
-```
-the argument to `->GetBestBlockSize` could be replaced by `s - startSample + clip->GetHiddenLeftSampleCount()`.
-
-<br/>
-<br/>
-
 `CountSamples(double t0, double t1)` : used by `WaveTrack::Copy`. I think copying can be done with unstretched data, creating clips copying stretch ratio. In that case `CountSamples` should return raw num. samples.
 
 <br/>
