@@ -161,7 +161,7 @@ public:
    // Set rate without resampling. This will change the length of the clip
    void SetRate(int rate);
 
-   double GetStretchRatio() const override { return 1.0; }
+   double GetStretchRatio() const override;
 
    // Resample clip. This also will set the rate, but without changing
    // the length of the clip
@@ -184,6 +184,7 @@ public:
 
    double GetPlayEndTime() const override;
 
+   // todo comment
    sampleCount GetPlayStartSample() const;
    sampleCount GetPlayEndSample() const;
    sampleCount GetVisibleSampleCount() const override;
@@ -429,6 +430,8 @@ public:
    void SetName(const wxString& name);
    const wxString& GetName() const;
 
+   // TimeToSamples and SamplesToTime take clip stretch ratio into account.
+   // Use them to convert time / sample offsets.
    sampleCount TimeToSamples(double time) const noexcept;
    double SamplesToTime(sampleCount s) const noexcept;
 
@@ -444,10 +447,7 @@ public:
    size_t GetAppendBufferLen() const;
 
    void
-   OnProjectTempoChange(const std::optional<double>& oldTempo, double newTempo)
-   {
-      // Planned for use in https://github.com/audacity/audacity/issues/4850
-   }
+   OnProjectTempoChange(const std::optional<double>& oldTempo, double newTempo);
 
 private:
    sampleCount GetNumSamples() const;
@@ -459,6 +459,7 @@ private:
    void ClearSequence(double t0, double t1);
 
    //! Restores state when an update loop over mSequences fails midway
+   // todo(mhodgkinson) I don't find any use. Throw away?
    struct Transaction {
       explicit Transaction(WaveClip &clip);
       ~Transaction();
@@ -474,6 +475,9 @@ private:
    double mSequenceOffset { 0 };
    double mTrimLeft{ 0 };
    double mTrimRight{ 0 };
+   double mClipStretchRatio = 1.;
+   std::optional<double> mRawAudioTempo;
+   std::optional<double> mProjectTempo;
 
    int mRate;
    int mColourIndex;
