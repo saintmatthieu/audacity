@@ -377,7 +377,7 @@ void EffectSoundTouch::Finalize(
    auto outChannels = TrackList::Channels(&out);
    auto origChannels = TrackList::Channels(&orig);
    if (mPreserveLength) {
-      auto newLen = out.GetPlaySamplesCount();
+      auto newLen = out.GetVisibleSampleCount();
       auto oldLen = out.TimeToLongSamples(mT1) - out.TimeToLongSamples(mT0);
 
       // Pad output track to original length since SoundTouch may remove samples
