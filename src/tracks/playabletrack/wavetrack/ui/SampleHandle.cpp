@@ -25,6 +25,7 @@ Paul Licameli split from TrackPanel.cpp
 #include "../../../../TrackPanelMouseEvent.h"
 #include "UndoManager.h"
 #include "ViewInfo.h"
+#include "WaveClip.h"
 #include "WaveTrack.h"
 #include "../../../../../images/Cursors.h"
 #include "AudacityMessageBox.h"
@@ -83,7 +84,12 @@ namespace {
    inline double adjustTime(const WaveTrack *wt, double time)
    {
       // Round to an exact sample time
-      return wt->LongSamplesToTime(wt->TimeToLongSamples(time));
+      const auto clip = wt->GetClipAtTime(time);
+      if (!clip)
+         return wt->LongSamplesToTime(wt->TimeToLongSamples(time));
+      const auto sampleOffset =
+         clip->TimeToSamples(time - clip->GetPlayStartTime());
+      return clip->SamplesToTime(sampleOffset) + clip->GetPlayStartTime();
    }
 
    // Is the sample horizontally nearest to the cursor sufficiently separated
@@ -93,9 +99,17 @@ namespace {
    {
       // Require more than 3 pixels per sample
       const auto xx = std::max<ZoomInfo::int64>(0, viewInfo.TimeToPosition(time));
+      const auto& clips = wt->GetClips();
+      const auto clipIt =
+         std::find_if(clips.begin(), clips.end(), [time](const auto& clip) {
+            return clip->WithinPlayRegion(time);
+         });
       ZoomInfo::Intervals intervals;
-      const double rate = wt->GetRate();
-      viewInfo.FindIntervals(rate, intervals, width);
+      const double rate =
+         clipIt == clips.end() ?
+            wt->GetRate() :
+            (*clipIt)->GetRate() / (*clipIt)->GetStretchRatio();
+      viewInfo.FindIntervals(intervals, width);
       ZoomInfo::Intervals::const_iterator it = intervals.begin(),
          end = intervals.end(), prev;
       wxASSERT(it != end && it->position == 0);
@@ -148,7 +162,7 @@ UIHandlePtr SampleHandle::HitTest
    const bool dB = !settings.isLinear();
    int yValue = GetWaveYPos(oneSample * envValue,
       zoomMin, zoomMax,
-      rect.height, dB, true, 
+      rect.height, dB, true,
       settings.dBRange, false) + rect.y;
 
    // Get y position of mouse (in pixels)
@@ -240,9 +254,9 @@ UIHandle::Result SampleHandle::Click
       Floats newSampleRegion{ 1 + 2 * (size_t)SMOOTHING_BRUSH_RADIUS };
 
       //Get a sample  from the track to do some tricks on.
-      mClickedTrack->GetFloats(sampleRegion.get(),
-         mClickedStartSample - SMOOTHING_KERNEL_RADIUS - SMOOTHING_BRUSH_RADIUS,
-         sampleRegionSize);
+      const auto thatWorked = mClickedTrack->GetFloatsCenteredAround(
+         t0, 0u, sampleRegion.get(), sampleRegionSize);
+      assert(thatWorked);
 
       //Go through each point of the smoothing brush and apply a smoothing operation.
       for (auto jj = -SMOOTHING_BRUSH_RADIUS; jj <= SMOOTHING_BRUSH_RADIUS; ++jj) {
@@ -290,9 +304,9 @@ UIHandle::Result SampleHandle::Click
       }
       //Set the sample to the point of the mouse event
       // Don't require dithering later
-      mClickedTrack->Set((samplePtr)newSampleRegion.get(), floatSample,
-         mClickedStartSample - SMOOTHING_BRUSH_RADIUS,
-         1 + 2 * SMOOTHING_BRUSH_RADIUS,
+      constexpr auto iChannel = 0u;
+      mClickedTrack->SetFloatsCenteredAround(
+         t0, iChannel, newSampleRegion.get(), SMOOTHING_BRUSH_RADIUS,
          narrowestSampleFormat);
 
       // mLastDragSampleValue will not be used
@@ -309,9 +323,10 @@ UIHandle::Result SampleHandle::Click
 
       //Set the sample to the point of the mouse event
       // Don't require dithering later
-      mClickedTrack->Set(
-         (samplePtr)&newLevel, floatSample, mClickedStartSample, 1,
-         narrowestSampleFormat);
+
+      constexpr auto iChannel = 0u;
+      mClickedTrack->SetFloatsCenteredAround(
+         t0, iChannel, &newLevel, 0, narrowestSampleFormat);
 
       mLastDragSampleValue = newLevel;
    }
@@ -385,8 +400,8 @@ UIHandle::Result SampleHandle::Drag
    const auto size = ( end - start + 1 ).as_size_t();
    if (size == 1) {
       // Don't require dithering later
-      mClickedTrack->Set(
-         (samplePtr)&newLevel, floatSample, start, size, narrowestSampleFormat);
+      constexpr auto iChannel = 0u;
+      mClickedTrack->SetFloatAt(t0, iChannel, newLevel, narrowestSampleFormat);
    }
    else {
       std::vector<float> values(size);
@@ -399,8 +414,9 @@ UIHandle::Result SampleHandle::Drag
              (s0 - mLastDragSample).as_float();
       }
       // Don't require dithering later
-      mClickedTrack->Set(
-         (samplePtr)&values[0], floatSample, start, size, narrowestSampleFormat);
+      constexpr auto iChannel = 0u;
+      mClickedTrack->SetFloatsCenteredAround(
+         t0, 0u, values.data(), (size - 1) / 2, narrowestSampleFormat);
    }
 
    //Update the member data structures.
@@ -458,7 +474,7 @@ float SampleHandle::FindSampleEditingLevel
    auto &settings = WaveformSettings::Get(*mClickedTrack);
    const bool dB = !settings.isLinear();
    float newLevel =
-      ::ValueOfPixel(yy, height, false, dB, 
+      ::ValueOfPixel(yy, height, false, dB,
          settings.dBRange, zoomMin, zoomMax);
 
    //Take the envelope into account
@@ -467,6 +483,7 @@ float SampleHandle::FindSampleEditingLevel
    if (env)
    {
       // Calculate sample as it would be rendered, so quantize time
+      // todo(mhodgkinson) does this need stretch ratio?
       double envValue = env->GetValue( t0, 1.0 / mClickedTrack->GetRate());
       if (envValue > 0)
          newLevel /= envValue;
