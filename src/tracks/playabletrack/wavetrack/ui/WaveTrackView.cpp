@@ -1529,7 +1529,7 @@ namespace
       const ZoomInfo& zoomInfo,
       int sampleRate,
       double stretchRatio,
-      double& outAvgPixPerSample,
+      double& outAvgPixPerSecond,
       //Is zoom level sufficient to show individual samples?
       bool& outShowSamples)
    {
@@ -1540,27 +1540,27 @@ namespace
 
       // Determine whether we should show individual samples
       // or draw circular points as well
-      outAvgPixPerSample = viewRect.width * stretchRatio / (sampleRate * (h1 - h));// pixels per sample
-      outShowSamples = outAvgPixPerSample > 0.5;
+      outAvgPixPerSecond = viewRect.width / (h1 - h);
+      const auto pixelsPerSample = outAvgPixPerSecond / sampleRate;
+      outShowSamples = pixelsPerSample > 0.5;
 
       if(outShowSamples)
          // adjustment so that the last circular point doesn't appear
          // to be hanging off the end
          return pixelsOffset * stretchRatio /
-                (outAvgPixPerSample *
-                 sampleRate); // pixels / ( pixels / second ) = seconds
+                outAvgPixPerSecond; // pixels / ( pixels / second ) = seconds
       return .0;
    }
 }
 
-ClipParameters::ClipParameters
-   (bool spectrum, const SampleTrack *track, const WaveClip *clip, const wxRect &rect,
-   const SelectedRegion &selectedRegion, const ZoomInfo &zoomInfo)
+ClipParameters::ClipParameters(
+   bool spectrum, const SampleTrack* track, const WaveClip* clip,
+   const wxRect& rect, const SelectedRegion& selectedRegion,
+   const ZoomInfo& zoomInfo)
+    : tOffset { clip->GetPlayStartTime() }
+    , sampleRate { static_cast<double>(clip->GetRate()) }
+    , stretchRatio { clip->GetStretchRatio() }
 {
-   tOffset = clip->GetPlayStartTime();
-   sampleRate = clip->GetRate();
-   stretchRatio = clip->GetStretchRatio();
-
    h = zoomInfo.PositionToTime(0, 0
       , true
    );
@@ -1592,7 +1592,7 @@ ClipParameters::ClipParameters
    t0 = std::max(tpre, .0);
    t1 = std::min(tpost, trackLen - sps * .99) +
         CalculateAdjustmentForZoomLevel(
-           rect, zoomInfo, sampleRate, stretchRatio, averagePixelsPerSample,
+           rect, zoomInfo, sampleRate, stretchRatio, averagePixelsPerSecond,
            showIndividualSamples);
 
    // Make sure t1 (the right bound) is greater than 0
