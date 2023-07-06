@@ -68,7 +68,7 @@ void DoMixAndRender
       // But before removing, determine the first track after the removal
       auto last = *trackRange.rbegin();
       auto insertionPoint = * ++ tracks.FindLeader( last );
-      
+
       auto selectedCount = trackRange.size();
       wxString firstName;
       int firstColour = -1;
@@ -506,7 +506,7 @@ void DoSortTracks( AudacityProject &project, int flags )
             int ndx;
             for (ndx = 0; ndx < w.GetNumClips(); ndx++) {
                const auto c = w.GetClipByIndex(ndx);
-               if (c->GetPlaySamplesCount() == 0)
+               if (c->GetVisibleSampleCount() == 0)
                   continue;
                stime = std::min(stime, c->GetPlayStartTime());
             }
@@ -1186,7 +1186,7 @@ BaseItemSharedPtr TracksMenu()
 {
    // Tracks Menu (formerly Project Menu)
    using Options = CommandManager::Options;
-   
+
    static BaseItemSharedPtr menu{
    Menu( wxT("Tracks"), XXO("&Tracks"),
       Section( "Add",

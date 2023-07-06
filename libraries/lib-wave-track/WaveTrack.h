@@ -157,7 +157,7 @@ private:
    int GetWaveColorIndex() const { return mWaveColorIndex; };
    void SetWaveColorIndex(int colorIndex);
 
-   sampleCount GetPlaySamplesCount() const;
+   sampleCount GetVisibleSampleCount() const;
    //! Returns the total number of samples in all underlying sequences
    //! of all clips (but not counting the cutlines)
    sampleCount GetSequenceSamplesCount() const;

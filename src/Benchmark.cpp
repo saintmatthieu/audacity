@@ -422,11 +422,11 @@ void BenchmarkDialog::OnRun( wxCommandEvent & WXUNUSED(event))
    // as we're about to do).
    t->GetEndTime();
 
-   if (t->GetClipByIndex(0)->GetPlaySamplesCount() != nChunks * chunkSize) {
+   if (t->GetClipByIndex(0)->GetVisibleSampleCount() != nChunks * chunkSize) {
       Printf( XO("Expected len %lld, track len %lld.\n")
          .Format(
             nChunks * chunkSize,
-            t->GetClipByIndex(0)->GetPlaySamplesCount()
+            t->GetClipByIndex(0)->GetVisibleSampleCount()
                .as_long_long() ) );
       goto fail;
    }
@@ -459,7 +459,7 @@ void BenchmarkDialog::OnRun( wxCommandEvent & WXUNUSED(event))
          Printf( XO("Expected len %lld, track len %lld.\n")
             .Format(
                nChunks * chunkSize,
-               t->GetClipByIndex(0)->GetPlaySamplesCount()
+               t->GetClipByIndex(0)->GetVisibleSampleCount()
                   .as_long_long() ) );
          goto fail;
       }
@@ -479,12 +479,12 @@ void BenchmarkDialog::OnRun( wxCommandEvent & WXUNUSED(event))
          goto fail;
       }
 
-      if (t->GetClipByIndex(0)->GetPlaySamplesCount() != nChunks * chunkSize) {
+      if (t->GetClipByIndex(0)->GetVisibleSampleCount() != nChunks * chunkSize) {
          Printf( XO("Trial %d\n").Format( z ) );
          Printf( XO("Expected len %lld, track len %lld.\n")
             .Format(
                nChunks * chunkSize,
-               t->GetClipByIndex(0)->GetPlaySamplesCount()
+               t->GetClipByIndex(0)->GetVisibleSampleCount()
                   .as_long_long() ) );
          goto fail;
       }
