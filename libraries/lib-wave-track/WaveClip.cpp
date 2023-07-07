@@ -218,6 +218,7 @@ void WaveClip::OnProjectTempoChange(
       mSequenceOffset *= ratioChange;
       mTrimLeft *= ratioChange;
       mTrimRight *= ratioChange;
+      mEnvelope->RescaleTimesBy(ratioChange);
    }
    mProjectTempo = newTempo;
 }
