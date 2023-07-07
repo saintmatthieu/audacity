@@ -143,23 +143,6 @@ private:
    double GetRate() const override;
    void SetRate(double newRate);
 
-   /*!
-    * Doesn't do caching.
-    * @copydoc SetFloatsCenteredAround
-    */
-   bool GetFloatsCenteredAround(
-      double t, size_t iChannel, float* buffer, size_t numSideSamples) const;
-
-   /*!
-    * @pre size of buffer >= 2*numSideSamples + 1
-    */
-   bool SetFloatsCenteredAround(
-      double t, size_t iChannel, const float* buffer, size_t numSideSamples,
-      sampleFormat effectiveFormat);
-
-   bool SetFloatAt(
-      double t, size_t iChannel, float value, sampleFormat effectiveFormat);
-
    // Multiplicative factor.  Only converted to dB for display.
    float GetGain() const;
    void SetGain(float newGain);

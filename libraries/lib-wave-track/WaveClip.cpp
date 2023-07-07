@@ -57,6 +57,8 @@ WaveClip::WaveClip(
    bool copyCutlines)
     : mClipStretchRatio(orig.mClipStretchRatio)
     , mRawAudioTempo(orig.mRawAudioTempo)
+// Project tempo is not copied on purpose, since `orig` might come from another
+// project.
 {
    // essentially a copy constructor - but you must pass in the
    // current sample block factory, because we might be copying
@@ -91,6 +93,8 @@ WaveClip::WaveClip(
    bool copyCutlines, double t0, double t1)
     : mClipStretchRatio(orig.mClipStretchRatio)
     , mRawAudioTempo(orig.mRawAudioTempo)
+// Project tempo is not copied on purpose, since `orig` might come from another
+// project.
 {
    assert(orig.CountSamples(t0, t1) > 0);
 
@@ -182,6 +186,72 @@ void WaveClip::SetSamples(size_t ii,
 
    // use No-fail-guarantee
    MarkChanged();
+}
+
+bool WaveClip::GetFloatsCenteredAroundTime(
+   double t, size_t iChannel, float* buffer, size_t numSideSamples,
+   bool mayThrow) const
+{
+   // Assuming an odd bufferLen. If it's not, then the result may not be quite
+   // as expected, but that's all right.
+   const auto len = numSideSamples * 2 + 1u;
+   const auto maybeNegativeStart = TimeToSamples(t) - sampleCount { numSideSamples };
+   const auto effectiveStart = std::max(maybeNegativeStart, sampleCount { 0 });
+   const auto maybeOutOfBoundEnd = maybeNegativeStart + len;
+   const auto effectiveEnd =
+      std::min(GetVisibleSampleCount(), maybeOutOfBoundEnd);
+   const auto numLeadingZeros =
+      (effectiveStart - maybeNegativeStart).as_size_t();
+   const auto effectiveLen = (effectiveEnd - effectiveStart).as_size_t();
+   std::fill(buffer, buffer + numLeadingZeros, 0.f);
+   std::fill(buffer + len - effectiveLen, buffer + len, 0.f);
+   if (effectiveLen == 0)
+      return false;
+   const auto offsetBuffer = reinterpret_cast<char*>(buffer + numLeadingZeros);
+   return GetSamples(
+      iChannel, offsetBuffer, floatSample, effectiveStart, effectiveLen,
+      mayThrow);
+}
+
+bool WaveClip::GetFloatAtTime(
+   double t, size_t iChannel, float& value, bool mayThrow) const
+{
+   return GetFloatsCenteredAroundTime(t, iChannel, &value, 0u, mayThrow);
+}
+
+void WaveClip::SetFloatsFromTime(
+   double t, size_t iChannel, const float* buffer, size_t numFloats,
+   sampleFormat effectiveFormat)
+{
+   const auto maybeNegativeStart = TimeToSamples(t);
+   const auto maybeOutOfBoundEnd = maybeNegativeStart + numFloats;
+   const auto effectiveStart = std::max(sampleCount { 0 }, maybeNegativeStart);
+   const auto effectiveEnd =
+      std::min(GetVisibleSampleCount(), maybeOutOfBoundEnd);
+   const auto effectiveLen = (effectiveEnd - effectiveStart).as_size_t();
+   if (effectiveLen == 0)
+      return;
+   const auto numLeadingZeros = (effectiveStart - maybeNegativeStart).as_size_t();
+   const auto offsetBuffer =
+      reinterpret_cast<const char*>(buffer + numLeadingZeros);
+   SetSamples(
+      iChannel, offsetBuffer, floatSample, effectiveStart, effectiveLen,
+      effectiveFormat);
+}
+
+void WaveClip::SetFloatsCenteredAroundTime(
+   double t, size_t iChannel, const float* buffer, size_t numSideSamples,
+   sampleFormat effectiveFormat)
+{
+   SetFloatsFromTime(
+      t - SamplesToTime(numSideSamples), iChannel, buffer,
+      2 * numSideSamples + 1, effectiveFormat);
+}
+
+void WaveClip::SetFloatAtTime(
+   double t, size_t iChannel, float value, sampleFormat effectiveFormat)
+{
+   SetFloatsCenteredAroundTime(t, iChannel, &value, 0u, effectiveFormat);
 }
 
 BlockArray* WaveClip::GetSequenceBlockArray(size_t ii)

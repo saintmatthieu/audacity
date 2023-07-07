@@ -189,9 +189,18 @@ public:
 
    double GetPlayEndTime() const override;
 
-   // todo comment
+   /*!
+    * Accessors for visible boundaries within a track after stretching, that is
+    * (ommitting rounding):
+    * GetPlayEndSample() - GetPlayStartSample() =
+    * GetVisibleSampleCount() * GetStretchRatio()
+    */
    sampleCount GetPlayStartSample() const;
    sampleCount GetPlayEndSample() const;
+
+   /*!
+    * Returns a number of raw samples, not accounting for stretching.
+    */
    sampleCount GetVisibleSampleCount() const override;
 
    //! Sets the play start offset in seconds from the beginning of the underlying sequence
@@ -269,6 +278,24 @@ public:
          than the effective, then no dithering will occur.
       */
    );
+
+   bool GetFloatsCenteredAroundTime(
+      double t, size_t iChannel, float* buffer, size_t numSideSamples,
+      bool mayThrow) const;
+
+   bool
+   GetFloatAtTime(double t, size_t iChannel, float& value, bool mayThrow) const;
+
+   void SetFloatsFromTime(
+      double t, size_t iChannel, const float* buffer, size_t numSamples,
+      sampleFormat effectiveFormat);
+
+   void SetFloatsCenteredAroundTime(
+      double t, size_t iChannel, const float* buffer, size_t numSideSamples,
+      sampleFormat effectiveFormat);
+
+   void SetFloatAtTime(
+      double t, size_t iChannel, float value, sampleFormat effectiveFormat);
 
    Envelope* GetEnvelope() { return mEnvelope.get(); }
    const Envelope* GetEnvelope() const { return mEnvelope.get(); }
@@ -435,8 +462,10 @@ public:
    void SetName(const wxString& name);
    const wxString& GetName() const;
 
-   // TimeToSamples and SamplesToTime take clip stretch ratio into account.
-   // Use them to convert time / sample offsets.
+   /*!
+    * TimeToSamples and SamplesToTime take clip stretch ratio into account.
+    * Use them to convert time / sample offsets.
+    */
    sampleCount TimeToSamples(double time) const noexcept;
    double SamplesToTime(sampleCount s) const noexcept;
 

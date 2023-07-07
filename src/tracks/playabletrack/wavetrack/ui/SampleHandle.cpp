@@ -105,10 +105,10 @@ namespace {
             return clip->WithinPlayRegion(time);
          });
       ZoomInfo::Intervals intervals;
-      const double rate =
-         clipIt == clips.end() ?
-            wt->GetRate() :
-            (*clipIt)->GetRate() / (*clipIt)->GetStretchRatio();
+      if (clipIt == clips.end())
+         // Don't bother the user about that with a pop-up.
+         return true;
+      const double rate = (*clipIt)->GetRate() / (*clipIt)->GetStretchRatio();
       viewInfo.FindIntervals(intervals, width);
       ZoomInfo::Intervals::const_iterator it = intervals.begin(),
          end = intervals.end(), prev;
@@ -138,13 +138,16 @@ UIHandlePtr SampleHandle::HitTest
    if (!SampleResolutionTest(viewInfo, wavetrack, tt, rect.width))
       return {};
 
+   const auto clip = wavetrack->GetClipAtTime(tt);
+   if (!clip)
+      return {};
+   const auto clipRelativeT = tt - clip->GetPlayStartTime();
+
    // Just get one sample.
    float oneSample;
-   const double rate = wavetrack->GetRate();
-   const auto s0 = (sampleCount)(tt * rate + 0.5);
-   if (! wavetrack->GetFloats(&oneSample, s0, 1, fillZero,
-         // Do not propagate exception but return a failure value
-         false) )
+   constexpr auto iChannel = 0u;
+   constexpr auto mayThrow = false;
+   if (!clip->GetFloatAtTime(clipRelativeT, iChannel, oneSample, mayThrow))
       return {};
 
    // Get y distance of envelope point from center line (in pixels).
@@ -156,7 +159,7 @@ UIHandlePtr SampleHandle::HitTest
    Envelope* env = wavetrack->GetEnvelopeAtTime(time);
    if (env)
       // Calculate sample as it would be rendered, so quantize time
-      envValue = env->GetValue( tt, 1.0 / wavetrack->GetRate() );
+      envValue = env->GetValue(tt);
 
    auto &settings = WaveformSettings::Get(*wavetrack);
    const bool dB = !settings.isLinear();
@@ -213,6 +216,15 @@ UIHandle::Result SampleHandle::Click
    const wxMouseEvent &event = evt.event;
    const wxRect &rect = evt.rect;
    const auto &viewInfo = ViewInfo::Get( *pProject );
+
+   // todo(mhodgkinson) is this adjustment still necessary?
+   const double t0 = adjustTime(
+      mClickedTrack.get(), viewInfo.PositionToTime(event.m_x, rect.x));
+   const auto clip = mClickedTrack->GetClipAtTime(t0);
+   if (!clip)
+      return Cancelled;
+   const auto clipRelativeT0 = t0 - clip->GetPlayStartTime();
+
    const auto pTrack = mClickedTrack.get();
 
    /// Someone has just clicked the mouse.  What do we do?
@@ -223,13 +235,8 @@ UIHandle::Result SampleHandle::Click
    /// We're in a track view and zoomed enough to see the samples.
    mRect = rect;
 
-   //If we are still around, we are drawing in earnest.  Set some member data structures up:
-   //First, calculate the starting sample.  To get this, we need the time
-   const double t0 =
-      adjustTime(mClickedTrack.get(), viewInfo.PositionToTime(event.m_x, rect.x));
-
    //convert t0 to samples
-   mClickedStartSample = mClickedTrack->TimeToLongSamples(t0);
+   mClickedStartPixel = viewInfo.TimeToPosition(t0);
 
    //Determine how drawing should occur.  If alt is down,
    //do a smoothing, instead of redrawing.
@@ -253,9 +260,12 @@ UIHandle::Result SampleHandle::Click
       Floats sampleRegion{ sampleRegionSize };
       Floats newSampleRegion{ 1 + 2 * (size_t)SMOOTHING_BRUSH_RADIUS };
 
-      //Get a sample  from the track to do some tricks on.
-      const auto thatWorked = mClickedTrack->GetFloatsCenteredAround(
-         t0, 0u, sampleRegion.get(), sampleRegionSize);
+      //Get a sample from the clip to do some tricks on.
+      constexpr auto iChannel = 0u;
+      constexpr auto mayThrow = false;
+      const auto thatWorked = clip->GetFloatsCenteredAroundTime(
+         clipRelativeT0, iChannel, sampleRegion.get(),
+         SMOOTHING_KERNEL_RADIUS + SMOOTHING_BRUSH_RADIUS, mayThrow);
       assert(thatWorked);
 
       //Go through each point of the smoothing brush and apply a smoothing operation.
@@ -304,10 +314,9 @@ UIHandle::Result SampleHandle::Click
       }
       //Set the sample to the point of the mouse event
       // Don't require dithering later
-      constexpr auto iChannel = 0u;
-      mClickedTrack->SetFloatsCenteredAround(
-         t0, iChannel, newSampleRegion.get(), SMOOTHING_BRUSH_RADIUS,
-         narrowestSampleFormat);
+      clip->SetFloatsCenteredAroundTime(
+         clipRelativeT0, iChannel, newSampleRegion.get(),
+         SMOOTHING_BRUSH_RADIUS, narrowestSampleFormat);
 
       // mLastDragSampleValue will not be used
    }
@@ -325,14 +334,15 @@ UIHandle::Result SampleHandle::Click
       // Don't require dithering later
 
       constexpr auto iChannel = 0u;
-      mClickedTrack->SetFloatsCenteredAround(
-         t0, iChannel, &newLevel, 0, narrowestSampleFormat);
+      clip->SetFloatAtTime(
+         t0 - clip->GetPlayStartTime(), iChannel, newLevel,
+         narrowestSampleFormat);
 
       mLastDragSampleValue = newLevel;
    }
 
    //Set the member data structures for drawing
-   mLastDragSample = mClickedStartSample;
+   mLastDragPixel = mClickedStartPixel;
 
    // Sample data changed on either branch, so refresh the track display.
    return RefreshCell;
@@ -360,31 +370,16 @@ UIHandle::Result SampleHandle::Drag
    if (mAltKey)
       return RefreshNone;
 
-   sampleCount s0;     //declare this for use below.  It designates which sample number to draw.
-
-   // Figure out what time the click was at
-   //Find the point that we want to redraw at. If the control button is down,
-   //adjust only the originally clicked-on sample
-
-   if (event.m_controlDown) {
-      //*************************************************
-      //***   CTRL-DOWN (Hold Initial Sample Constant ***
-      //*************************************************
-
-      s0 = mClickedStartSample;
-   }
-   else {
-      //*************************************************
-      //***    Normal CLICK-drag  (Normal drawing)    ***
-      //*************************************************
-
-      //Otherwise, adjust the sample you are dragging over right now.
-      //convert this to samples
-      const double tt = viewInfo.PositionToTime(event.m_x, mRect.x);
-      s0 = mClickedTrack->TimeToLongSamples(tt);
-   }
-
-   const double t0 = mClickedTrack->LongSamplesToTime(s0);
+   // Designates which pixel column to draw.
+   const int x0 =
+      event.m_controlDown ?
+         mClickedStartPixel :
+         viewInfo.TimeToPosition(viewInfo.PositionToTime(event.m_x, mRect.x));
+   const double t0 = viewInfo.PositionToTime(x0);
+   const auto clip = mClickedTrack->GetClipAtTime(t0);
+   if (!clip)
+      // todo(mhodgkinson) is this an accurate return code?
+      return Cancelled;
 
    // Do redrawing, based on the mouse position.
    // Calculate where the mouse is located vertically (between +/- 1)
@@ -393,34 +388,38 @@ UIHandle::Result SampleHandle::Drag
 
    //Now, redraw all samples between current and last redrawn sample, inclusive
    //Go from the smaller to larger sample.
-   const auto start = std::min(s0, mLastDragSample);
-   const auto end = std::max(s0, mLastDragSample);
+   const auto start = viewInfo.PositionToTime(std::min(x0, mLastDragPixel));
+   const auto end = viewInfo.PositionToTime(std::max(x0, mLastDragPixel));
    // Few enough samples to be drawn individually on screen will not
    // overflow size_t:
-   const auto size = ( end - start + 1 ).as_size_t();
-   if (size == 1) {
-      // Don't require dithering later
-      constexpr auto iChannel = 0u;
-      mClickedTrack->SetFloatAt(t0, iChannel, newLevel, narrowestSampleFormat);
-   }
-   else {
+   const auto size = clip->TimeToSamples(end - start).as_size_t() + 1;
+   constexpr auto iChannel = 0u;
+   if (size == 1)
+      clip->SetFloatAtTime(
+         start - clip->GetPlayStartTime(), iChannel, newLevel,
+         narrowestSampleFormat);
+   else
+   {
       std::vector<float> values(size);
-      for (auto ii = start; ii <= end; ++ii) {
-         //This interpolates each sample linearly:
+      for (auto ii = 0; ii < size; ++ii)
+      {
+         // This interpolates each sample linearly:
          // i - start will not overflow size_t either:
-         values[( ii - start ).as_size_t()] =
-            mLastDragSampleValue + (newLevel - mLastDragSampleValue)  *
-            (ii - mLastDragSample).as_float() /
-             (s0 - mLastDragSample).as_float();
+         const auto x = viewInfo.TimeToPosition(
+            start + clip->SamplesToTime(sampleCount { ii }));
+         values[ii] = mLastDragSampleValue + (newLevel - mLastDragSampleValue) *
+                                                (x - mLastDragPixel) /
+                                                (x0 - mLastDragPixel);
       }
       // Don't require dithering later
       constexpr auto iChannel = 0u;
-      mClickedTrack->SetFloatsCenteredAround(
-         t0, 0u, values.data(), (size - 1) / 2, narrowestSampleFormat);
+      clip->SetFloatsFromTime(
+         start - clip->GetPlayStartTime(), iChannel, values.data(), size,
+         narrowestSampleFormat);
    }
 
    //Update the member data structures.
-   mLastDragSample = s0;
+   mLastDragPixel = x0;
    mLastDragSampleValue = newLevel;
 
    return RefreshCell;
@@ -483,8 +482,7 @@ float SampleHandle::FindSampleEditingLevel
    if (env)
    {
       // Calculate sample as it would be rendered, so quantize time
-      // todo(mhodgkinson) does this need stretch ratio?
-      double envValue = env->GetValue( t0, 1.0 / mClickedTrack->GetRate());
+      double envValue = env->GetValue(t0);
       if (envValue > 0)
          newLevel /= envValue;
       else

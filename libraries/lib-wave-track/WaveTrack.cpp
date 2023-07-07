@@ -467,57 +467,6 @@ void WaveTrack::SetRate(double newRate)
    SetClipRates(newRate);
 }
 
-bool WaveTrack::GetFloatsCenteredAround(
-   double t, size_t iChannel, float* buffer, size_t numSideSamples) const
-{
-   const auto clip = GetClipAtTime(t);
-   if (clip == nullptr)
-      return false;
-   // Assuming an odd bufferLen. If it's not, then the result may not be quite
-   // as expected, but that's all right.
-   const auto maybeNegativeStart =
-      clip->TimeToSamples(t - clip->GetPlayStartTime()) -
-      sampleCount { numSideSamples };
-   const auto start = std::max(sampleCount { 0 }, maybeNegativeStart);
-   const auto numLeadingZeros = (start - maybeNegativeStart).as_size_t();
-   std::fill(buffer, buffer + numLeadingZeros, 0.f);
-   auto offsetBuffer = reinterpret_cast<samplePtr>(buffer + numLeadingZeros);
-   const auto len = numSideSamples * 2 + 1u - numLeadingZeros;
-   if (start + len > clip->GetVisibleSampleCount())
-      return false;
-   clip->GetSamples(iChannel, offsetBuffer, floatSample, start, len);
-   return true;
-}
-
-bool WaveTrack::SetFloatsCenteredAround(
-   double t, size_t iChannel, const float* buffer, size_t numSideSamples,
-   sampleFormat effectiveFormat)
-{
-   const auto clip = GetClipAtTime(t);
-   if (clip == nullptr)
-      return false;
-   // Assuming an odd bufferLen. If it's not, then the result may not be quite
-   // as expected, but that's all right.
-   const auto maybeNegativeStart =
-      clip->TimeToSamples(t - clip->GetPlayStartTime()) -
-      sampleCount { numSideSamples };
-   const auto start = std::max(sampleCount { 0 }, maybeNegativeStart);
-   const auto numLeadingZeros = (start - maybeNegativeStart).as_size_t();
-   auto offsetBuffer = reinterpret_cast<const char*>(buffer + numLeadingZeros);
-   const auto len = numSideSamples * 2 + 1u - numLeadingZeros;
-   if (start + len > clip->GetVisibleSampleCount())
-      return false;
-   clip->SetSamples(
-      iChannel, offsetBuffer, floatSample, start, len, effectiveFormat);
-   return true;
-}
-
-bool WaveTrack::SetFloatAt(
-   double t, size_t iChannel, float value, sampleFormat effectiveFormat)
-{
-   return SetFloatsCenteredAround(t, iChannel, &value, 0u, effectiveFormat);
-}
-
 void WaveTrack::SetClipRates(double newRate)
 {
    for (const auto &clip : mClips)
