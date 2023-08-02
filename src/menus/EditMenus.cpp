@@ -1,36 +1,37 @@
 
 #include "../AdornedRulerPanel.h"
+#include "../AudioPasteDialog.h"
 #include "../Clipboard.h"
 #include "../CommonCommandFlags.h"
 #include "../LabelTrack.h"
 #include "../Menus.h"
 #include "../NoteTrack.h"
-#include "Project.h"
-#include "ProjectHistory.h"
-#include "ProjectRate.h"
 #include "../ProjectWindow.h"
 #include "../ProjectWindows.h"
 #include "../SelectUtilities.h"
-#include "SyncLock.h"
 #include "../TrackPanel.h"
 #include "../TrackPanelAx.h"
-#include "UndoManager.h"
-#include "ViewInfo.h"
-#include "WaveTrack.h"
-#include "WaveClip.h"
-#include "SampleBlock.h"
 #include "../commands/CommandContext.h"
 #include "../commands/CommandManager.h"
-#include "TimeWarper.h"
 #include "../prefs/PrefsDialog.h"
 #include "../prefs/TracksBehaviorsPrefs.h"
 #include "../tracks/labeltrack/ui/LabelTrackView.h"
 #include "../tracks/playabletrack/wavetrack/ui/WaveChannelView.h"
-#include "AudacityMessageBox.h"
 #include "../widgets/VetoDialogHook.h"
-#include "../AudioPasteDialog.h"
+#include "AudacityMessageBox.h"
 #include "BasicUI.h"
+#include "Project.h"
+#include "ProjectHistory.h"
+#include "ProjectRate.h"
+#include "ProjectTimeSignature.h"
+#include "SampleBlock.h"
 #include "Sequence.h"
+#include "SyncLock.h"
+#include "TimeWarper.h"
+#include "UndoManager.h"
+#include "ViewInfo.h"
+#include "WaveClip.h"
+#include "WaveTrack.h"
 
 // private helper classes and functions
 namespace {
@@ -142,7 +143,7 @@ void DoPasteNothingSelected(AudacityProject &project, const TrackList& src, doub
    auto &selectedRegion = ViewInfo::Get( project ).selectedRegion;
    auto &viewInfo = ViewInfo::Get( project );
    auto &window = ProjectWindow::Get( project );
-   
+
    assert(tracks.SelectedLeaders().empty());
 
    Track* pFirstNewTrack = NULL;
@@ -156,9 +157,13 @@ void DoPasteNothingSelected(AudacityProject &project, const TrackList& src, doub
    // Select some pasted samples, which is probably impossible to get right
    // with various project and track sample rates.
    // So do it at the sample rate of the project
-   double projRate = ProjectRate::Get( project ).GetRate();
-   double quantT0 = QUANTIZED_TIME(t0, projRate);
-   double quantT1 = QUANTIZED_TIME(t1, projRate);
+   const double projRate = ProjectRate::Get( project ).GetRate();
+   const double projTempo = ProjectTimeSignature::Get(project).GetTempo();
+   const double srcTempo =
+      pFirstNewTrack ? pFirstNewTrack->GetProjectTempo().value_or(projTempo) :
+                       projTempo;
+   const double quantT0 = QUANTIZED_TIME(t0 * srcTempo / projTempo, projRate);
+   const double quantT1 = QUANTIZED_TIME(t1 * srcTempo / projTempo, projRate);
    selectedRegion.setTimes(
       0.0,   // anywhere else and this should be
              // half a sample earlier
@@ -416,7 +421,7 @@ void OnCopy(const CommandContext &context)
 std::pair<double, double> FindSelection(const CommandContext &context)
 {
    double sel0 = 0.0, sel1 = 0.0;
-   
+
 #if 0
    // Use the overriding selection if any was given in the context
    if (auto *pRegion = context.temporarySelection.pSelectedRegion) {
@@ -431,7 +436,7 @@ std::pair<double, double> FindSelection(const CommandContext &context)
       sel0 = selectedRegion.t0();
       sel1 = selectedRegion.t1();
    }
-   
+
    return { sel0, sel1 };
 }
 
@@ -458,7 +463,7 @@ std::shared_ptr<const TrackList> FindSourceTracks(const CommandContext &context)
       else if(waveClipCopyPolicy == wxT("Discard"))
          discardTrimmed = true;
    }
-   
+
    std::shared_ptr<const TrackList> srcTracks;
    if(discardTrimmed)
       srcTracks = DuplicateDiscardTrimmed(clipboard.GetTracks());
@@ -629,10 +634,16 @@ void OnPaste(const CommandContext &context)
             leader->TypeSwitch(
                [&](WaveTrack &wn){
                   bPastedSomething = true;
-                  // For correct remapping of preserved split lines:
-                  PasteTimeWarper warper{ t1, t0 + src->GetEndTime() };
-                  wn.ClearAndPaste(t0, t1,
-                     *static_cast<const WaveTrack*>(src), true, true, &warper);
+                  // todo(mhodgkinson) I haven't easily found out what this
+                  // warper ultimately is for. Alledgedly it preserved "split
+                  // lines", but testing `ClearAndInsert` below I could not
+                  // recognize any bug despite my best efforts in copying and
+                  // pasting across clip boundaries. Is this for another kind of
+                  // split?
+                  // // For correct remapping of preserved split lines:
+                  // PasteTimeWarper warper{ t1, t0 + src->GetEndTime() };
+                  wn.ClearAndInsert(
+                     t0, t1, *static_cast<const WaveTrack*>(src));
                },
                [&](LabelTrack &ln){
                   // Per Bug 293, users expect labels to move on a paste into
@@ -1060,7 +1071,7 @@ BaseItemSharedPtr EditMenu()
 
          Command( wxT("Redo"), XXO("&Redo"), OnRedo,
             AudioIONotBusyFlag() | RedoAvailableFlag(), redoKey ),
-            
+
          Special( wxT("UndoItemsUpdateStep"),
          [](AudacityProject &project, wxMenu&) {
             // Change names in the CommandManager as a side-effect
@@ -1113,7 +1124,7 @@ BaseItemSharedPtr EditMenu()
             )
          )
       ),
-        
+
 
       Section( "Other",
       //////////////////////////////////////////////////////////////////////////

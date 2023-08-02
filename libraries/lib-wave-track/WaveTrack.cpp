@@ -765,6 +765,11 @@ auto WaveTrack::CopyOne(
    const auto &pFactory = track.mpFactory;
    auto result = track.EmptyCopy();
    WaveTrack *newTrack = result.get();
+   const auto& tempo = track.GetProjectTempo();
+   // Even if `forClipboard`, we need some project tempo to place the clips
+   // correctly. When pasting, the track's tempo shall be set to the destination
+   // project tempo.
+   newTrack->mProjectTempo = tempo;
 
    // PRL:  Why shouldn't cutlines be copied and pasted too?  I don't know,
    // but that was the old behavior.  But this function is also used by the
@@ -813,6 +818,11 @@ auto WaveTrack::CopyOne(
       newTrack->InsertClip(std::move(placeholder)); // transfer ownership
    }
    return newTrack->SharedPointer<WaveTrack>();
+}
+
+TrackListHolder WaveTrack::Copy(bool forClipboard) const
+{
+   return Copy(GetStartTime(), GetEndTime(), forClipboard);
 }
 
 /*! @excsafety{Strong} */
@@ -1168,6 +1178,58 @@ void WaveTrack::ClearAndPasteOne(WaveTrack &track, double t0, double t1,
    }
 }
 
+void WaveTrack::ClearAndInsert(double t0, double t1, const WaveTrack& src)
+{
+   const auto srcNChannels = src.NChannels();
+   assert(IsLeader());
+   assert(src.IsLeader());
+   assert(srcNChannels == 1 || srcNChannels == NChannels());
+   auto iter = TrackList::Channels(&src).begin();
+   const auto myChannels = TrackList::Channels(this);
+   for (const auto pChannel : myChannels) {
+      ClearAndInsertOne(*pChannel, t0, t1, **iter);
+      if (srcNChannels > 1)
+         ++iter;
+   }
+}
+
+void WaveTrack::ClearAndInsertOne(
+   WaveTrack& track, double t0, double t1, const WaveTrack& src)
+{
+   t0 = track.SnapToSample(t0);
+   t1 = track.SnapToSample(t1);
+   constexpr auto forClipboard = false;
+   const auto tempo = track.GetProjectTempo();
+   const auto srcTempo = src.GetProjectTempo();
+   if (tempo.has_value())
+      const_cast<WaveTrack&>(src).OnProjectTempoChange(*tempo);
+
+   Finally Do { [&]() {
+      if (srcTempo.has_value())
+         const_cast<WaveTrack&>(src).OnProjectTempoChange(*srcTempo);
+   } };
+
+   const double dur = std::min(t1 - t0, src.GetEndTime());
+   if (dur > 0)
+      track.HandleClear(t0, t1, false, false);
+   track.SplitAt(t0);
+   WaveClipHolders clipsRight;
+   for (const auto& clip : track.mClips)
+      if (clip->GetPlayStartTime() >= t0)
+      {
+         clipsRight.push_back(clip);
+      }
+   track.HandleClear(t0, track.GetEndTime(), false, false);
+   PasteOne(track, t0, src, src.GetStartTime(), src.GetEndTime());
+
+   const auto offset = track.GetEndTime() - t0;
+   for (const auto& clip : clipsRight)
+   {
+      clip->ShiftBy(offset);
+      track.InsertClip(clip);
+   }
+}
+
 /*! @excsafety{Strong} */
 void WaveTrack::SplitDelete(double t0, double t1)
 {
@@ -1246,11 +1308,8 @@ bool WaveTrack::AddClip(const std::shared_ptr<WaveClip> &clip)
 void WaveTrack::HandleClear(double t0, double t1,
                             bool addCutLines, bool split)
 {
-   // For debugging, use an ASSERT so that we stop
-   // closer to the problem.
-   wxASSERT( t1 >= t0 );
    if (t1 < t0)
-      THROW_INCONSISTENCY_EXCEPTION;
+      return;
 
    bool editClipCanMove = GetEditClipsCanMove();
 
@@ -1273,7 +1332,7 @@ void WaveTrack::HandleClear(double t0, double t1,
 
    for (const auto &clip : mClips)
    {
-      if (clip->ExtendsPlayRegion(t0, t1))
+      if (clip->CoversEntirePlayRegion(t0, t1))
       {
          // Whole clip must be deleted - remember this
          clipsToDelete.push_back(clip.get());
@@ -1481,10 +1540,20 @@ void WaveTrack::PasteOne(
         // a new clip.
         return;
 
+    const auto& localTempo = track.GetProjectTempo();
+    const auto& otherTempo = other.GetProjectTempo();
+    if (localTempo.has_value())
+        const_cast<WaveTrack&>(other).OnProjectTempoChange(*localTempo);
+    Finally Do([&] {
+       if (otherTempo.has_value())
+          // Restore
+          const_cast<WaveTrack&>(other).OnProjectTempoChange(*otherTempo);
+    });
+
     //wxPrintf("Check if we need to make room for the pasted data\n");
 
     auto pastingFromTempTrack = !other.GetOwner();
-    bool editClipCanMove = GetEditClipsCanMove();
+    const bool editClipCanMove = GetEditClipsCanMove();
 
     // Make room for the pasted data
     if (editClipCanMove) {
@@ -2150,6 +2219,11 @@ double WaveTrack::SnapToSample(double t) const
 {
    const auto sampleRate = GetRate();
    return std::round(t * sampleRate) / sampleRate;
+}
+
+double WaveTrack::GetDuration() const
+{
+   return GetEndTime() - GetStartTime();
 }
 
 //

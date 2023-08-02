@@ -200,6 +200,7 @@ private:
    // GetEndTime() correct.  This clip is not re-copied when pasting.
    TrackListHolder Copy(double t0, double t1, bool forClipboard = true)
       const override;
+   TrackListHolder Copy(bool forClipboard) const;
 
    void Clear(double t0, double t1) override;
    void Paste(double t0, const Track &src) override;
@@ -231,6 +232,7 @@ private:
       ClearAndPaste(t0, t1, **src.Leaders<const WaveTrack>().begin(),
          preserve, merge, effectWarper);
    }
+   void ClearAndInsert(double t0, double t1, const WaveTrack& src) /* not override */;
 
    void Silence(double t0, double t1) override;
    void InsertSilence(double t, double len) override;
@@ -749,6 +751,9 @@ protected:
       double t0, double t1, double startTime, double endTime,
       const WaveTrack &src,
       bool preserve, bool merge, const TimeWarper *effectWarper);
+   static void ClearAndInsertOne(
+      WaveTrack& track, double t0, double t1, const WaveTrack& src);
+
    static void JoinOne(WaveTrack &track, double t0, double t1);
    static Holder CopyOne(const WaveTrack &track,
       double t0, double t1, bool forClipboard);
@@ -786,6 +791,7 @@ private:
    void SetClipRates(double newRate);
    void DoOnProjectTempoChange(
       const std::optional<double>& oldTempo, double newTempo) override;
+   double GetDuration() const;
 
    bool GetOne(
       samplePtr buffer, sampleFormat format, sampleCount start, size_t len,
