@@ -101,6 +101,12 @@ public:
    wxPen muteClippedPen;
    wxPen blankSelectedPen;
 
+   wxPen beatSepearatorPen;
+   wxBrush beatStrongBrush;
+   wxBrush beatWeakBrush;
+   wxBrush beatStrongSelBrush;
+   wxBrush beatWeakSelBrush;
+
 #ifdef EXPERIMENTAL_FFT_Y_GRID
    bool fftYGridOld;
 #endif //EXPERIMENTAL_FFT_Y_GRID
