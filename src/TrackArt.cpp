@@ -431,7 +431,7 @@ void TrackArt::DrawSyncLockTiles(
 namespace
 {
 constexpr double minSubdivisionWidth = 12.0;
-constexpr double maxSubdivisionWidth = 86.0;
+constexpr double bestSubdivisionWidth = 42.0;
 
 struct BeatsGridlinePainter final
 {
@@ -440,92 +440,106 @@ struct BeatsGridlinePainter final
 
    const ProjectTimeSignature& timeSignature;
    // "Musical" note duration
-   const double noteDivisor;
+   const int64_t noteDivisor;
    // Note duration in seconds
    const double noteDuration;
    // Note width in pixels
    const double noteWidth;
    // How many "notes" should be colored with a single color?
-   const double notesInBeat;
+   const int64_t notesInBeat;
 
 
-   BeatsGridlinePainter(const ZoomInfo& zoomInfo, const Track& track) noexcept
-       : zoomInfo { zoomInfo }
-       , enabled { TimeDisplayModePreference.ReadEnum() == TimeDisplayMode::BeatsAndMeasures }
-       , timeSignature { GetTimeSignature(track) }
-       , noteDivisor { CalculateNoteDivisor(zoomInfo) }
-       , noteDuration { timeSignature.GetQuarterDuration() * 4.0 / noteDivisor }
-       , noteWidth { zoomInfo.TimeRangeToPixelWidth(noteDuration) }
-       , notesInBeat { CalculateNotesInBeat() }
+BeatsGridlinePainter (const ZoomInfo& zoomInfo, const Track& track) noexcept
+   : zoomInfo{ zoomInfo }
+   , enabled{ TimeDisplayModePreference.ReadEnum () == TimeDisplayMode::BeatsAndMeasures }
+   , timeSignature{ GetTimeSignature (track) }
+   , noteDivisor{ CalculateNoteDivisor (zoomInfo) }
+   , noteDuration{ timeSignature.GetQuarterDuration () * 4.0 / noteDivisor }
+   , noteWidth{ zoomInfo.TimeRangeToPixelWidth (noteDuration) }
+   , notesInBeat{ CalculateNotesInBeat () }
+{
+}
+
+void DrawSeparators (
+   wxDC& dc, const wxRect& rect, const wxPen& beatSepearatorPen, const wxPen& barSeparatorPen) const
+{
+   dc.SetPen (beatSepearatorPen);
+
+   const auto [firstNote, lastNote] = GetBoundaries (rect, rect, noteWidth);
+
+   for (auto noteIndex = firstNote; noteIndex < lastNote; ++noteIndex)
    {
+      const auto position = GetPositionInRect (noteIndex, rect, noteDuration);
+
+      if (position < rect.GetLeft () || position >= rect.GetRight ())
+         continue;
+
+      dc.SetPen (
+         UseAlternatingColors() && IsFirstInBar(noteIndex) ? barSeparatorPen : beatSepearatorPen);
+
+      dc.DrawLine (position, rect.GetTop (), position, rect.GetBottom () + 1);
    }
+}
 
-   void DrawSeparators(
-      wxDC& dc, const wxRect& rect, const wxPen& beatSepearatorPen) const
+void DrawBackground (
+   wxDC& dc, const wxRect& subRect, const wxRect& fullRect, const wxBrush& strongBeatBrush,
+   const wxBrush& weakBeatBrush) const
+{
+   if (!UseAlternatingColors ())
    {
-      dc.SetPen(beatSepearatorPen);
-
-      const auto [firstNote, lastNote] = GetBoundaries(rect, rect, noteWidth);
-
-      for (auto noteIndex = firstNote; noteIndex < lastNote; ++noteIndex)
-      {
-         const auto position = GetPositionInRect(noteIndex, rect, noteDuration);
-
-         if (position >= rect.GetLeft() && position < rect.GetRight())
-            dc.DrawLine(
-               position, rect.GetTop(), position, rect.GetBottom() + 1);
-      }
-   }
-
-   void DrawBackground(
-      wxDC& dc, const wxRect& subRect, const wxRect& fullRect, const wxBrush& strongBeatBrush,
-      const wxBrush& weakBeatBrush) const
-   {
-      const auto [firstIndex, lastIndex] =
-         GetBoundaries(subRect, fullRect, noteWidth * notesInBeat);
-
-      const auto beatDuration = noteDuration * notesInBeat;
-
-      const auto top = fullRect.GetTop();
-      const auto height = fullRect.GetHeight();
-
-      for (auto index = firstIndex; index < lastIndex; ++index)
-      {
-         const auto left = std::max<int>(
-            GetPositionInRect(index, fullRect, beatDuration), subRect.GetLeft());
-         const auto right = std::min<int>(
-            GetPositionInRect(index + 1, fullRect, beatDuration), subRect.GetRight());
-
-         const auto& brush = index % 2 == 0 ? strongBeatBrush : weakBeatBrush;
-
-         dc.SetBrush(brush);
-         dc.DrawRectangle(left, top, right - left + 1, height);
-      }
-   }
-
-private:
-   const ProjectTimeSignature& GetTimeSignature(const Track& track) const
-   {
-      // Track is expected to have owner
-      assert(track.GetOwner());
-      // TracList is expected to have owner
-      assert(track.GetOwner()->GetOwner());
-
-      const auto& project = *track.GetOwner()->GetOwner();
-      return ProjectTimeSignature::Get(project);
+      dc.SetBrush(strongBeatBrush);
+      dc.DrawRectangle(subRect);
+      return;
    }
    
-   double CalculateNoteDivisor(const ZoomInfo& zoomInfo) const noexcept
-   {      
-      const auto subdivisionsCount = timeSignature.GetUpperTimeSignature();
+   const auto [firstIndex, lastIndex] =
+      GetBoundaries (subRect, fullRect, noteWidth);
 
-      auto noteDivisor = 1;
-      auto noteWidth = zoomInfo.TimeRangeToPixelWidth(
-         timeSignature.GetQuarterDuration() * 4.0 / noteDivisor);
+   const auto beatDuration = noteDuration;
 
-      while (noteWidth > maxSubdivisionWidth)
+   const auto top = fullRect.GetTop ();
+   const auto height = fullRect.GetHeight ();
+
+   bool strongBeat = true;
+   for (auto index = firstIndex; index < lastIndex; index += notesInBeat, strongBeat = !strongBeat)
+   {
+      const auto left = std::max<int> (
+         GetPositionInRect(index, fullRect, beatDuration),
+         subRect.GetLeft());
+      const auto right = std::min<int> (
+         GetPositionInRect(index + notesInBeat, fullRect, beatDuration),
+         subRect.GetRight());
+
+      const auto& brush = strongBeat ? strongBeatBrush : weakBeatBrush;
+
+      dc.SetBrush (brush);
+      dc.DrawRectangle (left, top, right - left + 1, height);
+   }
+}
+
+private:
+   const ProjectTimeSignature& GetTimeSignature (const Track& track) const
+   {
+      // Track is expected to have owner
+      assert (track.GetOwner ());
+      // TracList is expected to have owner
+      assert (track.GetOwner ()->GetOwner ());
+
+      const auto& project = *track.GetOwner ()->GetOwner ();
+      return ProjectTimeSignature::Get (project);
+   }
+
+   int64_t CalculateNoteDivisor (const ZoomInfo& zoomInfo) const noexcept
+   {
+      const auto subdivisionsCount = timeSignature.GetUpperTimeSignature ();
+
+      int64_t noteDivisor = 1;
+      auto noteWidth = zoomInfo.TimeRangeToPixelWidth (
+         timeSignature.GetQuarterDuration () * 4.0 / noteDivisor);
+
+      while (noteWidth > bestSubdivisionWidth)
       {
-         const auto nextNoteWidth = noteWidth / 2;
+         const auto nextNoteWidth = noteWidth / 2.0;
          if (nextNoteWidth < minSubdivisionWidth)
             break;
 
@@ -533,20 +547,55 @@ private:
          noteWidth = nextNoteWidth;
       }
 
+      if (noteWidth < minSubdivisionWidth && noteDivisor > 1)
+      {
+         noteDivisor /= 2;
+         noteWidth *= 2.0;
+      }
+
+      if (
+         (timeSignature.GetUpperTimeSignature() * noteDivisor) %
+            timeSignature.GetLowerTimeSignature() !=
+         0)
+      {
+         noteDivisor *= 2;
+         noteWidth /= 2.0;
+
+         if (noteWidth < minSubdivisionWidth)
+            noteDivisor = 1;
+      }
+      
       return noteDivisor;
    }
 
-   double CalculateNotesInBeat() const
+   int64_t CalculateNotesInBeat() const
    {
-      if (noteDivisor > 4.0)
-         return noteDivisor / 4.0;
+      if (noteDivisor > 4)
+         return noteDivisor / 4;
 
-      auto notesCount = 1.0;
+      int64_t notesCount = 1;
 
       while (noteWidth * notesCount < minSubdivisionWidth)
          notesCount *= timeSignature.GetUpperTimeSignature();
 
       return notesCount;
+   }
+
+   bool IsFirstInBar(int64_t noteIndex) const
+   {
+      const auto numerator =
+         timeSignature.GetUpperTimeSignature() * noteDivisor;
+
+      if (numerator % timeSignature.GetLowerTimeSignature() != 0)
+         return false;
+      
+      const auto notesInBar = numerator / timeSignature.GetLowerTimeSignature();
+      return noteIndex % notesInBar == 0;
+   }
+
+   bool UseAlternatingColors() const
+   {
+      return noteDivisor > 4;
    }
 
    double GetPositionInRect(int64_t index, const wxRect& rect, double duration) const
@@ -558,8 +607,10 @@ private:
    {
       const auto offset = subRect.x - fullRect.x;
 
-      return { std::floor((zoomInfo.h + offset) / width),
-               std::ceil((zoomInfo.h + offset + subRect.GetWidth()) / width) };
+      return { std::floor(zoomInfo.GetAbsoluteOffset(offset) / width),
+               std::ceil(
+                  zoomInfo.GetAbsoluteOffset(offset + subRect.GetWidth()) /
+                  width) };
    }
 };
 }
@@ -659,7 +710,7 @@ void TrackArt::DrawBackgroundWithSelection(
    }
 
    if (gridlinePainter.enabled)
-      gridlinePainter.DrawSeparators(*dc, rect, artist->beatSepearatorPen);
+      gridlinePainter.DrawSeparators(*dc, rect, artist->beatSepearatorPen, artist->barSepearatorPen);
 }
 
 void TrackArt::DrawCursor(TrackPanelDrawingContext& context,
