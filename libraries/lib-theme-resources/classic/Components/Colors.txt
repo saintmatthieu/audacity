@@ -110,6 +110,7 @@
       EffectListItemBackground: #f4f4f4;
           EffectListItemBorder: #cccccc;
               BeatSeparatorPen: #bebebe;
+               BarSeparatorPen: #888888;
            BeatFillStrongBrush: #d6d6d6;
              BeatFillWeakBrush: #dcdcdc;
         BeatFillStrongSelBrush: #ebf2ff;
