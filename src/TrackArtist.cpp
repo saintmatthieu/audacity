@@ -96,6 +96,7 @@ void TrackArtist::SetColours( int iColorIndex)
    theTheme.SetPenColour(   muteRmsPen,      clrMuteRms);
 
    theTheme.SetPenColour( beatSepearatorPen, clrBeatSeparatorPen );
+   theTheme.SetPenColour( barSepearatorPen, clrBarSeparatorPen );
    theTheme.SetBrushColour( beatStrongBrush, clrBeatFillStrongBrush );
    theTheme.SetBrushColour( beatWeakBrush, clrBeatFillWeakBrush );
    theTheme.SetBrushColour( beatStrongSelBrush, clrBeatFillStrongSelBrush );

@@ -102,6 +102,7 @@ public:
    wxPen blankSelectedPen;
 
    wxPen beatSepearatorPen;
+   wxPen barSepearatorPen;
    wxBrush beatStrongBrush;
    wxBrush beatWeakBrush;
    wxBrush beatStrongSelBrush;
