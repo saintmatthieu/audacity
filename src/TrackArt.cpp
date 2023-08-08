@@ -20,8 +20,11 @@
 #include "TrackPanelDrawingContext.h"
 #include "ZoomInfo.h"
 #include "TimeDisplayMode.h"
+#include "ProjectTimeRuler.h"
 
 #include "ProjectTimeSignature.h"
+
+#include "widgets/BeatsFormat.h"
 
 #include <wx/app.h>
 #include <wx/dc.h>
@@ -431,16 +434,17 @@ void TrackArt::DrawSyncLockTiles(
 namespace
 {
 constexpr double minSubdivisionWidth = 12.0;
-constexpr double bestSubdivisionWidth = 42.0;
 
 struct BeatsGridlinePainter final
 {
    const ZoomInfo& zoomInfo;
    const bool enabled;
 
-   const ProjectTimeSignature& timeSignature;
-   // "Musical" note duration
-   const int64_t noteDivisor;
+   const BeatsFormat& beatsRulerFormat;
+
+   const BeatsFormat::Tick majorTick;
+   const BeatsFormat::Tick minorTick;
+
    // Note duration in seconds
    const double noteDuration;
    // Note width in pixels
@@ -449,23 +453,30 @@ struct BeatsGridlinePainter final
    const int64_t notesInBeat;
 
 
-BeatsGridlinePainter (const ZoomInfo& zoomInfo, const Track& track) noexcept
-   : zoomInfo{ zoomInfo }
-   , enabled{ TimeDisplayModePreference.ReadEnum () == TimeDisplayMode::BeatsAndMeasures }
-   , timeSignature{ GetTimeSignature (track) }
-   , noteDivisor{ CalculateNoteDivisor (zoomInfo) }
-   , noteDuration{ timeSignature.GetQuarterDuration () * 4.0 / noteDivisor }
-   , noteWidth{ zoomInfo.TimeRangeToPixelWidth (noteDuration) }
-   , notesInBeat{ CalculateNotesInBeat () }
-{
-}
+BeatsGridlinePainter(const ZoomInfo& zoomInfo, const Track& track) noexcept
+       : zoomInfo { zoomInfo }
+       , enabled { TimeDisplayModePreference.ReadEnum() ==
+                   TimeDisplayMode::BeatsAndMeasures }
+       , beatsRulerFormat { ProjectTimeRuler::Get(GetProject(track))
+                               .GetBeatsFormat() }
+       , majorTick { beatsRulerFormat.GetSubdivision().major }
+       , minorTick { GetMinorTick() }
+       , noteDuration { minorTick.duration }
+       , noteWidth { zoomInfo.TimeRangeToPixelWidth(noteDuration) }
+       , notesInBeat { CalculateNotesInBeat() }
+   {
+   }
 
 void DrawSeparators (
    wxDC& dc, const wxRect& rect, const wxPen& beatSepearatorPen, const wxPen& barSeparatorPen) const
 {
    dc.SetPen (beatSepearatorPen);
 
-   const auto [firstNote, lastNote] = GetBoundaries (rect, rect, noteWidth);
+   const auto majorTick = beatsRulerFormat.GetSubdivision().major;
+   const auto minorTick = GetMinorTick();
+
+   const auto [firstNote, lastNote] = GetBoundaries(
+      rect, rect, noteWidth);
 
    for (auto noteIndex = firstNote; noteIndex < lastNote; ++noteIndex)
    {
@@ -474,9 +485,7 @@ void DrawSeparators (
       if (position < rect.GetLeft () || position >= rect.GetRight ())
          continue;
 
-      dc.SetPen (
-         UseAlternatingColors() && IsFirstInBar(noteIndex) ? barSeparatorPen : beatSepearatorPen);
-
+      dc.SetPen(IsFirstInMajorTick(noteIndex) ? barSeparatorPen : beatSepearatorPen);
       dc.DrawLine (position, rect.GetTop (), position, rect.GetBottom () + 1);
    }
 }
@@ -492,15 +501,18 @@ void DrawBackground (
       return;
    }
    
-   const auto [firstIndex, lastIndex] =
+   auto [firstIndex, lastIndex] =
       GetBoundaries (subRect, fullRect, noteWidth);
+
+   // Make first index to be on notesInBeatBoundary
+   firstIndex = (firstIndex / notesInBeat) * notesInBeat;
 
    const auto beatDuration = noteDuration;
 
    const auto top = fullRect.GetTop ();
    const auto height = fullRect.GetHeight ();
 
-   bool strongBeat = true;
+   bool strongBeat = (firstIndex / notesInBeat) % 2 == 0;
    for (auto index = firstIndex; index < lastIndex; index += notesInBeat, strongBeat = !strongBeat)
    {
       const auto left = std::max<int> (
@@ -518,84 +530,35 @@ void DrawBackground (
 }
 
 private:
-   const ProjectTimeSignature& GetTimeSignature (const Track& track) const
+   const AudacityProject& GetProject(const Track& track) const
    {
       // Track is expected to have owner
-      assert (track.GetOwner ());
+      assert(track.GetOwner());
       // TracList is expected to have owner
-      assert (track.GetOwner ()->GetOwner ());
+      assert(track.GetOwner()->GetOwner());
 
-      const auto& project = *track.GetOwner ()->GetOwner ();
-      return ProjectTimeSignature::Get (project);
+      return *track.GetOwner()->GetOwner();
    }
-
-   int64_t CalculateNoteDivisor (const ZoomInfo& zoomInfo) const noexcept
-   {
-      const auto subdivisionsCount = timeSignature.GetUpperTimeSignature ();
-
-      int64_t noteDivisor = 1;
-      auto noteWidth = zoomInfo.TimeRangeToPixelWidth (
-         timeSignature.GetQuarterDuration () * 4.0 / noteDivisor);
-
-      while (noteWidth > bestSubdivisionWidth)
-      {
-         const auto nextNoteWidth = noteWidth / 2.0;
-         if (nextNoteWidth < minSubdivisionWidth)
-            break;
-
-         noteDivisor *= 2;
-         noteWidth = nextNoteWidth;
-      }
-
-      if (noteWidth < minSubdivisionWidth && noteDivisor > 1)
-      {
-         noteDivisor /= 2;
-         noteWidth *= 2.0;
-      }
-
-      if (
-         (timeSignature.GetUpperTimeSignature() * noteDivisor) %
-            timeSignature.GetLowerTimeSignature() !=
-         0)
-      {
-         noteDivisor *= 2;
-         noteWidth /= 2.0;
-
-         if (noteWidth < minSubdivisionWidth)
-            noteDivisor = 1;
-      }
-      
-      return noteDivisor;
-   }
-
+   
    int64_t CalculateNotesInBeat() const
    {
-      if (noteDivisor > 4)
-         return noteDivisor / 4;
+      if (UseAlternatingColors())
+         return minorTick.lower / 4;
 
-      int64_t notesCount = 1;
-
-      while (noteWidth * notesCount < minSubdivisionWidth)
-         notesCount *= timeSignature.GetUpperTimeSignature();
-
-      return notesCount;
+      return 1;
    }
 
-   bool IsFirstInBar(int64_t noteIndex) const
+   bool IsFirstInMajorTick(int64_t noteIndex) const
    {
-      const auto numerator =
-         timeSignature.GetUpperTimeSignature() * noteDivisor;
-
-      if (numerator % timeSignature.GetLowerTimeSignature() != 0)
-         return false;
+      const auto notesInMajorTick =
+         minorTick.lower * majorTick.upper / majorTick.lower / minorTick.upper;
       
-      const auto notesInBar = numerator / timeSignature.GetLowerTimeSignature();
-      return noteIndex % notesInBar == 0;
+      return noteIndex % notesInMajorTick == 0;
    }
 
    bool UseAlternatingColors() const
    {
-      return noteDivisor > 4;
+      return minorTick.lower >= 4 && minorTick.upper == 1;
    }
 
    double GetPositionInRect(int64_t index, const wxRect& rect, double duration) const
@@ -611,6 +574,28 @@ private:
                std::ceil(
                   zoomInfo.GetAbsoluteOffset(offset + subRect.GetWidth()) /
                   width) };
+   }
+
+   BeatsFormat::Tick GetMinorTick() const
+   {
+      const auto& subdivision = beatsRulerFormat.GetSubdivision();
+
+      auto tick = subdivision.minorMinor;
+
+      auto minorMinorLength =
+         zoomInfo.TimeRangeToPixelWidth(subdivision.minorMinor.duration);
+
+      while (minorMinorLength < minSubdivisionWidth)
+      {         
+         tick.lower /= 2;
+         tick.duration *= 2.0;
+         minorMinorLength *= 2.0;
+
+         if (subdivision.minor.lower <= tick.lower)
+            return subdivision.minor.duration == 0.0 ? subdivision.major : subdivision.minor;
+      }
+
+      return tick;
    }
 };
 }
