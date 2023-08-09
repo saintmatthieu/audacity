@@ -70,7 +70,7 @@ void BeatsFormat::SetData(double bpm, int timeSigUpper, int timeSigLower)
 {
    // Check preconditions
    assert(bpm > 0);
-   assert(timeSigUpper > 1);
+   assert(timeSigUpper > 0);
    assert(timeSigLower > 1);
    assert((timeSigLower & (timeSigLower - 1)) == 0);
 
@@ -118,7 +118,7 @@ void BeatsFormat::UpdateSubdivision(double units)
       // eigth notes (label every quarter note)
       ticks.minor = { 1, 8, 60 / (mBpm * (lower / 2)) };
       // thirtysecondth notes
-      ticks.minorMinor = { 1, 4, 60 / (mBpm * (lower * 2)) };
+      ticks.minorMinor = { 1, 32, 60 / (mBpm * (lower * 2)) };
    }
    else if (units < .4 * (60 / mBpm) * (4 / lower))
    {

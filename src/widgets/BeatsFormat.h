@@ -46,7 +46,7 @@ public:
 
    /*!
       @pre `bpm > 0`
-      @pre `timeSigUpper > 1`
+      @pre `timeSigUpper > 0`
       @pre `timeSigLower > 1`
       @pre `(timeSigLower & (timeSigLower - 1)) == 0`
      */
