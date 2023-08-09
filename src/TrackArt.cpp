@@ -552,6 +552,9 @@ private:
    {
       const auto notesInMajorTick =
          minorTick.lower * majorTick.upper / majorTick.lower / minorTick.upper;
+
+      if (notesInMajorTick == 0)
+         return false;
       
       return noteIndex % notesInMajorTick == 0;
    }
@@ -585,14 +588,18 @@ private:
       auto minorMinorLength =
          zoomInfo.TimeRangeToPixelWidth(subdivision.minorMinor.duration);
 
-      while (minorMinorLength < minSubdivisionWidth)
+      const auto nextSubdivision = subdivision.minor.duration == 0.0 ?
+                                subdivision.major :
+                                subdivision.minor;
+
+      while (minorMinorLength <= minSubdivisionWidth)
       {         
          tick.lower /= 2;
          tick.duration *= 2.0;
          minorMinorLength *= 2.0;
 
-         if (subdivision.minor.lower <= tick.lower)
-            return subdivision.minor.duration == 0.0 ? subdivision.major : subdivision.minor;
+         if (nextSubdivision.lower >= tick.lower)
+            return nextSubdivision;
       }
 
       return tick;
