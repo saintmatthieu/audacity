@@ -111,8 +111,8 @@
           EffectListItemBorder: #cccccc;
               BeatSeparatorPen: #bebebe;
                BarSeparatorPen: #888888;
-           BeatFillStrongBrush: #d6d6d6;
+           BeatFillStrongBrush: #cccccc;
              BeatFillWeakBrush: #dcdcdc;
-        BeatFillStrongSelBrush: #ebf2ff;
+        BeatFillStrongSelBrush: #e2e9ea;
           BeatFillWeakSelBrush: #edf5ff;
 }
