@@ -312,8 +312,8 @@ bool PerTrackEffect::ProcessPass(TrackList &outputs,
                isGenerator ? ViewInfo::Get(*FindProject()).selectedRegion.t0() :
                              wt.GetStartTime();
             const auto t1 = ViewInfo::Get(*FindProject()).selectedRegion.t1();
-            PasteTimeWarper warper{ t1, mT0 + wt.GetEndTime() };
-            wt.ClearAndPaste(mT0, t1, *results, true, true, &warper);
+            PasteTimeWarper warper{ t1, t0 + wt.GetEndTime() };
+            wt.ClearAndPaste(t0, t1, *results, true, true, &warper);
             results.reset();
          }
       }; },
