@@ -25,8 +25,8 @@ class TrackList;
 
 class WAVE_TRACK_API WaveTrackSink final : public AudioGraph::Sink {
 public:
-   WaveTrackSink(WaveTrack &left, WaveTrack *pRight,
-      sampleCount start, bool isGenerator, bool isProcessor,
+   WaveTrackSink(
+      WaveTrack& left, WaveTrack* pRight, sampleCount start,
       //! This argument affects processors only, not generators
       sampleFormat effectiveFormat);
    ~WaveTrackSink() override;
@@ -54,7 +54,6 @@ private:
    WaveTrack *const mpRight;
    const std::shared_ptr<WaveTrack> mGenLeft, mGenRight;
    const std::shared_ptr<TrackList> mList;
-   const bool mIsProcessor;
    const sampleFormat mEffectiveFormat;
 
    sampleCount mOutPos;

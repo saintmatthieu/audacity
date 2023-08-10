@@ -41,14 +41,16 @@ void StretchingSequence::ResetCursor(double t, PlaybackDirection direction)
       mAudioSegmentFactory->CreateAudioSegmentSequence(t, direction);
    mActiveAudioSegmentIt = mAudioSegments.begin();
    mPlaybackDirection = direction;
-   mExpectedStart = TimeToLongSamples(t);
 }
 
 bool StretchingSequence::GetNext(
-   float *const buffers[], size_t numChannels, size_t numSamples)
+   float* const buffers[], size_t numChannels, size_t numSamples)
 {
    if (!mExpectedStart.has_value())
+   {
       ResetCursor(0., PlaybackDirection::forward);
+      mExpectedStart = 0;
+   }
    auto numProcessedSamples = 0u;
    while (numProcessedSamples < numSamples &&
           mActiveAudioSegmentIt != mAudioSegments.end())
@@ -89,10 +91,10 @@ float StretchingSequence::GetChannelGain(int channel) const
    return mSequence.GetChannelGain(channel);
 }
 
-bool StretchingSequence::Get(size_t iChannel, size_t nBuffers,
-   const samplePtr buffers[], sampleFormat format, sampleCount start,
-   size_t len, bool backwards, fillFormat fill,
-   bool mayThrow, sampleCount* pNumWithinClips) const
+bool StretchingSequence::Get(
+   size_t iChannel, size_t nBuffers, const samplePtr buffers[],
+   sampleFormat format, sampleCount start, size_t len, bool backwards,
+   fillFormat fill, bool mayThrow, sampleCount* pNumWithinClips) const
 {
    return const_cast<StretchingSequence&>(*this).MutableGet(
       iChannel, nBuffers, buffers, format, start, len, backwards);
@@ -121,6 +123,30 @@ double StretchingSequence::GetStartTime() const
 double StretchingSequence::GetEndTime() const
 {
    return mSequence.GetEndTime();
+}
+
+sampleCount StretchingSequence::TimeToLongSamples(double t0) const
+{
+   const auto segments = mAudioSegmentFactory->CreateAudioSegmentSequence(
+      0.0, PlaybackDirection::forward);
+   if (segments.empty())
+      // We are only going to produce silence samples, so that's easy:
+      return mSequence.TimeToLongSamples(t0);
+   sampleCount result { 0 };
+   auto t = 0;
+   for (const auto& segment : segments)
+   {
+      const auto numSamples = segment->GetNumOutputSamplesUpTo(t0);
+      if (numSamples == 0)
+         break;
+      result += numSamples;
+   }
+   return result;
+}
+
+double StretchingSequence::LongSamplesToTime(sampleCount pos) const
+{
+   return mSequence.LongSamplesToTime(pos);
 }
 
 double StretchingSequence::GetRate() const
@@ -182,8 +208,9 @@ bool StretchingSequence::MutableGet(
       ResetCursor(
          t,
          backwards ? PlaybackDirection::backward : PlaybackDirection::forward);
+      mExpectedStart = start;
    }
-   return GetNext(reinterpret_cast<float *const *>(buffers), nBuffers, len);
+   return GetNext(reinterpret_cast<float* const*>(buffers), nBuffers, len);
 }
 
 std::shared_ptr<StretchingSequence> StretchingSequence::Create(

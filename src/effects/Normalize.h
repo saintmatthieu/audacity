@@ -22,6 +22,7 @@ class wxCheckBox;
 class wxStaticText;
 class wxTextCtrl;
 class ShuttleGui;
+class WaveTrack;
 
 class EffectNormalize final : public StatefulEffect
 {

@@ -27,7 +27,7 @@
 #include "ShuttleAutomation.h"
 #include "SyncLock.h"
 #include "ViewInfo.h"
-#include "WaveTrack.h"
+#include "WideSampleSequence.h"
 #include "wxFileNameWrapper.h"
 #include "NumericConverterFormats.h"
 
@@ -367,14 +367,13 @@ bool Effect::TrackGroupProgress(
 }
 
 void Effect::GetBounds(
-   const WaveTrack &track, sampleCount *start, sampleCount *len)
+   const WideSampleSequence& sequence, sampleCount* start, sampleCount* len)
 {
-   assert(track.IsLeader());
-   const auto t0 = std::max(mT0, track.GetStartTime());
-   const auto t1 = std::min(mT1, track.GetEndTime());
+   const auto t0 = std::max(mT0, sequence.GetStartTime());
+   const auto t1 = std::min(mT1, sequence.GetEndTime());
    if (t1 > t0) {
-      *start = track.TimeToLongSamples(t0);
-      auto end = track.TimeToLongSamples(t1);
+      *start = sequence.TimeToLongSamples(t0);
+      auto end = sequence.TimeToLongSamples(t1);
       *len = end - *start;
    }
    else {

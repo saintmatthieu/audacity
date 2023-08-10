@@ -15,6 +15,7 @@
 class wxString;
 
 class LabelTrack;
+class WaveTrack;
 
 #include "StatefulEffect.h"
 #include "ShuttleAutomation.h"

@@ -19,6 +19,7 @@ class wxTextCtrl;
 class ShuttleGui;
 
 class wxStaticText;
+class WaveTrack;
 
 class EffectRepeat final : public StatefulEffect
 {

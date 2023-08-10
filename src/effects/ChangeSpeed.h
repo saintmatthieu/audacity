@@ -23,6 +23,7 @@ class wxTextCtrl;
 class LabelTrack;
 class NumericTextCtrl;
 class ShuttleGui;
+class WaveTrack;
 
 class EffectChangeSpeed final : public StatefulEffect
 {

@@ -21,6 +21,8 @@
 #include "StatefulEffect.h"
 #include "SampleCount.h"
 
+class WaveTrack;
+
 // Base class for Generators (effects which fill a given duration)
 class Generator /* not final */ : public StatefulEffect
 {

@@ -18,7 +18,9 @@ TEST_CASE("SilenceSegment", "behaves as expected")
    // A quick test of an easy implementation.
    const auto numChannels = GENERATE(1, 2);
    constexpr auto silenceSegmentLength = 3u;
-   SilenceSegment sut(numChannels, silenceSegmentLength);
+   constexpr auto sampleRate = 10;
+   const auto startTime = 0.0;
+   SilenceSegment sut(sampleRate, numChannels, startTime, silenceSegmentLength);
    REQUIRE(!sut.Empty());
    AudioContainer container(3u, numChannels);
    REQUIRE(sut.GetFloats(container.channelPointers, 1) == 1);

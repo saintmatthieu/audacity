@@ -2144,6 +2144,16 @@ double WaveTrack::GetEndTime() const
    return ChannelGroup::GetEndTime();
 }
 
+sampleCount WaveTrack::TimeToLongSamples(double t0) const
+{
+   return sampleCount(floor(t0 * GetRate() + 0.5));
+}
+
+double WaveTrack::LongSamplesToTime(sampleCount pos) const
+{
+   return pos.as_double() / GetRate();
+}
+
 double WaveTrack::SnapToSample(double t) const
 {
    const auto sampleRate = GetRate();

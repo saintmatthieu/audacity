@@ -26,6 +26,7 @@ class ShuttleGui;
 class wxChoice;
 class wxTextCtrl;
 class wxCheckBox;
+class WaveTrack;
 
 class RegionList;
 

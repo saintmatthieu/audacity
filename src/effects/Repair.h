@@ -14,6 +14,7 @@
 #include "StatefulEffect.h"
 
 class WaveTrack;
+class WaveTrack;
 
 class EffectRepair final : public StatefulEffect
 {

@@ -27,6 +27,8 @@ public:
 
    sampleCount GetVisibleSampleCount() const override;
 
+   sampleCount TimeToSamples(double t) const override;
+
    size_t GetWidth() const override;
 
    int GetRate() const override;

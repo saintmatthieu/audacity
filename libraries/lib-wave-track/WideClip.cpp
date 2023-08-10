@@ -27,6 +27,11 @@ sampleCount WideClip::GetVisibleSampleCount() const
    return mChannels[0u]->GetVisibleSampleCount();
 }
 
+sampleCount WideClip::TimeToSamples(double t) const
+{
+   return mChannels[0u]->TimeToSamples(t);
+}
+
 size_t WideClip::GetWidth() const
 {
    return mChannels[1u] == nullptr ? 1u : 2u;

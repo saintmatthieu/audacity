@@ -30,6 +30,21 @@ public:
    {
       return false;
    }
+
+   double GetPlayStartTime() const override
+   {
+      return 0;
+   }
+
+   double GetPlayEndTime() const override
+   {
+      return 0;
+   }
+
+   sampleCount TimeToSamples(double t) const override
+   {
+      return 0;
+   }
 };
 
 class MockAudioSegmentFactory : public AudioSegmentFactoryInterface

@@ -59,7 +59,7 @@ void WaveTrackLocations::Update( const WaveTrack &track )
       for (const auto &cc : clip->GetCutLines())
       {
          auto cutlinePosition = clip->GetSequenceStartTime() + cc->GetSequenceStartTime();
-         if (clip->WithinPlayRegion(cutlinePosition))
+         if (clip->SplitsPlayRegion(cutlinePosition))
          {
              // Add cut line expander point
              mDisplayLocationsCache.push_back(WaveTrackLocation{

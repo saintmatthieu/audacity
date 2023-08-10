@@ -13,6 +13,8 @@
 
 #include "StatefulEffect.h"
 
+class WaveTrack;
+
 class EffectStereoToMono final : public StatefulEffect
 {
 public:

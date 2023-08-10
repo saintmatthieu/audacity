@@ -128,3 +128,18 @@ void ClipSegment::Pull(float* const* buffers, size_t samplesPerChannel)
          std::fill(buffers[i] + begin, buffers[i] + end, 0.f);
    }
 }
+
+double ClipSegment::GetPlayStartTime() const
+{
+   return mClip.GetPlayStartTime();
+}
+
+double ClipSegment::GetPlayEndTime() const
+{
+   return mClip.GetPlayEndTime();
+}
+
+sampleCount ClipSegment::TimeToSamples(double t) const
+{
+   return mClip.TimeToSamples(t);
+}

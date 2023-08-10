@@ -41,6 +41,9 @@ public:
    float GetChannelGain(int channel) const override;
    double GetStartTime() const override;
    double GetEndTime() const override;
+   sampleCount TimeToLongSamples(double t0) const override;
+   double LongSamplesToTime(sampleCount pos) const override;
+
    double GetRate() const override;
    sampleFormat WidestEffectiveFormat() const override;
    bool HasTrivialEnvelope() const override;

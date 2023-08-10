@@ -26,6 +26,7 @@ class wxChoice;
 class wxSimplebook;
 class EBUR128;
 class ShuttleGui;
+class WaveTrack;
 using Floats = ArrayOf<float>;
 
 class EffectLoudness final : public StatefulEffect

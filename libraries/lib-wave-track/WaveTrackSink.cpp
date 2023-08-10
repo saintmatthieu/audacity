@@ -17,19 +17,16 @@
 #include "WaveTrack.h"
 #include <cassert>
 
-WaveTrackSink::WaveTrackSink(WaveTrack &left, WaveTrack *pRight,
-   sampleCount start, bool isGenerator, bool isProcessor,
-   sampleFormat effectiveFormat
-)  : mLeft{ left }, mpRight{ pRight }
-   , mGenLeft{ isGenerator ? left.EmptyCopy() : nullptr }
-   , mGenRight{ pRight && isGenerator ? pRight->EmptyCopy() : nullptr }
-   , mList{ mGenLeft
-      ? TrackList::Temporary(nullptr, mGenLeft, mGenRight)
-      : nullptr
-   }
-   , mIsProcessor{ isProcessor }
-   , mEffectiveFormat{ effectiveFormat }
-   , mOutPos{ start }
+WaveTrackSink::WaveTrackSink(
+   WaveTrack& left, WaveTrack* pRight, sampleCount start,
+   sampleFormat effectiveFormat)
+    : mLeft { left }
+    , mpRight { pRight }
+    , mGenLeft { left.EmptyCopy() }
+    , mGenRight { pRight ? pRight->EmptyCopy() : nullptr }
+    , mList { TrackList::Temporary(nullptr, mGenLeft, mGenRight) }
+    , mEffectiveFormat { effectiveFormat }
+    , mOutPos { start }
 {
 }
 
@@ -66,20 +63,10 @@ void WaveTrackSink::DoConsume(Buffers &data)
    const auto inputBufferCnt = data.Position();
    if (inputBufferCnt > 0) {
       // Some data still unwritten
-      if (mIsProcessor) {
-         mLeft.Set(data.GetReadPosition(0),
-            floatSample, mOutPos, inputBufferCnt, mEffectiveFormat);
-         if (mpRight)
-            mpRight->Set(data.GetReadPosition(1),
-               floatSample, mOutPos, inputBufferCnt, mEffectiveFormat);
-      }
-      else if (mGenLeft) {
-         mGenLeft->Append(data.GetReadPosition(0),
-            floatSample, inputBufferCnt);
-         if (mGenRight)
-            mGenRight->Append(data.GetReadPosition(1),
-               floatSample, inputBufferCnt);
-      }
+      mGenLeft->Append(data.GetReadPosition(0), floatSample, inputBufferCnt);
+      if (mGenRight)
+         mGenRight->Append(
+            data.GetReadPosition(1), floatSample, inputBufferCnt);
       // Satisfy post
       data.Rewind();
       // Bump to the next track position

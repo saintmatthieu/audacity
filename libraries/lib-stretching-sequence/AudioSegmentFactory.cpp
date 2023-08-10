@@ -47,19 +47,21 @@ AudioSegmentFactory::CreateAudioSegmentSequenceForward(double t0) const
    std::vector<std::shared_ptr<AudioSegment>> segments;
    for (const auto& clip : sortedClips)
    {
-      if (clip->GetPlayStartTime() > t0)
+      const auto clipStartTime = clip->GetPlayStartTime();
+      const auto clipEndTime = clip->GetPlayEndTime();
+      if (clipStartTime > t0)
       {
          const auto numSamples =
-            sampleCount { (clip->GetPlayStartTime() - t0) * mSampleRate + .5 };
-         segments.push_back(
-            std::make_shared<SilenceSegment>(mNumChannels, numSamples));
-         t0 = clip->GetPlayStartTime();
+            sampleCount { (clipStartTime - t0) * mSampleRate + .5 };
+         segments.push_back(std::make_shared<SilenceSegment>(
+            mSampleRate, mNumChannels, t0, numSamples));
+         t0 = clipStartTime;
       }
-      else if (clip->GetPlayEndTime() <= t0)
+      else if (clipEndTime <= t0)
          continue;
       segments.push_back(std::make_shared<ClipSegment>(
-         *clip, t0 - clip->GetPlayStartTime(), PlaybackDirection::forward));
-      t0 = clip->GetPlayEndTime();
+         *clip, t0 - clipStartTime, PlaybackDirection::forward));
+      t0 = clipEndTime;
    }
    return segments;
 }
@@ -76,19 +78,21 @@ AudioSegmentFactory::CreateAudioSegmentSequenceBackward(double t0) const
    std::vector<std::shared_ptr<AudioSegment>> segments;
    for (const auto& clip : sortedClips)
    {
-      if (clip->GetPlayEndTime() < t0)
+      const auto clipStartTime = clip->GetPlayStartTime();
+      const auto clipEndTime = clip->GetPlayEndTime();
+      if (clipEndTime < t0)
       {
          const auto numSamples =
-            sampleCount { (t0 - clip->GetPlayEndTime()) * mSampleRate + .5 };
-         segments.push_back(
-            std::make_shared<SilenceSegment>(mNumChannels, numSamples));
-         t0 = clip->GetPlayEndTime();
+            sampleCount { (t0 - clipEndTime) * mSampleRate + .5 };
+         segments.push_back(std::make_shared<SilenceSegment>(
+            mSampleRate, mNumChannels, t0, numSamples));
+         t0 = clipEndTime;
       }
-      else if (clip->GetPlayStartTime() >= t0)
+      else if (clipStartTime >= t0)
          continue;
       segments.push_back(std::make_shared<ClipSegment>(
-         *clip, clip->GetPlayEndTime() - t0, PlaybackDirection::backward));
-      t0 = clip->GetPlayStartTime();
+         *clip, clipEndTime - t0, PlaybackDirection::backward));
+      t0 = clipStartTime;
    }
    return segments;
 }

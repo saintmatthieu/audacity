@@ -22,6 +22,7 @@ class wxArrayString;
 class wxFileName;
 class wxCheckBox;
 class wxTextCtrl;
+class WaveTrack;
 
 class EffectOutputTracks;
 
@@ -91,7 +92,7 @@ public:
    VendorSymbol GetVendor() const override;
    wxString GetVersion() const override;
    TranslatableString GetDescription() const override;
-   
+
    ManualPageID ManualPage() const override;
    FilePath HelpPage() const override;
 

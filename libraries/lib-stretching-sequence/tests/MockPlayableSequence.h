@@ -56,6 +56,16 @@ public:
       return sampleRate;
    }
 
+   sampleCount TimeToLongSamples(double t0) const override
+   {
+      return { 0 };
+   }
+
+   double LongSamplesToTime(sampleCount pos) const override
+   {
+      return 0;
+   }
+
    sampleFormat WidestEffectiveFormat() const override
    {
       return floatSample;

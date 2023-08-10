@@ -36,8 +36,8 @@ public:
                params && WaveChannelView::HitTest(
                   *clip, viewInfo, params->rect, { params->xx, params->yy })
             ) || (
-               // WithinPlayRegion misses first sample, which breaks moving
-               // "selected" clip. Probable WithinPlayRegion should be fixed
+               // SplitsPlayRegion misses first sample, which breaks moving
+               // "selected" clip. Probable SplitsPlayRegion should be fixed
                // instead?
                 clip->GetPlayStartTime() <= time &&
                  time < clip->GetPlayEndTime()
@@ -45,7 +45,7 @@ public:
                return clip;
          return {};
       }();
-      
+
       if (!pClip)
          return HitTestResult::Miss;
 
@@ -62,7 +62,7 @@ public:
          return static_cast<const WaveTrack::Interval&>(interval).GetClip(0)
            == pClip;
       });
-      
+
       return HitTestResult::Intervals;
    }
 
@@ -75,8 +75,8 @@ public:
          auto clip = data.GetClip(0).get();
          const auto c0 = mpTrack->TimeToLongSamples(clip->GetPlayStartTime());
          const auto c1 = mpTrack->TimeToLongSamples(clip->GetPlayEndTime());
-         return 
-             mpTrack->TimeToLongSamples(interval.Start()) < c1 && 
+         return
+             mpTrack->TimeToLongSamples(interval.Start()) < c1 &&
              mpTrack->TimeToLongSamples(interval.End()) > c0;
       });
    }
@@ -101,7 +101,7 @@ public:
          desiredOffset *= -1;
       return desiredOffset;
    }
-   
+
    double QuantizeOffset( double desiredOffset ) override
    {
       const auto rate = mpTrack->GetRate();
@@ -219,7 +219,7 @@ public:
       }
       return t0;
    }
-   
+
 private:
    const std::shared_ptr<WaveTrack> mpTrack;
 

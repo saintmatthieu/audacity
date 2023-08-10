@@ -25,6 +25,7 @@ using namespace _sbsms_;
 
 class LabelTrack;
 class TimeWarper;
+class WaveTrack;
 
 class EffectSBSMS /* not final */ : public StatefulEffect
 {

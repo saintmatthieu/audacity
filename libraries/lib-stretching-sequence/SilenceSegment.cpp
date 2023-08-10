@@ -13,8 +13,12 @@
 #include <algorithm>
 #include <cassert>
 
-SilenceSegment::SilenceSegment(size_t numChannels, sampleCount numSamples)
-    : mNumChannels { numChannels }
+SilenceSegment::SilenceSegment(
+   int sampleRate, size_t numChannels, double startTime, sampleCount numSamples)
+    : mSampleRate { sampleRate }
+    , mNumChannels { numChannels }
+    , mStartTime { startTime }
+    , mEndTime { startTime + numSamples.as_double() / sampleRate }
     , mNumRemainingSamples { numSamples }
 {
 }
@@ -42,4 +46,19 @@ bool SilenceSegment::Empty() const
 size_t SilenceSegment::GetWidth() const
 {
    return mNumChannels;
+}
+
+double SilenceSegment::GetPlayStartTime() const
+{
+   return mStartTime;
+}
+
+double SilenceSegment::GetPlayEndTime() const
+{
+   return mEndTime;
+}
+
+sampleCount SilenceSegment::TimeToSamples(double t) const
+{
+   return sampleCount { t * mSampleRate + .5 };
 }

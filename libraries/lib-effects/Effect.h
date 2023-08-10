@@ -17,7 +17,7 @@
 #define BUILTIN_EFFECT_PREFIX wxT("Built-in Effect: ")
 
 class EffectParameterMethods;
-class WaveTrack;
+class WideSampleSequence;
 
 class sampleCount;
 
@@ -140,10 +140,8 @@ protected:
    int GetNumWaveGroups() const { return mNumGroups; }
 
    // Calculates the start time and length in samples for one or two channels
-   /*!
-    @pre `track.IsLeader()`
-    */
-   void GetBounds(const WaveTrack &track, sampleCount *start, sampleCount *len);
+   void GetBounds(
+      const WideSampleSequence& sequence, sampleCount* start, sampleCount* len);
 
 private:
    wxString GetSavedStateGroup();

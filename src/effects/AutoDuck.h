@@ -19,6 +19,7 @@
 class wxBitmap;
 class wxTextCtrl;
 class ShuttleGui;
+class WaveTrack;
 
 #define AUTO_DUCK_PANEL_NUM_CONTROL_POINTS 5
 

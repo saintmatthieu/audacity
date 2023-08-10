@@ -52,6 +52,11 @@ sampleCount FloatVectorClip::GetVisibleSampleCount() const
    return mAudio[0].size();
 }
 
+sampleCount FloatVectorClip::TimeToSamples(double t) const
+{
+   return { 0 };
+}
+
 size_t FloatVectorClip::GetWidth() const
 {
    return mAudio.size();

@@ -44,4 +44,11 @@ public:
     * @brief Whether the segment has no more samples to provide.
     */
    virtual bool Empty() const = 0;
+
+   sampleCount GetNumOutputSamplesUpTo(double t /*absolute*/) const;
+
+private:
+   virtual double GetPlayStartTime() const = 0;
+   virtual double GetPlayEndTime() const = 0;
+   virtual sampleCount TimeToSamples(double t) const = 0;
 };

@@ -24,6 +24,7 @@
 #include "AudioGraphBuffers.h"
 #include "AudioGraphTask.h"
 #include "EffectStage.h"
+#include "StretchingSequence.h"
 #include "SyncLock.h"
 #include "TimeWarper.h"
 #include "ViewInfo.h"
@@ -87,8 +88,7 @@ bool PerTrackEffect::ProcessPass(TrackList &outputs,
 {
    const auto duration = settings.extra.GetDuration();
    bool bGoodResult = true;
-   bool isGenerator = GetType() == EffectTypeGenerate;
-   bool isProcessor = GetType() == EffectTypeProcess;
+   const bool isGenerator = GetType() == EffectTypeGenerate;
 
    Buffers inBuffers, outBuffers;
    ChannelName map[3];
@@ -121,6 +121,8 @@ bool PerTrackEffect::ProcessPass(TrackList &outputs,
          else
             leader =
                static_cast<WaveTrack *>(*outputs.FindLeader(&left));
+         const auto stretcher =
+            StretchingSequence::Create(left, left.GetClipInterfaces());
 
          sampleCount len = 0;
          sampleCount start = 0;
@@ -138,7 +140,7 @@ bool PerTrackEffect::ProcessPass(TrackList &outputs,
          }
 
          if (!isGenerator) {
-            GetBounds(*leader, &start, &len);
+            GetBounds(*stretcher, &start, &len);
             mSampleCnt = len;
             if (len > 0 && numAudioIn < 1) {
                bGoodResult = false;
@@ -146,7 +148,7 @@ bool PerTrackEffect::ProcessPass(TrackList &outputs,
             }
          }
          else
-            mSampleCnt = left.TimeToLongSamples(duration);
+            mSampleCnt = stretcher->TimeToLongSamples(duration);
 
          const auto sampleRate = left.GetRate();
 
@@ -254,15 +256,15 @@ bool PerTrackEffect::ProcessPass(TrackList &outputs,
          // progress dialog correct
          if (len == 0 && genLength)
             len = *genLength;
-         WideSampleSource source{
-            left, size_t(pRight ? 2 : 1), start, len, pollUser };
+         WideSampleSource source { *stretcher, size_t(pRight ? 2 : 1), start,
+                                   len, pollUser };
          // Assert source is safe to Acquire inBuffers
          assert(source.AcceptsBuffers(inBuffers));
          assert(source.AcceptsBlockSize(inBuffers.BlockSize()));
 
-         WaveTrackSink sink{ left, pRight, start, isGenerator, isProcessor,
-            instance.NeedsDither() ? widestSampleFormat : narrowestSampleFormat
-         };
+         WaveTrackSink sink { left, pRight, start,
+                              instance.NeedsDither() ? widestSampleFormat :
+                                                       narrowestSampleFormat };
          assert(sink.AcceptsBuffers(outBuffers));
 
          // Go process the track(s)
@@ -306,6 +308,9 @@ bool PerTrackEffect::ProcessPass(TrackList &outputs,
             for (const auto pChannel : channels)
                waveTrackVisitor(*pChannel);
          if (results) {
+            const auto t0 =
+               isGenerator ? ViewInfo::Get(*FindProject()).selectedRegion.t0() :
+                             wt.GetStartTime();
             const auto t1 = ViewInfo::Get(*FindProject()).selectedRegion.t1();
             PasteTimeWarper warper{ t1, mT0 + wt.GetEndTime() };
             wt.ClearAndPaste(mT0, t1, *results, true, true, &warper);

@@ -24,6 +24,7 @@ class wxSlider;
 class wxTextCtrl;
 class Envelope;
 class ShuttleGui;
+class WaveTrack;
 
 class EffectClickRemoval final : public StatefulEffect
 {

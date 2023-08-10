@@ -37,6 +37,10 @@ private:
    // TimeAndPitchSource
    void Pull(float* const*, size_t samplesPerChannel) override;
 
+   double GetPlayStartTime() const override;
+   double GetPlayEndTime() const override;
+   sampleCount TimeToSamples(double t) const override;
+
    const ClipInterface& mClip;
    sampleCount mLastReadSample = 0;
    const sampleCount mTotalNumSamplesToProduce;

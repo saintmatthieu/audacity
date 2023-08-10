@@ -16,6 +16,7 @@
 #include <wx/weakref.h>
 
 class ShuttleGui;
+class WaveTrack;
 
 class EffectPaulstretch final : public StatefulEffect
 {
@@ -50,7 +51,7 @@ public:
 
 private:
    // EffectPaulstretch implementation
-   
+
    void OnText(wxCommandEvent & evt);
    size_t GetBufferSize(double rate) const;
 

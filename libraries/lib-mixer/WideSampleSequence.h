@@ -114,7 +114,7 @@ public:
     @return The number of samples from the start of the sequence which lie
     before the given time
     */
-   sampleCount TimeToLongSamples(double t0) const;
+   virtual sampleCount TimeToLongSamples(double t0) const = 0;
    //! Convert correctly between a number of samples and an (absolute) time in
    //! seconds.
    /*!
@@ -122,7 +122,7 @@ public:
     convert
     @return The time in seconds
     */
-   double LongSamplesToTime(sampleCount pos) const;
+   virtual double LongSamplesToTime(sampleCount pos) const = 0;
 
    //! @return widest effective SampleFormat in any part of the track
    virtual sampleFormat WidestEffectiveFormat() const = 0;

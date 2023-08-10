@@ -17,6 +17,8 @@
 #include "StatefulEffect.h"
 #include "EqualizationUI.h"
 
+class WaveTrack;
+
 class EffectEqualization : public StatefulEffect
 {
 public:
@@ -26,7 +28,7 @@ public:
    static const ComponentInterfaceSymbol Symbol;
 
    EffectEqualization(int Options = kEqLegacy);
-   
+
    virtual ~EffectEqualization();
 
    // ComponentInterface implementation
@@ -69,7 +71,7 @@ private:
    struct Task;
    bool ProcessOne(Task &task, int count, const WaveTrack &t,
       sampleCount start, sampleCount len);
-   
+
    wxWeakRef<wxWindow> mUIParent{};
    EqualizationFilter mParameters;
    EqualizationCurvesList mCurvesList{ mParameters };

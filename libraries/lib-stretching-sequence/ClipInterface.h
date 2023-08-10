@@ -26,6 +26,7 @@ public:
     * The number of raw audio samples not hidden by trimming.
     */
    virtual sampleCount GetVisibleSampleCount() const = 0;
+   virtual sampleCount TimeToSamples(double t) const = 0;
 
    virtual size_t GetWidth() const = 0;
 

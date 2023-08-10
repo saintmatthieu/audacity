@@ -517,7 +517,7 @@ public:
     * TimeToSamples and SamplesToTime take clip stretch ratio into account.
     * Use them to convert time / sample offsets.
     */
-   sampleCount TimeToSamples(double time) const noexcept;
+   sampleCount TimeToSamples(double time) const override;
    double SamplesToTime(sampleCount s) const noexcept;
    /*!
     * Given the possibility of some clips of a track being time-stretched, and

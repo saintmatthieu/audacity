@@ -131,6 +131,9 @@ private:
    //! Implement WideSampleSequence
    double GetEndTime() const override;
 
+   sampleCount TimeToLongSamples(double t0) const override;
+   double LongSamplesToTime(sampleCount pos) const override;
+
    double SnapToSample(double t) const;
 
    //
