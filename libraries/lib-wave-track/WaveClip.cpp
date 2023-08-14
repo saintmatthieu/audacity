@@ -1128,7 +1128,7 @@ void WaveClip::Resample(int rate, BasicUI::ProgressDialog *progress)
    }
 }
 
-void WaveClip::ApplyStretchRatio()
+void WaveClip::ApplyStretchRatio(const ProgressReporter& reportProgress)
 {
    const auto stretchRatio = GetStretchRatio();
    if (stretchRatio == 1.0)
@@ -1185,6 +1185,9 @@ void WaveClip::ApplyStretchRatio()
             widestSampleFormat /* computed samples need dither */
          );
       numOutSamples += numSamplesToGet;
+      if (reportProgress)
+         reportProgress(
+            numOutSamples.as_double() / totalNumOutSamples.as_double());
    }
 
    std::swap(mSequences, newSequences);
