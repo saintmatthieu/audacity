@@ -3037,14 +3037,16 @@ int WaveTrack::GetNumClips() const
 int WaveTrack::GetNumClips(double t0, double t1) const
 {
    const auto clips = SortedClipArray();
-   const auto firstIn =
-      std::find_if(clips.begin(), clips.end(), [t0](const auto& clip) {
-         return t0 < clip->GetPlayEndTime();
+   // Find first position where the comparison is false
+   const auto firstIn = std::lower_bound(clips.begin(), clips.end(), t0,
+      [](const auto& clip, double t0) {
+         return clip->GetPlayEndTime() <= t0;
       });
-   const auto firstOut =
-   std::find_if(firstIn, clips.end(), [t1](const auto& clip) {
-      return t1 < clip->GetPlayStartTime();
-   });
+   // Find first position where the comparison is false
+   const auto firstOut = std::lower_bound(firstIn, clips.end(), t1,
+      [](const auto& clip, double t1) {
+         return clip->GetPlayStartTime() <= t1;
+      });
    return std::distance(firstIn, firstOut);
 }
 
