@@ -71,7 +71,7 @@ bool Generator::Process(EffectInstance &, EffectSettings &settings)
                   ViewInfo::Get(*pProject).selectedRegion;
                track.ClearAndPaste(
                   selectedRegion.t0(), selectedRegion.t1(),
-                  *list, true, true, &warper);
+                  *list, true, false, &warper);
             }
             else
                return;
