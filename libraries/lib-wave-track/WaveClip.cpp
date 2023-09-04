@@ -1136,6 +1136,7 @@ void WaveClip::ApplyStretchRatio()
 
    auto success = false;
    auto newSequences = GetEmptySequenceCopies();
+   bool swappedOnce = false;
 
    Finally Do { [&, trimLeftBeforeStretch = mTrimLeft,
                  trimRightBeforeStretch = mTrimRight] {
@@ -1149,7 +1150,7 @@ void WaveClip::ApplyStretchRatio()
          this->mRawAudioTempo = this->mProjectTempo;
          assert(this->GetStretchRatio() == 1.0);
       }
-      else
+      else if (swappedOnce)
          std::swap(mSequences, newSequences);
    } };
 
@@ -1187,6 +1188,7 @@ void WaveClip::ApplyStretchRatio()
    }
 
    std::swap(mSequences, newSequences);
+   swappedOnce = true;
    Flush();
    Caches::ForEach(std::mem_fn(&WaveClipListener::Invalidate));
 
