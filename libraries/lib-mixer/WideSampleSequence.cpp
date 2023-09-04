@@ -22,6 +22,11 @@ double WideSampleSequence::LongSamplesToTime(sampleCount pos) const
    return pos.as_double() / GetRate();
 }
 
+double WideSampleSequence::SnapToSample(double t) const
+{
+   return LongSamplesToTime(TimeToLongSamples(t));
+}
+
 const WideSampleSequence& WideSampleSequence::GetDecorated() const
 {
    const WideSampleSequence* innermost = this;
