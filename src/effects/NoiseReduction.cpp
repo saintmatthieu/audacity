@@ -637,9 +637,14 @@ bool EffectNoiseReduction::Process(EffectInstance &, EffectSettings &)
 {
    // This same code will either reduce noise or profile it
 
-   EffectOutputTracks outputs { *mTracks, { mT0, mT1 } };
+   std::optional<EffectOutputTracks> oOutputs;
 
-   auto track = *(outputs.Get().Selected<const WaveTrack>()).begin();
+   // If only analyzing, use the original tracks and don't make copies
+   if (!mSettings->mDoProfile)
+      oOutputs.emplace(*mTracks, EffectOutputTracks::Interval{ mT0, mT1 });
+   auto &tracks = oOutputs ? oOutputs->Get() : *mTracks;
+
+   auto track = *(tracks.Selected<const WaveTrack>()).begin();
    if (!track)
       return false;
 
@@ -700,15 +705,15 @@ bool EffectNoiseReduction::Process(EffectInstance &, EffectSettings &)
 #endif
    };
    bool bGoodResult = worker.Process(inWindowType, outWindowType,
-      outputs.Get(), mT0, mT1);
+      tracks, mT0, mT1);
    if (mSettings->mDoProfile) {
       if (bGoodResult)
          mSettings->mDoProfile = false; // So that "repeat last effect" will reduce noise
       else
          mStatistics.reset(); // So that profiling must be done again before noise reduction
    }
-   if (bGoodResult)
-      outputs.Commit();
+   if (bGoodResult && oOutputs)
+      oOutputs->Commit();
 
    return bGoodResult;
 }
