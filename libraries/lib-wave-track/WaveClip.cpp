@@ -1412,6 +1412,11 @@ bool WaveClip::BeforePlayRegion(double t) const
    return t < GetPlayStartTime();
 }
 
+bool WaveClip::AtOrBeforePlayRegion(double t) const
+{
+   return t <= GetPlayStartTime();
+}
+
 bool WaveClip::AfterPlayRegion(double t) const
 {
    return GetPlayEndTime() <= t;
