@@ -1356,13 +1356,16 @@ void WaveTrack::ClearAndPasteOne(WaveTrack &track, double t0, double t1,
             }
             else if (clip->GetPlayStartSample() ==
                track.TimeToLongSamples(at) && split.right) {
-               // precondition satisfied because... ??
+               // Satisfy the precondition of attachLeft first!
+               clip->Clear(
+                  clip->GetSequenceStartTime(), clip->GetPlayStartTime());
                attachLeft(*clip, *split.right);
                break;
             }
             else if (clip->GetPlayEndSample() ==
                track.TimeToLongSamples(at) && split.left) {
-               // precondition satisfied because... ??
+               clip->Clear(
+                  clip->GetPlayEndTime(), clip->GetSequenceEndTime());
                attachRight(*clip, *split.left);
                break;
             }
