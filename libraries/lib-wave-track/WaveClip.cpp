@@ -21,12 +21,10 @@
 #include <vector>
 #include <wx/log.h>
 
-#include "AudioContainer.h"
 #include "BasicUI.h"
 #include "ClipTimeAndPitchSource.h"
 #include "Envelope.h"
 #include "InconsistencyException.h"
-#include "Prefs.h"
 #include "Resample.h"
 #include "Sequence.h"
 #include "StaffPadTimeAndPitch.h"
@@ -226,11 +224,11 @@ void WaveClip::OnProjectTempoChange(
       // read-up or signal analysis) we can use something smarter than that. In
       // the meantime, use the tempo of the project when the clip is created as
       // source tempo.
-      mRawAudioTempo = oldTempo;
+      mRawAudioTempo = oldTempo.value_or(newTempo);
 
    if (oldTempo.has_value())
    {
-      const auto ratioChange = *mProjectTempo / newTempo;
+      const auto ratioChange = *oldTempo / newTempo;
       mSequenceOffset *= ratioChange;
       mTrimLeft *= ratioChange;
       mTrimRight *= ratioChange;
@@ -619,6 +617,9 @@ bool WaveClip::Paste(double t0, const WaveClip &other)
    Transaction transaction{ *this };
 
    const bool clipNeedsResampling = other.mRate != mRate;
+   // For performance, apply time stretching onto the other clip while at its
+   // lowest rate.
+   const auto stretchOtherBeforeResampling = other.mRate < mRate;
    const bool clipNeedsNewFormat =
       other.GetSampleFormats().Stored() != GetSampleFormats().Stored();
    std::shared_ptr<WaveClip> newClip;
@@ -634,6 +635,7 @@ bool WaveClip::Paste(double t0, const WaveClip &other)
 
        auto copy = std::make_shared<WaveClip>(other, factory, true);
        copy->ClearSequence(copy->GetPlayEndTime(), copy->GetSequenceEndTime());
+       copy->SetTrimRight(0);
        newClip = std::move(copy);
    }
    else if (t0 == GetPlayEndTime())
@@ -643,6 +645,7 @@ bool WaveClip::Paste(double t0, const WaveClip &other)
 
        auto copy = std::make_shared<WaveClip>(other, factory, true);
        copy->ClearSequence(copy->GetSequenceStartTime(), copy->GetPlayStartTime());
+       copy->SetTrimLeft(0);
        newClip = std::move(copy);
    }
    else
@@ -658,13 +661,19 @@ bool WaveClip::Paste(double t0, const WaveClip &other)
    {
       auto copy = std::make_shared<WaveClip>(*newClip.get(), factory, true);
       if (clipNeedsResampling)
+      {
+         if (stretchOtherBeforeResampling)
+            copy->ApplyStretchRatio({});
          // The other clip's rate is different from ours, so resample
-          copy->Resample(mRate);
+         copy->Resample(mRate);
+      }
       if (clipNeedsNewFormat)
          // Force sample formats to match.
          copy->ConvertToSampleFormat(GetSampleFormats().Stored());
       newClip = std::move(copy);
    }
+   ApplyStretchRatio({});
+   newClip->ApplyStretchRatio({});
 
    // Paste cut lines contained in pasted clip
    WaveClipHolders newCutlines;
