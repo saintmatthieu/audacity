@@ -63,15 +63,15 @@ public:
    void
    processPitchShift(float* const* smp, int numSamples, double pitchFactor);
 
-   /**
-     Latency in input samples, output_latency = input_latency * time_scale
-   */
-   int getLatencySamples() const;
+  /**
+    Latency in input samples
+  */
+  int getLatencySamples() const;
 
-   /**
-     Resets the internal state, discards any buffered input
-   */
-   void reset();
+  /**
+    Resets the internal state, discards any buffered input
+  */
+  void reset();
 
 private:
    static constexpr int fftSize = 4096;

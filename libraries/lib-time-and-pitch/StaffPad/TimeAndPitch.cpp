@@ -548,7 +548,20 @@ void TimeAndPitch::processPitchShift(
 
 int TimeAndPitch::getLatencySamples() const
 {
-   return fftSize - fftSize / overlap + 3; // 3 for resampling
+   // To understand this, perhaps take a look at
+   // https://1drv.ms/b/s!ArATSZ9esLBGx0l39_TZLsFgAWmq?e=PdZYEm
+
+   // _pitchFactor decimates/interpolates samples before the analysis. E.g. if
+   // _pitchFactor = 2, then e.g. 10ms instead of 5 are fit into the FFT,
+   // doubling the delay.
+
+   // Short names, also consistent with the documentation linked above.
+   const auto Oa = _overlap_a;
+   const auto N = fftSize;
+   const auto R = _timeStretch;
+   const auto tau = N / 2 / Oa * (Oa + Oa * R - 2 * R);
+   constexpr auto resamplingDelay = 3;
+   return (tau * _pitchFactor + resamplingDelay) / R + .5;
 }
 
 } // namespace staffpad
