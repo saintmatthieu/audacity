@@ -120,18 +120,21 @@ void TimeAndPitch::setup(int numChannels, int maxBlockSize)
 
    _expectedPhaseChangePerBinPerSample = twoPi / double(fftSize);
 
-   // Cos window
-   // For perfect int-factor overlaps the first sample needs to be 0 and the
-   // last non-zero.
-   d->cosWindow.setSize(1, fftSize);
-   d->sqWindow.setSize(1, fftSize);
-   auto* w = d->cosWindow.getPtr(0);
-   auto* sqw = d->sqWindow.getPtr(0);
-   for (int i = 0; i < fftSize; ++i)
-   {
-      w[i] = -0.5f * std::cos(float(twoPi * (float)i / (float)fftSize)) + 0.5f;
-      sqw[i] = w[i] * w[i];
-   }
+  // Cos window
+  // For perfect int-factor overlaps the first sample needs to be 0 and the last non-zero.
+  d->cosWindow.setSize(1, fftSize);
+  d->sqWindow.setSize(1, fftSize);
+  auto* w = d->cosWindow.getPtr(0);
+  auto* sqw = d->sqWindow.getPtr(0);
+  constexpr std::array<float, 4> coefs { 1.f, 15.f / 10, 6.f / 10, 1.f / 10 };
+  std::fill(w, w + fftSize, 0.f);
+  for (int i = 0; i < fftSize; ++i)
+  {
+    auto k = 0;
+    for (const auto coef : coefs)
+       w[i] += coef * std::cos(k++ * twoPi * (i - fftSize / 2) / fftSize);
+    sqw[i] = w[i] * w[i];
+  }
 
    d->peak_index.reserve(_numBins);
    d->trough_index.reserve(_numBins);
