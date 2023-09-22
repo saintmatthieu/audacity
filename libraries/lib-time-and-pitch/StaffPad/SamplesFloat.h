@@ -25,7 +25,7 @@ public:
 
       num_channels = numChannels;
       num_samples = samples;
-      data.resize(num_channels);
+      data.resize(num_channels, nullptr);
       for (int ch = 0; ch < num_channels; ch++)
          alloc(ch, num_samples);
    }
@@ -96,6 +96,7 @@ private:
          dealloc(channel);
       }
       data[channel] = (T*)audio::simd::aligned_malloc(samples * sizeof(T), 64);
+      std::fill(data[channel], data[channel] + samples, 0);
    }
 
    void dealloc(int32_t channel)

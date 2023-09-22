@@ -10,6 +10,7 @@ FourierTransform::FourierTransform(int32_t newBlockSize)
    _blockSize = newBlockSize;
 
    _pffft_scratch = (float*)pffft_aligned_malloc(_blockSize * sizeof(float));
+   std::fill(_pffft_scratch, _pffft_scratch + _blockSize, 0.0);
    realFftSpec = pffft_new_setup(_blockSize, PFFFT_REAL);
 }
 
