@@ -25,7 +25,7 @@ public:
 
       num_channels = numChannels;
       num_samples = samples;
-      data.resize(num_channels, nullptr);
+      data.resize(num_channels);
       for (int ch = 0; ch < num_channels; ch++)
          alloc(ch, num_samples);
    }

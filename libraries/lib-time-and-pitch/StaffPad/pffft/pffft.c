@@ -1300,10 +1300,8 @@ PFFFT_Setup* pffft_new_setup(int N, pffft_transform_t transform)
    /* nb of complex simd vectors */
    s->Ncvec = (transform == PFFFT_REAL ? N / 2 : N) / SIMD_SZ;
    s->data = (v4sf*)pffft_aligned_malloc(2 * s->Ncvec * sizeof(v4sf));
-   memset(s->data, 0, 2 * s->Ncvec * sizeof(v4sf));
    s->e = (float*)s->data;
    s->twiddle = (float*)(s->data + (2 * s->Ncvec * (SIMD_SZ - 1)) / SIMD_SZ);
-   memset(s->ifac, 0, 15 * sizeof(int));
 
    if (transform == PFFFT_REAL)
    {
