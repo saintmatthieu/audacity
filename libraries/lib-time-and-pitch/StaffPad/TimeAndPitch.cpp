@@ -1,5 +1,7 @@
 #include "TimeAndPitch.h"
 
+#include <fstream>
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -82,6 +84,31 @@ struct TimeAndPitch::impl
    std::vector<int> peak_index, trough_index;
 };
 
+namespace
+{
+int getOverlap()
+{
+   // Try to open overlap.txt from user's Downloads folder, using cross-platform
+   // ~ equivalent. Works on Windows, too:
+   // https://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
+   std::ifstream highQualityFile(
+      std::string(getenv("USERPROFILE")) + "/Downloads/high-quality.txt");
+   if (highQualityFile.is_open())
+   {
+      bool isHighQuality;
+      highQualityFile >> isHighQuality;
+      return isHighQuality ? 8 : 4;
+   }
+   else
+      return 4;
+}
+} // namespace
+
+TimeAndPitch::TimeAndPitch()
+    : overlap(getOverlap())
+{
+}
+
 TimeAndPitch::~TimeAndPitch()
 {
    // Here for ~std::shared_ptr<impl>() to know ~impl()
@@ -126,7 +153,9 @@ void TimeAndPitch::setup(int numChannels, int maxBlockSize)
   d->sqWindow.setSize(1, fftSize);
   auto* w = d->cosWindow.getPtr(0);
   auto* sqw = d->sqWindow.getPtr(0);
-  constexpr std::array<float, 4> coefs { 1.f, 15.f / 10, 6.f / 10, 1.f / 10 };
+  const auto coefs =
+     overlap == 4 ? std::vector<float> { 1.f, 1.f } :
+                    std::vector<float> { 1.f, 15.f / 10, 6.f / 10, 1.f / 10 };
   std::fill(w, w + fftSize, 0.f);
   for (int i = 0; i < fftSize; ++i)
   {

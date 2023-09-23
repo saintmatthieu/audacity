@@ -12,7 +12,7 @@ namespace staffpad
 class TIME_AND_PITCH_API TimeAndPitch
 {
 public:
-   TimeAndPitch() = default;
+   TimeAndPitch();
    ~TimeAndPitch();
 
    /**
@@ -75,7 +75,7 @@ public:
 
 private:
   static constexpr int fftSize = 4096;
-  static constexpr int overlap = 8;
+  const int overlap;
   static constexpr bool normalize_window = true; // compensate for ola window overlaps
   static constexpr bool modulate_synthesis_hop = true;
 
