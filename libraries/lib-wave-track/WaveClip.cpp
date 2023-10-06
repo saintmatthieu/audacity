@@ -20,6 +20,7 @@
 #include <optional>
 #include <vector>
 #include <wx/log.h>
+#include <fstream>
 
 #include "BasicUI.h"
 #include "ClipTimeAndPitchSource.h"
@@ -377,8 +378,22 @@ void WaveClip::GuessYourTempo()
       {
          constexpr auto historyLength = 1u;
          Start(historyLength);
+         std::array<float, fftSize / 2> prevPhase;
+         std::array<float, fftSize / 2> prevPhase2;
+         std::array<float, fftSize / 2> prevMagSpec;
 
-         const auto processor = [](SpectrumTransformer& transformer) {
+         std::fill(prevPhase.begin(), prevPhase.end(), 0.f);
+         std::fill(prevPhase2.begin(), prevPhase2.end(), 0.f);
+         std::fill(prevMagSpec.begin(), prevMagSpec.end(), 0.f);
+
+         std::ofstream odf("C:/Users/saint/Downloads/odf.m");
+         odf << "odfVal = [";
+
+         auto separator = "";
+
+         std::vector<double> odfVals;
+
+         const auto processor = [&](SpectrumTransformer& transformer) {
 
             auto sum = 0.; // initialise sum to zero
 
@@ -416,7 +431,7 @@ void WaveClip::GuessYourTempo()
                      2 * magSpec[i] * prevMagSpec[i] * cos(phaseDeviation));
 
                   // add to sum
-                  sum = sum + csd;
+                  sum += csd;
                }
 
                // store values for next calculation
@@ -425,7 +440,11 @@ void WaveClip::GuessYourTempo()
                prevMagSpec[i] = magSpec[i];
             }
 
+            const auto avg = sum * 2 / fftSize;
+            odf << separator << avg;
+            separator = ", ";
 
+            odfVals.push_back(avg);
 
             return true;
          };
@@ -449,6 +468,8 @@ void WaveClip::GuessYourTempo()
                ProcessSamples(processor, buffer.data(), numNewSamples);
             samplePos += numNewSamples;
          }
+
+         odf << "];";
 
          Finish(processor);
       }
