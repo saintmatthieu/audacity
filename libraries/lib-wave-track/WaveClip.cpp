@@ -344,12 +344,21 @@ double WaveClip::GetStretchRatio() const
    return mClipStretchRatio * dstSrcRatio;
 }
 
+namespace {
+double GetBpmLogLikelihood(double bpm)
+{
+   constexpr auto mu = 115.;
+   constexpr auto alpha = 25.;
+   const auto arg = (bpm - mu) / alpha;
+   return -0.5 * arg * arg;
+}
+}
+
 void WaveClip::GuessYourTempo()
 {
    const auto playDur = GetPlayDuration();
    if (playDur <= 0)
       return;
-   mRawAudioTempo = 4 * 60 / playDur;
    constexpr auto fftSize = 4096;
 
    class ClipSpectrumTransformer : public SpectrumTransformer
@@ -374,7 +383,7 @@ void WaveClip::GuessYourTempo()
          assert(false);
       }
 
-      void Process()
+      int Process()
       {
          constexpr auto historyLength = 1u;
          Start(historyLength);
@@ -392,6 +401,7 @@ void WaveClip::GuessYourTempo()
          auto separator = "";
 
          std::vector<double> odfVals;
+         const auto playDur = mClip.GetPlayDuration();
 
          const auto processor = [&](SpectrumTransformer& transformer) {
 
@@ -472,11 +482,44 @@ void WaveClip::GuessYourTempo()
          odf << "];";
 
          Finish(processor);
+
+         constexpr auto maxNumBars = 8u;
+         struct Score {
+            double xcorr;
+            double bpm;
+         };
+         std::vector<Score> scores;
+         for (auto numBars = 1u; numBars <= maxNumBars; ++numBars)
+         {
+            const auto numBeats = numBars * 4;
+            auto xcorr = 0.;
+            for (auto beat = 1; beat <= numBeats; ++beat) {
+               const auto offset = beat * odfVals.size() / numBeats;
+               auto rotated = odfVals;
+               std::rotate(rotated.begin(), rotated.begin() + offset, rotated.end());
+               auto k = 0;
+               for (auto v : rotated)
+                  xcorr += v * odfVals[k++];
+            }
+            const auto bpm = 4 * 60 * numBars / playDur;
+            Score score { 10 * std::log(xcorr / numBeats),
+                          GetBpmLogLikelihood(bpm) };
+            scores.push_back(score);
+         }
+         const auto winner = std::distance(
+            scores.begin(), std::max_element(
+                               scores.begin(), scores.end(),
+                               [](const Score& a, const Score& b) {
+                                  return a.xcorr + a.bpm < b.xcorr + b.bpm;
+                               }));
+         const auto numBars = winner + 1;
+         return numBars;
       }
    };
 
    ClipSpectrumTransformer transformer { *this };
-   transformer.Process();
+   const auto numBars = transformer.Process();
+   mRawAudioTempo = 4 * numBars * 60 / playDur;
 }
 
 bool WaveClip::HasEqualStretchRatio(const WaveClip& other) const
