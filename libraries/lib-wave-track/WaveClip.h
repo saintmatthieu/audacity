@@ -167,6 +167,7 @@ public:
    void StretchRightTo(double to);
 
    double GetStretchRatio() const override;
+   void GuessYourTempo();
 
    //! Checks for stretch-ratio equality, accounting for rounding errors.
    //! @{

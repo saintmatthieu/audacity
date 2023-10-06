@@ -5,7 +5,7 @@
   ImportUtils.cpp
 
   Dominic Mazzoni
- 
+
   Vitaly Sverchinsky split from ImportPlugin.cpp
 
 **********************************************************************/
@@ -57,9 +57,13 @@ void ImportUtils::FinalizeImport(TrackHolders& outTracks, TrackListHolder trackL
    if(trackList->empty())
       return;
 
-   for(const auto track : trackList->Any<WaveTrack>())
+   for (const auto track : trackList->Any<WaveTrack>())
+   {
       track->Flush();
-   
+      for (const auto interval : track->Intervals())
+         interval->GuessYourTempo();
+   }
+
    outTracks.push_back(std::move(trackList));
 }
 

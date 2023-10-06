@@ -213,6 +213,12 @@ void WaveTrack::Interval::StretchRightTo(double t)
       GetClip(channel)->StretchRightTo(t);
 }
 
+void WaveTrack::Interval::GuessYourTempo()
+{
+   for (unsigned channel = 0; channel < NChannels(); ++channel)
+      GetClip(channel)->GuessYourTempo();
+}
+
 void WaveTrack::Interval::ApplyStretchRatio(
    const std::function<void(double)>& reportProgress)
 {

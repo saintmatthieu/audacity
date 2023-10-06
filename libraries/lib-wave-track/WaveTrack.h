@@ -74,6 +74,7 @@ public:
    {}
    ~WaveChannelInterval() override;
 
+   WaveClip& GetClip() { return mWideClip; }
    const WaveClip &GetClip() const { return mWideClip; }
    const Envelope &GetEnvelope() const;
    size_t GetChannelIndex() const { return miChannel; }
@@ -963,6 +964,7 @@ public:
       void StretchLeftTo(double t);
       void StretchRightTo(double t);
 
+      void GuessYourTempo();
       void ApplyStretchRatio(const std::function<void(double)>& reportProgress);
       bool StretchRatioEquals(double value) const;
 

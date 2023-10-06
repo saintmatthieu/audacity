@@ -343,6 +343,14 @@ double WaveClip::GetStretchRatio() const
    return mClipStretchRatio * dstSrcRatio;
 }
 
+void WaveClip::GuessYourTempo()
+{
+   const auto playDur = GetPlayDuration();
+   if (playDur <= 0)
+      return;
+   mRawAudioTempo = 4 * 60 / playDur;
+}
+
 bool WaveClip::HasEqualStretchRatio(const WaveClip& other) const
 {
    return StretchRatioEquals(other.GetStretchRatio());
