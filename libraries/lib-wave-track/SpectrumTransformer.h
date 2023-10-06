@@ -17,10 +17,9 @@ Paul Licameli
 #include <memory>
 #include <vector>
 
+#include "FFT.h"
 #include "RealFFTf.h"
 #include "SampleCount.h"
-
-enum eWindowFunctions : int;
 
 class WaveChannel;
 

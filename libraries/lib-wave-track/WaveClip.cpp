@@ -27,8 +27,8 @@
 #include "InconsistencyException.h"
 #include "Resample.h"
 #include "Sequence.h"
+#include "SpectrumTransformer.h"
 #include "StaffPadTimeAndPitch.h"
-//#include "TimeAndPitchInterface.h"
 #include "UserException.h"
 
 #ifdef _OPENMP
@@ -349,6 +349,113 @@ void WaveClip::GuessYourTempo()
    if (playDur <= 0)
       return;
    mRawAudioTempo = 4 * 60 / playDur;
+   constexpr auto fftSize = 4096;
+
+   class ClipSpectrumTransformer : public SpectrumTransformer
+   {
+      const WaveClip& mClip;
+
+   public:
+      ClipSpectrumTransformer(const WaveClip& clip)
+          : SpectrumTransformer { false,
+                                  eWinFuncHann,
+                                  eWinFuncRectangular,
+                                  fftSize,
+                                  2,
+                                  true,
+                                  true }
+          , mClip(clip)
+      {
+      }
+
+      void DoOutput(const float* outBuffer, size_t mStepSize) override
+      {
+         assert(false);
+      }
+
+      void Process()
+      {
+         constexpr auto historyLength = 1u;
+         Start(historyLength);
+
+         const auto processor = [](SpectrumTransformer& transformer) {
+
+            auto sum = 0.; // initialise sum to zero
+
+            const Window& win = transformer.Latest();
+            const auto& real = win.mRealFFTs;
+            const auto& imag = win.mImagFFTs;
+            std::array<float, fftSize / 2> phase;
+            std::array<float, fftSize / 2> magSpec;
+
+            // compute phase values from fft output and sum deviations
+            for (auto i = 0u; i < real.size(); ++i)
+            {
+               // calculate phase value
+               phase[i] = std::atan2(imag[i], real[i]);
+
+               // calculate magnitude value
+               magSpec[i] =
+                  std::sqrt(std::pow(real[i], 2) + std::pow(imag[i], 2));
+
+               // phase deviation
+               const auto phaseDeviation = phase[i] - (2 * prevPhase[i]) + prevPhase2[i];
+
+               // calculate magnitude difference (real part of Euclidean
+               // distance between complex frames)
+               const auto magnitudeDifference = magSpec[i] - prevMagSpec[i];
+
+               // if we have a positive change in magnitude, then include in
+               // sum, otherwise ignore (half-wave rectification)
+               if (magnitudeDifference > 0)
+               {
+                  // calculate complex spectral difference for the current
+                  // spectral bin
+                  const auto csd = sqrt(
+                     pow(magSpec[i], 2) + pow(prevMagSpec[i], 2) -
+                     2 * magSpec[i] * prevMagSpec[i] * cos(phaseDeviation));
+
+                  // add to sum
+                  sum = sum + csd;
+               }
+
+               // store values for next calculation
+               prevPhase2[i] = prevPhase[i];
+               prevPhase[i] = phase[i];
+               prevMagSpec[i] = magSpec[i];
+            }
+
+
+
+            return true;
+         };
+
+         bool bLoopSuccess = true;
+         sampleCount samplePos = 0;
+         const auto numSamples = mClip.GetVisibleSampleCount();
+         std::optional<AudioSegmentSampleView> sampleCacheHolder;
+         constexpr auto blockSize = 4096u;
+         std::array<float, blockSize> buffer;
+         while (bLoopSuccess && samplePos < numSamples)
+         {
+            constexpr auto mayThrow = false;
+            sampleCacheHolder.emplace(mClip.GetSampleView(
+               0u, samplePos,
+               limitSampleBufferSize(blockSize, numSamples - samplePos),
+               mayThrow));
+            sampleCacheHolder->Copy(buffer.data(), buffer.size());
+            const auto numNewSamples = sampleCacheHolder->GetSampleCount();
+            bLoopSuccess =
+               ProcessSamples(processor, buffer.data(), numNewSamples);
+            samplePos += numNewSamples;
+         }
+
+         Finish(processor);
+      }
+   };
+
+   ClipSpectrumTransformer transformer { *this };
+   transformer.Process();
 }
 
 bool WaveClip::HasEqualStretchRatio(const WaveClip& other) const
