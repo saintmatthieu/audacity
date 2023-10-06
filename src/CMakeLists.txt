@@ -190,8 +190,6 @@ list( APPEND SOURCES
       SpectralDataManager.cpp
       SpectrumAnalyst.cpp
       SpectrumAnalyst.h
-      SpectrumTransformer.cpp
-      SpectrumTransformer.h
       SplashDialog.cpp
       SplashDialog.h
       SseMathFuncs.cpp

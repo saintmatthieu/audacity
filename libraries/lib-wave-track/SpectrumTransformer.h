@@ -11,11 +11,12 @@ Paul Licameli
 
 #ifndef __AUDACITY_SPECTRUM_TRANSFORMER__
 #define __AUDACITY_SPECTRUM_TRANSFORMER__
- 
+
+#include <cassert>
 #include <functional>
 #include <memory>
 #include <vector>
-#include "audacity/Types.h"
+
 #include "RealFFTf.h"
 #include "SampleCount.h"
 
@@ -27,12 +28,12 @@ class WaveChannel;
  @brief A class that transforms a portion of a wave track (preserving duration)
  by applying Fourier transform, then modifying coefficients, then inverse
  Fourier transform and overlap-add to reconstruct.
- 
+
  @par The procedure that modifies coefficients can be varied, and can employ lookahead
  and -behind to nearby windows.  May also be used just to gather information
  without producing output.
 */
-class SpectrumTransformer /* not final */
+class WAVE_TRACK_API SpectrumTransformer /* not final */
 {
 public:
    // Public interface
@@ -83,7 +84,7 @@ public:
    bool Finish(const WindowProcessor &processor);
 
    //! Derive this class to add information to the queue.  @see NewWindow()
-   struct Window
+   struct WAVE_TRACK_API Window
    {
       explicit Window(size_t windowSize)
          : mRealFFTs( windowSize / 2 )
@@ -157,7 +158,7 @@ protected:
 
    const unsigned mStepsPerWindow;
    const size_t mStepSize;
-   
+
    const bool mLeadingPadding;
 
    const bool mTrailingPadding;
@@ -183,7 +184,9 @@ private:
 class WaveTrack;
 
 //! Subclass of SpectrumTransformer that rewrites a track
-class TrackSpectrumTransformer /* not final */ : public SpectrumTransformer {
+class WAVE_TRACK_API TrackSpectrumTransformer /* not final */ :
+    public SpectrumTransformer
+{
 public:
    /*!
     @copydoc SpectrumTransformer::SpectrumTransformer(bool,

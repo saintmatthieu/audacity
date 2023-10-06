@@ -21,6 +21,8 @@ set( SOURCES
    SampleBlock.h
    Sequence.cpp
    Sequence.h
+   SpectrumTransformer.cpp
+   SpectrumTransformer.h
    WaveClip.cpp
    WaveClip.h
    WaveTrack.cpp
