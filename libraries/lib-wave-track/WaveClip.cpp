@@ -390,10 +390,12 @@ void WaveClip::GuessYourTempo()
          std::array<float, fftSize / 2> prevPhase;
          std::array<float, fftSize / 2> prevPhase2;
          std::array<float, fftSize / 2> prevMagSpec;
-
          std::fill(prevPhase.begin(), prevPhase.end(), 0.f);
          std::fill(prevPhase2.begin(), prevPhase2.end(), 0.f);
          std::fill(prevMagSpec.begin(), prevMagSpec.end(), 0.f);
+
+         std::array<float, fftSize / 2> phase;
+         std::array<float, fftSize / 2> magSpec;
 
          std::ofstream odf("C:/Users/saint/Downloads/odf.m");
          odf << "odfVal = [";
@@ -410,8 +412,6 @@ void WaveClip::GuessYourTempo()
             const Window& win = transformer.Latest();
             const auto& real = win.mRealFFTs;
             const auto& imag = win.mImagFFTs;
-            std::array<float, fftSize / 2> phase;
-            std::array<float, fftSize / 2> magSpec;
 
             // compute phase values from fft output and sum deviations
             for (auto i = 0u; i < real.size(); ++i)
