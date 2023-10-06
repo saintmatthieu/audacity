@@ -168,6 +168,8 @@ public:
 
    double GetStretchRatio() const override;
    void GuessYourTempo();
+   std::optional<double> GetTempo() const;
+   void SetTempo(double bpm);
 
    //! Checks for stretch-ratio equality, accounting for rounding errors.
    //! @{

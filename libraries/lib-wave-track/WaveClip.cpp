@@ -522,6 +522,16 @@ void WaveClip::GuessYourTempo()
    mRawAudioTempo = 4 * numBars * 60 / playDur;
 }
 
+std::optional<double> WaveClip::GetTempo() const
+{
+   return mRawAudioTempo;
+}
+
+void WaveClip::SetTempo(double bpm)
+{
+   mRawAudioTempo = bpm;
+}
+
 bool WaveClip::HasEqualStretchRatio(const WaveClip& other) const
 {
    return StretchRatioEquals(other.GetStretchRatio());

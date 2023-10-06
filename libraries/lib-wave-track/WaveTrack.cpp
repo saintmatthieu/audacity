@@ -215,8 +215,10 @@ void WaveTrack::Interval::StretchRightTo(double t)
 
 void WaveTrack::Interval::GuessYourTempo()
 {
-   for (unsigned channel = 0; channel < NChannels(); ++channel)
-      GetClip(channel)->GuessYourTempo();
+   auto left = GetClip(0);
+   left->GuessYourTempo();
+   if (NChannels() > 1 && left->GetTempo().has_value())
+      GetClip(1)->SetTempo(*left->GetTempo());
 }
 
 void WaveTrack::Interval::ApplyStretchRatio(
