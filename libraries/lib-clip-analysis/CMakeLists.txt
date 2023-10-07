@@ -5,6 +5,8 @@ Provides audio clip analysis functionality.
 set( SOURCES
    AudioSegmentSampleView.cpp
    AudioSegmentSampleView.h
+   ClipAnalysis.cpp
+   ClipAnalysis.h
    ClipInterface.cpp
    ClipInterface.h
    SpectrumTransformer.cpp
