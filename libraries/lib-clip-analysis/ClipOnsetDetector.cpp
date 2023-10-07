@@ -1,8 +1,20 @@
+/*  SPDX-License-Identifier: GPL-2.0-or-later */
+/**********************************************************************
+
+  Audacity: A Digital Audio Editor
+
+  ClipOnsetDetector.cpp
+
+  Matthieu Hodgkinson
+
+  This is the onset-detection part of Adam Stark's BTrack implementation,
+refactored for use in Audacity.
+
+*******************************************************************/
+
+#include "ClipOnsetDetector.h"
 #include "AudioSegmentSampleView.h"
 #include "ClipInterface.h"
-#include "ClipOnsetDetector.h"
-#include "SpectrumTransformer.h"
-
 
 #include <array>
 #include <optional>
@@ -52,8 +64,7 @@ bool ClipOnsetDetector::ClipWindowProcessor(SpectrumTransformer& transformer)
       const auto phase = std::atan2(imag[i], real[i]);
 
       // calculate magnitude value
-      const auto magSpec =
-         std::sqrt(std::pow(real[i], 2) + std::pow(imag[i], 2));
+      const auto magSpec = std::sqrt(real[i] * real[i] + imag[i] * imag[i]);
 
       // phase deviation
       const auto phaseDeviation = phase - (2 * mPrevPhase[i]) + mPrevPhase2[i];
@@ -68,9 +79,9 @@ bool ClipOnsetDetector::ClipWindowProcessor(SpectrumTransformer& transformer)
       {
          // calculate complex spectral difference for the current
          // spectral bin
-         const auto csd = sqrt(
-            pow(magSpec, 2) + pow(mPrevMagSpec[i], 2) -
-            2 * magSpec * mPrevMagSpec[i] * cos(phaseDeviation));
+         const auto csd = std::sqrt(
+            magSpec * magSpec + mPrevMagSpec[i] * mPrevMagSpec[i] -
+            2 * magSpec * mPrevMagSpec[i] * std::cos(phaseDeviation));
 
          // add to sum
          sum += csd;
