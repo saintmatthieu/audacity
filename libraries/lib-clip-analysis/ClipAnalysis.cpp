@@ -39,12 +39,15 @@ double GetBpmLogLikelihood(double bpm)
 
 std::optional<double> GetBpm(const std::vector<double>& odfVals, double playDur)
 {
-   constexpr auto maxNumBars = 8u;
    struct Score
    {
       double xcorr;
       double bpm;
    };
+
+   // BPMs larger than 180 are very rare.
+   constexpr auto maxBpm = 180;
+   const auto maxNumBars = maxBpm * playDur / 60 / 4;
 
    // The approach below may not be that discriminant, but first results looking
    // okay were obtained with it.
