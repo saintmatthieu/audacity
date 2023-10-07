@@ -9,8 +9,8 @@ set( SOURCES
    ClipAnalysis.h
    ClipInterface.cpp
    ClipInterface.h
-   ClipTimingEstimator.cpp
-   ClipTimingEstimator.h
+   ClipOnsetDetector.cpp
+   ClipOnsetDetector.h
    SpectrumTransformer.cpp
    SpectrumTransformer.h
 )
