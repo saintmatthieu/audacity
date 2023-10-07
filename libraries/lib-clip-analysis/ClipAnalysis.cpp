@@ -1,7 +1,7 @@
 #include "ClipAnalysis.h"
 
 #include "ClipInterface.h"
-#include "ClipOnsetDetector.h"
+#include "OnsetDetector.h"
 
 #include <array>
 
@@ -93,7 +93,7 @@ std::optional<double> GetBpm(const ClipInterface& clip)
    if (playDur <= 0)
       return {};
 
-   ClipOnsetDetector detector { clip };
+   OnsetDetector detector { clip.GetRate() };
 
    constexpr auto historyLength = 1u;
    detector.Start(historyLength);
@@ -105,8 +105,7 @@ std::optional<double> GetBpm(const ClipInterface& clip)
    constexpr auto blockSize = 4096u;
    std::array<float, blockSize> buffer;
    const auto processor = std::bind(
-      &ClipOnsetDetector::ClipWindowProcessor, &detector,
-      std::placeholders::_1);
+      &OnsetDetector::WindowProcessor, &detector, std::placeholders::_1);
    while (bLoopSuccess && samplePos < numSamples)
    {
       constexpr auto mayThrow = false;

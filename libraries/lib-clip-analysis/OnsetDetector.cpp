@@ -3,7 +3,7 @@
 
   Audacity: A Digital Audio Editor
 
-  ClipOnsetDetector.cpp
+  OnsetDetector.cpp
 
   Matthieu Hodgkinson
 
@@ -12,7 +12,7 @@ refactored for use in Audacity.
 
 *******************************************************************/
 
-#include "ClipOnsetDetector.h"
+#include "OnsetDetector.h"
 #include "AudioSegmentSampleView.h"
 #include "ClipInterface.h"
 
@@ -21,35 +21,44 @@ refactored for use in Audacity.
 
 namespace
 {
-constexpr auto fftSize = 4096;
+inline int GetFftSize(int sampleRate)
+{
+   // 44.1kHz maps to 1024 samples (i.e., 23ms).
+   // We grow the FFT size proportionally with the sample rate to keep the
+   // window duration roughly constant, with quantization due to the
+   // power-of-two constraint.
+   return 1 << (10 + (int)std::round(std::log2(sampleRate / 44100.)));
+}
 } // namespace
 
 namespace ClipAnalysis
 {
-ClipOnsetDetector::ClipOnsetDetector(const ClipInterface& clip)
-    : SpectrumTransformer { false,
-                            eWinFuncHann,
-                            eWinFuncRectangular,
-                            fftSize,
-                            2,
-                            true,
-                            true }
-    , mClip(clip)
+OnsetDetector::OnsetDetector(int sampleRate)
+    // No output needed, use a hann function for analysis, a rectangular for
+    // synthesis (that won't be used anyway), an FFT size of approximately 20ms
+    // and a overlap of 2 for a hop size of about 10ms, as recommended in
+    // Stark's paper. (Have to review this.)
+    : SpectrumTransformer { false, eWinFuncHann, eWinFuncRectangular,
+                            GetFftSize(sampleRate), 2,
+                            // Not interested in processing the leading or
+                            // trailing analyis windows
+                            false, false }
+    , mFftSize(GetFftSize(sampleRate))
 {
-   mPrevPhase.resize(fftSize / 2);
-   mPrevPhase2.resize(fftSize / 2);
-   mPrevMagSpec.resize(fftSize / 2);
+   mPrevPhase.resize(mFftSize / 2);
+   mPrevPhase2.resize(mFftSize / 2);
+   mPrevMagSpec.resize(mFftSize / 2);
    std::fill(mPrevPhase.begin(), mPrevPhase.end(), 0.f);
    std::fill(mPrevPhase2.begin(), mPrevPhase2.end(), 0.f);
    std::fill(mPrevMagSpec.begin(), mPrevMagSpec.end(), 0.f);
 }
 
-void ClipOnsetDetector::DoOutput(const float* outBuffer, size_t mStepSize)
+void OnsetDetector::DoOutput(const float* outBuffer, size_t mStepSize)
 {
    assert(false);
 }
 
-bool ClipOnsetDetector::ClipWindowProcessor(SpectrumTransformer& transformer)
+bool OnsetDetector::WindowProcessor(SpectrumTransformer& transformer)
 {
    auto sum = 0.; // initialise sum to zero
 
@@ -93,14 +102,14 @@ bool ClipOnsetDetector::ClipWindowProcessor(SpectrumTransformer& transformer)
       mPrevMagSpec[i] = magSpec;
    }
 
-   const auto avg = sum * 2 / fftSize;
+   const auto avg = sum * 2 / mFftSize;
 
    mOdfVals.push_back(avg);
 
    return true;
 }
 
-const std::vector<double> ClipOnsetDetector::GetOnsetDetectionResults() const
+const std::vector<double> OnsetDetector::GetOnsetDetectionResults() const
 {
    return mOdfVals;
 }

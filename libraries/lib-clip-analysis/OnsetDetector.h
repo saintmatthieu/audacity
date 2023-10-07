@@ -3,7 +3,7 @@
 
   Audacity: A Digital Audio Editor
 
-  ClipOnsetDetector.h
+  OnsetDetector.h
 
   Matthieu Hodgkinson
 
@@ -20,17 +20,17 @@ class ClipInterface;
 
 namespace ClipAnalysis
 {
-class ClipOnsetDetector : public SpectrumTransformer
+class OnsetDetector : public SpectrumTransformer
 {
 public:
-   ClipOnsetDetector(const ClipInterface& clip);
-   bool ClipWindowProcessor(SpectrumTransformer& transformer);
+   OnsetDetector(int sampleRate);
+   bool WindowProcessor(SpectrumTransformer& transformer);
    const std::vector<double> GetOnsetDetectionResults() const;
 
 private:
    void DoOutput(const float* outBuffer, size_t mStepSize) override;
 
-   const ClipInterface& mClip;
+   const int mFftSize;
    std::vector<float> mPrevPhase;
    std::vector<float> mPrevPhase2;
    std::vector<float> mPrevMagSpec;
