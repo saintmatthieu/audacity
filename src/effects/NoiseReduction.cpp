@@ -50,7 +50,7 @@
 #include "FFT.h"
 #include "Prefs.h"
 #include "RealFFTf.h"
-#include "SpectrumTransformer.h"
+#include "TrackSpectrumTransformer.h"
 
 #include "WaveTrack.h"
 #include "AudacityMessageBox.h"

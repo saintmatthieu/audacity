@@ -7,6 +7,8 @@ set( SOURCES
    AudioSegmentSampleView.h
    ClipInterface.cpp
    ClipInterface.h
+   SpectrumTransformer.cpp
+   SpectrumTransformer.h
 )
 set( LIBRARIES
    lib-math
