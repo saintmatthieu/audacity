@@ -10,10 +10,6 @@ set( SOURCES
    AudioSegmentFactory.h
    AudioSegmentFactoryInterface.cpp
    AudioSegmentFactoryInterface.h
-   AudioSegmentSampleView.cpp
-   AudioSegmentSampleView.h
-   ClipInterface.cpp
-   ClipInterface.h
    ClipSegment.cpp
    ClipSegment.h
    PlaybackDirection.h
@@ -25,8 +21,9 @@ set( SOURCES
    ClipTimeAndPitchSource.h
 )
 set( LIBRARIES
-   lib-time-and-pitch
+   lib-clip-analysis
    lib-mixer
+   lib-time-and-pitch
 )
 audacity_library( lib-stretching-sequence "${SOURCES}" "${LIBRARIES}"
    "" ""

@@ -14,7 +14,7 @@
 #include "SampleCount.h"
 #include "SampleFormat.h"
 
-class STRETCHING_SEQUENCE_API ClipTimes
+class CLIP_ANALYSIS_API ClipTimes
 {
 public:
    virtual ~ClipTimes();
@@ -35,7 +35,7 @@ public:
    virtual double GetStretchRatio() const = 0;
 };
 
-class STRETCHING_SEQUENCE_API ClipInterface : public ClipTimes
+class CLIP_ANALYSIS_API ClipInterface : public ClipTimes
 {
 public:
    ~ClipInterface() override;
