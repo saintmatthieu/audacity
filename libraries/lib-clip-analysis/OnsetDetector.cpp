@@ -23,11 +23,11 @@ namespace
 {
 inline int GetFftSize(int sampleRate)
 {
-   // 44.1kHz maps to 1024 samples (i.e., 23ms).
+   // 44.1kHz maps to 4096 samples (around 90ms).
    // We grow the FFT size proportionally with the sample rate to keep the
    // window duration roughly constant, with quantization due to the
    // power-of-two constraint.
-   return 1 << (10 + (int)std::round(std::log2(sampleRate / 44100.)));
+   return 1 << (12 + (int)std::round(std::log2(sampleRate / 44100.)));
 }
 } // namespace
 
