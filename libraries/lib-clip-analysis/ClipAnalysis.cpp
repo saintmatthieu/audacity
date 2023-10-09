@@ -1,9 +1,13 @@
 #include "ClipAnalysis.h"
 
+#include "CircularSampleBuffer.h"
 #include "ClipInterface.h"
+#include "FFT.h"
 #include "OnsetDetector.h"
 
 #include <array>
+#include <fstream>
+#include <sstream>
 
 namespace
 {
@@ -14,6 +18,42 @@ double GetBpmLogLikelihood(double bpm)
    constexpr auto alpha = 25.;
    const auto arg = (bpm - mu) / alpha;
    return -0.5 * arg * arg;
+}
+
+template <typename T>
+std::string PrintVector(const T& vector, const std::string& name)
+{
+   std::stringstream ss;
+   ss << name << " = [";
+   auto separator = "";
+   for (auto val : vector)
+   {
+      ss << separator << val;
+      separator = ", ";
+   }
+   ss << "];" << std::endl;
+   return ss.str();
+}
+
+inline double lagrange6(const double (&smp)[6], double t)
+{
+   auto* y = &smp[2];
+
+   auto ym1_y1 = y[-1] + y[1];
+   auto twentyfourth_ym2_y2 = 1.f / 24.f * (y[-2] + y[2]);
+   auto c0 = y[0];
+   auto c1 = 0.05f * y[-2] - 0.5f * y[-1] - 1.f / 3.f * y[0] + y[1] -
+             0.25f * y[2] + 1.f / 30.f * y[3];
+   auto c2 = 2.f / 3.f * ym1_y1 - 1.25f * y[0] - twentyfourth_ym2_y2;
+   auto c3 = 5.f / 12.f * y[0] - 7.f / 12.f * y[1] + 7.f / 24.f * y[2] -
+             1.f / 24.f * (y[-2] + y[-1] + y[3]);
+   auto c4 = 0.25f * y[0] - 1.f / 6.f * ym1_y1 + twentyfourth_ym2_y2;
+   auto c5 = 1.f / 120.f * (y[3] - y[-2]) + 1.f / 24.f * (y[-1] - y[2]) +
+             1.f / 12.f * (y[1] - y[0]);
+
+   // Estrin's scheme
+   auto t2 = t * t;
+   return (c0 + c1 * t) + (c2 + c3 * t) * t2 + (c4 + c5 * t) * t2 * t2;
 }
 
 // Assuming that odfVals are onsets of a loop. Then there must be a round number
@@ -39,49 +79,69 @@ double GetBpmLogLikelihood(double bpm)
 
 std::optional<double> GetBpm(const std::vector<double>& odfVals, double playDur)
 {
-   struct Score
-   {
-      double xcorr;
-      double bpm;
-   };
+   const auto N = odfVals.size();
+   const auto M = 1 << static_cast<int>(std::ceil(std::log2(odfVals.size())));
+   const double step = 1. * N / M;
+   auto samp = 0.;
+   std::vector<float> interpOdfVals(M);
+   staffpad::audio::CircularSampleBuffer<double> ringBuff;
+   ringBuff.setSize(N);
+   ringBuff.writeBlock(0, N, odfVals.data());
 
-   // BPMs larger than 180 are very rare.
-   constexpr auto maxBpm = 180;
-   const auto maxNumBars = maxBpm * playDur / 60 / 4;
-
-   // The approach below may not be that discriminant, but first results looking
-   // okay were obtained with it.
-   std::vector<Score> scores;
-   for (auto numBars = 1u; numBars <= maxNumBars; ++numBars)
+   for (auto m = 0; m < M; ++m)
    {
-      const auto numBeats = numBars * 4;
-      auto xcorr = 0.;
-      for (auto beat = 1; beat <= numBeats; ++beat)
-      {
-         const auto offset = beat * odfVals.size() / numBeats;
-         auto rotated = odfVals;
-         std::rotate(rotated.begin(), rotated.begin() + offset, rotated.end());
-         auto k = 0;
-         for (auto v : rotated)
-            xcorr += v * odfVals[k++];
-      }
-      const auto bpm = 4 * 60 * numBars / playDur;
-      // This weight was chosen just by looking at xcorr and bpm scores while
-      // debugging. We might get something yielding better results through some
-      // regression technique.
-      constexpr auto xcorrWeight = 10;
-      Score score { xcorrWeight * std::log(xcorr / numBeats),
-                    GetBpmLogLikelihood(bpm) };
-      scores.push_back(score);
+      int n = samp;
+      int start = n - 6;
+      const auto frac = samp - n;
+      samp += step;
+      double smp[6];
+      ringBuff.readBlock(n - 6, 6, smp);
+      // interpOdfVals is floats because that's what RealFFT expects.
+      interpOdfVals[m] = std::max<float>(0, lagrange6(smp, frac));
    }
 
-   const auto winner = std::distance(
-      scores.begin(),
-      std::max_element(
-         scores.begin(), scores.end(), [](const Score& a, const Score& b) {
-            return a.xcorr + a.bpm < b.xcorr + b.bpm;
-         }));
+   std::vector<float> powSpec(M);
+   PowerSpectrum(M, interpOdfVals.data(), powSpec.data());
+   // We need the entire power spectrum for the cross-correlation
+   std::copy(
+      powSpec.begin() + 1, powSpec.begin() + M / 2 - 1, powSpec.rbegin());
+   std::vector<float> xcorr(M / 2 + 1);
+   PowerSpectrum(M, powSpec.data(), xcorr.data());
 
+   const auto lagPerSample = playDur / M;
+   constexpr auto minBpm = 60;
+   constexpr auto maxBpm = 180;
+   const auto minSamps = 60. / maxBpm / lagPerSample;
+   const auto maxSamps = 60. / minBpm / lagPerSample;
+
+   // const auto winner = std::distance(
+   //    scores.begin(),
+   //    std::max_element(
+   //       scores.begin(), scores.end(), [](const Score& a, const Score& b)
+   //       {
+   //          return a.xcorr + a.bpm < b.xcorr + b.bpm;
+   //       }));
+
+   std::ofstream ofs { "C:/Users/saint/Downloads/test.m" };
+   ofs << "clear all, close all" << std::endl;
+   ofs << PrintVector(odfVals, "odfVals");
+   ofs << PrintVector(interpOdfVals, "interpOdfVals");
+   ofs << PrintVector(powSpec, "powSpec");
+   ofs << PrintVector(xcorr, "xcorr");
+   ofs << "plot(odfVals), grid" << std::endl;
+   ofs
+      << "hold on, plot((0:length(interpOdfVals)-1)*length(odfVals)/length(interpOdfVals), interpOdfVals, 'r--'), hold off, grid"
+      << std::endl;
+   ofs << "lagPerSample = " << lagPerSample << ";\n";
+   ofs << "minLag = " << minSamps * lagPerSample << ";\n";
+   ofs << "maxLag = " << maxSamps * lagPerSample << ";\n";
+   ofs << "figure, plot((0:length(xcorr)-1)*lagPerSample, xcorr)\n";
+   ofs << "hold on, plot([minLag, minLag], [0, max(xcorr)])\n";
+   ofs << "plot([maxLag, maxLag], [0, max(xcorr)]), hold off\n";
+
+   const auto groundTruth = 32;
+
+   const auto winner = 0;
    const auto numBars = winner + 1;
 
    return 4 * numBars * 60 / playDur;
