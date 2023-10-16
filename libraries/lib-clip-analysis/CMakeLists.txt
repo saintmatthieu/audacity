@@ -8,8 +8,12 @@ set( SOURCES
    CircularSampleBuffer.h
    ClipAnalysis.cpp
    ClipAnalysis.h
+   ClipAnalysisUtils.cpp
+   ClipAnalysisUtils.h
    ClipInterface.cpp
    ClipInterface.h
+   GetBpmFromOdfXcorr.cpp
+   GetBpmFromOdfXcorr.h
    OnsetDetector.cpp
    OnsetDetector.h
    SpectrumTransformer.cpp

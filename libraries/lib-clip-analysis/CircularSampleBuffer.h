@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cassert>
+#include <cstdint>
+#include <memory>
 
 /*
  * Utility buffer class for delay-based effects
@@ -31,8 +33,8 @@ public:
       {
          auto oldSize = _allocatedSize;
 
-         auto findLargerPowerOfTwo = [](int32_t number) {
-            int32_t powerOf2 = 1;
+         auto findLargerPowerOfTwo = [](std::int32_t number) {
+            std::int32_t powerOf2 = 1;
             while (powerOf2 < number)
                powerOf2 *= 2;
             return powerOf2;
