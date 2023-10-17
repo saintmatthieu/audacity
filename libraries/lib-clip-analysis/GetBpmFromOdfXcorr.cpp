@@ -36,6 +36,7 @@ struct XCorr
    const std::vector<float>& values;
    const double mean;
    const int numPeaks;
+   const double duration;
 };
 
 std::vector<int> DivideEqually(int M, int numDivs)
@@ -149,6 +150,35 @@ std::string ToString(TimeSig sig)
    }
 }
 
+double GetBpmProbability(TimeSig sig, int numBars, double loopDuration)
+{
+   static const std::unordered_map<TimeSig, double> expectedValues {
+      { TimeSig::FourFour, 115. },
+      { TimeSig::ThreeFour, 140. },
+      { TimeSig::SixEight, 64. }
+   };
+   // TODO 3/4 and 6/8 deviations may be mixed up - review.
+   static const std::unordered_map<TimeSig, double> expectedDeviations {
+      { TimeSig::FourFour, 25. },
+      { TimeSig::ThreeFour, 25. },
+      { TimeSig::SixEight, 15. }
+   };
+   static const std::unordered_map<TimeSig, int> beatsPerBar {
+      { TimeSig::FourFour, 4 },
+      { TimeSig::ThreeFour, 3 },
+      { TimeSig::SixEight, 2 }
+   };
+   const auto mu = expectedValues.at(sig);
+   const auto sigma = expectedDeviations.at(sig);
+   const auto barDur = loopDuration / numBars;
+   const auto beatDur = barDur / beatsPerBar.at(sig);
+   const auto bpm = 60 / beatDur;
+   // Do not scale by 1. / (sigma * std::sqrt(2 * M_PI)) such that the peak
+   // reaches 1.
+   const auto tmp = (bpm - mu) / sigma;
+   return std::exp(-.5 * tmp * tmp);
+}
+
 std::string ToString(int numBars, TimeSig sig)
 {
    std::stringstream ss;
@@ -189,9 +219,12 @@ void recursion(
       {
          const auto numBars = nextDivs[0];
          // Do not penalize time signatures that have more divisions.
+         const auto bpmProb =
+            GetBpmProbability(*timeSig, numBars, xcorr.duration);
          const auto finalScore = std::pow(
-            subTimeDivs.at(divisor)->cumScore,
-            GetBalancingScorePower(nextDivs));
+                                    subTimeDivs.at(divisor)->cumScore,
+                                    GetBalancingScorePower(nextDivs)) *
+                                 bpmProb;
          // TODO account for bpm
          results.emplace(ToString(numBars, *timeSig), finalScore);
          // We have the score for a time signature, we don't need to test its
@@ -223,7 +256,7 @@ GetBpmFromOdfXcorr(const std::vector<float>& xcorr, double playDur)
    const auto xcorrMean =
       std::accumulate(xcorr.begin(), xcorr.end(), 0.) / xcorr.size();
    const auto numPeaks = GetNumPeaks(xcorr);
-   XCorr xcorrStruct { xcorr, xcorrMean, numPeaks };
+   XCorr xcorrStruct { xcorr, xcorrMean, numPeaks, playDur };
    std::map<int, TimeDiv*> divs;
    ResultMap results;
    recursion(xcorrStruct, results, divs);
