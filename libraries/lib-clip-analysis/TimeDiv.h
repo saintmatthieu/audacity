@@ -1,24 +1,18 @@
 #pragma once
 
-#include <array>
+#include <map>
 
 namespace ClipAnalysis
 {
-constexpr auto numPrimes = 4;
-constexpr std::array<int, numPrimes> primes { 2, 3, 5, 7 };
-
 struct TimeDiv
 {
-   TimeDiv(
-      double score, double cumScore = 1, double maxScore = 1,
-      double varScore = 1);
-
+   TimeDiv(double score, double cumScore, double maxScore, double varScore);
    ~TimeDiv();
 
    const double score;
    const double cumScore;
    const double maxScore;
    const double varScore;
-   std::array<TimeDiv*, numPrimes> subs;
+   std::map<int, TimeDiv*> subs;
 };
 } // namespace ClipAnalysis

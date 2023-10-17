@@ -16,6 +16,9 @@ namespace ClipAnalysis
 {
 namespace
 {
+constexpr auto numPrimes = 4;
+constexpr std::array<int, numPrimes> primes { 2, 3, 5, 7 };
+
 struct XCorr
 {
    const std::vector<float>& values;
@@ -92,19 +95,28 @@ bool IsTimeSigLevel(TimeSig sig, const std::vector<int>& divs)
    return sigDivs == std::vector<int> { divs.begin() + 1, divs.end() };
 }
 
-bool MatchesSomeTimeSig(const std::vector<int>& divs)
+std::optional<TimeSig> MatchesSomeTimeSig(const std::vector<int>& divs)
 {
    constexpr std::array<TimeSig, static_cast<int>(TimeSig::_Count)> timeSigs {
       TimeSig::FourFour, TimeSig::ThreeFour, TimeSig::SixEight
    };
-   return std::any_of(timeSigs.begin(), timeSigs.end(), [&](TimeSig sig) {
-      return IsTimeSigLevel(sig, divs);
-   });
+   const auto it =
+      std::find_if(timeSigs.begin(), timeSigs.end(), [&](TimeSig sig) {
+         return IsTimeSigLevel(sig, divs);
+      });
+   return it == timeSigs.end() ? std::nullopt : std::make_optional(*it);
 }
 
+struct Result
+{
+   const int numBars;
+   const double score;
+};
+
 void recursion(
-   const XCorr& xcorr, std::array<TimeDiv*, numPrimes>& subTimeDivs,
-   double cumScore = 1, std::vector<int> divs = {})
+   const XCorr& xcorr, std::unordered_map<TimeSig, Result>& results,
+   std::map<int, TimeDiv*>& subTimeDivs, double cumScore = 1,
+   std::vector<int> divs = {})
 {
    const auto M = xcorr.values.size();
    const auto cumDiv =
@@ -127,11 +139,21 @@ void recursion(
       const auto varScore = 1. - GetStandardDeviation(values);
       const auto score = varScore * maxScore;
       subTimeDivs[p] = new TimeDiv(score, score * cumScore, maxScore, varScore);
-      if (MatchesSomeTimeSig(nextDivs))
+      if (const auto timeSig = MatchesSomeTimeSig(nextDivs))
+      {
+         assert(!results.count(*timeSig));
+         const auto numBars = nextDivs[0];
+         // Do not penalize time signatures that have more divisions.
+         const auto finalScore =
+            std::pow(subTimeDivs[p]->cumScore, 1. / nextDivs.size());
+         // TODO account for bpm
+         results.emplace(*timeSig, Result { numBars, finalScore });
          // We have the score for a time signature, we don't need to test its
          // subdivisions.
          continue;
-      recursion(xcorr, subTimeDivs[p]->subs, score * cumScore, nextDivs);
+      }
+      recursion(
+         xcorr, results, subTimeDivs.at(p)->subs, score * cumScore, nextDivs);
    }
 }
 
@@ -155,8 +177,9 @@ GetBpmFromOdfXcorr(const std::vector<float>& xcorr, double playDur)
       std::accumulate(xcorr.begin(), xcorr.end(), 0.) / xcorr.size();
    const auto numPeaks = GetNumPeaks(xcorr);
    XCorr xcorrStruct { xcorr, xcorrMean, numPeaks };
-   std::array<TimeDiv*, numPrimes> divs;
-   recursion(xcorrStruct, divs);
+   std::map<int, TimeDiv*> divs;
+   std::unordered_map<TimeSig, Result> results;
+   recursion(xcorrStruct, results, divs);
 
    return 0;
 }

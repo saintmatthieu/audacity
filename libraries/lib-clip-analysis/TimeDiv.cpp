@@ -1,6 +1,6 @@
 #include "TimeDiv.h"
 
-#pragma once
+#include <numeric>
 
 namespace ClipAnalysis
 {
@@ -11,13 +11,11 @@ TimeDiv::TimeDiv(
     , maxScore(maxScore)
     , varScore(varScore)
 {
-   subs.fill(nullptr);
 }
 
 TimeDiv::~TimeDiv()
 {
-   for (auto p = 0; p < numPrimes; ++p)
-      if (subs[p])
-         delete subs[p];
+   for (auto& p : subs)
+      delete p.second;
 }
 } // namespace ClipAnalysis
