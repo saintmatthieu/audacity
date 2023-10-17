@@ -58,17 +58,43 @@ std::vector<int> DivideEqually(int M, int numDivs)
    std::transform(i.begin(), i.end(), indices.begin(), [&](double i) {
       return static_cast<int>(std::round(M * i / numDivs));
    });
+   // Discard indices beyond the symmetry midpoint.
+   indices.erase(
+      std::find_if(
+         indices.begin(), indices.end(), [M](int i) { return i > M / 2; }),
+      indices.end());
    return indices;
 }
 
-double GetStandardDeviation(const std::vector<double>& x)
+float GetStandardDeviation(const std::vector<float>& x)
 {
    const auto mean = std::accumulate(x.begin(), x.end(), 0.) / x.size();
-   double accum = 0.;
-   std::for_each(x.begin(), x.end(), [&](const double d) {
+   float accum = 0.f;
+   std::for_each(x.begin(), x.end(), [&](const float d) {
       accum += (d - mean) * (d - mean);
    });
    return std::sqrt(accum / x.size());
+}
+
+std::vector<int>
+GetEvalIndices(int M, int numDivs, const std::vector<int>& prevIndices)
+{
+   const auto newIndices = DivideEqually(M, numDivs);
+   std::vector<int> evalIndices;
+   std::set_difference(
+      newIndices.begin(), newIndices.end(), prevIndices.begin(),
+      prevIndices.end(), std::inserter(evalIndices, evalIndices.begin()));
+   return evalIndices;
+}
+
+std::vector<float> GetValues(
+   const std::vector<float>& xcorr, const std::vector<int>& indices)
+{
+   std::vector<float> values(indices.size());
+   std::transform(
+      indices.begin(), indices.end(), values.begin(),
+      [&](int i) { return xcorr[i]; });
+   return values;
 }
 
 void recursion(
@@ -82,16 +108,8 @@ void recursion(
       const auto newDiv = cumDiv * primes[p];
       if (newDiv > xcorr.numPeaks)
          continue;
-      const auto newIndices = DivideEqually(M, newDiv);
-      std::vector<int> uniqueIndices;
-      std::set_difference(
-         newIndices.begin(), newIndices.end(), prevIndices.begin(),
-         prevIndices.end(),
-         std::inserter(uniqueIndices, uniqueIndices.begin()));
-      std::vector<double> values(uniqueIndices.size());
-      std::transform(
-         uniqueIndices.begin(), uniqueIndices.end(), values.begin(),
-         [&](int i) { return xcorr.values[i]; });
+      const auto evalIndices = GetEvalIndices(M, newDiv, prevIndices);
+      const auto values = GetValues(xcorr.values, evalIndices);
       const auto maxScore = *std::max_element(values.begin(), values.end());
       if (maxScore < xcorr.mean)
          continue;

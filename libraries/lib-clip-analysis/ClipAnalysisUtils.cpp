@@ -47,7 +47,7 @@ std::vector<float> GetNormalizedAutocorr(const std::vector<double>& x)
       const auto frac = samp - n;
       samp += step;
       double smp[6];
-      ringBuff.readBlock(n - 6, 6, smp);
+      ringBuff.readBlock(n - 2, 6, smp);
       // interpOdfVals is floats because that's what RealFFT expects.
       interpOdfVals[m] = std::max<float>(0, lagrange6(smp, frac));
    }
@@ -58,11 +58,10 @@ std::vector<float> GetNormalizedAutocorr(const std::vector<double>& x)
    std::copy(
       powSpec.begin() + 1, powSpec.begin() + M / 2 - 1, powSpec.rbegin());
    std::vector<float> xcorr(M);
-   PowerSpectrum(M, powSpec.data(), xcorr.data());
+   InverseRealFFT(M, powSpec.data(), nullptr, xcorr.data());
    const auto max = xcorr[0];
-   for (auto i = 0; i < M / 2 + 1; ++i)
-      xcorr[i] /= max;
-   std::copy(xcorr.begin() + 1, xcorr.begin() + M / 2, xcorr.rbegin());
+   for (auto& val : xcorr)
+      val /= max;
    return xcorr;
 }
 } // namespace ClipAnalysis
