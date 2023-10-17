@@ -16,8 +16,20 @@ namespace ClipAnalysis
 {
 namespace
 {
-constexpr auto numPrimes = 4;
-constexpr std::array<int, numPrimes> primes { 2, 3, 5, 7 };
+std::vector<int> GetDivisorCandidates(size_t recursionLevel)
+{
+   if (recursionLevel == 0)
+   {
+      // Try everything from 1 to 8 bars.
+      std::vector<int> divs(8);
+      std::iota(divs.begin(), divs.end(), 1);
+      return divs;
+   }
+   else
+      // Now we are at bar level or below: only check binary or ternary
+      // divisions (although we could also check 5 for Take Five ?).
+      return { 2, 3 };
+}
 
 struct XCorr
 {
@@ -44,6 +56,9 @@ std::vector<int> DivideEqually(int M, int numDivs)
 
 float GetStandardDeviation(const std::vector<float>& x)
 {
+   if (x.empty())
+      // Normally NaN, but ...
+      return 0;
    const auto mean = std::accumulate(x.begin(), x.end(), 0.) / x.size();
    float accum = 0.f;
    std::for_each(x.begin(), x.end(), [&](const float d) {
@@ -107,53 +122,85 @@ std::optional<TimeSig> MatchesSomeTimeSig(const std::vector<int>& divs)
    return it == timeSigs.end() ? std::nullopt : std::make_optional(*it);
 }
 
-struct Result
+double GetBalancingScorePower(const std::vector<int>& divs)
 {
-   const int numBars;
-   const double score;
-};
+   assert(divs.size() > 1);
+   // If the 1st division was 1, reduce by one because it'd otherwise be unfair.
+   if (divs[0] == 1)
+      return 1. / (divs.size() - 1);
+   else
+      return 1. / divs.size();
+}
+
+using ResultMap = std::unordered_map<std::string, double>;
+
+std::string ToString(TimeSig sig)
+{
+   switch (sig)
+   {
+   case TimeSig::FourFour:
+      return "4/4";
+   case TimeSig::ThreeFour:
+      return "3/4";
+   case TimeSig::SixEight:
+      return "6/8";
+   default:
+      assert(false);
+   }
+}
+
+std::string ToString(int numBars, TimeSig sig)
+{
+   std::stringstream ss;
+   ss << numBars << " * " << ToString(sig);
+   return ss.str();
+}
 
 void recursion(
-   const XCorr& xcorr, std::unordered_map<TimeSig, Result>& results,
-   std::map<int, TimeDiv*>& subTimeDivs, double cumScore = 1,
-   std::vector<int> divs = {})
+   const XCorr& xcorr, ResultMap& results, std::map<int, TimeDiv*>& subTimeDivs,
+   double cumScore = 1, std::vector<int> divs = {})
 {
    const auto M = xcorr.values.size();
    const auto cumDiv =
       std::accumulate(divs.begin(), divs.end(), 1, std::multiplies<int>());
    const auto prevIndices = DivideEqually(M, cumDiv);
-   for (auto p = 0; p < numPrimes; ++p)
+   const auto recursionLevel = divs.size();
+   const auto divisorCandidates = GetDivisorCandidates(recursionLevel);
+   for (const auto divisor : divisorCandidates)
    {
-      const auto newDiv = cumDiv * primes[p];
+      const auto newDiv = cumDiv * divisor;
       if (newDiv > xcorr.numPeaks)
          continue;
 
       auto nextDivs = divs;
-      nextDivs.push_back(primes[p]);
+      nextDivs.push_back(divisor);
 
       const auto evalIndices = GetEvalIndices(M, newDiv, prevIndices);
       const auto values = GetValues(xcorr.values, evalIndices);
-      const auto maxScore = *std::max_element(values.begin(), values.end());
+      const auto maxScore =
+         values.empty() ? 1. : *std::max_element(values.begin(), values.end());
       if (maxScore < xcorr.mean)
          continue;
       const auto varScore = 1. - GetStandardDeviation(values);
       const auto score = varScore * maxScore;
-      subTimeDivs[p] = new TimeDiv(score, score * cumScore, maxScore, varScore);
+      subTimeDivs[divisor] =
+         new TimeDiv(score, score * cumScore, maxScore, varScore);
       if (const auto timeSig = MatchesSomeTimeSig(nextDivs))
       {
-         assert(!results.count(*timeSig));
          const auto numBars = nextDivs[0];
          // Do not penalize time signatures that have more divisions.
-         const auto finalScore =
-            std::pow(subTimeDivs[p]->cumScore, 1. / nextDivs.size());
+         const auto finalScore = std::pow(
+            subTimeDivs.at(divisor)->cumScore,
+            GetBalancingScorePower(nextDivs));
          // TODO account for bpm
-         results.emplace(*timeSig, Result { numBars, finalScore });
+         results.emplace(ToString(numBars, *timeSig), finalScore);
          // We have the score for a time signature, we don't need to test its
          // subdivisions.
          continue;
       }
       recursion(
-         xcorr, results, subTimeDivs.at(p)->subs, score * cumScore, nextDivs);
+         xcorr, results, subTimeDivs.at(divisor)->subs, score * cumScore,
+         nextDivs);
    }
 }
 
@@ -178,7 +225,7 @@ GetBpmFromOdfXcorr(const std::vector<float>& xcorr, double playDur)
    const auto numPeaks = GetNumPeaks(xcorr);
    XCorr xcorrStruct { xcorr, xcorrMean, numPeaks };
    std::map<int, TimeDiv*> divs;
-   std::unordered_map<TimeSig, Result> results;
+   ResultMap results;
    recursion(xcorrStruct, results, divs);
 
    return 0;
