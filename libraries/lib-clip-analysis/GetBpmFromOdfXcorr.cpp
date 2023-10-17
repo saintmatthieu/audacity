@@ -4,6 +4,7 @@
 #include "ClipInterface.h"
 #include "FFT.h"
 #include "OnsetDetector.h"
+#include "TimeDiv.h"
 
 #include <array>
 #include <fstream>
@@ -11,38 +12,10 @@
 #include <numeric>
 #include <sstream>
 
+namespace ClipAnalysis
+{
 namespace
 {
-constexpr auto numPrimes = 4;
-constexpr std::array<int, numPrimes> primes { 2, 3, 5, 7 };
-
-struct TimeDiv
-{
-   TimeDiv(
-      double score, double cumScore = 1, double maxScore = 1,
-      double varScore = 1)
-       : score(score)
-       , cumScore(cumScore)
-       , maxScore(maxScore)
-       , varScore(varScore)
-   {
-      subs.fill(nullptr);
-   }
-
-   ~TimeDiv()
-   {
-      for (auto p = 0; p < numPrimes; ++p)
-         if (subs[p])
-            delete subs[p];
-   }
-
-   const double score;
-   const double cumScore;
-   const double maxScore;
-   const double varScore;
-   std::array<TimeDiv*, numPrimes> subs;
-};
-
 struct XCorr
 {
    const std::vector<float>& values;
@@ -174,8 +147,6 @@ int GetNumPeaks(const std::vector<float>& xcorr)
 }
 } // namespace
 
-namespace ClipAnalysis
-{
 std::optional<double>
 GetBpmFromOdfXcorr(const std::vector<float>& xcorr, double playDur)
 {

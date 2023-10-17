@@ -18,6 +18,8 @@ set( SOURCES
    OnsetDetector.h
    SpectrumTransformer.cpp
    SpectrumTransformer.h
+   TimeDiv.cpp
+   TimeDiv.h
 )
 set( LIBRARIES
    lib-math
