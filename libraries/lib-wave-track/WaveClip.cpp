@@ -35,13 +35,24 @@
 #include <omp.h>
 #endif
 
+namespace
+{
+bool IsMultipleOfSamplePeriod(double t, double sampleRate)
+{
+   return std::fabs(t - std::round(t * sampleRate) / sampleRate) <
+          std::numeric_limits<double>::epsilon();
+}
+} // namespace
+
 WaveClipListener::~WaveClipListener()
 {
 }
 
-WaveClip::WaveClip(size_t width,
-   const SampleBlockFactoryPtr &factory,
-   sampleFormat format, int rate, int colourIndex)
+WaveClip::WaveClip(
+   size_t width, const SampleBlockFactoryPtr& factory, sampleFormat format,
+   int rate, int colourIndex)
+    : mBoundaries { rate }
+    , mEnvelope { std::make_unique<Envelope>(true, 1e-7, 2.0, 1.0) }
 {
    assert(width > 0);
    mRate = rate;
@@ -51,32 +62,28 @@ WaveClip::WaveClip(size_t width,
       pSequence = std::make_unique<Sequence>(factory,
          SampleFormats{narrowestSampleFormat, format});
 
-   mEnvelope = std::make_unique<Envelope>(true, 1e-7, 2.0, 1.0);
    assert(CheckInvariants());
 }
 
 WaveClip::WaveClip(
    const WaveClip& orig, const SampleBlockFactoryPtr& factory,
    bool copyCutlines)
-    : mClipStretchRatio { orig.mClipStretchRatio }
+    : mBoundaries { orig.mBoundaries }
+    , mClipStretchRatio { orig.mClipStretchRatio }
     , mRawAudioTempo { orig.mRawAudioTempo }
     , mProjectTempo { orig.mProjectTempo }
+    , mEnvelope { std::make_unique<Envelope>(*orig.mEnvelope) }
 {
    // essentially a copy constructor - but you must pass in the
    // current sample block factory, because we might be copying
    // from one project to another
 
-   mSequenceOffset = orig.mSequenceOffset;
-   mTrimLeft = orig.mTrimLeft;
-   mTrimRight = orig.mTrimRight;
    mRate = orig.mRate;
    mColourIndex = orig.mColourIndex;
    mSequences.reserve(orig.GetWidth());
    for (auto &pSequence : orig.mSequences)
       mSequences.push_back(
          std::make_unique<Sequence>(*pSequence, factory));
-
-   mEnvelope = std::make_unique<Envelope>(*orig.mEnvelope);
 
    mName = orig.mName;
 
@@ -93,30 +100,19 @@ WaveClip::WaveClip(
 WaveClip::WaveClip(
    const WaveClip& orig, const SampleBlockFactoryPtr& factory,
    bool copyCutlines, double t0, double t1)
-    : mClipStretchRatio { orig.mClipStretchRatio }
+    : mBoundaries { orig.mBoundaries }
+    , mClipStretchRatio { orig.mClipStretchRatio }
     , mRawAudioTempo { orig.mRawAudioTempo }
     , mProjectTempo { orig.mProjectTempo }
+    , mEnvelope { std::make_unique<Envelope>(*orig.mEnvelope) }
 {
    assert(orig.CountSamples(t0, t1) > 0);
 
-   mSequenceOffset = orig.mSequenceOffset;
-
    //Adjust trim values to sample-boundary
-   if(t0 > orig.GetPlayStartTime()) {
-      const auto s0 = orig.TimeToSamples(t0 - orig.GetSequenceStartTime());
-      mTrimLeft = orig.SamplesToTime(s0);
-
-   }
-   else
-      mTrimLeft = orig.mTrimLeft;
-
-   if(t1 < orig.GetPlayEndTime())
-   {
-      const auto s1 = orig.TimeToSamples(orig.GetSequenceEndTime() - t1);
-      mTrimRight = orig.SamplesToTime(s1);
-   }
-   else
-      mTrimRight = orig.mTrimRight;
+   mBoundaries.DragPlayStartSampleTo(
+      std::max(orig.GetPlayStartSample(), orig.TimeToSamples(t0)), *mEnvelope);
+   mBoundaries.SetPlayEndSample(
+      std::min(orig.GetPlayEndSample(), orig.TimeToSamples(t1)));
 
    mRate = orig.mRate;
    mColourIndex = orig.mColourIndex;
@@ -127,8 +123,6 @@ WaveClip::WaveClip(
    for (auto &pSequence : orig.mSequences)
       mSequences.push_back(
          std::make_unique<Sequence>(*pSequence, factory));
-
-   mEnvelope = std::make_unique<Envelope>(*orig.mEnvelope);
 
    if (copyCutlines)
       for (const auto &cutline : orig.mCutLines)
@@ -149,7 +143,7 @@ AudioSegmentSampleView WaveClip::GetSampleView(
 {
    assert(ii < GetWidth());
    return mSequences[ii]->GetFloatSampleView(
-      start + TimeToSamples(mTrimLeft), length, mayThrow);
+      start + mBoundaries.GetNumTrimmedSamplesLeft(), length, mayThrow);
 }
 
 AudioSegmentSampleView WaveClip::GetSampleView(
@@ -172,8 +166,8 @@ bool WaveClip::GetSamples(size_t ii,
    sampleCount start, size_t len, bool mayThrow) const
 {
    assert(ii < GetWidth());
-   return mSequences[ii]
-      ->Get(buffer, format, start + TimeToSamples(mTrimLeft), len, mayThrow);
+   const auto trimLeft = mBoundaries.GetNumTrimmedSamplesLeft();
+   return mSequences[ii]->Get(buffer, format, start + trimLeft, len, mayThrow);
 }
 
 bool WaveClip::GetSamples(samplePtr buffers[], sampleFormat format,
@@ -192,8 +186,9 @@ void WaveClip::SetSamples(size_t ii,
 {
    assert(ii < GetWidth());
    // use Strong-guarantee
-   mSequences[ii]->SetSamples(buffer, format,
-      start + TimeToSamples(mTrimLeft), len, effectiveFormat);
+   mSequences[ii]->SetSamples(
+      buffer, format, start + mBoundaries.GetNumTrimmedSamplesLeft(), len,
+      effectiveFormat);
 
    // use No-fail-guarantee
    MarkChanged();
@@ -284,29 +279,19 @@ void WaveClip::OnProjectTempoChange(
    if (oldTempo.has_value())
    {
       const auto ratioChange = *oldTempo / newTempo;
-      mSequenceOffset *= ratioChange;
-      mTrimLeft *= ratioChange;
-      mTrimRight *= ratioChange;
+      mBoundaries.OnProjectTempoChange(ratioChange, *mEnvelope);
       StretchCutLines(ratioChange);
-      mEnvelope->RescaleTimesBy(ratioChange);
    }
    mProjectTempo = newTempo;
 }
 
 void WaveClip::StretchLeftTo(double to)
 {
-   const auto pet = GetPlayEndTime();
-   if (to >= pet)
+   if (to >= GetPlayEndTime())
       return;
-   const auto oldPlayDuration = pet - GetPlayStartTime();
-   const auto newPlayDuration = pet - to;
-   const auto ratioChange = newPlayDuration / oldPlayDuration;
-   mSequenceOffset = pet - (pet - mSequenceOffset) * ratioChange;
-   mTrimLeft *= ratioChange;
-   mTrimRight *= ratioChange;
+   const auto ratioChange = mBoundaries.GetRatioChangeWhenStretchingLeftTo(to);
+   mBoundaries.StretchFromLeft(ratioChange, *mEnvelope);
    mClipStretchRatio *= ratioChange;
-   mEnvelope->SetOffset(mSequenceOffset);
-   mEnvelope->RescaleTimesBy(ratioChange);
    StretchCutLines(ratioChange);
 }
 
@@ -315,15 +300,9 @@ void WaveClip::StretchRightTo(double to)
    const auto pst = GetPlayStartTime();
    if (to <= pst)
       return;
-   const auto oldPlayDuration = GetPlayEndTime() - pst;
-   const auto newPlayDuration = to - pst;
-   const auto ratioChange = newPlayDuration / oldPlayDuration;
-   mSequenceOffset = pst - mTrimLeft * ratioChange;
-   mTrimLeft *= ratioChange;
-   mTrimRight *= ratioChange;
+   const auto ratioChange = mBoundaries.GetRatioChangeWhenStretchingRightTo(to);
+   mBoundaries.StretchFromRight(ratioChange, *mEnvelope);
    mClipStretchRatio *= ratioChange;
-   mEnvelope->SetOffset(mSequenceOffset);
-   mEnvelope->RescaleTimesBy(ratioChange);
    StretchCutLines(ratioChange);
 }
 
@@ -331,11 +310,10 @@ void WaveClip::StretchCutLines(double ratioChange)
 {
    for (const auto& cutline : mCutLines)
    {
-      cutline->mSequenceOffset *= ratioChange;
-      cutline->mTrimLeft *= ratioChange;
-      cutline->mTrimRight *= ratioChange;
+      // Play duration of the parent clip has changed -> rescale everything
+      // relative to the origin 0.
+      cutline->mBoundaries.RescaleAround(0, ratioChange, *cutline->mEnvelope);
       cutline->mClipStretchRatio *= ratioChange;
-      cutline->mEnvelope->RescaleTimesBy(ratioChange);
    }
 }
 
@@ -650,9 +628,7 @@ void WaveClip::WriteXML(XMLWriter &xmlFile) const
       return;
 
    xmlFile.StartTag(wxT("waveclip"));
-   xmlFile.WriteAttr(wxT("offset"), mSequenceOffset, 8);
-   xmlFile.WriteAttr(wxT("trimLeft"), mTrimLeft, 8);
-   xmlFile.WriteAttr(wxT("trimRight"), mTrimRight, 8);
+   mBoundaries.WriteXML(xmlFile, GetSequenceSamplesCount(), GetStretchRatio());
    xmlFile.WriteAttr(wxT("rawAudioTempo"), mRawAudioTempo.value_or(0.), 8);
    xmlFile.WriteAttr(wxT("clipStretchRatio"), mClipStretchRatio, 8);
    xmlFile.WriteAttr(wxT("name"), mName);
@@ -1090,17 +1066,12 @@ void WaveClip::CloseLock() noexcept
 
 void WaveClip::SetRate(int rate)
 {
-   const auto trimLeftSampleNum = TimeToSamples(mTrimLeft);
-   const auto trimRightSampleNum = TimeToSamples(mTrimRight);
-   auto ratio = static_cast<double>(mRate) / rate;
+   const auto ratio = static_cast<double>(mRate) / rate;
    mRate = rate;
-   mTrimLeft = SamplesToTime(trimLeftSampleNum);
-   mTrimRight = SamplesToTime(trimRightSampleNum);
+   mBoundaries.ChangeSampleRate(rate, *mEnvelope);
    const auto newLength =
       GetNumSamples().as_double() * GetStretchRatio() / mRate;
-   mEnvelope->RescaleTimes(newLength);
    MarkChanged();
-   SetSequenceStartTime(GetSequenceStartTime() * ratio);
 }
 
 /*! @excsafety{Strong} */
@@ -1338,7 +1309,7 @@ double WaveClip::SnapToTrackSample(double t) const noexcept
 
 void WaveClip::SetSilence(sampleCount offset, sampleCount length)
 {
-   const auto start = TimeToSamples(mTrimLeft) + offset;
+   const auto start = mBoundaries.GetNumTrimmedSamplesLeft() + offset;
    Transaction transaction{ *this };
    for (auto &pSequence : mSequences)
       pSequence->SetSilence(start, length);
@@ -1353,24 +1324,20 @@ sampleCount WaveClip::GetSequenceSamplesCount() const
 
 double WaveClip::GetPlayStartTime() const noexcept
 {
-   return SnapToTrackSample(mSequenceOffset + mTrimLeft);
+   return mBoundaries.GetPlayStartTime();
 }
 
 void WaveClip::SetPlayStartTime(double time)
 {
-   SetSequenceStartTime(time - mTrimLeft);
+   // assert that `time` is a multiple of the sample period
+   assert(IsMultipleOfSamplePeriod(time, mRate));
+   mBoundaries.DragPlayStartSampleTo(
+      sampleCount { time * mRate + 0.5 }, *mEnvelope);
 }
 
 double WaveClip::GetPlayEndTime() const
 {
-    const auto numSamples = GetNumSamples();
-    double maxLen = mSequenceOffset +
-                    ((numSamples + GetAppendBufferLen()).as_double()) *
-                       GetStretchRatio() / mRate -
-                    mTrimRight;
-    // JS: calculated value is not the length;
-    // it is a maximum value and can be negative; no clipping to 0
-    return SnapToTrackSample(maxLen);
+   return mBoundaries.GetPlayEndTime();
 }
 
 double WaveClip::GetPlayDuration() const
@@ -1395,64 +1362,66 @@ sampleCount WaveClip::GetPlayEndSample() const
 
 sampleCount WaveClip::GetVisibleSampleCount() const
 {
-    return GetNumSamples()
-       - TimeToSamples(mTrimRight) - TimeToSamples(mTrimLeft);
+   const auto numSamples = GetNumSamples();
+   return numSamples - mBoundaries.GetNumTrimmedSamplesLeft() -
+          mBoundaries.GetNumTrimmedSamplesRight(numSamples, GetStretchRatio());
 }
 
 void WaveClip::SetTrimLeft(double trim)
 {
-    mTrimLeft = std::max(.0, trim);
+   mBoundaries.SetTrimLeft(trim);
 }
 
 double WaveClip::GetTrimLeft() const noexcept
 {
-    return mTrimLeft;
+   return mBoundaries.GetTrimLeft();
 }
 
 void WaveClip::SetTrimRight(double trim)
 {
-    mTrimRight = std::max(.0, trim);
+   mBoundaries.SetTrimRight(trim, GetNumSamples(), GetStretchRatio());
 }
 
 double WaveClip::GetTrimRight() const noexcept
 {
-    return mTrimRight;
+   return mBoundaries.GetTrimRight(GetNumSamples(), GetStretchRatio());
 }
 
 void WaveClip::TrimLeft(double deltaTime)
 {
-   SetTrimLeft(mTrimLeft + deltaTime);
+   mBoundaries.SetTrimLeft(mBoundaries.GetTrimLeft() + deltaTime);
 }
 
 void WaveClip::TrimRight(double deltaTime)
 {
-   SetTrimRight(mTrimRight + deltaTime);
+   const auto numSamples = GetNumSamples();
+   const auto stretchRatio = GetStretchRatio();
+   mBoundaries.SetTrimRight(
+      mBoundaries.GetTrimRight(numSamples, stretchRatio) + deltaTime,
+      numSamples, stretchRatio);
 }
 
 void WaveClip::TrimLeftTo(double to)
 {
-   mTrimLeft =
-      std::clamp(to, SnapToTrackSample(mSequenceOffset), GetPlayEndTime()) -
-      mSequenceOffset;
+   mBoundaries.SetTrimLeft(to - mBoundaries.GetSequenceOffset());
 }
 
 void WaveClip::TrimRightTo(double to)
 {
-   const auto endTime = SnapToTrackSample(GetSequenceEndTime());
-   mTrimRight = endTime - std::clamp(to, GetPlayStartTime(), endTime);
+   const auto endTime = GetSequenceEndTime();
+   mBoundaries.SetTrimRight(
+      endTime - std::clamp(to, GetPlayStartTime(), endTime), GetNumSamples(),
+      GetStretchRatio());
 }
 
 double WaveClip::GetSequenceStartTime() const noexcept
 {
-    // JS: mSequenceOffset is the minimum value and it is returned; no clipping to 0
-    // Do we need to `SnapToTrackSample` before returning?
-    return mSequenceOffset;
+    return mBoundaries.GetSequenceOffset();
 }
 
 void WaveClip::SetSequenceStartTime(double startTime)
 {
-    mSequenceOffset = startTime;
-    mEnvelope->SetOffset(startTime);
+   mBoundaries.SetSequenceOffset(startTime, *mEnvelope);
 }
 
 double WaveClip::GetSequenceEndTime() const
@@ -1465,7 +1434,7 @@ double WaveClip::GetSequenceEndTime() const
 
 sampleCount WaveClip::GetSequenceStartSample() const
 {
-    return TimeToSamples(mSequenceOffset);
+   return TimeToSamples(mBoundaries.GetSequenceOffset());
 }
 
 void WaveClip::ShiftBy(double delta) noexcept
@@ -1580,10 +1549,11 @@ bool WaveClip::CheckInvariants() const
    return false;
 }
 
+// TODO repair this
 WaveClip::Transaction::Transaction(WaveClip &clip)
    : clip{ clip }
-   , mTrimLeft{ clip.mTrimLeft }
-   , mTrimRight{ clip.mTrimRight }
+   , mTrimLeft{ 0 /* clip.mTrimLeft */ }
+   , mTrimRight{ 0 /* clip.mTrimRight */ }
 {
    sequences.reserve(clip.mSequences.size());
    auto &factory = clip.GetFactory();
@@ -1597,7 +1567,209 @@ WaveClip::Transaction::~Transaction()
 {
    if (!committed) {
       clip.mSequences.swap(sequences);
-      clip.mTrimLeft = mTrimLeft;
-      clip.mTrimRight = mTrimRight;
+      // clip.mTrimLeft = mTrimLeft;
+      // clip.mTrimRight = mTrimRight;
    }
+}
+
+WaveClip::BoundaryManager::BoundaryManager(int sampleRate)
+    : mSampleRate { sampleRate }
+{
+}
+
+WaveClip::BoundaryManager::BoundaryManager(const BoundaryManager& other)
+    : mSampleRate { other.mSampleRate }
+    , mSequenceOffset { other.mSequenceOffset }
+    , mPlayStartTime { other.mPlayStartTime }
+    , mPlayEndTime { other.mPlayEndTime }
+{
+}
+
+void WaveClip::BoundaryManager::SetSequenceOffset(
+   double offset, Envelope& envelope)
+{
+   // This operation is a shift that's not through dragging, hence us not
+   // reusing ShiftTo.
+   const auto delta = offset - mSequenceOffset;
+   mSequenceOffset = offset;
+   mPlayStartTime += delta;
+   mPlayEndTime   += delta;
+   envelope.SetOffset(offset);
+}
+
+double WaveClip::BoundaryManager::GetSequenceOffset() const
+{
+   return mSequenceOffset;
+}
+
+void WaveClip::BoundaryManager::DragPlayStartSampleTo(
+   sampleCount newPlayStartSample, Envelope& envelope)
+{
+   // Clip-dragging only shifts by an integer number of samples.
+   ShiftBy(newPlayStartSample - GetPlayStartSample(), envelope);
+}
+
+void WaveClip::BoundaryManager::SetPlayEndSample(sampleCount sample)
+{
+   mPlayEndTime = sample.as_double() / mSampleRate;
+}
+
+sampleCount WaveClip::BoundaryManager::GetPlayStartSample() const
+{
+   return sampleCount { std::floor(mPlayStartTime * mSampleRate) };
+}
+
+sampleCount WaveClip::BoundaryManager::GetPlayEndSample() const
+{
+   return sampleCount { std::ceil(mPlayEndTime * mSampleRate) };
+}
+
+double WaveClip::BoundaryManager::GetPlayStartTime() const
+{
+   return GetPlayStartSample().as_double() / mSampleRate;
+}
+
+double WaveClip::BoundaryManager::GetPlayEndTime() const
+{
+   return GetPlayEndSample().as_double() / mSampleRate;
+}
+
+sampleCount WaveClip::BoundaryManager::GetNumTrimmedSamplesLeft() const
+{
+   // It can be that the play start time is before the first sequence sample,
+   // yet by less than one sample period, i.e., `GetPlayStartSample() -
+   // mSequenceOffset * mRate > -1`. Hence, `GetPlayStartSample() -
+   // floor(mSequenceOffset * mRate) >= 0`.
+   const auto numHiddenSamples =
+      GetPlayStartSample() -
+      sampleCount { std::floor(mSequenceOffset * mSampleRate) };
+   assert(numHiddenSamples >= 0);
+   return numHiddenSamples;
+}
+
+sampleCount WaveClip::BoundaryManager::GetNumTrimmedSamplesRight(
+   sampleCount sequenceSampleCount, double stretchRatio) const
+{
+   return { 0 };
+}
+
+void WaveClip::BoundaryManager::OnProjectTempoChange(
+   double newToOldRatio, Envelope& envelope)
+{
+   mSequenceOffset *= newToOldRatio;
+   mPlayStartTime *= newToOldRatio;
+   mPlayEndTime *= newToOldRatio;
+   envelope.RescaleTimesBy(newToOldRatio);
+}
+
+double
+WaveClip::BoundaryManager::GetRatioChangeWhenStretchingLeftTo(double to) const
+{
+   // Left- and right-stretching is done with stretch handles, and these are
+   // located at the boundaries GetPlayStartTime() and GetPlayEndTime(). Hence
+   // use the quantized start and end times.
+   const auto playEndTime = GetPlayEndTime();
+   const auto oldPlayDuration = playEndTime - GetPlayStartTime();
+   const auto newPlayDuration = playEndTime - to;
+   return newPlayDuration / oldPlayDuration;
+}
+
+double
+WaveClip::BoundaryManager::GetRatioChangeWhenStretchingRightTo(double to) const
+{
+   // Left- and right-stretching is done with stretch handles, and these are
+   // located at the boundaries GetPlayStartTime() and GetPlayEndTime(). Hence
+   // use the quantized start and end times.
+   const auto playStartTime = GetPlayStartTime();
+   const auto oldPlayDuration = GetPlayEndTime() - playStartTime;
+   const auto newPlayDuration = to - playStartTime;
+   return newPlayDuration / oldPlayDuration;
+}
+
+void WaveClip::BoundaryManager::StretchFromLeft(
+   double newToOldRatio, Envelope& envelope)
+{
+   // Stretch such that the quantized play end time remains unchanged. The true
+   // play end time values may change, though.
+   RescaleAround(GetPlayEndTime(), newToOldRatio, envelope);
+}
+
+void WaveClip::BoundaryManager::StretchFromRight(
+   double newToOldRatio, Envelope& envelope)
+{
+   // Stretch such that the quantized play start time remains unchanged. The true
+   // play end time values may change, though.
+   RescaleAround(GetPlayStartTime(), newToOldRatio, envelope);
+}
+
+void WaveClip::BoundaryManager::RescaleAround(
+   double origin, double newToOldRatio, Envelope& envelope)
+{
+   mSequenceOffset += (mSequenceOffset - origin) * newToOldRatio;
+   mPlayStartTime +=  (mPlayStartTime - origin) * newToOldRatio;
+   mPlayEndTime += (mPlayEndTime - origin) * newToOldRatio;
+   envelope.SetOffset(mSequenceOffset);
+   envelope.RescaleTimesBy(newToOldRatio);
+}
+
+void WaveClip::BoundaryManager::ChangeSampleRate(
+   double newSampleRate, Envelope& envelope)
+{
+   const auto ratio = newSampleRate / mSampleRate;
+   mSampleRate = newSampleRate;
+   RescaleAround(0, ratio, envelope);
+}
+
+double WaveClip::BoundaryManager::GetTrimLeft() const
+{
+   return mPlayStartTime - mSequenceOffset;
+}
+
+double WaveClip::BoundaryManager::GetTrimRight(
+   sampleCount sequenceSampleCount, double stretchRatio) const
+{
+   return mSequenceOffset +
+          sequenceSampleCount.as_double() * stretchRatio / mSampleRate -
+          mPlayEndTime;
+}
+
+void WaveClip::BoundaryManager::SetTrimLeft(double trim)
+{
+   mPlayStartTime =
+      std::clamp(mSequenceOffset + trim, mSequenceOffset, mPlayEndTime);
+}
+
+void WaveClip::BoundaryManager::SetTrimRight(
+   double trim, sampleCount sequenceSampleCount, double stretchRatio)
+{
+   mPlayEndTime = std::clamp(
+      mSequenceOffset + trim, mPlayStartTime,
+      mSequenceOffset +
+         sequenceSampleCount.as_double() * stretchRatio / mSampleRate);
+}
+
+void WaveClip::BoundaryManager::WriteXML(
+   XMLWriter& xmlFile, sampleCount sequenceSampleCount,
+   double stretchRatio) const
+{
+   xmlFile.WriteAttr(wxT("offset"), mSequenceOffset);
+   xmlFile.WriteAttr(wxT("playStart"), mPlayStartTime);
+   xmlFile.WriteAttr(wxT("playEnd"), mPlayEndTime);
+
+   xmlFile.WriteAttr(wxT("offset"), mSequenceOffset, 8);
+   xmlFile.WriteAttr(wxT("trimLeft"), mPlayStartTime - mSequenceOffset, 8);
+   xmlFile.WriteAttr(
+      wxT("trimRight"),
+      mSequenceOffset +
+         sequenceSampleCount.as_double() / mSampleRate * stretchRatio,
+      8);
+}
+
+void WaveClip::BoundaryManager::ShiftBy(sampleCount offset, Envelope& envelope)
+{
+   const auto delta = offset.as_double() / mSampleRate;
+   mSequenceOffset += delta;
+   mPlayStartTime += delta;
+   mPlayEndTime += delta;
+   envelope.SetOffset(mSequenceOffset);
 }
