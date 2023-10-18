@@ -25,6 +25,7 @@ set( SOURCES
    WaveClip.h
    WaveClipBoundaryManager.cpp
    WaveClipBoundaryManager.h
+   WaveClipBoundaryManagerOwner.h
    WaveTrack.cpp
    WaveTrack.h
    WaveTrackSink.cpp

@@ -1,6 +1,6 @@
 #include "WaveClipBoundaryManager.h"
 
-#include "Envelope.h"
+#include "WaveClipBoundaryManagerOwner.h"
 #include "XMLWriter.h"
 
 WaveClipBoundaryManager::WaveClipBoundaryManager(

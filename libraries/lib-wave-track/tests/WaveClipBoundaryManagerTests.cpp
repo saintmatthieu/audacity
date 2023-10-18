@@ -1,6 +1,7 @@
 #include "WaveClipBoundaryManager.h"
+#include "WaveClipBoundaryManagerOwner.h"
 
-#include "catch2/catch.hpp"
+#include <catch2/catch.hpp>
 
 struct MockWaveClipBoundaryManagerOwner : public WaveClipBoundaryManagerOwner
 {

@@ -18,6 +18,7 @@
 #include "SampleCount.h"
 #include "SampleFormat.h"
 #include "WaveClipBoundaryManager.h"
+#include "WaveClipBoundaryManagerOwner.h"
 #include "XMLTagHandler.h"
 
 #include <wx/longlong.h>
