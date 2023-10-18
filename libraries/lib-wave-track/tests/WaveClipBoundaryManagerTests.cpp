@@ -2,9 +2,21 @@
 
 #include "catch2/catch.hpp"
 
+class MockWaveClipBoundaryManagerOwner : public WaveClipBoundaryManagerOwner
+{
+public:
+   void SetEnvelopeOffset(double offset) override
+   {
+   }
+   void RescaleEnvelopeTimesBy(double ratio) override
+   {
+   }
+};
+
 TEST_CASE("WaveClipBoundaryManager")
 {
-   WaveClipBoundaryManager sut { 100 };
+   MockWaveClipBoundaryManagerOwner owner;
+   WaveClipBoundaryManager sut { owner, 100 };
    REQUIRE(sut.GetSequenceOffset() == 0);
    REQUIRE(sut.GetPlayStartSample() == 0);
    REQUIRE(sut.GetPlayEndSample() == 0);

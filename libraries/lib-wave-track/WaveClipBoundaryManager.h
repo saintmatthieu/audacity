@@ -5,11 +5,21 @@
 class XMLWriter;
 class Envelope;
 
+class WaveClipBoundaryManagerOwner
+{
+public:
+   virtual ~WaveClipBoundaryManagerOwner() = default;
+   virtual void SetEnvelopeOffset(double offset) = 0;
+   virtual void RescaleEnvelopeTimesBy(double ratio) = 0;
+};
+
 class WAVE_TRACK_API WaveClipBoundaryManager
 {
 public:
-   WaveClipBoundaryManager(int sampleRate);
-   WaveClipBoundaryManager(const WaveClipBoundaryManager& other);
+   WaveClipBoundaryManager(WaveClipBoundaryManagerOwner& owner, int sampleRate);
+   WaveClipBoundaryManager(
+      WaveClipBoundaryManagerOwner& owner,
+      const WaveClipBoundaryManager& other);
 
    double GetSequenceOffset() const;
    sampleCount GetPlayStartSample() const;
@@ -25,14 +35,14 @@ public:
    double GetRatioChangeWhenStretchingLeftTo(double to) const;
    double GetRatioChangeWhenStretchingRightTo(double to) const;
 
-   void SetSequenceOffset(double offset, Envelope& envelope);
-   void DragPlayStartSampleTo(sampleCount sample, Envelope& envelope);
+   void SetSequenceOffset(double offset);
+   void DragPlayStartSampleTo(sampleCount sample);
    void SetPlayEndSample(sampleCount sample);
-   void OnProjectTempoChange(double newToOldRatio, Envelope& envelope);
-   void StretchFromLeft(double newToOldRatio, Envelope& envelope);
-   void StretchFromRight(double newToOldRatio, Envelope& envelope);
-   void RescaleAround(double origin, double ratio, Envelope& envelope);
-   void ChangeSampleRate(double newSampleRate, Envelope& envelope);
+   void OnProjectTempoChange(double newToOldRatio);
+   void StretchFromLeft(double newToOldRatio);
+   void StretchFromRight(double newToOldRatio);
+   void RescaleAround(double origin, double ratio);
+   void ChangeSampleRate(double newSampleRate);
    void SetTrimLeft(double trim);
    void SetTrimRight(
       double trim, sampleCount sequenceSampleCount, double stretchRatio);
@@ -42,8 +52,9 @@ public:
       double stretchRatio) const;
 
 private:
-   void ShiftBy(sampleCount offset, Envelope& envelope);
+   void ShiftBy(sampleCount offset);
 
+   WaveClipBoundaryManagerOwner& mOwner;
    int mSampleRate;
    double mSequenceOffset { 0 };
    double mPlayStartTime { 0 };

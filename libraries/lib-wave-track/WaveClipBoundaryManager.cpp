@@ -3,22 +3,24 @@
 #include "Envelope.h"
 #include "XMLWriter.h"
 
-WaveClipBoundaryManager::WaveClipBoundaryManager(int sampleRate)
-    : mSampleRate { sampleRate }
+WaveClipBoundaryManager::WaveClipBoundaryManager(
+   WaveClipBoundaryManagerOwner& owner, int sampleRate)
+    : mOwner { owner }
+    , mSampleRate { sampleRate }
 {
 }
 
 WaveClipBoundaryManager::WaveClipBoundaryManager(
-   const WaveClipBoundaryManager& other)
-    : mSampleRate { other.mSampleRate }
+   WaveClipBoundaryManagerOwner& owner, const WaveClipBoundaryManager& other)
+    : mOwner { owner }
+    , mSampleRate { other.mSampleRate }
     , mSequenceOffset { other.mSequenceOffset }
     , mPlayStartTime { other.mPlayStartTime }
     , mPlayEndTime { other.mPlayEndTime }
 {
 }
 
-void WaveClipBoundaryManager::SetSequenceOffset(
-   double offset, Envelope& envelope)
+void WaveClipBoundaryManager::SetSequenceOffset(double offset)
 {
    // This operation is a shift that's not through dragging, hence us not
    // reusing ShiftTo.
@@ -26,7 +28,7 @@ void WaveClipBoundaryManager::SetSequenceOffset(
    mSequenceOffset = offset;
    mPlayStartTime += delta;
    mPlayEndTime += delta;
-   envelope.SetOffset(offset);
+   mOwner.SetEnvelopeOffset(offset);
 }
 
 double WaveClipBoundaryManager::GetSequenceOffset() const
@@ -35,10 +37,10 @@ double WaveClipBoundaryManager::GetSequenceOffset() const
 }
 
 void WaveClipBoundaryManager::DragPlayStartSampleTo(
-   sampleCount newPlayStartSample, Envelope& envelope)
+   sampleCount newPlayStartSample)
 {
    // Clip-dragging only shifts by an integer number of samples.
-   ShiftBy(newPlayStartSample - GetPlayStartSample(), envelope);
+   ShiftBy(newPlayStartSample - GetPlayStartSample());
 }
 
 void WaveClipBoundaryManager::SetPlayEndSample(sampleCount sample)
@@ -85,13 +87,12 @@ sampleCount WaveClipBoundaryManager::GetNumTrimmedSamplesRight(
    return { 0 };
 }
 
-void WaveClipBoundaryManager::OnProjectTempoChange(
-   double newToOldRatio, Envelope& envelope)
+void WaveClipBoundaryManager::OnProjectTempoChange(double newToOldRatio)
 {
    mSequenceOffset *= newToOldRatio;
    mPlayStartTime *= newToOldRatio;
    mPlayEndTime *= newToOldRatio;
-   envelope.RescaleTimesBy(newToOldRatio);
+   mOwner.RescaleEnvelopeTimesBy(newToOldRatio);
 }
 
 double
@@ -118,38 +119,34 @@ WaveClipBoundaryManager::GetRatioChangeWhenStretchingRightTo(double to) const
    return newPlayDuration / oldPlayDuration;
 }
 
-void WaveClipBoundaryManager::StretchFromLeft(
-   double newToOldRatio, Envelope& envelope)
+void WaveClipBoundaryManager::StretchFromLeft(double newToOldRatio)
 {
    // Stretch such that the quantized play end time remains unchanged. The true
    // play end time values may change, though.
-   RescaleAround(GetPlayEndTime(), newToOldRatio, envelope);
+   RescaleAround(GetPlayEndTime(), newToOldRatio);
 }
 
-void WaveClipBoundaryManager::StretchFromRight(
-   double newToOldRatio, Envelope& envelope)
+void WaveClipBoundaryManager::StretchFromRight(double newToOldRatio)
 {
    // Stretch such that the quantized play start time remains unchanged. The
    // true play end time values may change, though.
-   RescaleAround(GetPlayStartTime(), newToOldRatio, envelope);
+   RescaleAround(GetPlayStartTime(), newToOldRatio);
 }
 
-void WaveClipBoundaryManager::RescaleAround(
-   double origin, double newToOldRatio, Envelope& envelope)
+void WaveClipBoundaryManager::RescaleAround(double origin, double newToOldRatio)
 {
    mSequenceOffset += (mSequenceOffset - origin) * newToOldRatio;
    mPlayStartTime += (mPlayStartTime - origin) * newToOldRatio;
    mPlayEndTime += (mPlayEndTime - origin) * newToOldRatio;
-   envelope.SetOffset(mSequenceOffset);
-   envelope.RescaleTimesBy(newToOldRatio);
+   mOwner.SetEnvelopeOffset(mSequenceOffset);
+   mOwner.RescaleEnvelopeTimesBy(newToOldRatio);
 }
 
-void WaveClipBoundaryManager::ChangeSampleRate(
-   double newSampleRate, Envelope& envelope)
+void WaveClipBoundaryManager::ChangeSampleRate(double newSampleRate)
 {
    const auto ratio = newSampleRate / mSampleRate;
    mSampleRate = newSampleRate;
-   RescaleAround(0, ratio, envelope);
+   RescaleAround(0, ratio);
 }
 
 double WaveClipBoundaryManager::GetTrimLeft() const
@@ -197,11 +194,11 @@ void WaveClipBoundaryManager::WriteXML(
       8);
 }
 
-void WaveClipBoundaryManager::ShiftBy(sampleCount offset, Envelope& envelope)
+void WaveClipBoundaryManager::ShiftBy(sampleCount offset)
 {
    const auto delta = offset.as_double() / mSampleRate;
    mSequenceOffset += delta;
    mPlayStartTime += delta;
    mPlayEndTime += delta;
-   envelope.SetOffset(mSequenceOffset);
+   mOwner.SetEnvelopeOffset(mSequenceOffset);
 }

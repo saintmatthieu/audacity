@@ -51,7 +51,7 @@ WaveClipListener::~WaveClipListener()
 WaveClip::WaveClip(
    size_t width, const SampleBlockFactoryPtr& factory, sampleFormat format,
    int rate, int colourIndex)
-    : mBoundaries { rate }
+    : mBoundaries { *this, rate }
     , mEnvelope { std::make_unique<Envelope>(true, 1e-7, 2.0, 1.0) }
 {
    assert(width > 0);
@@ -100,7 +100,7 @@ WaveClip::WaveClip(
 WaveClip::WaveClip(
    const WaveClip& orig, const SampleBlockFactoryPtr& factory,
    bool copyCutlines, double t0, double t1)
-    : mBoundaries { orig.mBoundaries }
+    : mBoundaries { *this, orig.mBoundaries }
     , mClipStretchRatio { orig.mClipStretchRatio }
     , mRawAudioTempo { orig.mRawAudioTempo }
     , mProjectTempo { orig.mProjectTempo }
@@ -110,7 +110,7 @@ WaveClip::WaveClip(
 
    //Adjust trim values to sample-boundary
    mBoundaries.DragPlayStartSampleTo(
-      std::max(orig.GetPlayStartSample(), orig.TimeToSamples(t0)), *mEnvelope);
+      std::max(orig.GetPlayStartSample(), orig.TimeToSamples(t0)));
    mBoundaries.SetPlayEndSample(
       std::min(orig.GetPlayEndSample(), orig.TimeToSamples(t1)));
 
@@ -279,7 +279,7 @@ void WaveClip::OnProjectTempoChange(
    if (oldTempo.has_value())
    {
       const auto ratioChange = *oldTempo / newTempo;
-      mBoundaries.OnProjectTempoChange(ratioChange, *mEnvelope);
+      mBoundaries.OnProjectTempoChange(ratioChange);
       StretchCutLines(ratioChange);
    }
    mProjectTempo = newTempo;
@@ -290,7 +290,7 @@ void WaveClip::StretchLeftTo(double to)
    if (to >= GetPlayEndTime())
       return;
    const auto ratioChange = mBoundaries.GetRatioChangeWhenStretchingLeftTo(to);
-   mBoundaries.StretchFromLeft(ratioChange, *mEnvelope);
+   mBoundaries.StretchFromLeft(ratioChange);
    mClipStretchRatio *= ratioChange;
    StretchCutLines(ratioChange);
 }
@@ -301,7 +301,7 @@ void WaveClip::StretchRightTo(double to)
    if (to <= pst)
       return;
    const auto ratioChange = mBoundaries.GetRatioChangeWhenStretchingRightTo(to);
-   mBoundaries.StretchFromRight(ratioChange, *mEnvelope);
+   mBoundaries.StretchFromRight(ratioChange);
    mClipStretchRatio *= ratioChange;
    StretchCutLines(ratioChange);
 }
@@ -312,7 +312,7 @@ void WaveClip::StretchCutLines(double ratioChange)
    {
       // Play duration of the parent clip has changed -> rescale everything
       // relative to the origin 0.
-      cutline->mBoundaries.RescaleAround(0, ratioChange, *cutline->mEnvelope);
+      cutline->mBoundaries.RescaleAround(0, ratioChange);
       cutline->mClipStretchRatio *= ratioChange;
    }
 }
@@ -1068,7 +1068,7 @@ void WaveClip::SetRate(int rate)
 {
    const auto ratio = static_cast<double>(mRate) / rate;
    mRate = rate;
-   mBoundaries.ChangeSampleRate(rate, *mEnvelope);
+   mBoundaries.ChangeSampleRate(rate);
    const auto newLength =
       GetNumSamples().as_double() * GetStretchRatio() / mRate;
    MarkChanged();
@@ -1331,8 +1331,7 @@ void WaveClip::SetPlayStartTime(double time)
 {
    // assert that `time` is a multiple of the sample period
    assert(IsMultipleOfSamplePeriod(time, mRate));
-   mBoundaries.DragPlayStartSampleTo(
-      sampleCount { time * mRate + 0.5 }, *mEnvelope);
+   mBoundaries.DragPlayStartSampleTo(sampleCount { time * mRate + 0.5 });
 }
 
 double WaveClip::GetPlayEndTime() const
@@ -1421,7 +1420,7 @@ double WaveClip::GetSequenceStartTime() const noexcept
 
 void WaveClip::SetSequenceStartTime(double startTime)
 {
-   mBoundaries.SetSequenceOffset(startTime, *mEnvelope);
+   mBoundaries.SetSequenceOffset(startTime);
 }
 
 double WaveClip::GetSequenceEndTime() const
@@ -1506,6 +1505,16 @@ sampleCount WaveClip::CountSamples(double t0, double t1) const
       return s1 - s0;
    }
    return { 0 };
+}
+
+void WaveClip::SetEnvelopeOffset(double offset)
+{
+   mEnvelope->SetOffset(offset);
+}
+
+void WaveClip::RescaleEnvelopeTimesBy(double ratio)
+{
+   mEnvelope->RescaleTimesBy(ratio);
 }
 
 sampleCount WaveClip::TimeToSequenceSamples(double t) const

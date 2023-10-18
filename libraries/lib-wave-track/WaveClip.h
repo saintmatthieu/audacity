@@ -96,6 +96,7 @@ struct WAVE_TRACK_API WaveClipListener
 };
 
 class WAVE_TRACK_API WaveClip final :
+    public WaveClipBoundaryManagerOwner,
     public ClipInterface,
     public XMLTagHandler,
     public ClientData::Site<WaveClip, WaveClipListener>
@@ -579,6 +580,10 @@ public:
    OnProjectTempoChange(const std::optional<double>& oldTempo, double newTempo);
 
 private:
+   // WaveClipBoundaryManagerOwner
+   void SetEnvelopeOffset(double offset) override;
+   void RescaleEnvelopeTimesBy(double ratio) override;
+
    // Always gives non-negative answer, not more than sample sequence length
    // even if t0 really falls outside that range
    sampleCount TimeToSequenceSamples(double t) const;
