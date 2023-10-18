@@ -1324,7 +1324,7 @@ sampleCount WaveClip::GetSequenceSamplesCount() const
 
 double WaveClip::GetPlayStartTime() const noexcept
 {
-   return mBoundaries.GetPlayStartTime();
+   return mBoundaries.GetPlayStartSample().as_double() / mRate;
 }
 
 void WaveClip::SetPlayStartTime(double time)
@@ -1336,7 +1336,7 @@ void WaveClip::SetPlayStartTime(double time)
 
 double WaveClip::GetPlayEndTime() const
 {
-   return mBoundaries.GetPlayEndTime();
+   return mBoundaries.GetPlayEndSample().as_double() / mRate;
 }
 
 double WaveClip::GetPlayDuration() const

@@ -16,8 +16,6 @@ public:
    double GetSequenceOffset() const;
    sampleCount GetPlayStartSample() const;
    sampleCount GetPlayEndSample() const;
-   double GetPlayStartTime() const;
-   double GetPlayEndTime() const;
    double GetTrimLeft() const;
    double GetTrimRight() const;
    sampleCount GetNumTrimmedSamplesLeft() const;
@@ -40,6 +38,8 @@ public:
 
 private:
    void ShiftBy(sampleCount offset);
+   double GetPlayStartTime() const;
+   double GetPlayEndTime() const;
 
    WaveClipBoundaryManagerOwner& mOwner;
    int mSampleRate;
