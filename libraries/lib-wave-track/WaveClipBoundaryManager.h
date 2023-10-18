@@ -11,6 +11,7 @@ public:
    virtual ~WaveClipBoundaryManagerOwner() = default;
    virtual void SetEnvelopeOffset(double offset) = 0;
    virtual void RescaleEnvelopeTimesBy(double ratio) = 0;
+   virtual double GetStretchedSequenceSampleCount() const = 0;
 };
 
 class WAVE_TRACK_API WaveClipBoundaryManager
@@ -27,11 +28,9 @@ public:
    double GetPlayStartTime() const;
    double GetPlayEndTime() const;
    double GetTrimLeft() const;
-   double
-   GetTrimRight(sampleCount sequenceSampleCount, double stretchRatio) const;
+   double GetTrimRight() const;
    sampleCount GetNumTrimmedSamplesLeft() const;
-   sampleCount GetNumTrimmedSamplesRight(
-      sampleCount sequenceSampleCount, double stretchRatio) const;
+   sampleCount GetNumTrimmedSamplesRight() const;
    double GetRatioChangeWhenStretchingLeftTo(double to) const;
    double GetRatioChangeWhenStretchingRightTo(double to) const;
 
@@ -44,12 +43,9 @@ public:
    void RescaleAround(double origin, double ratio);
    void ChangeSampleRate(double newSampleRate);
    void SetTrimLeft(double trim);
-   void SetTrimRight(
-      double trim, sampleCount sequenceSampleCount, double stretchRatio);
+   void SetTrimRight(double trim);
 
-   void WriteXML(
-      XMLWriter& xmlFile, sampleCount sequenceSampleCount,
-      double stretchRatio) const;
+   void WriteXML(XMLWriter& xmlFile) const;
 
 private:
    void ShiftBy(sampleCount offset);

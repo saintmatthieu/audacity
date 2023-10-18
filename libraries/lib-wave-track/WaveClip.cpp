@@ -628,7 +628,7 @@ void WaveClip::WriteXML(XMLWriter &xmlFile) const
       return;
 
    xmlFile.StartTag(wxT("waveclip"));
-   mBoundaries.WriteXML(xmlFile, GetSequenceSamplesCount(), GetStretchRatio());
+   mBoundaries.WriteXML(xmlFile);
    xmlFile.WriteAttr(wxT("rawAudioTempo"), mRawAudioTempo.value_or(0.), 8);
    xmlFile.WriteAttr(wxT("clipStretchRatio"), mClipStretchRatio, 8);
    xmlFile.WriteAttr(wxT("name"), mName);
@@ -1361,9 +1361,9 @@ sampleCount WaveClip::GetPlayEndSample() const
 
 sampleCount WaveClip::GetVisibleSampleCount() const
 {
-   const auto numSamples = GetNumSamples();
+   const auto numSamples = GetNumSamples() + GetAppendBufferLen();
    return numSamples - mBoundaries.GetNumTrimmedSamplesLeft() -
-          mBoundaries.GetNumTrimmedSamplesRight(numSamples, GetStretchRatio());
+          mBoundaries.GetNumTrimmedSamplesRight();
 }
 
 void WaveClip::SetTrimLeft(double trim)
@@ -1378,12 +1378,12 @@ double WaveClip::GetTrimLeft() const noexcept
 
 void WaveClip::SetTrimRight(double trim)
 {
-   mBoundaries.SetTrimRight(trim, GetNumSamples(), GetStretchRatio());
+   mBoundaries.SetTrimRight(trim);
 }
 
 double WaveClip::GetTrimRight() const noexcept
 {
-   return mBoundaries.GetTrimRight(GetNumSamples(), GetStretchRatio());
+   return mBoundaries.GetTrimRight();
 }
 
 void WaveClip::TrimLeft(double deltaTime)
@@ -1393,11 +1393,7 @@ void WaveClip::TrimLeft(double deltaTime)
 
 void WaveClip::TrimRight(double deltaTime)
 {
-   const auto numSamples = GetNumSamples();
-   const auto stretchRatio = GetStretchRatio();
-   mBoundaries.SetTrimRight(
-      mBoundaries.GetTrimRight(numSamples, stretchRatio) + deltaTime,
-      numSamples, stretchRatio);
+   mBoundaries.SetTrimRight(mBoundaries.GetTrimRight() + deltaTime);
 }
 
 void WaveClip::TrimLeftTo(double to)
@@ -1409,8 +1405,7 @@ void WaveClip::TrimRightTo(double to)
 {
    const auto endTime = GetSequenceEndTime();
    mBoundaries.SetTrimRight(
-      endTime - std::clamp(to, GetPlayStartTime(), endTime), GetNumSamples(),
-      GetStretchRatio());
+      endTime - std::clamp(to, GetPlayStartTime(), endTime));
 }
 
 double WaveClip::GetSequenceStartTime() const noexcept
@@ -1515,6 +1510,13 @@ void WaveClip::SetEnvelopeOffset(double offset)
 void WaveClip::RescaleEnvelopeTimesBy(double ratio)
 {
    mEnvelope->RescaleTimesBy(ratio);
+}
+
+double WaveClip::GetStretchedSequenceSampleCount() const
+{
+   return (mSequences[0]->GetNumSamples() + mSequences[0]->GetAppendBufferLen())
+             .as_double() *
+          GetStretchRatio();
 }
 
 sampleCount WaveClip::TimeToSequenceSamples(double t) const

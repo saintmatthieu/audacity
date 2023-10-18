@@ -583,6 +583,7 @@ private:
    // WaveClipBoundaryManagerOwner
    void SetEnvelopeOffset(double offset) override;
    void RescaleEnvelopeTimesBy(double ratio) override;
+   double GetStretchedSequenceSampleCount() const override;
 
    // Always gives non-negative answer, not more than sample sequence length
    // even if t0 really falls outside that range

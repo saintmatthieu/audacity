@@ -81,8 +81,7 @@ sampleCount WaveClipBoundaryManager::GetNumTrimmedSamplesLeft() const
    return numHiddenSamples;
 }
 
-sampleCount WaveClipBoundaryManager::GetNumTrimmedSamplesRight(
-   sampleCount sequenceSampleCount, double stretchRatio) const
+sampleCount WaveClipBoundaryManager::GetNumTrimmedSamplesRight() const
 {
    return { 0 };
 }
@@ -154,12 +153,10 @@ double WaveClipBoundaryManager::GetTrimLeft() const
    return mPlayStartTime - mSequenceOffset;
 }
 
-double WaveClipBoundaryManager::GetTrimRight(
-   sampleCount sequenceSampleCount, double stretchRatio) const
+double WaveClipBoundaryManager::GetTrimRight() const
 {
    return mSequenceOffset +
-          sequenceSampleCount.as_double() * stretchRatio / mSampleRate -
-          mPlayEndTime;
+          mOwner.GetStretchedSequenceSampleCount() / mSampleRate - mPlayEndTime;
 }
 
 void WaveClipBoundaryManager::SetTrimLeft(double trim)
@@ -168,18 +165,14 @@ void WaveClipBoundaryManager::SetTrimLeft(double trim)
       std::clamp(mSequenceOffset + trim, mSequenceOffset, mPlayEndTime);
 }
 
-void WaveClipBoundaryManager::SetTrimRight(
-   double trim, sampleCount sequenceSampleCount, double stretchRatio)
+void WaveClipBoundaryManager::SetTrimRight(double trim)
 {
    mPlayEndTime = std::clamp(
       mSequenceOffset + trim, mPlayStartTime,
-      mSequenceOffset +
-         sequenceSampleCount.as_double() * stretchRatio / mSampleRate);
+      mSequenceOffset + mOwner.GetStretchedSequenceSampleCount() / mSampleRate);
 }
 
-void WaveClipBoundaryManager::WriteXML(
-   XMLWriter& xmlFile, sampleCount sequenceSampleCount,
-   double stretchRatio) const
+void WaveClipBoundaryManager::WriteXML(XMLWriter& xmlFile) const
 {
    xmlFile.WriteAttr(wxT("offset"), mSequenceOffset);
    xmlFile.WriteAttr(wxT("playStart"), mPlayStartTime);
@@ -189,8 +182,7 @@ void WaveClipBoundaryManager::WriteXML(
    xmlFile.WriteAttr(wxT("trimLeft"), mPlayStartTime - mSequenceOffset, 8);
    xmlFile.WriteAttr(
       wxT("trimRight"),
-      mSequenceOffset +
-         sequenceSampleCount.as_double() / mSampleRate * stretchRatio,
+      mSequenceOffset + mOwner.GetStretchedSequenceSampleCount() / mSampleRate,
       8);
 }
 

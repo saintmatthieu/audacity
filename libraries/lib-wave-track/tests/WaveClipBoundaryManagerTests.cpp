@@ -2,14 +2,22 @@
 
 #include "catch2/catch.hpp"
 
-class MockWaveClipBoundaryManagerOwner : public WaveClipBoundaryManagerOwner
+struct MockWaveClipBoundaryManagerOwner : public WaveClipBoundaryManagerOwner
 {
-public:
+   sampleCount numRawSamples { 0 };
+   double stretchFactor { 1 };
+
    void SetEnvelopeOffset(double offset) override
    {
    }
+
    void RescaleEnvelopeTimesBy(double ratio) override
    {
+   }
+
+   double GetStretchedSequenceSampleCount() const override
+   {
+      return numRawSamples.as_double() * stretchFactor;
    }
 };
 
