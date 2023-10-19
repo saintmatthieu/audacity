@@ -22,13 +22,11 @@
 #include <wx/log.h>
 
 #include "BasicUI.h"
-#include "ClipTimeAndPitchSource.h"
 #include "Envelope.h"
 #include "InconsistencyException.h"
 #include "Resample.h"
 #include "Sequence.h"
-#include "StaffPadTimeAndPitch.h"
-//#include "TimeAndPitchInterface.h"
+#include "TimeAndPitchInterface.h"
 #include "UserException.h"
 
 #ifdef _OPENMP
