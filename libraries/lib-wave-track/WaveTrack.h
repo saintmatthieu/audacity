@@ -924,6 +924,10 @@ public:
          const std::shared_ptr<WaveClip> &pClip,
          const std::shared_ptr<WaveClip> &pClip1);
 
+      Interval(
+         const ChannelGroup& group, const Interval& orig,
+         const SampleBlockFactoryPtr& factory);
+
       ~Interval() override;
 
       void SetName(const wxString& name);
@@ -936,6 +940,7 @@ public:
       double GetPlayStartTime() const;
       double GetPlayEndTime() const;
       bool IntersectsPlayRegion(double t0, double t1) const;
+      bool WithinPlayRegion(double t) const;
 
       double GetStretchRatio() const;
 
@@ -943,6 +948,10 @@ public:
       double SamplesToTime(sampleCount s) const;
       double GetTrimLeft() const;
       double GetTrimRight() const;
+      void SetTrimLeft(double t);
+      void SetTrimRight(double t);
+      void ClearLeft(double t);
+      void ClearRight(double t);
 
       auto GetChannel(size_t iChannel) { return
          WideChannelGroupInterval::GetChannel<WaveChannelInterval>(iChannel); }
@@ -962,7 +971,9 @@ public:
       void StretchLeftTo(double t);
       void StretchRightTo(double t);
 
-      void ApplyStretchRatio(const std::function<void(double)>& reportProgress);
+      std::shared_ptr<Interval> GetStretchRenderedCopy(
+         const std::function<void(double)>& reportProgress,
+         const ChannelGroup& group, const SampleBlockFactoryPtr& factory);
       bool StretchRatioEquals(double value) const;
 
       std::shared_ptr<const WaveClip> GetClip(size_t iChannel) const
@@ -980,16 +991,20 @@ public:
       const std::shared_ptr<WaveClip> mpClip1;
    };
 
+   using IntervalHolder = std::shared_ptr<Interval>;
+   using IntervalConstHolder = std::shared_ptr<const Interval>;
 
    ///@return Interval that starts after(before) the beginning of the passed interval
-   std::shared_ptr<const Interval>
-   GetNextInterval(const Interval& interval, PlaybackDirection searchDirection) const;
+   IntervalConstHolder GetNextInterval(
+      const Interval& interval, PlaybackDirection searchDirection) const;
 
    /*!
     * @copydoc GetNextInterval(const Interval&, PlaybackDirection) const
     */
-   std::shared_ptr<Interval>
+   IntervalHolder
    GetNextInterval(const Interval& interval, PlaybackDirection searchDirection);
+
+   IntervalHolder GetIntervalAtTime(double t);
 
    auto Intervals() { return ChannelGroup::Intervals<Interval>(); }
    auto Intervals() const { return ChannelGroup::Intervals<const Interval>(); }
@@ -1045,6 +1060,13 @@ private:
    void ExpandOneCutLine(double cutLinePosition,
       double* cutlineStart, double* cutlineEnd);
    bool MergeOneClipPair(int clipidx1, int clipidx2);
+   void ApplyStretchRatioOnIntervals(
+      const std::vector<IntervalHolder>& intervals,
+      const ProgressReporter& reportProgress);
+   void InsertInterval(const IntervalHolder& interval);
+   void RemoveInterval(const IntervalHolder& interval);
+   void
+   ReplaceInterval(const IntervalHolder& oldOne, const IntervalHolder& newOne);
 
    std::shared_ptr<WideChannelGroupInterval> DoGetInterval(size_t iInterval)
       override;

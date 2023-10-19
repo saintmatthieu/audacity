@@ -393,6 +393,19 @@ constSamplePtr WaveClip::GetAppendBuffer(size_t ii) const
    return mSequences[ii]->GetAppendBuffer();
 }
 
+void WaveClip::ReplaceSequence(
+   size_t ii, std::unique_ptr<Sequence> newSequence)
+{
+   assert(ii < GetWidth());
+   std::swap(mSequences[ii], newSequence);
+}
+
+void WaveClip::ResetStretchingMetadata()
+{
+   mRawAudioTempo = *mProjectTempo;
+   mClipStretchRatio = 1;
+}
+
 void WaveClip::MarkChanged() // NOFAIL-GUARANTEE
 {
    Caches::ForEach( std::mem_fn( &WaveClipListener::MarkChanged ) );

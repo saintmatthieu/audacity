@@ -422,6 +422,19 @@ public:
     */
    const Sequence* GetSequence(size_t ii) const { return mSequences[ii].get(); }
 
+   /*!
+    * @brief Blindly replaces the clip's sequence at given channel, not
+    * modifying boundaries or envelopes. Use with care.
+    * @pre `ii < GetWidth()`
+    */
+   void ReplaceSequence(size_t ii, std::unique_ptr<Sequence> newSequences);
+
+   /*!
+    * @brief Blindly resets raw audio tempo to project tempo and clip stretch
+    * ratio to 1, not modifying boundaries or envelopes. Use with care.
+    */
+   void ResetStretchingMetadata();
+
    /** WaveTrack calls this whenever data in the wave clip changes. It is
     * called automatically when WaveClip has a chance to know that something
     * has changed, like when member functions SetSamples() etc. are called. */

@@ -624,8 +624,10 @@ void WaveTrackAffordanceControls::OnRenderClipStretching(
       return;
 
    WaveTrackUtilities::WithStretchRenderingProgress(
-      [&interval](const ProgressReporter& progress) {
-         interval->ApplyStretchRatio(progress);
+      [&](const ProgressReporter& progress) {
+         track->ApplyStretchRatio(
+            { { interval->GetPlayStartTime(), interval->GetPlayEndTime() } },
+            progress);
       },
       XO("Applying..."));
 
