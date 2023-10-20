@@ -20,6 +20,11 @@ struct MockWaveClipBoundaryManagerOwner : public WaveClipBoundaryManagerOwner
    {
       return numRawSamples.as_double() * stretchFactor;
    }
+
+   double GetStretchFactor() const override
+   {
+      return stretchFactor;
+   }
 };
 
 TEST_CASE("WaveClipBoundaryManager")

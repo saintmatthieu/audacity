@@ -26,24 +26,20 @@ void WaveClipBoundaryManager::SetSequenceOffset(double offset)
    mOwner.SetEnvelopeOffset(offset);
 }
 
-sampleCount WaveClipBoundaryManager::GetNumLollies() const
+sampleCount WaveClipBoundaryManager::GetNumStems() const
 {
-   // s = stretch ratio, l = lollypop index, o = sequence offset:
+   // s = stretch ratio, l = stem index, o = sequence offset:
    // i = s*l + o
    // Find least l such that i >= I, where I is the play start sample.
-   const sampleCount firstVisibleLollyIndex { std::ceil(
-      (GetPlayStartTime() - mSequenceOffset) * mSampleRate /
-      mOwner.GetStretchFactor()) };
-   const sampleCount lastVisibleLollyIndex {
-      std::ceil(
-         (GetPlayEndTime() - mSequenceOffset) * mSampleRate /
-         mOwner.GetStretchFactor()) -
-      1
-   };
+   const auto stretchRatio = mOwner.GetStretchFactor();
+   return GetLastStemIndex(stretchRatio) - GetFirstStemIndex(stretchRatio) + 1;
 }
 
-double WaveClipBoundaryManager::GetLollyTime(sampleCount lollyIndex) const
+double WaveClipBoundaryManager::GetStemTime(sampleCount stemIndex) const
 {
+   const auto sampleIndex =
+      stemIndex + GetFirstStemIndex(mOwner.GetStretchFactor());
+   return sampleIndex.as_double() * mOwner.GetStretchFactor() / mSampleRate;
 }
 
 double WaveClipBoundaryManager::GetSequenceOffset() const
@@ -66,7 +62,7 @@ void WaveClipBoundaryManager::SetPlayEndSample(sampleCount sample)
 
 sampleCount WaveClipBoundaryManager::GetPlayStartSample() const
 {
-   // Ensures that the first lollypop is always visible if `mTrimeLeft` is 0.
+   // Ensures that the first stem is always visible if `mTrimeLeft` is 0.
    return sampleCount { std::floor(
       (mSequenceOffset + mTrimLeft) * mSampleRate) };
 }
@@ -88,6 +84,21 @@ double WaveClipBoundaryManager::GetPlayStartTime() const
 double WaveClipBoundaryManager::GetPlayEndTime() const
 {
    return GetPlayEndSample().as_double() / mSampleRate;
+}
+
+sampleCount
+WaveClipBoundaryManager::GetFirstStemIndex(double stretchRatio) const
+{
+   return sampleCount { std::ceil(
+      (GetPlayStartTime() - mSequenceOffset) * mSampleRate / stretchRatio) };
+}
+
+sampleCount WaveClipBoundaryManager::GetLastStemIndex(double stretchRatio) const
+{
+   return sampleCount { std::ceil(
+                           (GetPlayEndTime() - mSequenceOffset) * mSampleRate /
+                           stretchRatio) -
+                        1 };
 }
 
 sampleCount WaveClipBoundaryManager::GetNumTrimmedSamplesLeft() const

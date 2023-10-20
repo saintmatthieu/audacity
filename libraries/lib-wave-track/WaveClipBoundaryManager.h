@@ -13,10 +13,10 @@ public:
       WaveClipBoundaryManagerOwner& owner,
       const WaveClipBoundaryManager& other);
 
-   // Number of lollypops, or visible samples, accounting from trimming and
+   // Number of stems, or visible samples, accounting from trimming and
    // stretching.
-   sampleCount GetNumLollies() const;
-   double GetLollyTime(sampleCount lollyIndex) const;
+   sampleCount GetNumStems() const;
+   double GetStemTime(sampleCount stemIndex) const;
 
    double GetSequenceOffset() const;
    sampleCount GetPlayStartSample() const;
@@ -45,6 +45,8 @@ private:
    void ShiftBy(sampleCount offset);
    double GetPlayStartTime() const;
    double GetPlayEndTime() const;
+   sampleCount GetFirstStemIndex(double stretchRatio) const;
+   sampleCount GetLastStemIndex(double stretchRatio) const;
 
    WaveClipBoundaryManagerOwner& mOwner;
    int mSampleRate;
