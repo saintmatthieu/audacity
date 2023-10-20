@@ -342,6 +342,9 @@ public:
    bool GetSamples(samplePtr buffers[], sampleFormat format,
                    sampleCount start, size_t len, bool mayThrow = true) const;
 
+   void GetSequenceSampleIndices(
+      sampleCount* where, size_t len, double t0, double secondsPerJump) const;
+
    //! @param ii identifies the channel
    /*!
     @pre `ii < GetWidth()`
@@ -584,7 +587,7 @@ private:
    // WaveClipBoundaryManagerOwner
    void SetEnvelopeOffset(double offset) override;
    void RescaleEnvelopeTimesBy(double ratio) override;
-   double GetStretchedSequenceSampleCount() const override;
+   sampleCount GetSequenceSampleCount() const override;
    double GetStretchFactor() const override;
 
    // Always gives non-negative answer, not more than sample sequence length

@@ -27,15 +27,20 @@ public:
    sampleCount GetNumTrailingHiddenStems() const;
    double GetRatioChangeWhenStretchingLeftTo(double to) const;
    double GetRatioChangeWhenStretchingRightTo(double to) const;
+   void GetSequenceSampleIndices(
+      sampleCount* where, size_t len, double t0, double secondsPerJump) const;
 
    void SetSequenceOffset(double offset);
-   void DragPlayStartSampleTo(sampleCount sample);
-   void SetPlayEndSample(sampleCount sample);
+   void TrimLeftTo(sampleCount sample);
+   void TrimRightTo(sampleCount sample);
    void OnProjectTempoChange(double newToOldRatio);
    void StretchFromLeft(double newToOldRatio);
    void StretchFromRight(double newToOldRatio);
    void RescaleAround(double origin, double ratio);
    void ChangeSampleRate(double newSampleRate);
+   void ShiftPlayStartSampleTo(sampleCount sample);
+
+   // TODO do we really need to offer the possibility to set arbitrary trim ?
    void SetTrimLeft(double trim);
    void SetTrimRight(double trim);
 
@@ -45,8 +50,11 @@ private:
    void ShiftBy(sampleCount offset);
    double GetPlayStartTime() const;
    double GetPlayEndTime() const;
+   sampleCount GetFirstStemIndex() const;
    sampleCount GetFirstStemIndex(double stretchRatio) const;
+   sampleCount GetLastStemIndex() const;
    sampleCount GetLastStemIndex(double stretchRatio) const;
+   double GetStretchedSequenceSampleCount() const;
 
    WaveClipBoundaryManagerOwner& mOwner;
    int mSampleRate;

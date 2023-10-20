@@ -68,7 +68,7 @@ WaveClip::WaveClip(
 WaveClip::WaveClip(
    const WaveClip& orig, const SampleBlockFactoryPtr& factory,
    bool copyCutlines)
-    : mBoundaries { orig.mBoundaries }
+    : mBoundaries { *this, orig.mBoundaries }
     , mClipStretchRatio { orig.mClipStretchRatio }
     , mRawAudioTempo { orig.mRawAudioTempo }
     , mProjectTempo { orig.mProjectTempo }
@@ -109,9 +109,9 @@ WaveClip::WaveClip(
    assert(orig.CountSamples(t0, t1) > 0);
 
    //Adjust trim values to sample-boundary
-   mBoundaries.DragPlayStartSampleTo(
+   mBoundaries.TrimLeftTo(
       std::max(orig.GetPlayStartSample(), orig.TimeToSamples(t0)));
-   mBoundaries.SetPlayEndSample(
+   mBoundaries.TrimRightTo(
       std::min(orig.GetPlayEndSample(), orig.TimeToSamples(t1)));
 
    mRate = orig.mRate;
@@ -177,6 +177,12 @@ bool WaveClip::GetSamples(samplePtr buffers[], sampleFormat format,
    for (size_t ii = 0, width = GetWidth(); result && ii < width; ++ii)
       result = GetSamples(ii, buffers[ii], format, start, len, mayThrow);
    return result;
+}
+
+void WaveClip::GetSequenceSampleIndices(
+   sampleCount* where, size_t len, double t0, double secondsPerJump) const
+{
+   mBoundaries.GetSequenceSampleIndices(where, len, t0, secondsPerJump);
 }
 
 /*! @excsafety{Strong} */
@@ -1066,7 +1072,6 @@ void WaveClip::CloseLock() noexcept
 
 void WaveClip::SetRate(int rate)
 {
-   const auto ratio = static_cast<double>(mRate) / rate;
    mRate = rate;
    mBoundaries.ChangeSampleRate(rate);
    const auto newLength =
@@ -1329,9 +1334,9 @@ double WaveClip::GetPlayStartTime() const noexcept
 
 void WaveClip::SetPlayStartTime(double time)
 {
-   // assert that `time` is a multiple of the sample period
+   // TODO rename this WaveClip method to `ShiftPlayStartTimeTo`.
    assert(IsMultipleOfSamplePeriod(time, mRate));
-   mBoundaries.DragPlayStartSampleTo(sampleCount { time * mRate + 0.5 });
+   mBoundaries.ShiftPlayStartSampleTo(sampleCount { time * mRate + 0.5 });
 }
 
 double WaveClip::GetPlayEndTime() const
@@ -1351,19 +1356,17 @@ bool WaveClip::IsEmpty() const
 
 sampleCount WaveClip::GetPlayStartSample() const
 {
-   return sampleCount { GetPlayStartTime() * mRate + 0.5 };
+   return mBoundaries.GetPlayStartSample();
 }
 
 sampleCount WaveClip::GetPlayEndSample() const
 {
-   return sampleCount { GetPlayEndTime() * mRate + 0.5 };
+   return mBoundaries.GetPlayEndSample();
 }
 
 sampleCount WaveClip::GetVisibleSampleCount() const
 {
-   const auto numSamples = GetNumSamples() + GetAppendBufferLen();
-   return numSamples - mBoundaries.GetNumLeadingHiddenStems() -
-          mBoundaries.GetNumTrailingHiddenStems();
+   return mBoundaries.GetNumStems();
 }
 
 void WaveClip::SetTrimLeft(double trim)
@@ -1398,14 +1401,12 @@ void WaveClip::TrimRight(double deltaTime)
 
 void WaveClip::TrimLeftTo(double to)
 {
-   mBoundaries.SetTrimLeft(to - mBoundaries.GetSequenceOffset());
+   mBoundaries.TrimLeftTo(to);
 }
 
 void WaveClip::TrimRightTo(double to)
 {
-   const auto endTime = GetSequenceEndTime();
-   mBoundaries.SetTrimRight(
-      endTime - std::clamp(to, GetPlayStartTime(), endTime));
+   mBoundaries.TrimRightTo(to);
 }
 
 double WaveClip::GetSequenceStartTime() const noexcept
@@ -1512,11 +1513,9 @@ void WaveClip::RescaleEnvelopeTimesBy(double ratio)
    mEnvelope->RescaleTimesBy(ratio);
 }
 
-double WaveClip::GetStretchedSequenceSampleCount() const
+sampleCount WaveClip::GetSequenceSampleCount() const
 {
-   return (mSequences[0]->GetNumSamples() + mSequences[0]->GetAppendBufferLen())
-             .as_double() *
-          GetStretchRatio();
+   return mSequences[0]->GetNumSamples() + mSequences[0]->GetAppendBufferLen();
 }
 
 double WaveClip::GetStretchFactor() const

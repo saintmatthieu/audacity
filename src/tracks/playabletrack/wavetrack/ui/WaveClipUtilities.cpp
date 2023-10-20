@@ -17,6 +17,7 @@
 
 #include "ProjectHistory.h"
 #include "UndoManager.h"
+#include "WaveClip.h"
 
 void findCorrection(
    const std::vector<sampleCount>& oldWhere, size_t oldLen, size_t newLen,
@@ -71,6 +72,13 @@ void fillWhere(
    where[0] = sampleCount( std::max(0.0, floor(w0)) );
    for (decltype(len) x = 1; x < len + 1; x++)
       where[x] = sampleCount( floor(w0 + double(x) * samplesPerPixel) );
+}
+
+void fillWhere2(
+   sampleCount* where, size_t numPixels, double t0, double pixelsPerSecond,
+   const WaveClip& clip)
+{
+   clip.GetSequenceSampleIndices(where, numPixels, t0, 1 / pixelsPerSecond);
 }
 
 std::vector<CommonTrackPanelCell::MenuItem> GetWaveClipMenuItems()

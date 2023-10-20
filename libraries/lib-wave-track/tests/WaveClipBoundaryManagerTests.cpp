@@ -3,6 +3,8 @@
 
 #include <catch2/catch.hpp>
 
+namespace
+{
 struct MockWaveClipBoundaryManagerOwner : public WaveClipBoundaryManagerOwner
 {
    sampleCount numRawSamples { 0 };
@@ -16,9 +18,9 @@ struct MockWaveClipBoundaryManagerOwner : public WaveClipBoundaryManagerOwner
    {
    }
 
-   double GetStretchedSequenceSampleCount() const override
+   sampleCount GetSequenceSampleCount() const override
    {
-      return numRawSamples.as_double() * stretchFactor;
+      return numRawSamples;
    }
 
    double GetStretchFactor() const override
@@ -27,13 +29,26 @@ struct MockWaveClipBoundaryManagerOwner : public WaveClipBoundaryManagerOwner
    }
 };
 
+constexpr auto sampleRate = 10;
+} // namespace
+
 TEST_CASE("WaveClipBoundaryManager")
 {
-   SECTION("First and last lollypops always visible when no trim")
+   SECTION("SetPlayStartSample")
    {
-      constexpr auto sampleRate = 10;
       MockWaveClipBoundaryManagerOwner owner;
-      WaveClipBoundaryManager sut(owner, sampleRate);
+      WaveClipBoundaryManager sut { owner, sampleRate };
+      owner.numRawSamples = 100;
+      owner.stretchFactor = std::sqrt(2.0);
 
+      constexpr auto offset = 1.234;
+      sut.SetSequenceOffset(offset);
+
+      const auto originalPlayStartSample = sut.GetPlayStartSample();
+      const auto originalPlayEndSample = sut.GetPlayEndSample();
+
+      // sut.SetPlayStartSample(10);
+      REQUIRE(sut.GetPlayStartSample() == originalPlayStartSample + 10);
+      REQUIRE(sut.GetPlayEndSample() == originalPlayEndSample + 10);
    }
 }

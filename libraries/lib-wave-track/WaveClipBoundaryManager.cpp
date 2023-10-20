@@ -37,9 +37,9 @@ sampleCount WaveClipBoundaryManager::GetNumStems() const
 
 double WaveClipBoundaryManager::GetStemTime(sampleCount stemIndex) const
 {
-   const auto sampleIndex =
-      stemIndex + GetFirstStemIndex(mOwner.GetStretchFactor());
-   return sampleIndex.as_double() * mOwner.GetStretchFactor() / mSampleRate;
+   const auto stretchRatio = mOwner.GetStretchFactor();
+   const auto sampleIndex = stemIndex + GetFirstStemIndex(stretchRatio);
+   return sampleIndex.as_double() * stretchRatio / mSampleRate;
 }
 
 double WaveClipBoundaryManager::GetSequenceOffset() const
@@ -47,17 +47,16 @@ double WaveClipBoundaryManager::GetSequenceOffset() const
    return mSequenceOffset;
 }
 
-void WaveClipBoundaryManager::DragPlayStartSampleTo(
-   sampleCount newPlayStartSample)
+void WaveClipBoundaryManager::TrimLeftTo(sampleCount sample)
 {
-   // Clip-dragging only shifts by an integer number of samples.
-   ShiftBy(newPlayStartSample - GetPlayStartSample());
+   mTrimLeft = sample.as_double() / mSampleRate - mSequenceOffset;
 }
 
-void WaveClipBoundaryManager::SetPlayEndSample(sampleCount sample)
+void WaveClipBoundaryManager::TrimRightTo(sampleCount sample)
 {
-   const auto delta = GetPlayEndSample() - sample;
-   mTrimRight += delta.as_double() / mSampleRate;
+   mTrimRight = mSequenceOffset +
+                GetStretchedSequenceSampleCount() / mSampleRate -
+                sample.as_double() / mSampleRate;
 }
 
 sampleCount WaveClipBoundaryManager::GetPlayStartSample() const
@@ -69,11 +68,9 @@ sampleCount WaveClipBoundaryManager::GetPlayStartSample() const
 
 sampleCount WaveClipBoundaryManager::GetPlayEndSample() const
 {
-   const double numStretchedSamples =
-      mOwner.GetSequenceSampleCount().as_double() * mOwner.GetStretchFactor();
    return sampleCount { std::floor(
-                           mSequenceOffset * mSampleRate + numStretchedSamples -
-                           mTrimRight) +
+                           mSequenceOffset * mSampleRate +
+                           GetStretchedSequenceSampleCount() - mTrimRight) +
                         1 };
 }
 
@@ -87,11 +84,21 @@ double WaveClipBoundaryManager::GetPlayEndTime() const
    return GetPlayEndSample().as_double() / mSampleRate;
 }
 
+sampleCount WaveClipBoundaryManager::GetFirstStemIndex() const
+{
+   return GetFirstStemIndex(mOwner.GetStretchFactor());
+}
+
 sampleCount
 WaveClipBoundaryManager::GetFirstStemIndex(double stretchRatio) const
 {
    return sampleCount { std::ceil(
       (GetPlayStartTime() - mSequenceOffset) * mSampleRate / stretchRatio) };
+}
+
+sampleCount WaveClipBoundaryManager::GetLastStemIndex() const
+{
+   return GetLastStemIndex(mOwner.GetStretchFactor());
 }
 
 sampleCount WaveClipBoundaryManager::GetLastStemIndex(double stretchRatio) const
@@ -102,22 +109,26 @@ sampleCount WaveClipBoundaryManager::GetLastStemIndex(double stretchRatio) const
                         1 };
 }
 
+double WaveClipBoundaryManager::GetStretchedSequenceSampleCount() const
+{
+   return mOwner.GetSequenceSampleCount().as_double() *
+          mOwner.GetStretchFactor();
+}
+
 sampleCount WaveClipBoundaryManager::GetNumLeadingHiddenStems() const
 {
-   return GetFirstStemIndex(mOwner.GetStretchFactor());
+   return GetFirstStemIndex();
 }
 
 sampleCount WaveClipBoundaryManager::GetNumTrailingHiddenStems() const
 {
-   return
+   return mOwner.GetSequenceSampleCount() - GetLastStemIndex() - 1;
 }
 
 void WaveClipBoundaryManager::OnProjectTempoChange(double newToOldRatio)
 {
-   mSequenceOffset *= newToOldRatio;
-   mTrimLeft *= newToOldRatio;
-   mTrimRight *= newToOldRatio;
-   mOwner.RescaleEnvelopeTimesBy(newToOldRatio);
+   const auto newPlayStartTime = GetPlayStartTime() * newToOldRatio;
+   RescaleAround(newPlayStartTime, newToOldRatio);
 }
 
 double
@@ -144,6 +155,18 @@ WaveClipBoundaryManager::GetRatioChangeWhenStretchingRightTo(double to) const
    return newPlayDuration / oldPlayDuration;
 }
 
+void WaveClipBoundaryManager::GetSequenceSampleIndices(
+   sampleCount* where, size_t len, double t0, double secondsPerJump) const
+{
+   const auto s = mOwner.GetStretchFactor();
+   for (auto i = 0; i < len; ++i)
+   {
+      const auto t = t0 + i * secondsPerJump;
+      where[i] =
+         sampleCount { std::floor((t - mSequenceOffset) * mSampleRate / s) };
+   }
+}
+
 void WaveClipBoundaryManager::StretchFromLeft(double newToOldRatio)
 {
    // Stretch such that the quantized play end time remains unchanged. The true
@@ -160,7 +183,7 @@ void WaveClipBoundaryManager::StretchFromRight(double newToOldRatio)
 
 void WaveClipBoundaryManager::RescaleAround(double origin, double newToOldRatio)
 {
-   mSequenceOffset += (mSequenceOffset - origin) * newToOldRatio;
+   mSequenceOffset = origin + (mSequenceOffset - origin) * newToOldRatio;
    mTrimLeft *= newToOldRatio;
    mTrimRight *= newToOldRatio;
    mOwner.SetEnvelopeOffset(mSequenceOffset);
@@ -187,16 +210,21 @@ double WaveClipBoundaryManager::GetTrimRight() const
 void WaveClipBoundaryManager::SetTrimLeft(double trim)
 {
    mTrimLeft = std::clamp(
-      trim, 0.,
-      mOwner.GetStretchedSequenceSampleCount() / mSampleRate - mTrimRight);
+      trim, 0., GetStretchedSequenceSampleCount() / mSampleRate - mTrimRight);
 }
 
 void WaveClipBoundaryManager::SetTrimRight(double trim)
 {
    mTrimRight = std::clamp(
       trim, 0.,
-      mSequenceOffset + mOwner.GetStretchedSequenceSampleCount() / mSampleRate -
+      mSequenceOffset + GetStretchedSequenceSampleCount() / mSampleRate -
          mTrimLeft);
+}
+
+void WaveClipBoundaryManager::ShiftPlayStartSampleTo(sampleCount sample)
+{
+   // Clip-dragging only shifts by an integer number of samples.
+   ShiftBy(sample - GetPlayStartSample());
 }
 
 void WaveClipBoundaryManager::WriteXML(XMLWriter& xmlFile) const

@@ -18,6 +18,7 @@
 
 class sampleCount;
 class AudacityProject;
+class WaveClip;
 
 AUDACITY_DLL_API
 void findCorrection(
@@ -29,6 +30,11 @@ AUDACITY_DLL_API
 void fillWhere(
    std::vector<sampleCount>& where, size_t len, bool addBias, double correction,
    double t0, double sampleRate, double stretchRatio, double samplesPerPixel);
+
+AUDACITY_DLL_API
+void fillWhere2(
+   sampleCount* where, size_t numPixels, double t0, double pixelsPerSecond,
+   const WaveClip& clip);
 
 std::vector<CommonTrackPanelCell::MenuItem> GetWaveClipMenuItems();
 
