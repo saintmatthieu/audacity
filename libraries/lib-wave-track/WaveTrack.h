@@ -957,10 +957,10 @@ public:
 
       bool IsPlaceholder() const;
 
-      void TrimLeftTo(double t);
-      void TrimRightTo(double t);
-      void StretchLeftTo(double t);
-      void StretchRightTo(double t);
+      void TrimLeftTo(sampleCount to);
+      void TrimRightTo(sampleCount to);
+      void StretchLeftTo(sampleCount to);
+      void StretchRightTo(sampleCount to);
 
       void ApplyStretchRatio(const std::function<void(double)>& reportProgress);
       bool StretchRatioEquals(double value) const;

@@ -189,28 +189,28 @@ WaveTrack::Interval::Interval(const ChannelGroup &group,
 
 WaveTrack::Interval::~Interval() = default;
 
-void WaveTrack::Interval::TrimLeftTo(double t)
+void WaveTrack::Interval::TrimLeftTo(sampleCount t)
 {
    for(unsigned channel = 0; channel < NChannels(); ++channel)
       GetClip(channel)->TrimLeftTo(t);
 }
 
-void WaveTrack::Interval::TrimRightTo(double t)
+void WaveTrack::Interval::TrimRightTo(sampleCount t)
 {
    for(unsigned channel = 0; channel < NChannels(); ++channel)
       GetClip(channel)->TrimRightTo(t);
 }
 
-void WaveTrack::Interval::StretchLeftTo(double t)
+void WaveTrack::Interval::StretchLeftTo(sampleCount to)
 {
-   for(unsigned channel = 0; channel < NChannels(); ++channel)
-      GetClip(channel)->StretchLeftTo(t);
+   for (unsigned channel = 0; channel < NChannels(); ++channel)
+      GetClip(channel)->StretchLeftTo(to);
 }
 
-void WaveTrack::Interval::StretchRightTo(double t)
+void WaveTrack::Interval::StretchRightTo(sampleCount to)
 {
-   for(unsigned channel = 0; channel < NChannels(); ++channel)
-      GetClip(channel)->StretchRightTo(t);
+   for (unsigned channel = 0; channel < NChannels(); ++channel)
+      GetClip(channel)->StretchRightTo(to);
 }
 
 void WaveTrack::Interval::ApplyStretchRatio(
@@ -3800,10 +3800,9 @@ void WaveTrack::SplitAt(double t)
    {
       if (c->SplitsPlayRegion(t))
       {
-         t = SnapToSample(t);
          auto newClip = std::make_shared<WaveClip>(*c, mpFactory, true);
-         c->TrimRightTo(t);// put t on a sample
-         newClip->TrimLeftTo(t);
+         c->TrimRightTo(TimeToLongSamples(t));// put t on a sample
+         newClip->TrimLeftTo(TimeToLongSamples(t));
 
          // This could invalidate the iterators for the loop!  But we return
          // at once so it's okay

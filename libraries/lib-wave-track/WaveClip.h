@@ -163,9 +163,9 @@ public:
    void SetRate(int rate);
 
    //! Stretches from left to the absolute time (if in expected range)
-   void StretchLeftTo(double to);
+   void StretchLeftTo(sampleCount to);
    //! Sets from the right to the absolute time (if in expected range)
-   void StretchRightTo(double to);
+   void StretchRightTo(sampleCount to);
 
    double GetStretchRatio() const override;
 
@@ -240,9 +240,9 @@ public:
    void TrimRight(double deltaTime);
 
    //! Sets the the left trimming to the absolute time (if that is in bounds)
-   void TrimLeftTo(double to);
+   void TrimLeftTo(sampleCount to);
    //! Sets the the right trimming to the absolute time (if that is in bounds)
-   void TrimRightTo(double to);
+   void TrimRightTo(sampleCount to);
 
    /*! @excsafety{No-fail} */
    void ShiftBy(double delta) noexcept;

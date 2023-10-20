@@ -35,7 +35,7 @@ ChangeClipSpeedDialog::ChangeClipSpeedDialog(
    s.EndVerticalLay();
 
    // TODO: Tolerance?
-   // Stretch ratio of 
+   // Stretch ratio of
    assert(mOldClipSpeed > 0.0);
 
    Layout();
@@ -148,7 +148,8 @@ bool ChangeClipSpeedDialog::SetClipSpeedFromDialog()
       return false;
    }
 
-   mTrackInterval.StretchRightTo(expectedEndTime);
+   // TODO ::SetSpeed() API
+   // mTrackInterval.StretchRightTo(expectedEndTime);
    mOldClipSpeed = mClipSpeed = 100 / mTrackInterval.GetStretchRatio();
 
    {

@@ -291,9 +291,9 @@ void WaveClip::OnProjectTempoChange(
    mProjectTempo = newTempo;
 }
 
-void WaveClip::StretchLeftTo(double to)
+void WaveClip::StretchLeftTo(sampleCount to)
 {
-   if (to >= GetPlayEndTime())
+   if (to >= GetPlayEndSample())
       return;
    const auto ratioChange = mBoundaries.GetRatioChangeWhenStretchingLeftTo(to);
    mBoundaries.StretchFromLeft(ratioChange);
@@ -301,9 +301,9 @@ void WaveClip::StretchLeftTo(double to)
    StretchCutLines(ratioChange);
 }
 
-void WaveClip::StretchRightTo(double to)
+void WaveClip::StretchRightTo(sampleCount to)
 {
-   const auto pst = GetPlayStartTime();
+   const auto pst = GetPlayStartSample();
    if (to <= pst)
       return;
    const auto ratioChange = mBoundaries.GetRatioChangeWhenStretchingRightTo(to);
@@ -1399,12 +1399,12 @@ void WaveClip::TrimRight(double deltaTime)
    mBoundaries.SetTrimRight(mBoundaries.GetTrimRight() + deltaTime);
 }
 
-void WaveClip::TrimLeftTo(double to)
+void WaveClip::TrimLeftTo(sampleCount to)
 {
    mBoundaries.TrimLeftTo(to);
 }
 
-void WaveClip::TrimRightTo(double to)
+void WaveClip::TrimRightTo(sampleCount to)
 {
    mBoundaries.TrimRightTo(to);
 }

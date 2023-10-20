@@ -30,26 +30,26 @@
 
 namespace {
 
-   void TrimLeftTo(WaveTrack::Interval& interval, double t)
-   {
-      interval.TrimLeftTo(t);
-   }
-
-   void TrimRightTo(WaveTrack::Interval& interval, double t)
-   {
-      interval.TrimRightTo(t);
-   }
-
-   void StretchLeftTo(WaveTrack::Interval& interval, double t)
-   {
-      interval.StretchLeftTo(t);
-   }
-
-   void StretchRightTo(WaveTrack::Interval& interval, double t)
-   {
-      interval.StretchRightTo(t);
-   }
+void TrimLeftTo(WaveTrack::Interval& interval, sampleCount s)
+{
+   interval.TrimLeftTo(s);
 }
+
+void TrimRightTo(WaveTrack::Interval& interval, sampleCount s)
+{
+   interval.TrimRightTo(s);
+}
+
+void StretchLeftTo(WaveTrack::Interval& interval, sampleCount s)
+{
+   interval.StretchLeftTo(s);
+}
+
+void StretchRightTo(WaveTrack::Interval& interval, sampleCount s)
+{
+   interval.StretchRightTo(s);
+}
+} // namespace
 
 //Different policies implement different adjustment scenarios
  class WaveClipAdjustBorderHandle::AdjustPolicy
@@ -117,7 +117,7 @@ double GetRightAdjustLimit(
 class AdjustClipBorder final : public WaveClipAdjustBorderHandle::AdjustPolicy
 {
 public:
-   using AdjustHandler = std::function<void(WaveTrack::Interval&, double)>;
+   using AdjustHandler = std::function<void(WaveTrack::Interval&, sampleCount)>;
 
 private:
    std::shared_ptr<WaveTrack> mTrack;
@@ -126,7 +126,7 @@ private:
    const bool mAdjustingLeftBorder;
    const bool mIsStretchMode;
    const double mInitialBorderPosition;
-   double mBorderPosition;
+   sampleCount mBorderPosition;
    const std::pair<double, double> mRange;
    AdjustHandler mAdjustHandler;
 
@@ -192,7 +192,7 @@ public:
       , mIsStretchMode { isStretchMode }
       , mInitialBorderPosition { adjustLeftBorder ? mInterval->Start() :
                                              mInterval->End() }
-      , mBorderPosition { mInitialBorderPosition } 
+      , mBorderPosition { mInitialBorderPosition }
       , mRange { GetLeftAdjustLimit( *mInterval, *mTrack, adjustLeftBorder, isStretchMode),
                  GetRightAdjustLimit(*mInterval, *mTrack, adjustLeftBorder, isStretchMode) }
       , mAdjustHandler { std::move(adjustHandler) }
@@ -223,7 +223,7 @@ public:
       const auto dx = eventX - mDragStartX;
 
       const auto& viewInfo = ViewInfo::Get(project);
-      
+
       const auto eventT = viewInfo.PositionToTime(
          viewInfo.TimeToPosition(mInitialBorderPosition, event.rect.x) + dx,
          event.rect.x

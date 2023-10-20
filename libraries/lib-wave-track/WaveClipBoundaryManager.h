@@ -25,8 +25,8 @@ public:
    double GetTrimRight() const;
    sampleCount GetNumLeadingHiddenStems() const;
    sampleCount GetNumTrailingHiddenStems() const;
-   double GetRatioChangeWhenStretchingLeftTo(double to) const;
-   double GetRatioChangeWhenStretchingRightTo(double to) const;
+   double GetRatioChangeWhenStretchingLeftTo(sampleCount to) const;
+   double GetRatioChangeWhenStretchingRightTo(sampleCount to) const;
    void GetSequenceSampleIndices(
       sampleCount* where, size_t len, double t0, double secondsPerJump) const;
 
