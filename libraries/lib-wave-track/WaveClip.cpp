@@ -1519,6 +1519,11 @@ double WaveClip::GetStretchedSequenceSampleCount() const
           GetStretchRatio();
 }
 
+double WaveClip::GetStretchFactor() const
+{
+   return GetStretchRatio();
+}
+
 sampleCount WaveClip::TimeToSequenceSamples(double t) const
 {
     if (t < GetSequenceStartTime())

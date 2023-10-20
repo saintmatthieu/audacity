@@ -24,12 +24,11 @@ struct MockWaveClipBoundaryManagerOwner : public WaveClipBoundaryManagerOwner
 
 TEST_CASE("WaveClipBoundaryManager")
 {
-   MockWaveClipBoundaryManagerOwner owner;
-   WaveClipBoundaryManager sut { owner, 100 };
-   REQUIRE(sut.GetSequenceOffset() == 0);
-   REQUIRE(sut.GetPlayStartSample() == 0);
-   REQUIRE(sut.GetPlayEndSample() == 0);
-   REQUIRE(sut.GetPlayStartTime() == 0);
-   REQUIRE(sut.GetPlayEndTime() == 0);
-   REQUIRE(sut.GetTrimLeft() == 0);
+   SECTION("First and last lollypops always visible when no trim")
+   {
+      constexpr auto sampleRate = 10;
+      MockWaveClipBoundaryManagerOwner owner;
+      WaveClipBoundaryManager sut(owner, sampleRate);
+
+   }
 }

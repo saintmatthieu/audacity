@@ -15,20 +15,35 @@ WaveClipBoundaryManager::WaveClipBoundaryManager(
     : mOwner { owner }
     , mSampleRate { other.mSampleRate }
     , mSequenceOffset { other.mSequenceOffset }
-    , mPlayStartTime { other.mPlayStartTime }
-    , mPlayEndTime { other.mPlayEndTime }
+    , mTrimLeft { other.mTrimLeft }
+    , mTrimRight { other.mTrimRight }
 {
 }
 
 void WaveClipBoundaryManager::SetSequenceOffset(double offset)
 {
-   // This operation is a shift that's not through dragging, hence us not
-   // reusing ShiftTo.
-   const auto delta = offset - mSequenceOffset;
    mSequenceOffset = offset;
-   mPlayStartTime += delta;
-   mPlayEndTime += delta;
    mOwner.SetEnvelopeOffset(offset);
+}
+
+sampleCount WaveClipBoundaryManager::GetNumLollies() const
+{
+   // s = stretch ratio, l = lollypop index, o = sequence offset:
+   // i = s*l + o
+   // Find least l such that i >= I, where I is the play start sample.
+   const sampleCount firstVisibleLollyIndex { std::ceil(
+      (GetPlayStartTime() - mSequenceOffset) * mSampleRate /
+      mOwner.GetStretchFactor()) };
+   const sampleCount lastVisibleLollyIndex {
+      std::ceil(
+         (GetPlayEndTime() - mSequenceOffset) * mSampleRate /
+         mOwner.GetStretchFactor()) -
+      1
+   };
+}
+
+double WaveClipBoundaryManager::GetLollyTime(sampleCount lollyIndex) const
+{
 }
 
 double WaveClipBoundaryManager::GetSequenceOffset() const
@@ -45,17 +60,24 @@ void WaveClipBoundaryManager::DragPlayStartSampleTo(
 
 void WaveClipBoundaryManager::SetPlayEndSample(sampleCount sample)
 {
-   mPlayEndTime = sample.as_double() / mSampleRate;
+   const auto delta = GetPlayEndSample() - sample;
+   mTrimRight += delta.as_double() / mSampleRate;
 }
 
 sampleCount WaveClipBoundaryManager::GetPlayStartSample() const
 {
-   return sampleCount { std::floor(mPlayStartTime * mSampleRate) };
+   // Ensures that the first lollypop is always visible if `mTrimeLeft` is 0.
+   return sampleCount { std::floor(
+      (mSequenceOffset + mTrimLeft) * mSampleRate) };
 }
 
 sampleCount WaveClipBoundaryManager::GetPlayEndSample() const
 {
-   return sampleCount { std::ceil(mPlayEndTime * mSampleRate) };
+   return sampleCount { std::floor(
+                           mSequenceOffset * mSampleRate +
+                           mOwner.GetStretchedSequenceSampleCount() -
+                           mTrimRight) +
+                        1 };
 }
 
 double WaveClipBoundaryManager::GetPlayStartTime() const
@@ -89,8 +111,8 @@ sampleCount WaveClipBoundaryManager::GetNumTrimmedSamplesRight() const
 void WaveClipBoundaryManager::OnProjectTempoChange(double newToOldRatio)
 {
    mSequenceOffset *= newToOldRatio;
-   mPlayStartTime *= newToOldRatio;
-   mPlayEndTime *= newToOldRatio;
+   mTrimLeft *= newToOldRatio;
+   mTrimRight *= newToOldRatio;
    mOwner.RescaleEnvelopeTimesBy(newToOldRatio);
 }
 
@@ -135,8 +157,8 @@ void WaveClipBoundaryManager::StretchFromRight(double newToOldRatio)
 void WaveClipBoundaryManager::RescaleAround(double origin, double newToOldRatio)
 {
    mSequenceOffset += (mSequenceOffset - origin) * newToOldRatio;
-   mPlayStartTime += (mPlayStartTime - origin) * newToOldRatio;
-   mPlayEndTime += (mPlayEndTime - origin) * newToOldRatio;
+   mTrimLeft *= newToOldRatio;
+   mTrimRight *= newToOldRatio;
    mOwner.SetEnvelopeOffset(mSequenceOffset);
    mOwner.RescaleEnvelopeTimesBy(newToOldRatio);
 }
@@ -150,47 +172,38 @@ void WaveClipBoundaryManager::ChangeSampleRate(double newSampleRate)
 
 double WaveClipBoundaryManager::GetTrimLeft() const
 {
-   return mPlayStartTime - mSequenceOffset;
+   return mTrimLeft;
 }
 
 double WaveClipBoundaryManager::GetTrimRight() const
 {
-   return mSequenceOffset +
-          mOwner.GetStretchedSequenceSampleCount() / mSampleRate - mPlayEndTime;
+   return mTrimRight;
 }
 
 void WaveClipBoundaryManager::SetTrimLeft(double trim)
 {
-   mPlayStartTime =
-      std::clamp(mSequenceOffset + trim, mSequenceOffset, mPlayEndTime);
+   mTrimLeft = std::clamp(
+      trim, 0.,
+      mOwner.GetStretchedSequenceSampleCount() / mSampleRate - mTrimRight);
 }
 
 void WaveClipBoundaryManager::SetTrimRight(double trim)
 {
-   mPlayEndTime = std::clamp(
-      mSequenceOffset + trim, mPlayStartTime,
-      mSequenceOffset + mOwner.GetStretchedSequenceSampleCount() / mSampleRate);
+   mTrimRight = std::clamp(
+      trim, 0.,
+      mSequenceOffset + mOwner.GetStretchedSequenceSampleCount() / mSampleRate -
+         mTrimLeft);
 }
 
 void WaveClipBoundaryManager::WriteXML(XMLWriter& xmlFile) const
 {
-   xmlFile.WriteAttr(wxT("offset"), mSequenceOffset);
-   xmlFile.WriteAttr(wxT("playStart"), mPlayStartTime);
-   xmlFile.WriteAttr(wxT("playEnd"), mPlayEndTime);
-
    xmlFile.WriteAttr(wxT("offset"), mSequenceOffset, 8);
-   xmlFile.WriteAttr(wxT("trimLeft"), mPlayStartTime - mSequenceOffset, 8);
-   xmlFile.WriteAttr(
-      wxT("trimRight"),
-      mSequenceOffset + mOwner.GetStretchedSequenceSampleCount() / mSampleRate,
-      8);
+   xmlFile.WriteAttr(wxT("trimLeft"), mTrimLeft, 8);
+   xmlFile.WriteAttr(wxT("trimRight"), mTrimRight, 8);
 }
 
 void WaveClipBoundaryManager::ShiftBy(sampleCount offset)
 {
-   const auto delta = offset.as_double() / mSampleRate;
-   mSequenceOffset += delta;
-   mPlayStartTime += delta;
-   mPlayEndTime += delta;
+   mSequenceOffset += offset.as_double() / mSampleRate;
    mOwner.SetEnvelopeOffset(mSequenceOffset);
 }
