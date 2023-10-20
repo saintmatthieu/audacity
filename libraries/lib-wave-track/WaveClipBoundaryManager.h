@@ -23,8 +23,8 @@ public:
    sampleCount GetPlayEndSample() const;
    double GetTrimLeft() const;
    double GetTrimRight() const;
-   sampleCount GetNumTrimmedSamplesLeft() const;
-   sampleCount GetNumTrimmedSamplesRight() const;
+   sampleCount GetNumLeadingHiddenStems() const;
+   sampleCount GetNumTrailingHiddenStems() const;
    double GetRatioChangeWhenStretchingLeftTo(double to) const;
    double GetRatioChangeWhenStretchingRightTo(double to) const;
 

@@ -69,9 +69,10 @@ sampleCount WaveClipBoundaryManager::GetPlayStartSample() const
 
 sampleCount WaveClipBoundaryManager::GetPlayEndSample() const
 {
+   const double numStretchedSamples =
+      mOwner.GetSequenceSampleCount().as_double() * mOwner.GetStretchFactor();
    return sampleCount { std::floor(
-                           mSequenceOffset * mSampleRate +
-                           mOwner.GetStretchedSequenceSampleCount() -
+                           mSequenceOffset * mSampleRate + numStretchedSamples -
                            mTrimRight) +
                         1 };
 }
@@ -101,22 +102,14 @@ sampleCount WaveClipBoundaryManager::GetLastStemIndex(double stretchRatio) const
                         1 };
 }
 
-sampleCount WaveClipBoundaryManager::GetNumTrimmedSamplesLeft() const
+sampleCount WaveClipBoundaryManager::GetNumLeadingHiddenStems() const
 {
-   // It can be that the play start time is before the first sequence sample,
-   // yet by less than one sample period, i.e., `GetPlayStartSample() -
-   // mSequenceOffset * mRate > -1`. Hence, `GetPlayStartSample() -
-   // floor(mSequenceOffset * mRate) >= 0`.
-   const auto numHiddenSamples =
-      GetPlayStartSample() -
-      sampleCount { std::floor(mSequenceOffset * mSampleRate) };
-   assert(numHiddenSamples >= 0);
-   return numHiddenSamples;
+   return GetFirstStemIndex(mOwner.GetStretchFactor());
 }
 
-sampleCount WaveClipBoundaryManager::GetNumTrimmedSamplesRight() const
+sampleCount WaveClipBoundaryManager::GetNumTrailingHiddenStems() const
 {
-   return { 0 };
+   return
 }
 
 void WaveClipBoundaryManager::OnProjectTempoChange(double newToOldRatio)

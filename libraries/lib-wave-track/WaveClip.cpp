@@ -143,7 +143,7 @@ AudioSegmentSampleView WaveClip::GetSampleView(
 {
    assert(ii < GetWidth());
    return mSequences[ii]->GetFloatSampleView(
-      start + mBoundaries.GetNumTrimmedSamplesLeft(), length, mayThrow);
+      start + mBoundaries.GetNumLeadingHiddenStems(), length, mayThrow);
 }
 
 AudioSegmentSampleView WaveClip::GetSampleView(
@@ -166,7 +166,7 @@ bool WaveClip::GetSamples(size_t ii,
    sampleCount start, size_t len, bool mayThrow) const
 {
    assert(ii < GetWidth());
-   const auto trimLeft = mBoundaries.GetNumTrimmedSamplesLeft();
+   const auto trimLeft = mBoundaries.GetNumLeadingHiddenStems();
    return mSequences[ii]->Get(buffer, format, start + trimLeft, len, mayThrow);
 }
 
@@ -187,7 +187,7 @@ void WaveClip::SetSamples(size_t ii,
    assert(ii < GetWidth());
    // use Strong-guarantee
    mSequences[ii]->SetSamples(
-      buffer, format, start + mBoundaries.GetNumTrimmedSamplesLeft(), len,
+      buffer, format, start + mBoundaries.GetNumLeadingHiddenStems(), len,
       effectiveFormat);
 
    // use No-fail-guarantee
@@ -1309,7 +1309,7 @@ double WaveClip::SnapToTrackSample(double t) const noexcept
 
 void WaveClip::SetSilence(sampleCount offset, sampleCount length)
 {
-   const auto start = mBoundaries.GetNumTrimmedSamplesLeft() + offset;
+   const auto start = mBoundaries.GetNumLeadingHiddenStems() + offset;
    Transaction transaction{ *this };
    for (auto &pSequence : mSequences)
       pSequence->SetSilence(start, length);
@@ -1362,8 +1362,8 @@ sampleCount WaveClip::GetPlayEndSample() const
 sampleCount WaveClip::GetVisibleSampleCount() const
 {
    const auto numSamples = GetNumSamples() + GetAppendBufferLen();
-   return numSamples - mBoundaries.GetNumTrimmedSamplesLeft() -
-          mBoundaries.GetNumTrimmedSamplesRight();
+   return numSamples - mBoundaries.GetNumLeadingHiddenStems() -
+          mBoundaries.GetNumTrailingHiddenStems();
 }
 
 void WaveClip::SetTrimLeft(double trim)
