@@ -19,31 +19,23 @@ refactored for use in Audacity.
 #include <array>
 #include <optional>
 
-namespace
-{
-inline int GetFftSize(int sampleRate)
-{
-   // 44.1kHz maps to 4096 samples (around 90ms).
-   // We grow the FFT size proportionally with the sample rate to keep the
-   // window duration roughly constant, with quantization due to the
-   // power-of-two constraint.
-   return 1 << (12 + (int)std::round(std::log2(sampleRate / 44100.)));
-}
-} // namespace
-
 namespace ClipAnalysis
 {
-OnsetDetector::OnsetDetector(int sampleRate)
+OnsetDetector::OnsetDetector(int fftSize)
     // No output needed, use a hann function for analysis, a rectangular for
     // synthesis (that won't be used anyway), an FFT size of approximately 20ms
     // and a overlap of 2 for a hop size of about 10ms, as recommended in
     // Stark's paper. (Have to review this.)
-    : SpectrumTransformer { false, eWinFuncHann, eWinFuncRectangular,
-                            GetFftSize(sampleRate), 2,
-                            // Not interested in processing the leading or
-                            // trailing analyis windows
-                            false, false }
-    , mFftSize(GetFftSize(sampleRate))
+    : SpectrumTransformer { false, eWinFuncHann, eWinFuncRectangular, fftSize,
+                            2,
+                            // We say no to the leading windows, since we're
+                            // feeding the last fftSize/2 samples of the clip
+                            // first. But we'll need the trailing windows. This
+                            // should yield a complete cycle ... but crap ...
+                            // the loop would have to be a multiple of the
+                            // overlap ...
+                            false, true }
+    , mFftSize(fftSize)
 {
    mPrevPhase.resize(mFftSize / 2);
    mPrevPhase2.resize(mFftSize / 2);
