@@ -28,13 +28,8 @@ OnsetDetector::OnsetDetector(int fftSize)
     // Stark's paper. (Have to review this.)
     : SpectrumTransformer { false, eWinFuncHann, eWinFuncRectangular, fftSize,
                             2,
-                            // We say no to the leading windows, since we're
-                            // feeding the last fftSize/2 samples of the clip
-                            // first. But we'll need the trailing windows. This
-                            // should yield a complete cycle ... but crap ...
-                            // the loop would have to be a multiple of the
-                            // overlap ...
-                            false, true }
+                            // Neither leading nor trailing window, thanks.
+                            false, false }
     , mFftSize(fftSize)
 {
    mPrevPhase.resize(mFftSize / 2);
@@ -101,7 +96,7 @@ bool OnsetDetector::WindowProcessor(SpectrumTransformer& transformer)
    return true;
 }
 
-const std::vector<double> OnsetDetector::GetOnsetDetectionResults() const
+const std::vector<double>& OnsetDetector::GetOnsetDetectionResults() const
 {
    return mOdfVals;
 }

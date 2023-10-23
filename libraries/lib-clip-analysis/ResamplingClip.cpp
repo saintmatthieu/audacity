@@ -8,7 +8,7 @@ ResamplingClip::ResamplingClip(const ClipInterface& clip, double outSampleRate)
     : ClipInterfacePartialImpl { clip }
     , mResampleFactor { outSampleRate / clip.GetRate() }
     , mNumSamplesAfterResampling { static_cast<sampleCount>(
-         clip.GetVisibleSampleCount().as_double() * mResampleFactor) }
+         clip.GetVisibleSampleCount().as_double() * mResampleFactor + .5) }
     , mResampler { true, mResampleFactor, mResampleFactor }
 {
 }
@@ -30,29 +30,30 @@ AudioSegmentSampleView ResamplingClip::MutableGetSampleView(
 {
    if (!mReadStart.has_value())
       mReadStart = sampleCount { start.as_double() / mResampleFactor };
-   constexpr auto blockSize = 1024;
-   size_t numOutSamples = 0;
-   std::array<float, blockSize> in, out;
+   constexpr auto maxBlockSize = 1024;
+   std::array<float, maxBlockSize> in, out;
    const auto maxNumSamples = mClip.GetVisibleSampleCount();
    while (mOut.size() < length)
    {
       const auto numToRead =
-         std::min<size_t>(blockSize, (maxNumSamples - *mReadStart).as_size_t());
+         std::min({ static_cast<size_t>(maxBlockSize),
+                    (maxNumSamples - *mReadStart).as_size_t(), length });
       const auto sampleView =
          mClip.GetSampleView(iChannel, *mReadStart, numToRead, mayThrow);
       const auto isLast = *mReadStart + numToRead >= maxNumSamples;
-      sampleView.Copy(in.data(), numToRead);
+      const auto numRead = sampleView.GetSampleCount();
+      sampleView.Copy(in.data(), numRead);
       const auto [consumed, produced] = mResampler.Process(
-         mResampleFactor, in.data(), numToRead, isLast, out.data(), blockSize);
+         mResampleFactor, in.data(), numRead, isLast, out.data(), maxBlockSize);
       std::copy(out.data(), out.data() + produced, std::back_inserter(mOut));
       mReadStart = *mReadStart + consumed;
-      numOutSamples += produced;
       if (isLast && produced == 0)
          break;
    }
+   const auto outSize = std::min(mOut.size(), length);
    auto block = std::make_shared<std::vector<float>>(
-      mOut.begin(), mOut.begin() + numOutSamples);
-   mOut.erase(mOut.begin(), mOut.begin() + numOutSamples);
-   return { { block }, 0, numOutSamples };
+      mOut.begin(), mOut.begin() + outSize);
+   mOut.erase(mOut.begin(), mOut.begin() + outSize);
+   return { { block }, 0, outSize };
 }
 } // namespace ClipAnalysis

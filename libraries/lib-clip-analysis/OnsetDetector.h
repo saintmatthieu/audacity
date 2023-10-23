@@ -25,7 +25,7 @@ class OnsetDetector : public SpectrumTransformer
 public:
    OnsetDetector(int fftSize);
    bool WindowProcessor(SpectrumTransformer& transformer);
-   const std::vector<double> GetOnsetDetectionResults() const;
+   const std::vector<double>& GetOnsetDetectionResults() const;
 
 private:
    void DoOutput(const float* outBuffer, size_t mStepSize) override;

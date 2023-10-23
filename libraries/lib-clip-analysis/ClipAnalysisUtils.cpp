@@ -36,21 +36,26 @@ std::vector<float> GetNormalizedAutocorr(const std::vector<double>& x)
    const double step = 1. * N / M;
    auto samp = 0.;
    std::vector<float> interpOdfVals(M);
-   staffpad::audio::CircularSampleBuffer<double> ringBuff;
-   ringBuff.setSize(N);
-   ringBuff.writeBlock(0, N, x.data());
-
-   for (auto m = 0; m < M; ++m)
+   if (M != N)
    {
-      int n = samp;
-      int start = n - 6;
-      const auto frac = samp - n;
-      samp += step;
-      double smp[6];
-      ringBuff.readBlock(n - 2, 6, smp);
-      // interpOdfVals is floats because that's what RealFFT expects.
-      interpOdfVals[m] = std::max<float>(0, lagrange6(smp, frac));
+      staffpad::audio::CircularSampleBuffer<double> ringBuff;
+      ringBuff.setSize(N);
+      ringBuff.writeBlock(0, N, x.data());
+
+      for (auto m = 0; m < M; ++m)
+      {
+         int n = samp;
+         int start = n - 6;
+         const auto frac = samp - n;
+         samp += step;
+         double smp[6];
+         ringBuff.readBlock(n - 2, 6, smp);
+         // interpOdfVals is floats because that's what RealFFT expects.
+         interpOdfVals[m] = std::max<float>(0, lagrange6(smp, frac));
+      }
    }
+   else
+      std::copy(x.begin(), x.end(), interpOdfVals.begin());
 
    std::vector<float> powSpec(M);
    PowerSpectrum(M, interpOdfVals.data(), powSpec.data());

@@ -21,10 +21,11 @@ AudioSegmentSampleView::AudioSegmentSampleView(
     , mIsSilent { false }
 {
    assert(
+      length == 0 ||
       start + length <=
-      std::accumulate(
-         mBlockViews.begin(), mBlockViews.end(), 0u,
-         [](size_t acc, const auto& block) { return acc + block->size(); }));
+         std::accumulate(
+            mBlockViews.begin(), mBlockViews.end(), 0u,
+            [](size_t acc, const auto& block) { return acc + block->size(); }));
 }
 
 AudioSegmentSampleView::AudioSegmentSampleView(size_t length)

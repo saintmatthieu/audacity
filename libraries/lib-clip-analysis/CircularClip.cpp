@@ -1,5 +1,7 @@
 #include "CircularClip.h"
 
+#include <cassert>
+
 namespace ClipAnalysis
 {
 
@@ -12,11 +14,10 @@ CircularClip::CircularClip(const ClipInterface& clip, int fftSize, int overlap)
 
 sampleCount CircularClip::GetVisibleSampleCount() const
 {
-   // We assume the clip to be a loop. We have to begin by giving the
-   // SpectrumTransformer the last fftSize/2 samples of the clip, and at the
-   // end again the first fftSize*(overlap - 1)/overlap samples.
-   return mClip.GetVisibleSampleCount() + mFftSize / 2 +
-          mFftSize * (mOverlap - 1);
+   return sampleCount {
+      mClip.GetVisibleSampleCount().as_double() +
+      static_cast<double>(mFftSize) * (mOverlap - 1) / mOverlap + 0.5
+   };
 }
 
 AudioSegmentSampleView CircularClip::GetSampleView(

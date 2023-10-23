@@ -138,8 +138,9 @@ std::optional<double> GetBpm(const ClipInterface& clip)
          limitSampleBufferSize(fftSize / overlap, numSamples - samplePos);
       sampleCacheHolder.emplace(
          stftClip.GetSampleView(0u, samplePos, numSamplesToGet, mayThrow));
-      sampleCacheHolder->Copy(buffer.data(), buffer.size());
       const auto numNewSamples = sampleCacheHolder->GetSampleCount();
+      assert(numNewSamples <= buffer.size());
+      sampleCacheHolder->Copy(buffer.data(), numNewSamples);
       bLoopSuccess =
          detector.ProcessSamples(processor, buffer.data(), numNewSamples);
       samplePos += numNewSamples;
@@ -147,6 +148,9 @@ std::optional<double> GetBpm(const ClipInterface& clip)
 
    detector.Finish(processor);
 
+   const auto& odfs = detector.GetOnsetDetectionResults();
+   assert(odfs.size() == k); // That's the whole point of the resampling, having
+                             // control over the number of analyses.
    return GetBpm(detector.GetOnsetDetectionResults(), playDur);
 }
 } // namespace ClipAnalysis
