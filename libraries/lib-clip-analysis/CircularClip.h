@@ -4,7 +4,7 @@
 
 namespace ClipAnalysis
 {
-class CircularClip : public ClipInterfacePartialImpl
+class CLIP_ANALYSIS_API CircularClip : public ClipInterfacePartialImpl
 {
 public:
    CircularClip(const ClipInterface& clip, int fftSize, int overlap);

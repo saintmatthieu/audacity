@@ -2,7 +2,10 @@ add_unit_test(
    NAME
       lib-clip-analysis
    SOURCES
+      CircularClipTests.cpp
       GetBpmFromOdfXcorrTests.cpp
+      FloatVectorClip.cpp
+      FloatVectorClip.h
    LIBRARIES
       lib-clip-analysis
 )
