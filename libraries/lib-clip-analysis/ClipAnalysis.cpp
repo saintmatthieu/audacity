@@ -105,8 +105,10 @@ std::optional<double> GetBpm(const ClipInterface& clip)
    // with an FFT.
    // 1. The number of analyses is a power of two such that our hop size
    // approximately 10ms.
-   const int k = 1 << static_cast<int>(std::round(std::log2(playDur / 0.01)));
    constexpr auto overlap = 2;
+   constexpr auto targetFftDur = 0.1;
+   const int k = 1 << static_cast<int>(
+                    std::round(std::log2(playDur * overlap / targetFftDur)));
    const double fftDur = overlap * playDur / k;
    // To satisfy this `fftDur` as well as the power-of-two constraint, we will
    // need to resample. We don't need much more than 16kHz in the end.
