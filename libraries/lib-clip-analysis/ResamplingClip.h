@@ -9,7 +9,7 @@
 namespace ClipAnalysis
 {
 
-class ResamplingClip : public ClipInterfacePartialImpl
+class CLIP_ANALYSIS_API ResamplingClip : public ClipInterfacePartialImpl
 {
 public:
    ResamplingClip(const ClipInterface& clip, double outSampleRate);

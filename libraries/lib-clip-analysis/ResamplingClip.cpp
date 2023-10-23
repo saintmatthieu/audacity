@@ -31,24 +31,28 @@ AudioSegmentSampleView ResamplingClip::MutableGetSampleView(
    if (!mReadStart.has_value())
       mReadStart = sampleCount { start.as_double() / mResampleFactor };
    constexpr auto blockSize = 1024;
-   auto numOutSamples = 0;
-   std::array<float, blockSize> buffer;
+   size_t numOutSamples = 0;
+   std::array<float, blockSize> in, out;
+   const auto maxNumSamples = mClip.GetVisibleSampleCount();
    while (mOut.size() < length)
    {
+      const auto numToRead =
+         std::min<size_t>(blockSize, (maxNumSamples - *mReadStart).as_size_t());
       const auto sampleView =
-         mClip.GetSampleView(iChannel, *mReadStart, blockSize, mayThrow);
-      sampleView.Copy(buffer.data(), blockSize);
-      constexpr auto isLast = false; // We're reading a loop - never last.
+         mClip.GetSampleView(iChannel, *mReadStart, numToRead, mayThrow);
+      const auto isLast = *mReadStart + numToRead >= maxNumSamples;
+      sampleView.Copy(in.data(), numToRead);
       const auto [consumed, produced] = mResampler.Process(
-         mResampleFactor, buffer.data(), blockSize, isLast, buffer.data(),
-         blockSize);
-      std::copy(
-         buffer.data(), buffer.data() + produced, std::back_inserter(mOut));
+         mResampleFactor, in.data(), numToRead, isLast, out.data(), blockSize);
+      std::copy(out.data(), out.data() + produced, std::back_inserter(mOut));
       mReadStart = *mReadStart + consumed;
+      numOutSamples += produced;
+      if (isLast && produced == 0)
+         break;
    }
-   auto block =
-      std::make_shared<std::vector<float>>(mOut.begin(), mOut.begin() + length);
-   mOut.erase(mOut.begin(), mOut.begin() + length);
-   return { { block }, 0, length };
+   auto block = std::make_shared<std::vector<float>>(
+      mOut.begin(), mOut.begin() + numOutSamples);
+   mOut.erase(mOut.begin(), mOut.begin() + numOutSamples);
+   return { { block }, 0, numOutSamples };
 }
 } // namespace ClipAnalysis
