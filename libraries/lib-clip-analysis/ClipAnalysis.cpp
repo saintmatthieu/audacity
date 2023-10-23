@@ -119,7 +119,8 @@ std::optional<double> GetBpm(const ClipInterface& clip)
                                overlap };
    ResamplingClip stftClip { circularClip, resampleRate };
 
-   OnsetDetector detector { fftSize };
+   constexpr auto istftNeeded = false;
+   OnsetDetector detector { fftSize, istftNeeded };
 
    constexpr auto historyLength = 1u;
    detector.Start(historyLength);
@@ -141,6 +142,15 @@ std::optional<double> GetBpm(const ClipInterface& clip)
       const auto numNewSamples = sampleCacheHolder->GetSampleCount();
       assert(numNewSamples <= buffer.size());
       sampleCacheHolder->Copy(buffer.data(), numNewSamples);
+      constexpr auto writeOutput = false;
+      if (writeOutput)
+      {
+         static std::ofstream ofs {
+            "C:/Users/saint/Downloads/resamplingOutput.txt"
+         };
+         for (auto i = 0u; i < numNewSamples; ++i)
+            ofs << buffer[i] << std::endl;
+      }
       bLoopSuccess =
          detector.ProcessSamples(processor, buffer.data(), numNewSamples);
       samplePos += numNewSamples;

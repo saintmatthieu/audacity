@@ -23,7 +23,7 @@ namespace ClipAnalysis
 class OnsetDetector : public SpectrumTransformer
 {
 public:
-   OnsetDetector(int fftSize);
+   OnsetDetector(int fftSize, bool needsOutput = false);
    bool WindowProcessor(SpectrumTransformer& transformer);
    const std::vector<double>& GetOnsetDetectionResults() const;
 

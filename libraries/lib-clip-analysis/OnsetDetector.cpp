@@ -21,14 +21,12 @@ refactored for use in Audacity.
 
 namespace ClipAnalysis
 {
-OnsetDetector::OnsetDetector(int fftSize)
-    // No output needed, use a hann function for analysis, a rectangular for
-    // synthesis (that won't be used anyway), an FFT size of approximately 20ms
-    // and a overlap of 2 for a hop size of about 10ms, as recommended in
-    // Stark's paper. (Have to review this.)
-    : SpectrumTransformer { false, eWinFuncHann, eWinFuncRectangular, fftSize,
-                            2,
-                            // Neither leading nor trailing window, thanks.
+OnsetDetector::OnsetDetector(int fftSize, bool needsOutput)
+    // Use a hann function for analysis and synthesis (if synthesis there is),
+    // an overlap of 2 ...
+    : SpectrumTransformer { needsOutput, eWinFuncHann, eWinFuncHann, fftSize, 2,
+                            // ... and neither leading nor trailing window,
+                            // thanks.
                             false, false }
     , mFftSize(fftSize)
 {
@@ -42,7 +40,9 @@ OnsetDetector::OnsetDetector(int fftSize)
 
 void OnsetDetector::DoOutput(const float* outBuffer, size_t mStepSize)
 {
-   assert(false);
+   static std::ofstream ofs { "C:/Users/saint/Downloads/OnsetDetector.txt" };
+   for (auto i = 0u; i < mStepSize; ++i)
+      ofs << outBuffer[i] << std::endl;
 }
 
 bool OnsetDetector::WindowProcessor(SpectrumTransformer& transformer)
