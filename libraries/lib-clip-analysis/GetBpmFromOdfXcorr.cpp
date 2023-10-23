@@ -41,8 +41,8 @@ struct XCorr
 
 std::vector<int> DivideEqually(int M, int numDivs)
 {
-   std::vector<int> i(numDivs - 1);
-   std::iota(i.begin(), i.end(), 1);
+   std::vector<int> i(numDivs);
+   std::iota(i.begin(), i.end(), 0);
    std::vector<int> indices(i.size());
    std::transform(i.begin(), i.end(), indices.begin(), [&](double i) {
       return static_cast<int>(std::round(M * i / numDivs));
@@ -68,14 +68,27 @@ float GetStandardDeviation(const std::vector<float>& x)
    return std::sqrt(accum / x.size());
 }
 
-std::vector<int>
-GetEvalIndices(int M, int numDivs, const std::vector<int>& prevIndices)
+std::vector<int> GetEvalIndices(
+   int numDivs, const std::vector<int>& prevIndices,
+   const std::vector<float>& xcorr)
 {
-   const auto newIndices = DivideEqually(M, numDivs);
+   const auto newIndices = DivideEqually(xcorr.size(), numDivs);
    std::vector<int> evalIndices;
    std::set_difference(
       newIndices.begin(), newIndices.end(), prevIndices.begin(),
       prevIndices.end(), std::inserter(evalIndices, evalIndices.begin()));
+   // Find nearest peak
+   std::transform(
+      evalIndices.begin(), evalIndices.end(), evalIndices.begin(), [&](int i) {
+         while (true)
+         {
+            const auto h = (i - 1) % xcorr.size();
+            const auto j = (i + 1) % xcorr.size();
+            if (xcorr[h] <= xcorr[i] && xcorr[i] >= xcorr[j])
+               return i;
+            i = xcorr[h] > xcorr[j] ? h : j;
+         };
+      });
    return evalIndices;
 }
 
@@ -205,13 +218,13 @@ void recursion(
       auto nextDivs = divs;
       nextDivs.push_back(divisor);
 
-      const auto evalIndices = GetEvalIndices(M, newDiv, prevIndices);
+      const auto evalIndices = GetEvalIndices(newDiv, prevIndices, xcorr.values);
       const auto values = GetValues(xcorr.values, evalIndices);
       const auto maxScore =
          values.empty() ? 1. : *std::max_element(values.begin(), values.end());
       if (maxScore < xcorr.mean)
          continue;
-      const auto varScore = 1. - GetStandardDeviation(values);
+      const auto varScore = 1. - 2 * GetStandardDeviation(values);
       const auto score = varScore * maxScore;
       subTimeDivs[divisor] =
          new TimeDiv(score, score * cumScore, maxScore, varScore);
