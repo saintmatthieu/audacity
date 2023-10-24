@@ -47,11 +47,6 @@ std::vector<int> DivideEqually(int M, int numDivs)
    std::transform(i.begin(), i.end(), indices.begin(), [&](double i) {
       return static_cast<int>(std::round(M * i / numDivs));
    });
-   // Discard indices beyond the symmetry midpoint.
-   indices.erase(
-      std::find_if(
-         indices.begin(), indices.end(), [M](int i) { return i > M / 2; }),
-      indices.end());
    return indices;
 }
 
