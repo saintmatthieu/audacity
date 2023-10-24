@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SampleCount.h"
+
 class WaveClipBoundaryManagerOwner
 {
 public:
