@@ -15,6 +15,8 @@ set( SOURCES
    ClipInterface.cpp
    ClipInterface.h
    ClipInterfacePartialImpl.h
+   GetBpmFromOdf.cpp
+   GetBpmFromOdf.h
    GetBpmFromOdfXcorr.cpp
    GetBpmFromOdfXcorr.h
    OnsetDetector.cpp

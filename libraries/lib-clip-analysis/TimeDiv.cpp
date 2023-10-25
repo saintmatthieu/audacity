@@ -18,4 +18,15 @@ TimeDiv::~TimeDiv()
    for (auto& p : subs)
       delete p.second;
 }
+
+TimeDiv2::TimeDiv2(double mean)
+    : mean(mean)
+{
+}
+
+TimeDiv2::~TimeDiv2()
+{
+   for (auto& p : subs)
+      delete p.second;
+}
 } // namespace ClipAnalysis

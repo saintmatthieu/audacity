@@ -15,4 +15,13 @@ struct TimeDiv
    const double varScore;
    std::map<int, TimeDiv*> subs;
 };
+
+struct TimeDiv2
+{
+   TimeDiv2(double mean);
+   ~TimeDiv2();
+
+   const double mean;
+   std::map<int, TimeDiv2*> subs;
+};
 } // namespace ClipAnalysis
