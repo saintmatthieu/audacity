@@ -23,6 +23,8 @@ set( SOURCES
    Sequence.h
    WaveClip.cpp
    WaveClip.h
+   WaveSampleMapper.cpp
+   WaveSampleMapper.h
    WaveTrack.cpp
    WaveTrack.h
    WaveTrackSink.cpp

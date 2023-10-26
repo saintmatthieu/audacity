@@ -12,14 +12,13 @@
 #ifndef __AUDACITY_WAVECLIP__
 #define __AUDACITY_WAVECLIP__
 
-
-
-#include "ClientData.h"
-#include "SampleFormat.h"
-#include "ClipInterface.h"
-#include "XMLTagHandler.h"
-#include "SampleCount.h"
 #include "AudioSegmentSampleView.h"
+#include "ClientData.h"
+#include "ClipInterface.h"
+#include "SampleCount.h"
+#include "SampleFormat.h"
+#include "WaveSampleMapper.h"
+#include "XMLTagHandler.h"
 
 #include <wx/longlong.h>
 
@@ -98,6 +97,7 @@ struct WAVE_TRACK_API WaveClipListener
 
 class WAVE_TRACK_API WaveClip final :
     public ClipInterface,
+    public WaveSampleMapper,
     public XMLTagHandler,
     public ClientData::Site<WaveClip, WaveClipListener>
 {
@@ -608,21 +608,6 @@ private:
       bool committed{ false };
    };
 
-   //! Real-time durations, i.e., stretching the clip modifies these.
-   //! @{
-   double mSequenceOffset { 0 };
-   double mTrimLeft { 0 };
-   double mTrimRight { 0 };
-   //! @}
-
-   // Used in GetStretchRatio which computes the factor, by which the sample
-   // interval is multiplied, to get a realtime duration.
-   double mClipStretchRatio = 1.;
-   std::optional<double> mRawAudioTempo;
-   std::optional<double> mProjectTempo;
-
-   //! Sample rate of the raw audio, i.e., before stretching.
-   int mRate;
    int mColourIndex;
 
    /*!

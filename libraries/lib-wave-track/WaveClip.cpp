@@ -39,9 +39,10 @@ WaveClipListener::~WaveClipListener()
 {
 }
 
-WaveClip::WaveClip(size_t width,
-   const SampleBlockFactoryPtr &factory,
-   sampleFormat format, int rate, int colourIndex)
+WaveClip::WaveClip(
+   size_t width, const SampleBlockFactoryPtr& factory, sampleFormat format,
+   int rate, int colourIndex)
+    : WaveSampleMapper { 1.0, {}, {} }
 {
    assert(width > 0);
    mRate = rate;
@@ -58,9 +59,8 @@ WaveClip::WaveClip(size_t width,
 WaveClip::WaveClip(
    const WaveClip& orig, const SampleBlockFactoryPtr& factory,
    bool copyCutlines)
-    : mClipStretchRatio { orig.mClipStretchRatio }
-    , mRawAudioTempo { orig.mRawAudioTempo }
-    , mProjectTempo { orig.mProjectTempo }
+    : WaveSampleMapper { orig.mClipStretchRatio, orig.mRawAudioTempo,
+                         orig.mProjectTempo }
 {
    // essentially a copy constructor - but you must pass in the
    // current sample block factory, because we might be copying
@@ -93,9 +93,8 @@ WaveClip::WaveClip(
 WaveClip::WaveClip(
    const WaveClip& orig, const SampleBlockFactoryPtr& factory,
    bool copyCutlines, double t0, double t1)
-    : mClipStretchRatio { orig.mClipStretchRatio }
-    , mRawAudioTempo { orig.mRawAudioTempo }
-    , mProjectTempo { orig.mProjectTempo }
+    : WaveSampleMapper { orig.mClipStretchRatio, orig.mRawAudioTempo,
+                         orig.mProjectTempo }
 {
    assert(orig.CountSamples(t0, t1) > 0);
 
