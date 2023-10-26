@@ -30,5 +30,5 @@ struct Result
 CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf(const ODF& odf);
 
 CLIP_ANALYSIS_API std::vector<std::pair<size_t, size_t>>
-GetBeatIndexPairs2(int numBeats, int numPeriods);
+GetBeatIndexPairs(int numBeats, int numPeriods);
 } // namespace ClipAnalysis

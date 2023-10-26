@@ -101,11 +101,11 @@ TEST_CASE("GetBpmFromOdf")
    }
 }
 
-TEST_CASE("GetBeatIndexPairs2")
+TEST_CASE("GetBeatIndexPairs")
 {
    SECTION("2 bars of 6/8")
    {
-      const auto pairs = ClipAnalysis::GetBeatIndexPairs2(12, 2);
+      const auto pairs = ClipAnalysis::GetBeatIndexPairs(12, 2);
       REQUIRE(pairs.size() == 5);
       REQUIRE(pairs[0] == std::pair<size_t, size_t>(1, 7));
       REQUIRE(pairs[1] == std::pair<size_t, size_t>(2, 8));
