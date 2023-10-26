@@ -1401,12 +1401,14 @@ void WaveClip::TrimRight(double deltaTime)
 
 void WaveClip::TrimLeftTo(double to)
 {
-   mBoundaries.TrimLeftTo(to);
+   assert(IsMultipleOfSamplePeriod(to, mRate));
+   mBoundaries.TrimLeftTo(sampleCount { to * mRate + .5 });
 }
 
 void WaveClip::TrimRightTo(double to)
 {
-   mBoundaries.TrimRightTo(to);
+   assert(IsMultipleOfSamplePeriod(to, mRate));
+   mBoundaries.TrimRightTo(sampleCount { to * mRate + .5 });
 }
 
 double WaveClip::GetSequenceStartTime() const noexcept

@@ -68,10 +68,9 @@ sampleCount WaveClipBoundaryManager::GetPlayStartSample() const
 
 sampleCount WaveClipBoundaryManager::GetPlayEndSample() const
 {
-   return sampleCount { std::floor(
+   return sampleCount { std::ceil(
                            mSequenceOffset * mSampleRate +
-                           GetStretchedSequenceSampleCount() - mTrimRight) +
-                        1 };
+                           GetStretchedSequenceSampleCount() - mTrimRight) };
 }
 
 double WaveClipBoundaryManager::GetPlayStartTime() const
