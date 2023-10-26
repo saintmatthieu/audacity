@@ -25,18 +25,13 @@ std::vector<int> GetDivisorCandidates(size_t recursionLevel)
       std::iota(divs.begin(), divs.end(), 1);
       return divs;
    }
+   else if (recursionLevel == 1)
+      // 2/2 or 6/8, 3/4 or 9/8, or 4/4
+      return { 2, 3, 4 };
    else
-      // Now we are at bar level or below: only check binary or ternary
-      // divisions (although we could also check 5 for Take Five ?).
+      // Any of the above might be
       return { 2, 3 };
 }
-
-struct ODF // Onset-Detection Function
-{
-   const std::vector<double>& values;
-   const std::vector<size_t> beatIndices;
-   const double duration;
-};
 
 std::vector<int> DivideEqually(int M, int numDivs)
 {
@@ -118,7 +113,7 @@ bool IsTimeSigLevel(TimeSig sig, const std::vector<int>& divs)
    return sigDivs == std::vector<int> { divs.begin() + 1, divs.end() };
 }
 
-std::optional<TimeSig> MatchesSomeTimeSig(const std::vector<int>& divs)
+std::optional<TimeSig> GetMatchingTimeSig(const std::vector<int>& divs)
 {
    constexpr std::array<TimeSig, static_cast<int>(TimeSig::_Count)> timeSigs {
       TimeSig::FourFour, TimeSig::ThreeFour, TimeSig::SixEight
@@ -193,33 +188,29 @@ std::string ToString(int numBars, TimeSig sig)
    return ss.str();
 }
 
-std::vector<size_t> GetBeatIndices(const std::vector<double>& odf)
+std::vector<std::pair<size_t, size_t>> GetBeatIndexPairs(int numBeats, int div)
 {
-   const auto xcorr = ClipAnalysis::GetNormalizedAutocorr(odf);
-   const auto mean =
-      std::accumulate(xcorr.begin(), xcorr.end(), 0.) / xcorr.size();
-   std::vector<size_t> indices;
-   for (auto i = 0u; i < xcorr.size() - 1; ++i)
-   {
-      const auto h = (i - 1) % xcorr.size();
-      const auto j = (i + 1) % xcorr.size();
-      if (xcorr[h] <= xcorr[i] && xcorr[i] >= xcorr[j] && xcorr[i] > mean)
-         indices.push_back(i);
-   }
+   assert(numBeats % div == 0);
+   std::vector<std::pair<size_t, size_t>> pairs;
+   const auto step = numBeats / div;
+   for (auto i = 0; i < numBeats; ++i)
+      for (auto j = i + step; j < numBeats; j += step)
+         pairs.emplace_back(i, j);
+   return pairs;
+}
+
+std::vector<double> GetBeatPairDistances(
+   const std::vector<std::pair<size_t, size_t>>& beatIndexPairs, const ODF& odf)
+{
+   std::vector<double> distances(beatIndexPairs.size());
    std::transform(
-      indices.begin(), indices.end(), indices.begin(), [&](size_t i) {
-         // TODO we may need to search for largest peak within interval around i
-         // ; but what interval should that be ? In the meantime let's try that.
-         while (true)
-         {
-            const auto h = (i - 1) % odf.size();
-            const auto j = (i + 1) % odf.size();
-            if (odf[h] <= odf[i] && odf[i] >= odf[j])
-               return i;
-            i = odf[h] > odf[j] ? h : j;
-         }
+      beatIndexPairs.begin(), beatIndexPairs.end(), distances.begin(),
+      [&](const auto& indices) {
+         const auto diff = odf.values[odf.beatIndices[indices.first]] -
+                           odf.values[odf.beatIndices[indices.second]];
+         return diff * diff;
       });
-   return indices;
+   return distances;
 }
 
 void recursion(
@@ -231,52 +222,80 @@ void recursion(
       std::accumulate(divs.begin(), divs.end(), 1, std::multiplies<int>());
    const auto recursionLevel = divs.size();
    const auto numBeats = odf.beatIndices.size();
+
+   std::vector<double> beatValues(numBeats);
+   std::transform(
+      odf.beatIndices.begin(), odf.beatIndices.end(), beatValues.begin(),
+      [&](size_t i) { return odf.values[i]; });
+
    for (const auto divisor : GetDivisorCandidates(recursionLevel))
    {
       const auto newDiv = cumDiv * divisor;
       if (numBeats % newDiv != 0)
          continue;
-      std::vector<double> similarities;
-      std::vector<std::pair<size_t, size_t>> combinations;
-      const auto step = numBeats / newDiv;
-      for (auto i = 0; i < numBeats; ++i)
-         for (auto j = i + step; j < numBeats; j += step)
-            combinations.emplace_back(i, j);
-      std::vector<double> distances;
-      distances.reserve(combinations.size());
-      for (const auto& [i, j] : combinations)
-      {
-         auto distance = 0.;
-         for (auto k = -2; k <= 2; ++k)
-         {
-            const auto h = (i + k) % numBeats;
-            const auto l = (j + k) % numBeats;
-            const auto diff =
-               odf.values[odf.beatIndices[h]] - odf.values[odf.beatIndices[l]];
-            distance += diff * diff;
-         }
-         distances.push_back(distance / 5);
-      }
-      const auto mean =
-         std::accumulate(
-            distances.begin(), distances.end(), 0., std::plus<double>()) /
-         distances.size();
-      subTimeDivs[divisor] = new TimeDiv2(mean);
+
+      const auto dissimilarity = GetDissimilarityValue(beatValues, newDiv);
+      subTimeDivs[divisor] = new TimeDiv2(dissimilarity);
       auto nextDivs = divs;
       nextDivs.push_back(divisor);
+      if (const auto timeSig = GetMatchingTimeSig(nextDivs))
+      {
+         const auto numBars = nextDivs[0];
+         // Do not penalize time signatures that have more divisions.
+         const auto bpmProb =
+            GetBpmProbability(*timeSig, numBars, odf.duration);
+         results.emplace(ToString(numBars, *timeSig), bpmProb);
+         // We have the score for a time signature, we don't need to test its
+         // subdivisions.
+         continue;
+      }
+
       if (recursionLevel < 3)
          recursion(odf, results, subTimeDivs.at(divisor)->subs, nextDivs);
    }
 }
 } // namespace
 
-std::optional<double>
-GetBpmFromOdf(const std::vector<double>& odf, double playDur)
+double
+GetDissimilarityValue(const std::vector<double>& beatValues, int numPeriods)
 {
-   ODF odfStruct { odf, GetBeatIndices(odf), playDur };
+   if (numPeriods == 1)
+      return 0.;
+   const auto numBeats = beatValues.size();
+   const auto pairs = GetBeatIndexPairs2(numBeats, numPeriods);
+   return std::accumulate(
+             pairs.begin(), pairs.end(), 0.,
+             [&](double sum, const auto& indices) {
+                const auto diff =
+                   beatValues[indices.first] - beatValues[indices.second];
+                return sum + diff * diff;
+             }) /
+          pairs.size();
+}
+
+std::vector<std::pair<size_t, size_t>>
+GetBeatIndexPairs2(int numBeats, int numPeriods)
+{
+   assert(numBeats % numPeriods == 0);
+   const auto beatsPerPeriod = numBeats / numPeriods;
+   auto distanceSum = 0.;
+   auto distanceCount = 0;
+   std::vector<std::pair<size_t, size_t>> pairs;
+   // Compare periods with each other ...
+   for (auto p1 = 0; p1 < numPeriods - 1; ++p1)
+      for (auto p2 = p1 + 1; p2 < numPeriods; ++p2)
+         // ... but don't mix-up beats.
+         for (auto b = 1; b < beatsPerPeriod; ++b)
+            pairs.emplace_back(
+               p1 * beatsPerPeriod + b, p2 * beatsPerPeriod + b);
+   return pairs;
+}
+
+std::optional<double> GetBpmFromOdf(const ODF& odf)
+{
    std::map<int, TimeDiv2*> divs;
    ResultMap results;
-   recursion(odfStruct, results, divs);
+   recursion(odf, results, divs);
    return 0;
 }
 } // namespace ClipAnalysis
