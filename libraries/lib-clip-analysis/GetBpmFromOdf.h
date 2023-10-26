@@ -12,11 +12,23 @@ struct ODF
    const std::vector<size_t> beatIndices; // TODO this will have to be guessed.
 };
 
-CLIP_ANALYSIS_API std::optional<double> GetBpmFromOdf(const ODF& odf);
+enum class TimeSignature
+{
+   FourFour,
+   ThreeFour,
+   SixEight,
+   _Count,
+};
+
+struct Result
+{
+   const int numBars;
+   const double quarterNotesPerMinute;
+   const TimeSignature timeSignature;
+};
+
+CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf(const ODF& odf);
 
 CLIP_ANALYSIS_API std::vector<std::pair<size_t, size_t>>
 GetBeatIndexPairs2(int numBeats, int numPeriods);
-
-CLIP_ANALYSIS_API double
-GetDissimilarityValue(const std::vector<double>& beatValues, int numPeriods);
 } // namespace ClipAnalysis

@@ -91,19 +91,12 @@ GetValues(const std::vector<double>& odf, const std::vector<int>& indices)
    return values;
 }
 
-enum class TimeSig
-{
-   FourFour,
-   ThreeFour,
-   SixEight,
-   _Count
-};
-
-static const std::array<std::vector<int>, static_cast<int>(TimeSig::_Count)>
+static const std::array<
+   std::vector<int>, static_cast<int>(TimeSignature::_Count)>
    timeSigDivs { std::vector<int> { 2, 2 }, std::vector<int> { 3 },
                  std::vector<int> { 2, 3 } };
 
-bool IsTimeSigLevel(TimeSig sig, const std::vector<int>& divs)
+bool IsTimeSigLevel(TimeSignature sig, const std::vector<int>& divs)
 {
    if (divs.empty())
       return false;
@@ -113,13 +106,13 @@ bool IsTimeSigLevel(TimeSig sig, const std::vector<int>& divs)
    return sigDivs == std::vector<int> { divs.begin() + 1, divs.end() };
 }
 
-std::optional<TimeSig> GetMatchingTimeSig(const std::vector<int>& divs)
+std::optional<TimeSignature> GetMatchingTimeSig(const std::vector<int>& divs)
 {
-   constexpr std::array<TimeSig, static_cast<int>(TimeSig::_Count)> timeSigs {
-      TimeSig::FourFour, TimeSig::ThreeFour, TimeSig::SixEight
-   };
+   constexpr std::array<TimeSignature, static_cast<int>(TimeSignature::_Count)>
+      timeSigs { TimeSignature::FourFour, TimeSignature::ThreeFour,
+                 TimeSignature::SixEight };
    const auto it =
-      std::find_if(timeSigs.begin(), timeSigs.end(), [&](TimeSig sig) {
+      std::find_if(timeSigs.begin(), timeSigs.end(), [&](TimeSignature sig) {
          return IsTimeSigLevel(sig, divs);
       });
    return it == timeSigs.end() ? std::nullopt : std::make_optional(*it);
@@ -137,38 +130,39 @@ double GetBalancingScorePower(const std::vector<int>& divs)
 
 using ResultMap = std::unordered_map<std::string, double>;
 
-std::string ToString(TimeSig sig)
+std::string ToString(TimeSignature sig)
 {
    switch (sig)
    {
-   case TimeSig::FourFour:
+   case TimeSignature::FourFour:
       return "4/4";
-   case TimeSig::ThreeFour:
+   case TimeSignature::ThreeFour:
       return "3/4";
-   case TimeSig::SixEight:
+   case TimeSignature::SixEight:
       return "6/8";
    default:
       assert(false);
    }
 }
 
-double GetBpmProbability(TimeSig sig, int numBars, double loopDuration)
+const std::unordered_map<TimeSignature, int> beatsPerBar {
+   { TimeSignature::FourFour, 4 },
+   { TimeSignature::ThreeFour, 3 },
+   { TimeSignature::SixEight, 2 }
+};
+
+double GetBpmProbability(TimeSignature sig, int numBars, double loopDuration)
 {
-   static const std::unordered_map<TimeSig, double> expectedValues {
-      { TimeSig::FourFour, 115. },
-      { TimeSig::ThreeFour, 140. },
-      { TimeSig::SixEight, 64. }
+   static const std::unordered_map<TimeSignature, double> expectedValues {
+      { TimeSignature::FourFour, 115. },
+      { TimeSignature::ThreeFour, 140. },
+      { TimeSignature::SixEight, 64. }
    };
    // TODO 3/4 and 6/8 deviations may be mixed up - review.
-   static const std::unordered_map<TimeSig, double> expectedDeviations {
-      { TimeSig::FourFour, 25. },
-      { TimeSig::ThreeFour, 25. },
-      { TimeSig::SixEight, 15. }
-   };
-   static const std::unordered_map<TimeSig, int> beatsPerBar {
-      { TimeSig::FourFour, 4 },
-      { TimeSig::ThreeFour, 3 },
-      { TimeSig::SixEight, 2 }
+   static const std::unordered_map<TimeSignature, double> expectedDeviations {
+      { TimeSignature::FourFour, 25. },
+      { TimeSignature::ThreeFour, 25. },
+      { TimeSignature::SixEight, 15. }
    };
    const auto mu = expectedValues.at(sig);
    const auto sigma = expectedDeviations.at(sig);
@@ -181,7 +175,7 @@ double GetBpmProbability(TimeSig sig, int numBars, double loopDuration)
    return std::exp(-.5 * tmp * tmp);
 }
 
-std::string ToString(int numBars, TimeSig sig)
+std::string ToString(int numBars, TimeSignature sig)
 {
    std::stringstream ss;
    ss << numBars << " * " << ToString(sig);
@@ -211,6 +205,23 @@ std::vector<double> GetBeatPairDistances(
          return diff * diff;
       });
    return distances;
+}
+
+double
+GetDissimilarityValue(const std::vector<double>& beatValues, int numPeriods)
+{
+   if (numPeriods == 1)
+      return 0.;
+   const auto numBeats = beatValues.size();
+   const auto pairs = GetBeatIndexPairs2(numBeats, numPeriods);
+   return std::accumulate(
+             pairs.begin(), pairs.end(), 0.,
+             [&](double sum, const auto& indices) {
+                const auto diff =
+                   beatValues[indices.first] - beatValues[indices.second];
+                return sum + diff * diff;
+             }) /
+          pairs.size();
 }
 
 void recursion(
@@ -254,48 +265,138 @@ void recursion(
          recursion(odf, results, subTimeDivs.at(divisor)->subs, nextDivs);
    }
 }
-} // namespace
 
-double
-GetDissimilarityValue(const std::vector<double>& beatValues, int numPeriods)
+struct Leaf
+{
+   double dissimilaritySum = 0;
+   int numComparisons = 0;
+   double bpmProbability;
+};
+
+using Branch = std::unordered_map<TimeSignature, Leaf>;
+using Tree = std::map<int /*num bars*/, Branch>;
+
+void EvaluateDissimilarities(
+   const std::vector<double>& beatValues, int numPeriods, double& sum,
+   int& numComparisons)
 {
    if (numPeriods == 1)
-      return 0.;
+   {
+      sum = 0.;
+      numComparisons = 0;
+      return;
+   }
    const auto numBeats = beatValues.size();
    const auto pairs = GetBeatIndexPairs2(numBeats, numPeriods);
-   return std::accumulate(
-             pairs.begin(), pairs.end(), 0.,
-             [&](double sum, const auto& indices) {
-                const auto diff =
-                   beatValues[indices.first] - beatValues[indices.second];
-                return sum + diff * diff;
-             }) /
-          pairs.size();
+   sum = std::accumulate(
+      pairs.begin(), pairs.end(), 0., [&](double sum, const auto& indices) {
+         const auto diff =
+            beatValues[indices.first] - beatValues[indices.second];
+         return sum + diff * diff;
+      });
+   numComparisons = pairs.size();
 }
+
+void FillTree(const ODF& odf, Tree& tree)
+{
+   const auto numBeats = odf.beatIndices.size();
+   std::vector<double> beatValues(numBeats);
+   std::transform(
+      odf.beatIndices.begin(), odf.beatIndices.end(), beatValues.begin(),
+      [&](size_t i) { return odf.values[i]; });
+
+   for (const auto numBars : { 1, 2, 3, 4, 5, 6, 7, 8 })
+   {
+      if (numBeats % numBars != 0)
+         continue;
+
+      auto branchSum = 0.;
+      auto branchNumComparisons = 0;
+      EvaluateDissimilarities(
+         beatValues, numBars, branchSum, branchNumComparisons);
+      Branch branch;
+      for (auto timeSignature :
+           { TimeSignature::FourFour, TimeSignature::ThreeFour,
+             TimeSignature::SixEight })
+      {
+         const auto numPeriods = numBars * beatsPerBar.at(timeSignature);
+         if (numBeats % numPeriods != 0)
+            continue;
+         Leaf& leaf = branch[timeSignature];
+         leaf.bpmProbability =
+            GetBpmProbability(timeSignature, numBars, odf.duration);
+         EvaluateDissimilarities(
+            beatValues, numPeriods, leaf.dissimilaritySum, leaf.numComparisons);
+         leaf.dissimilaritySum += branchSum;
+         leaf.numComparisons += branchNumComparisons;
+      }
+      if (!branch.empty())
+         tree[numBars] = std::move(branch);
+   }
+}
+
+} // namespace
 
 std::vector<std::pair<size_t, size_t>>
 GetBeatIndexPairs2(int numBeats, int numPeriods)
 {
    assert(numBeats % numPeriods == 0);
    const auto beatsPerPeriod = numBeats / numPeriods;
-   auto distanceSum = 0.;
-   auto distanceCount = 0;
+   std::vector<int> beatRecursionLevels(numBeats);
+   std::vector<int> beatPeriodIndices(numBeats);
+   for (auto b = 0; b < numBeats; ++b)
+   {
+      beatRecursionLevels[b] = b == 0 ? 0 : b % beatsPerPeriod == 0 ? 1 : 2;
+      beatPeriodIndices[b] = b / beatsPerPeriod;
+   }
    std::vector<std::pair<size_t, size_t>> pairs;
-   // Compare periods with each other ...
-   for (auto p1 = 0; p1 < numPeriods - 1; ++p1)
-      for (auto p2 = p1 + 1; p2 < numPeriods; ++p2)
-         // ... but don't mix-up beats.
-         for (auto b = 1; b < beatsPerPeriod; ++b)
-            pairs.emplace_back(
-               p1 * beatsPerPeriod + b, p2 * beatsPerPeriod + b);
+   // Fill `pairs` with beat indices of equal recursion level and different
+   // period index.
+   for (auto b1 = 0; b1 < numBeats; ++b1)
+      for (auto b2 = b1 + 1; b2 < numBeats; ++b2)
+         if (
+            beatRecursionLevels[b1] == beatRecursionLevels[b2] &&
+            beatPeriodIndices[b1] != beatPeriodIndices[b2])
+            pairs.emplace_back(b1, b2);
    return pairs;
 }
 
-std::optional<double> GetBpmFromOdf(const ODF& odf)
+namespace
 {
-   std::map<int, TimeDiv2*> divs;
-   ResultMap results;
-   recursion(odf, results, divs);
-   return 0;
+auto GetWinnerLeaf(const Branch& branch)
+{
+   return std::min_element(
+      branch.begin(), branch.end(),
+      [](const std::pair<TimeSignature, Leaf>& a,
+         const std::pair<TimeSignature, Leaf>& b) {
+         return a.second.dissimilaritySum / a.second.numComparisons <
+                b.second.dissimilaritySum / b.second.numComparisons;
+      });
+}
+} // namespace
+
+std::optional<Result> GetBpmFromOdf(const ODF& odf)
+{
+   Tree tree;
+   FillTree(odf, tree);
+   if (tree.empty())
+      return {};
+   const auto& [numBars, branch] = *std::min_element(
+      tree.begin(), tree.end(),
+      [](const std::pair<int, Branch>& a, const std::pair<int, Branch>& b) {
+         const auto& winnerLeafA = GetWinnerLeaf(a.second)->second;
+         const auto& winnerLeafB = GetWinnerLeaf(b.second)->second;
+         // TODO integrate bpm probability
+         return winnerLeafA.dissimilaritySum / winnerLeafA.numComparisons <
+                winnerLeafB.dissimilaritySum / winnerLeafB.numComparisons;
+      });
+   const auto& [timeSignature, leaf] = *GetWinnerLeaf(branch);
+   const auto barsPerMinute = numBars * 60 / odf.duration;
+   const auto quarternotesPerMinute =
+      // 6/8 two beats but three quarter notes per bar.
+      timeSignature == TimeSignature::SixEight ?
+         3 * barsPerMinute :
+         beatsPerBar.at(timeSignature) * barsPerMinute;
+   return Result { numBars, quarternotesPerMinute, timeSignature };
 }
 } // namespace ClipAnalysis

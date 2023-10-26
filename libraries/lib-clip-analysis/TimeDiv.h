@@ -18,10 +18,10 @@ struct TimeDiv
 
 struct TimeDiv2
 {
-   TimeDiv2(double mean);
+   TimeDiv2(double dissimilarity);
    ~TimeDiv2();
 
-   const double mean;
+   const double dissimilarity;
    std::map<int, TimeDiv2*> subs;
 };
 } // namespace ClipAnalysis

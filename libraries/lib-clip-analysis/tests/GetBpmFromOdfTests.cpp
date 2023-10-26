@@ -62,7 +62,7 @@ const ClipAnalysis::ODF nothingElse {
      0.018136,   0.0172117,  0.011541,   0.0112245,  0.0105222,  0.0116389,
      0.00875201, 0.0107586 },
    5.075,
-   {} // TODO can't remember the indices
+   { 0, 12, 22, 32, 43, 54, 64, 75, 86, 96, 107, 118 }
 };
 
 const ClipAnalysis::ODF drums {
@@ -80,12 +80,25 @@ const ClipAnalysis::ODF drums {
    3.329,
    { 0, 8, 16, 24, 32, 40, 48, 56 }
 };
-
 } // namespace
 
 TEST_CASE("GetBpmFromOdf")
 {
-   const auto result = ClipAnalysis::GetBpmFromOdf(drums);
+   SECTION("drums")
+   {
+      const auto result = ClipAnalysis::GetBpmFromOdf(drums);
+      REQUIRE(result.has_value());
+      REQUIRE(result->numBars == 1);
+      REQUIRE(result->timeSignature == ClipAnalysis::TimeSignature::FourFour);
+   }
+
+   SECTION("nothingElse")
+   {
+      const auto result = ClipAnalysis::GetBpmFromOdf(nothingElse);
+      REQUIRE(result.has_value());
+      REQUIRE(result->numBars == 2);
+      REQUIRE(result->timeSignature == ClipAnalysis::TimeSignature::SixEight);
+   }
 }
 
 TEST_CASE("GetBeatIndexPairs2")

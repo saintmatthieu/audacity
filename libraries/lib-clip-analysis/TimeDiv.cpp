@@ -19,8 +19,8 @@ TimeDiv::~TimeDiv()
       delete p.second;
 }
 
-TimeDiv2::TimeDiv2(double mean)
-    : mean(mean)
+TimeDiv2::TimeDiv2(double dissimilarity)
+    : dissimilarity(dissimilarity)
 {
 }
 
