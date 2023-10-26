@@ -493,8 +493,9 @@ namespace {
 }
 
 /*! @excsafety{Strong} */
-void Sequence::Paste(sampleCount s, const Sequence *src)
+void Sequence::Paste(sampleCount s, const SequenceInterface* isrc)
 {
+   const auto src = dynamic_cast<const Sequence*>(isrc); // TODO better
    if ((s < 0) || (s > mNumSamples))
    {
       wxLogError(
@@ -754,6 +755,17 @@ void Sequence::InsertSilence(sampleCount s0, sampleCount len)
 
    // use Strong-guarantee
    Paste(s0, &sTrack);
+}
+
+std::unique_ptr<SequenceInterface>
+Sequence::GetCopy(const SampleBlockFactoryPtr& factory) const
+{
+   return std::make_unique<Sequence>(*this, factory);
+}
+
+std::unique_ptr<SequenceInterface> Sequence::GetEmptyCopy() const
+{
+   return std::make_unique<Sequence>(GetFactory(), GetSampleFormats());
 }
 
 void Sequence::AppendBlock( SampleBlockFactory *pFactory, sampleFormat format,

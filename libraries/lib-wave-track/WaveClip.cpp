@@ -73,8 +73,7 @@ WaveClip::WaveClip(
    mColourIndex = orig.mColourIndex;
    mSequences.reserve(orig.GetWidth());
    for (auto &pSequence : orig.mSequences)
-      mSequences.push_back(
-         std::make_unique<Sequence>(*pSequence, factory));
+      mSequences.push_back(pSequence->GetCopy(factory));
 
    mEnvelope = std::make_unique<Envelope>(*orig.mEnvelope);
 
@@ -124,8 +123,7 @@ WaveClip::WaveClip(
 
    mSequences.reserve(orig.GetWidth());
    for (auto &pSequence : orig.mSequences)
-      mSequences.push_back(
-         std::make_unique<Sequence>(*pSequence, factory));
+      mSequences.push_back(pSequence->GetCopy(factory));
 
    mEnvelope = std::make_unique<Envelope>(*orig.mEnvelope);
 
@@ -376,13 +374,13 @@ const SampleBlockFactoryPtr &WaveClip::GetFactory()
    return mSequences[0]->GetFactory();
 }
 
-std::vector<std::unique_ptr<Sequence>> WaveClip::GetEmptySequenceCopies() const
+std::vector<std::unique_ptr<SequenceInterface>>
+WaveClip::GetEmptySequenceCopies() const
 {
    decltype(mSequences) newSequences;
    newSequences.reserve(mSequences.size());
    for (auto& pSequence : mSequences)
-      newSequences.push_back(std::make_unique<Sequence>(
-         pSequence->GetFactory(), pSequence->GetSampleFormats()));
+      newSequences.push_back(pSequence->GetEmptyCopy());
    return newSequences;
 }
 
@@ -615,9 +613,10 @@ XMLTagHandler *WaveClip::HandleXMLChild(const std::string_view& tag)
 {
    auto &pFirst = mSequences[0];
    if (tag == "sequence") {
-      mSequences.push_back(std::make_unique<Sequence>(
-         pFirst->GetFactory(), pFirst->GetSampleFormats()));
-      return mSequences.back().get();
+      auto sequence = new Sequence(
+         pFirst->GetFactory(), pFirst->GetSampleFormats());
+      mSequences.push_back(std::unique_ptr<Sequence> { sequence });
+      return sequence;
    }
    else if (tag == "envelope")
       return mEnvelope.get();
@@ -1587,9 +1586,8 @@ WaveClip::Transaction::Transaction(WaveClip &clip)
    sequences.reserve(clip.mSequences.size());
    auto &factory = clip.GetFactory();
    for (auto &pSequence : clip.mSequences)
-      sequences.push_back(
-         //! Does not copy un-flushed append buffer data
-         std::make_unique<Sequence>(*pSequence, factory));
+      //! Does not copy un-flushed append buffer data
+      sequences.push_back(pSequence->GetCopy(factory));
 }
 
 WaveClip::Transaction::~Transaction()

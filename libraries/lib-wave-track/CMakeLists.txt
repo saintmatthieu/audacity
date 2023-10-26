@@ -19,8 +19,10 @@ and WaveTrackSink make new WaveTrack objects.
 set( SOURCES
    SampleBlock.cpp
    SampleBlock.h
+   SeqBlock.h
    Sequence.cpp
    Sequence.h
+   SequenceInterface.h
    WaveClip.cpp
    WaveClip.h
    WaveSampleMapper.cpp

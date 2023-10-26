@@ -201,7 +201,7 @@ void XMLFileReader::startElement(void *userData, const char *name,
    }
    else {
       if (XMLTagHandler *const handler = handlers.back())
-         handlers.push_back(handler->ReadXMLChild(name));
+         handlers.push_back(handler->HandleXMLChild(name));
       else
          handlers.push_back(NULL);
    }
@@ -233,7 +233,7 @@ void XMLFileReader::endElement(void *userData, const char *name)
    Handlers &handlers = This->mHandler;
 
    if (XMLTagHandler *const handler = handlers.back())
-      handler->ReadXMLEndTag(name);
+      handler->HandleXMLEndTag(name);
 
    handlers.pop_back();
 }
@@ -245,7 +245,7 @@ void XMLFileReader::charHandler(void *userData, const char *s, int len)
    Handlers &handlers = This->mHandler;
 
    if (XMLTagHandler *const handler = handlers.back())
-      handler->ReadXMLContent(s, len);
+      handler->HandleXMLContent(std::string_view(s, len));
 }
 
 bool XMLFileReader::ParseBuffer(

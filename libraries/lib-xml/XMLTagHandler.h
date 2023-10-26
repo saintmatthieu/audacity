@@ -69,12 +69,6 @@ class XML_API XMLTagHandler /* not final */ {
    // structures, and then return it.  If you do not wish to
    // handle this child, return NULL and it will be ignored.
    virtual XMLTagHandler *HandleXMLChild(const std::string_view& tag) = 0;
-
-   // These functions receive data from expat.  They do charset
-   // conversion and then pass the data to the handlers above.
-   void ReadXMLEndTag(const char *tag);
-   void ReadXMLContent(const char *s, int len);
-   XMLTagHandler *ReadXMLChild(const char *tag);
 };
 
 #endif // define __AUDACITY_XML_TAG_HANDLER__

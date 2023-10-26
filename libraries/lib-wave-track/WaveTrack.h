@@ -32,7 +32,7 @@ using SampleBlockFactoryPtr = std::shared_ptr<SampleBlockFactory>;
 class TimeWarper;
 
 class ClipInterface;
-class Sequence;
+class SequenceInterface;
 class WaveClip;
 class AudioSegmentSampleView;
 
@@ -111,7 +111,7 @@ public:
    AudioSegmentSampleView GetSampleView(
       sampleCount start, size_t length, bool mayThrow) const;
 
-   const Sequence &GetSequence() const;
+   const SequenceInterface& GetSequence() const;
 
    constSamplePtr GetAppendBuffer() const;
    size_t GetAppendBufferLen() const;

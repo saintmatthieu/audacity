@@ -61,9 +61,9 @@ struct MinMaxSumsq
 
 }
 
-bool GetWaveDisplay(const Sequence &sequence,
-   float *min, float *max, float *rms,
-   size_t len, const sampleCount *where)
+bool GetWaveDisplay(
+   const SequenceInterface& sequence, float* min, float* max, float* rms,
+   size_t len, const sampleCount* where)
 {
    wxASSERT(len > 0);
    const auto s0 = std::max(sampleCount(0), where[0]);
@@ -168,8 +168,9 @@ bool GetWaveDisplay(const Sequence &sequence,
       case 1:
          // Read samples
          // no-throw for display operations!
-         sequence.Read(
-            (samplePtr)temp.get(), floatSample, seqBlock, startPosition, num, false);
+         Sequence::Read(
+            (samplePtr)temp.get(), floatSample, seqBlock, startPosition, num,
+            false);
          break;
       case 256:
          // Read triples
@@ -184,7 +185,7 @@ bool GetWaveDisplay(const Sequence &sequence,
          seqBlock.sb->GetSummary64k(temp.get(), startPosition, num);
          break;
       }
-      
+
       auto filePosition = startPosition;
 
       // The previous pixel column might straddle blocks.

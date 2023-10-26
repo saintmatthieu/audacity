@@ -152,7 +152,7 @@ AudioSegmentSampleView WaveChannelInterval::GetSampleView(
    return GetNarrowClip().GetSampleView(0, start, length, mayThrow);
 }
 
-const Sequence &WaveChannelInterval::GetSequence() const
+const SequenceInterface& WaveChannelInterval::GetSequence() const
 {
    // TODO wide wave tracks -- use miChannel
    const auto pSequence = GetNarrowClip().GetSequence(0);
@@ -2723,7 +2723,7 @@ XMLTagHandler *WaveTrack::HandleXMLChild(const std::string_view& tag)
    {
       // This is a legacy project, so set the cached offset
       NewestOrNewClip()->SetSequenceStartTime(mLegacyProjectFileOffset);
-      Sequence *pSeq = NewestOrNewClip()->GetSequence(0);
+      auto* pSeq = NewestOrNewClip()->GetSequence(0);
       return pSeq;
    }
 

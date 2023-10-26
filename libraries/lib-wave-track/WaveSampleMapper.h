@@ -1,6 +1,10 @@
 #pragma once
 
+class SequenceInterface;
+
+#include <memory>
 #include <optional>
+#include <vector>
 
 class WAVE_TRACK_API WaveSampleMapper /* not final */
 {

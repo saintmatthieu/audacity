@@ -12,7 +12,7 @@
 #define __AUDACITY_GET_WAVE_DISPLAY__
 
 #include <cstddef>
-class Sequence;
+class SequenceInterface;
 class sampleCount;
 
 // where is input, assumed to be nondecreasing, and its size is len + 1.
@@ -21,8 +21,8 @@ class sampleCount;
 // The column for pixel p covers samples from
 // where[p] up to (but excluding) where[p + 1].
 // Return true if successful.
-bool GetWaveDisplay(const Sequence &sequence,
-   float *min, float *max, float *rms,
-   size_t len, const sampleCount *where);
+bool GetWaveDisplay(
+   const SequenceInterface& sequence, float* min, float* max, float* rms,
+   size_t len, const sampleCount* where);
 
 #endif

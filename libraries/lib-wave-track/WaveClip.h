@@ -34,7 +34,7 @@ class sampleCount;
 class SampleBlock;
 class SampleBlockFactory;
 using SampleBlockFactoryPtr = std::shared_ptr<SampleBlockFactory>;
-class Sequence;
+class SequenceInterface;
 class wxFileNameWrapper;
 namespace BasicUI { class ProgressDialog; }
 
@@ -413,14 +413,18 @@ public:
    /*!
     @pre `ii < GetWidth()`
     */
-   Sequence* GetSequence(size_t ii) {
+   SequenceInterface* GetSequence(size_t ii)
+   {
       assert(ii < GetWidth());
       return mSequences[ii].get();
    }
    /*!
     @copydoc GetSequence
     */
-   const Sequence* GetSequence(size_t ii) const { return mSequences[ii].get(); }
+   const SequenceInterface* GetSequence(size_t ii) const
+   {
+      return mSequences[ii].get();
+   }
 
    /** WaveTrack calls this whenever data in the wave clip changes. It is
     * called automatically when WaveClip has a chance to know that something
@@ -587,7 +591,8 @@ private:
    sampleCount GetNumSamples() const;
    SampleFormats GetSampleFormats() const;
    const SampleBlockFactoryPtr &GetFactory();
-   std::vector<std::unique_ptr<Sequence>> GetEmptySequenceCopies() const;
+   std::vector<std::unique_ptr<SequenceInterface>>
+   GetEmptySequenceCopies() const;
    void StretchCutLines(double ratioChange);
    double SnapToTrackSample(double time) const noexcept;
 
@@ -602,13 +607,14 @@ private:
       void Commit() { committed = true; }
 
       WaveClip &clip;
-      std::vector<std::unique_ptr<Sequence>> sequences;
+      std::vector<std::unique_ptr<SequenceInterface>> sequences;
       const double mTrimLeft,
          mTrimRight;
       bool committed{ false };
    };
 
    int mColourIndex;
+
 
    /*!
     @invariant `mSequences.size() > 0`
@@ -617,7 +623,7 @@ private:
       sample formats, and sample block factory
     @invariant all cutlines have the same width
     */
-   std::vector<std::unique_ptr<Sequence>> mSequences;
+   std::vector<std::unique_ptr<SequenceInterface>> mSequences;
    //! Envelope is unique, not per-sequence
    std::unique_ptr<Envelope> mEnvelope;
 
