@@ -131,28 +131,28 @@ void WaveClipBoundaryManager::OnProjectTempoChange(double newToOldRatio)
    RescaleAround(newPlayStartTime, newToOldRatio);
 }
 
-double WaveClipBoundaryManager::GetRatioChangeWhenStretchingLeftTo(
-   sampleCount to) const
+double
+WaveClipBoundaryManager::GetRatioChangeWhenStretchingLeftTo(double to) const
 {
    // Left- and right-stretching is done with stretch handles, and these are
    // located at the boundaries GetPlayStartTime() and GetPlayEndTime(). Hence
    // use the quantized start and end times.
-   const auto playEndSample = GetPlayEndSample();
-   const auto oldPlayDuration = playEndSample - GetPlayStartSample();
-   const auto newPlayDuration = playEndSample - to;
-   return newPlayDuration.as_double() / oldPlayDuration.as_double();
+   const auto playEndTime = GetPlayEndTime();
+   const auto oldPlayDuration = playEndTime - GetPlayStartTime();
+   const auto newPlayDuration = playEndTime - to;
+   return newPlayDuration / oldPlayDuration;
 }
 
-double WaveClipBoundaryManager::GetRatioChangeWhenStretchingRightTo(
-   sampleCount to) const
+double
+WaveClipBoundaryManager::GetRatioChangeWhenStretchingRightTo(double to) const
 {
    // Left- and right-stretching is done with stretch handles, and these are
-   // located at the boundaries GetPlayStartSample() and GetPlayEndSample().
-   // Hence use the quantized start and end times.
-   const auto playStartSample = GetPlayStartSample();
-   const auto oldPlayDuration = GetPlayEndSample() - playStartSample;
-   const auto newPlayDuration = to - playStartSample;
-   return newPlayDuration.as_double() / oldPlayDuration.as_double();
+   // located at the boundaries GetPlayStartTime() and GetPlayEndTime(). Hence
+   // use the quantized start and end times.
+   const auto playStartTime = GetPlayStartTime();
+   const auto oldPlayDuration = GetPlayEndTime() - playStartTime;
+   const auto newPlayDuration = to - playStartTime;
+   return newPlayDuration / oldPlayDuration;
 }
 
 void WaveClipBoundaryManager::GetSequenceSampleIndices(
