@@ -347,7 +347,8 @@ std::vector<std::unique_ptr<Sequence>> WaveClip::GetEmptySequenceCopies() const
    newSequences.reserve(mSequences.size());
    for (auto& pSequence : mSequences)
       newSequences.push_back(std::make_unique<Sequence>(
-         pSequence->GetFactory(), pSequence->GetSampleFormats(), pSequence->mRate));
+         pSequence->GetFactory(), pSequence->GetSampleFormats(),
+         pSequence->GetRate()));
    return newSequences;
 }
 
@@ -429,7 +430,8 @@ void WaveClip::ConvertToSampleFormat(sampleFormat format,
 void WaveClip::UpdateEnvelopeTrackLen()
 {
    // The envelope time points account for stretching.
-   const auto len = GetNumSamples().as_double() * GetStretchRatio() / mSequences[0]->mRate;
+   const auto len = GetNumSamples().as_double() * GetStretchRatio() /
+                    mSequences[0]->GetRate();
    if (len != mEnvelope->GetTrackLen())
       mEnvelope->SetTrackLen(len, 1.0 / GetRate());
 }
@@ -581,7 +583,7 @@ XMLTagHandler *WaveClip::HandleXMLChild(const std::string_view& tag)
    auto &pFirst = mSequences[0];
    if (tag == "sequence") {
       mSequences.push_back(std::make_unique<Sequence>(
-         pFirst->GetFactory(), pFirst->GetSampleFormats(), pFirst->mRate));
+         pFirst->GetFactory(), pFirst->GetSampleFormats(), pFirst->GetRate()));
       return mSequences.back().get();
    }
    else if (tag == "envelope")
@@ -593,12 +595,11 @@ XMLTagHandler *WaveClip::HandleXMLChild(const std::string_view& tag)
       // The format is not stored in WaveClip itself but passed to
       // Sequence::Sequence; but then the Sequence will deserialize format
       // again
-      mCutLines.push_back(
-         std::make_shared<WaveClip>(
-            // Make only one channel now, but recursive deserialization
-            // increases the width later
-            1, pFirst->GetFactory(),
-            format, mSequences[0]->mRate, 0 /*colourindex*/));
+      mCutLines.push_back(std::make_shared<WaveClip>(
+         // Make only one channel now, but recursive deserialization
+         // increases the width later
+         1, pFirst->GetFactory(), format, mSequences[0]->GetRate(),
+         0 /*colourindex*/));
       return mCutLines.back().get();
    }
    else
@@ -652,7 +653,8 @@ bool WaveClip::Paste(double t0, const WaveClip& other)
 
    Transaction transaction{ *this };
 
-   const bool clipNeedsResampling = other.mSequences[0]->mRate != mSequences[0]->mRate;
+   const bool clipNeedsResampling =
+      other.mSequences[0]->GetRate() != mSequences[0]->GetRate();
    const bool clipNeedsNewFormat =
       other.GetSampleFormats().Stored() != GetSampleFormats().Stored();
    std::shared_ptr<WaveClip> newClip;
@@ -694,7 +696,7 @@ bool WaveClip::Paste(double t0, const WaveClip& other)
 
       if (clipNeedsResampling)
          // The other clip's rate is different from ours, so resample
-         copy->Resample(mSequences[0]->mRate);
+         copy->Resample(mSequences[0]->GetRate());
 
       if (clipNeedsNewFormat)
          // Force sample formats to match.
@@ -729,7 +731,8 @@ bool WaveClip::Paste(double t0, const WaveClip& other)
    MarkChanged();
    const auto sampleTime = 1.0 / GetRate();
    const auto timeOffsetInEnvelope =
-      s0.as_double() * GetStretchRatio() / mSequences[0]->mRate + GetSequenceStartTime();
+      s0.as_double() * GetStretchRatio() / mSequences[0]->GetRate() +
+      GetSequenceStartTime();
    mEnvelope->PasteEnvelope(
       timeOffsetInEnvelope, newClip->mEnvelope.get(), sampleTime);
    OffsetCutLines(t0, newClip->GetPlayEndTime() - newClip->GetPlayStartTime());
@@ -1054,22 +1057,16 @@ void WaveClip::CloseLock() noexcept
 
 int WaveClip::GetRate() const
 {
-   return mSequences[0]->mRate;
+   return mSequences[0]->GetRate();
 }
 
 void WaveClip::SetRate(int rate)
 {
-   const auto trimLeftSampleNum = TimeToSamples(mSequences[0]->mTrimLeft);
-   const auto trimRightSampleNum = TimeToSamples(mSequences[0]->mTrimRight);
-   auto ratio = static_cast<double>(mSequences[0]->mRate) / rate;
-   mSequences[0]->mRate = rate;
-   mSequences[0]->mTrimLeft = SamplesToTime(trimLeftSampleNum);
-   mSequences[0]->mTrimRight = SamplesToTime(trimRightSampleNum);
-   const auto newLength =
-      GetNumSamples().as_double() * GetStretchRatio() / mSequences[0]->mRate;
+   for (auto& sequence : mSequences)
+      sequence->SetRate(rate);
+   const auto newLength = mSequences[0]->GetSequenceDuration();
    mEnvelope->RescaleTimes(newLength);
    MarkChanged();
-   SetSequenceStartTime(GetSequenceStartTime() * ratio);
 }
 
 /*! @excsafety{Strong} */
@@ -1078,12 +1075,12 @@ void WaveClip::Resample(int rate, BasicUI::ProgressDialog *progress)
    // Note:  it is not necessary to do this recursively to cutlines.
    // They get resampled as needed when they are expanded.
 
-   if (rate == mSequences[0]->mRate)
+   if (rate == mSequences[0]->GetRate())
       return; // Nothing to do
 
    // This function does its own RAII without a Transaction
 
-   double factor = (double)rate / (double)mSequences[0]->mRate;
+   double factor = (double)rate / (double)mSequences[0]->GetRate();
    ::Resample resample(true, factor, factor); // constant rate resampling
 
    const size_t bufsize = 65536;
@@ -1164,7 +1161,8 @@ void WaveClip::Resample(int rate, BasicUI::ProgressDialog *progress)
    {
       // Use No-fail-guarantee in these steps
       mSequences = move(newSequences);
-      mSequences[0]->mRate = rate;
+      for (auto &pSequence : mSequences)
+         pSequence->HardsetRate(rate);
       Flush();
       Caches::ForEach( std::mem_fn( &WaveClipListener::Invalidate ) );
    }
@@ -1342,17 +1340,17 @@ double WaveClip::GetPlayDuration() const
 
 bool WaveClip::IsEmpty() const
 {
-   return std::floor(GetPlayDuration() * mSequences[0]->mRate + 0.5) < 2.0;
+   return std::floor(GetPlayDuration() * mSequences[0]->GetRate() + 0.5) < 2.0;
 }
 
 sampleCount WaveClip::GetPlayStartSample() const
 {
-   return sampleCount { GetPlayStartTime() * mSequences[0]->mRate + 0.5 };
+   return sampleCount { GetPlayStartTime() * mSequences[0]->GetRate() + 0.5 };
 }
 
 sampleCount WaveClip::GetPlayEndSample() const
 {
-   return sampleCount { GetPlayEndTime() * mSequences[0]->mRate + 0.5 };
+   return sampleCount { GetPlayEndTime() * mSequences[0]->GetRate() + 0.5 };
 }
 
 sampleCount WaveClip::GetVisibleSampleCount() const

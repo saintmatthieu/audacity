@@ -14,12 +14,19 @@ public:
    double GetStretchRatio() const;
    double GetSequenceStartTime() const;
    double GetSequenceEndTime() const;
+   double GetSequenceDuration() const;
    double GetPlayStartTime() const;
    double GetPlayEndTime() const;
 
    sampleCount TimeToSamples(double t) const;
    double SamplesToTime(sampleCount s) const;
    double SnapToTrackSample(double t) const;
+
+   int GetRate() const;
+   //! Also changes boundaries.
+   void SetRate(int rate);
+   //! Only changes the rate ; use with care.
+   void HardsetRate(int rate);
 
    //! Real-time durations, i.e., stretching the clip modifies these.
    //! @{
@@ -34,11 +41,12 @@ public:
    std::optional<double> mRawAudioTempo;
    std::optional<double> mProjectTempo;
 
-   //! Sample rate of the raw audio, i.e., before stretching.
-   int mRate;
-
 protected:
    // Not size_t!  May need to be large:
    sampleCount mNumSamples { 0 };
    size_t mAppendBufferLen { 0 };
+
+private:
+   //! Sample rate of the raw audio, i.e., before stretching.
+   int mRate;
 };

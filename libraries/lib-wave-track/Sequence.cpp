@@ -400,7 +400,7 @@ std::unique_ptr<Sequence> Sequence::Copy( const SampleBlockFactoryPtr &pFactory,
    sampleCount s0, sampleCount s1) const
 {
    // Make a new Sequence object for the specified factory:
-   auto dest = std::make_unique<Sequence>(pFactory, mSampleFormats, mRate);
+   auto dest = std::make_unique<Sequence>(pFactory, mSampleFormats, GetRate());
    if (s0 >= s1 || s0 >= mNumSamples || s1 < 0) {
       return dest;
    }
@@ -730,7 +730,7 @@ void Sequence::InsertSilence(sampleCount s0, sampleCount len)
    // Create a NEW track containing as much silence as we
    // need to insert, and then call Paste to do the insertion.
 
-   Sequence sTrack{ mpFactory, mSampleFormats, mRate };
+   Sequence sTrack { mpFactory, mSampleFormats, GetRate() };
 
    auto idealSamples = GetIdealBlockSize();
 

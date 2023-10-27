@@ -1,5 +1,6 @@
 #include "SequenceSampleMapper.h"
 
+#include <cassert>
 #include <cmath>
 
 SequenceSampleMapper::SequenceSampleMapper(int rate)
@@ -66,6 +67,28 @@ double SequenceSampleMapper::SnapToTrackSample(double t) const
    return std::round(t * mRate) / mRate;
 }
 
+int SequenceSampleMapper::GetRate() const
+{
+   return mRate;
+}
+
+void SequenceSampleMapper::SetRate(int rate)
+{
+   assert(rate > 0);
+   const auto trimLeftSampleNum = TimeToSamples(mTrimLeft);
+   const auto trimRightSampleNum = TimeToSamples(mTrimRight);
+   auto ratio = static_cast<double>(GetRate()) / rate;
+   mRate = rate;
+   mTrimLeft = SamplesToTime(trimLeftSampleNum);
+   mTrimRight = SamplesToTime(trimRightSampleNum);
+   mSequenceOffset *= ratio;
+}
+
+void SequenceSampleMapper::HardsetRate(int rate)
+{
+   mRate = rate;
+}
+
 double SequenceSampleMapper::GetSequenceStartTime() const
 {
    return mSequenceOffset;
@@ -78,6 +101,11 @@ double SequenceSampleMapper::GetSequenceEndTime() const
    double maxLen = GetSequenceStartTime() +
                    numSamples.as_double() * GetStretchRatio() / mRate;
    return maxLen;
+}
+
+double SequenceSampleMapper::GetSequenceDuration() const
+{
+   return GetSequenceEndTime() - GetSequenceStartTime();
 }
 
 double SequenceSampleMapper::GetPlayStartTime() const
