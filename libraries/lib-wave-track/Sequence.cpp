@@ -49,23 +49,33 @@ size_t Sequence::sMaxDiskBlockSize = 1048576;
 
 // Sequence methods
 Sequence::Sequence(
-   const SampleBlockFactoryPtr &pFactory, SampleFormats formats)
-:  mpFactory(pFactory),
-   mSampleFormats{ formats },
-   mMinSamples(sMaxDiskBlockSize / SAMPLE_SIZE(mSampleFormats.Stored()) / 2),
-   mMaxSamples(mMinSamples * 2)
+   const SampleBlockFactoryPtr& pFactory, SampleFormats formats, int rate)
+    : SequenceSampleMapper { rate }
+    , mpFactory(pFactory)
+    , mSampleFormats { formats }
+    , mMinSamples(sMaxDiskBlockSize / SAMPLE_SIZE(mSampleFormats.Stored()) / 2)
+    , mMaxSamples(mMinSamples * 2)
 {
 }
 
 // essentially a copy constructor - but you must pass in the
 // current project, because we might be copying from one
 // project to another
+Sequence::Sequence(const Sequence &orig, const SampleBlockFactoryPtr &pFactory)
+    : SequenceSampleMapper{orig},
+      mpFactory(pFactory), mSampleFormats{orig.mSampleFormats},
+      mMinSamples(orig.mMinSamples), mMaxSamples(orig.mMaxSamples) {
+  Paste(0, &orig);
+}
+
 Sequence::Sequence(
-   const Sequence &orig, const SampleBlockFactoryPtr &pFactory)
-:  mpFactory(pFactory),
-   mSampleFormats{ orig.mSampleFormats },
-   mMinSamples(orig.mMinSamples),
-   mMaxSamples(orig.mMaxSamples)
+   const Sequence& orig, const SampleBlockFactoryPtr& pFactory, double t0,
+   double t1)
+    : SequenceSampleMapper { orig, t0, t1 }
+    , mpFactory(pFactory)
+    , mSampleFormats { orig.mSampleFormats }
+    , mMinSamples(orig.mMinSamples)
+    , mMaxSamples(orig.mMaxSamples)
 {
    Paste(0, &orig);
 }
@@ -390,7 +400,7 @@ std::unique_ptr<Sequence> Sequence::Copy( const SampleBlockFactoryPtr &pFactory,
    sampleCount s0, sampleCount s1) const
 {
    // Make a new Sequence object for the specified factory:
-   auto dest = std::make_unique<Sequence>(pFactory, mSampleFormats);
+   auto dest = std::make_unique<Sequence>(pFactory, mSampleFormats, mRate);
    if (s0 >= s1 || s0 >= mNumSamples || s1 < 0) {
       return dest;
    }
@@ -720,7 +730,7 @@ void Sequence::InsertSilence(sampleCount s0, sampleCount len)
    // Create a NEW track containing as much silence as we
    // need to insert, and then call Paste to do the insertion.
 
-   Sequence sTrack{ mpFactory, mSampleFormats };
+   Sequence sTrack{ mpFactory, mSampleFormats, mRate };
 
    auto idealSamples = GetIdealBlockSize();
 

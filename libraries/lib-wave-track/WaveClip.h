@@ -153,10 +153,7 @@ public:
    void ConvertToSampleFormat(sampleFormat format,
       const std::function<void(size_t)> & progressReport = {});
 
-   int GetRate() const override
-   {
-      return mRate;
-   }
+   int GetRate() const override;
 
    // Set rate without resampling. This will change the length of the clip
    void SetRate(int rate);
@@ -608,21 +605,6 @@ private:
       bool committed{ false };
    };
 
-   //! Real-time durations, i.e., stretching the clip modifies these.
-   //! @{
-   double mSequenceOffset { 0 };
-   double mTrimLeft { 0 };
-   double mTrimRight { 0 };
-   //! @}
-
-   // Used in GetStretchRatio which computes the factor, by which the sample
-   // interval is multiplied, to get a realtime duration.
-   double mClipStretchRatio = 1.;
-   std::optional<double> mRawAudioTempo;
-   std::optional<double> mProjectTempo;
-
-   //! Sample rate of the raw audio, i.e., before stretching.
-   int mRate;
    int mColourIndex;
 
    /*!

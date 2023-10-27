@@ -2537,7 +2537,9 @@ size_t WaveTrack::GetMaxBlockSize() const
       // We really need the maximum block size, so create a
       // temporary sequence to get it.
       maxblocksize =
-         Sequence{ mpFactory, SampleFormats{GetSampleFormat(), GetSampleFormat()} }
+         Sequence { mpFactory,
+                    SampleFormats { GetSampleFormat(), GetSampleFormat() },
+                    static_cast<int>(GetRate()) }
             .GetMaxBlockSize();
    }
 

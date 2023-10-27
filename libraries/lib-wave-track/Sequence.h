@@ -15,11 +15,11 @@
 #include <vector>
 #include <functional>
 
-#include "SampleFormat.h"
-#include "XMLTagHandler.h"
-
-#include "SampleCount.h"
 #include "AudioSegmentSampleView.h"
+#include "SampleCount.h"
+#include "SampleFormat.h"
+#include "SequenceSampleMapper.h"
+#include "XMLTagHandler.h"
 
 class SampleBlock;
 class SampleBlockFactory;
@@ -50,8 +50,11 @@ class SeqBlock {
 class BlockArray : public std::vector<SeqBlock> {};
 using BlockPtrArray = std::vector<SeqBlock*>; // non-owning pointers
 
-class WAVE_TRACK_API Sequence final : public XMLTagHandler{
- public:
+class WAVE_TRACK_API Sequence final :
+    public SequenceSampleMapper,
+    public XMLTagHandler
+{
+public:
 
    //
    // Static methods
@@ -67,10 +70,14 @@ class WAVE_TRACK_API Sequence final : public XMLTagHandler{
    // Constructor / Destructor / Duplicator
    //
 
-   Sequence(const SampleBlockFactoryPtr &pFactory, SampleFormats formats);
+   Sequence(
+      const SampleBlockFactoryPtr& pFactory, SampleFormats formats, int rate);
 
    //! Does not copy un-flushed append buffer data
    Sequence(const Sequence &orig, const SampleBlockFactoryPtr &pFactory);
+   Sequence(
+      const Sequence& orig, const SampleBlockFactoryPtr& pFactory, double t0,
+      double t1);
 
    Sequence( const Sequence& ) = delete;
    Sequence& operator= (const Sequence&) = delete;
@@ -235,14 +242,10 @@ class WAVE_TRACK_API Sequence final : public XMLTagHandler{
    BlockArray    mBlock;
    SampleFormats  mSampleFormats;
 
-   // Not size_t!  May need to be large:
-   sampleCount   mNumSamples{ 0 };
-
    size_t   mMinSamples; // min samples per block
    size_t   mMaxSamples; // max samples per block
 
    SampleBuffer  mAppendBuffer {};
-   size_t        mAppendBufferLen { 0 };
    sampleFormat  mAppendEffectiveFormat{ narrowestSampleFormat };
 
    bool          mErrorOpening{ false };
@@ -319,7 +322,6 @@ private:
    void AppendBlocksIfConsistent
       (BlockArray &additionalBlocks, bool replaceLast,
        sampleCount numSamples, const wxChar *whereStr);
-
 };
 
 #endif // __AUDACITY_SEQUENCE__
