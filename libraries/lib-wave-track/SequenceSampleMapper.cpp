@@ -85,11 +85,6 @@ void SequenceSampleMapper::SetRate(int rate)
    mSequenceOffset *= ratio;
 }
 
-void SequenceSampleMapper::HardsetRate(int rate)
-{
-   mRate = rate;
-}
-
 void SequenceSampleMapper::OnProjectTempoChange(
    const std::optional<double>& oldTempo, double newTempo)
 {
@@ -142,6 +137,41 @@ void SequenceSampleMapper::RescaleTimesBy(double ratio)
    mTrimLeft *= ratio;
    mTrimRight *= ratio;
    mClipStretchRatio *= ratio;
+}
+
+void SequenceSampleMapper::OverwriteRate(int rate)
+{
+   mRate = rate;
+}
+
+void SequenceSampleMapper::OverwriteRawAudioTempo(std::optional<double> tempo)
+{
+   mRawAudioTempo = std::move(tempo);
+}
+
+void SequenceSampleMapper::OverwriteProjectTempo(std::optional<double> tempo)
+{
+   mProjectTempo = std::move(tempo);
+}
+
+void SequenceSampleMapper::OverwriteClipStretchRatio(double ratio)
+{
+   mClipStretchRatio = ratio;
+}
+
+std::optional<double> SequenceSampleMapper::GetRawAudioTempo() const
+{
+   return mRawAudioTempo;
+}
+
+std::optional<double> SequenceSampleMapper::GetProjectTempo() const
+{
+   return mProjectTempo;
+}
+
+double SequenceSampleMapper::GetClipStretchRatio() const
+{
+   return mClipStretchRatio;
 }
 
 void SequenceSampleMapper::TrimLeftTo(double t)

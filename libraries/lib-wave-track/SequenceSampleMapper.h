@@ -35,8 +35,6 @@ public:
    int GetRate() const;
    //! Also changes boundaries.
    void SetRate(int rate);
-   //! Only changes the rate ; use with care.
-   void HardsetRate(int rate);
 
    void
    OnProjectTempoChange(const std::optional<double>& oldTempo, double newTempo);
@@ -45,11 +43,15 @@ public:
 
    void RescaleTimesBy(double ratio);
 
-   // Used in GetStretchRatio which computes the factor, by which the sample
-   // interval is multiplied, to get a realtime duration.
-   double mClipStretchRatio = 1.;
-   std::optional<double> mRawAudioTempo;
-   std::optional<double> mProjectTempo;
+   //! Low-level methods - use with care!
+   //! Resets sample rate.
+   void OverwriteRate(int rate);
+   void OverwriteClipStretchRatio(double ratio);
+   void OverwriteRawAudioTempo(std::optional<double> tempo);
+   void OverwriteProjectTempo(std::optional<double> tempo);
+   double GetClipStretchRatio() const;
+   std::optional<double> GetRawAudioTempo() const;
+   std::optional<double> GetProjectTempo() const;
 
 protected:
    // Not size_t!  May need to be large:
@@ -63,6 +65,12 @@ private:
    double mTrimLeft { 0 };
    double mTrimRight { 0 };
    //! @}
+
+   // Used in GetStretchRatio which computes the factor, by which the sample
+   // interval is multiplied, to get a realtime duration.
+   double mClipStretchRatio = 1.;
+   std::optional<double> mRawAudioTempo;
+   std::optional<double> mProjectTempo;
 
    //! Sample rate of the raw audio, i.e., before stretching.
    int mRate;

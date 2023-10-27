@@ -519,15 +519,21 @@ bool WaveClip::HandleXMLTag(const std::string_view& tag, const AttributesList &a
             if (!value.TryGet(dblValue))
                return false;
             if (dblValue == 0)
-               mSequences[0]->mRawAudioTempo.reset();
+               ForEachSequence([](Sequence& seq) {
+                  seq.OverwriteRawAudioTempo(std::nullopt);
+               });
             else
-               mSequences[0]->mRawAudioTempo = dblValue;
+               ForEachSequence([dblValue](Sequence& seq) {
+                  seq.OverwriteRawAudioTempo(dblValue);
+               });
          }
          else if (attr == "clipStretchRatio")
          {
             if (!value.TryGet(dblValue))
                return false;
-            mSequences[0]->mClipStretchRatio = dblValue;
+            ForEachSequence([dblValue](Sequence& seq) {
+               seq.OverwriteClipStretchRatio(dblValue);
+            });
          }
          else if (attr == "name")
          {
@@ -601,8 +607,8 @@ void WaveClip::WriteXML(XMLWriter &xmlFile) const
    xmlFile.WriteAttr(wxT("offset"), mSequences[0]->GetSequenceStartTime(), 8);
    xmlFile.WriteAttr(wxT("trimLeft"), mSequences[0]->GetTrimLeft(), 8);
    xmlFile.WriteAttr(wxT("trimRight"), mSequences[0]->GetTrimRight(), 8);
-   xmlFile.WriteAttr(wxT("rawAudioTempo"), mSequences[0]->mRawAudioTempo.value_or(0.), 8);
-   xmlFile.WriteAttr(wxT("clipStretchRatio"), mSequences[0]->mClipStretchRatio, 8);
+   xmlFile.WriteAttr(wxT("rawAudioTempo"), mSequences[0]->GetRawAudioTempo().value_or(0.), 8);
+   xmlFile.WriteAttr(wxT("clipStretchRatio"), mSequences[0]->GetClipStretchRatio(), 8);
    xmlFile.WriteAttr(wxT("name"), mName);
    xmlFile.WriteAttr(wxT("colorindex"), mColourIndex );
 
@@ -625,9 +631,12 @@ bool WaveClip::Paste(double t0, const WaveClip& other)
    if (GetSequenceSamplesCount() == 0)
    {
       // Empty clip: we're flexible and adopt the other's stretching.
-      mSequences[0]->mRawAudioTempo = other.mSequences[0]->mRawAudioTempo;
-      mSequences[0]->mClipStretchRatio = other.mSequences[0]->mClipStretchRatio;
-      mSequences[0]->mProjectTempo = other.mSequences[0]->mProjectTempo;
+      ForEachSequence([&other](Sequence& seq) {
+         seq.OverwriteRawAudioTempo(other.mSequences[0]->GetRawAudioTempo());
+         seq.OverwriteClipStretchRatio(
+            other.mSequences[0]->GetClipStretchRatio());
+         seq.OverwriteProjectTempo(other.mSequences[0]->GetProjectTempo());
+      });
    }
    else if (GetStretchRatio() != other.GetStretchRatio())
       return false;
@@ -1145,7 +1154,7 @@ void WaveClip::Resample(int rate, BasicUI::ProgressDialog *progress)
       // Use No-fail-guarantee in these steps
       mSequences = move(newSequences);
       for (auto &pSequence : mSequences)
-         pSequence->HardsetRate(rate);
+         pSequence->OverwriteRate(rate);
       Flush();
       Caches::ForEach( std::mem_fn( &WaveClipListener::Invalidate ) );
    }
@@ -1153,8 +1162,6 @@ void WaveClip::Resample(int rate, BasicUI::ProgressDialog *progress)
 
 void WaveClip::ApplyStretchRatio(const ProgressReporter& reportProgress)
 {
-   assert(mSequences[0]->mProjectTempo.has_value());
-
    if (StretchRatioEquals(1))
       return;
    const auto stretchRatio = GetStretchRatio();
@@ -1165,14 +1172,16 @@ void WaveClip::ApplyStretchRatio(const ProgressReporter& reportProgress)
 
    Finally Do { [&, oldTrimLeft = GetTrimLeft(), oldTrimRight = GetTrimRight(),
                  oldOffset = GetSequenceStartTime(),
-                 oldRawAudioTempo = mSequences[0]->mRawAudioTempo,
-                 oldClipStretchRatio = mSequences[0]->mClipStretchRatio] {
+                 oldRawAudioTempo = mSequences[0]->GetRawAudioTempo(),
+                 oldClipStretchRatio = mSequences[0]->GetClipStretchRatio()] {
       if (success)
          assert(GetStretchRatio() == 1);
       else
       {
-         this->mSequences[0]->mClipStretchRatio = oldClipStretchRatio;
-         this->mSequences[0]->mRawAudioTempo = oldRawAudioTempo;
+         ForEachSequence([&](Sequence& seq) {
+            seq.OverwriteClipStretchRatio(oldClipStretchRatio);
+            seq.OverwriteRawAudioTempo(oldRawAudioTempo);
+         });
          this->SetTrimLeft(oldTrimLeft);
          this->SetTrimRight(oldTrimRight);
          this->SetSequenceStartTime(oldOffset);
@@ -1234,8 +1243,10 @@ void WaveClip::ApplyStretchRatio(const ProgressReporter& reportProgress)
 
    std::swap(mSequences, newSequences);
    swappedOnce = true;
-   mSequences[0]->mRawAudioTempo = *mSequences[0]->mProjectTempo;
-   mSequences[0]->mClipStretchRatio = 1;
+   ForEachSequence([&](Sequence& seq) {
+      seq.OverwriteRawAudioTempo(mSequences[0]->GetProjectTempo());
+      seq.OverwriteClipStretchRatio(1);
+   });
 
    ClearLeft(originalPlayStartTime);
    ClearRight(originalPlayEndTime);
