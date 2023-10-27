@@ -711,6 +711,7 @@ void Sequence::Paste(sampleCount s, const Sequence *src)
 /*! @excsafety{Strong} */
 void Sequence::SetSilence(sampleCount s0, sampleCount len)
 {
+   s0 += TimeToSamples(GetTrimLeft());
    // Exact zeroes won't need dithering
    SetSamples(nullptr, mSampleFormats.Stored(), s0, len, narrowestSampleFormat);
 }
@@ -1127,6 +1128,7 @@ bool Sequence::Read(samplePtr buffer, sampleFormat format,
 AudioSegmentSampleView Sequence::GetFloatSampleView(
    sampleCount start, size_t length, bool mayThrow) const
 {
+   start -= TimeToSamples(GetTrimLeft());
    assert(start < mNumSamples);
    length = limitSampleBufferSize(length, mNumSamples - start);
    std::vector<BlockSampleView> blockViews;
@@ -1147,6 +1149,7 @@ AudioSegmentSampleView Sequence::GetFloatSampleView(
 bool Sequence::Get(samplePtr buffer, sampleFormat format,
    sampleCount start, size_t len, bool mayThrow) const
 {
+   start -= TimeToSamples(GetTrimLeft());
    if (start == mNumSamples) {
       return len == 0;
    }
@@ -1189,6 +1192,7 @@ bool Sequence::Get(int b, samplePtr buffer, sampleFormat format,
 void Sequence::SetSamples(constSamplePtr buffer, sampleFormat format,
    sampleCount start, sampleCount len, sampleFormat effectiveFormat)
 {
+   start -= TimeToSamples(GetTrimLeft());
    effectiveFormat = std::min(effectiveFormat, format);
    auto &factory = *mpFactory;
 

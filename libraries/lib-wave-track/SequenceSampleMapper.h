@@ -18,6 +18,10 @@ public:
    double GetSequenceDuration() const;
    double GetPlayStartTime() const;
    double GetPlayEndTime() const;
+   double GetTrimLeft() const;
+   void SetTrimLeft(double trim);
+   void TrimLeft(double deltaTime);
+   sampleCount GetNumStems() const;
 
    sampleCount TimeToSamples(double t) const;
    double SamplesToTime(sampleCount s) const;
@@ -39,7 +43,6 @@ public:
 
    //! Real-time durations, i.e., stretching the clip modifies these.
    //! @{
-   double mTrimLeft { 0 };
    double mTrimRight { 0 };
    //! @}
 
@@ -58,6 +61,7 @@ private:
    //! Real-time durations, i.e., stretching the clip modifies these.
    //! @{
    double mSequenceOffset { 0 };
+   double mTrimLeft { 0 };
    //! @}
 
    //! Sample rate of the raw audio, i.e., before stretching.

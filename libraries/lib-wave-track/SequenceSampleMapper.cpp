@@ -188,3 +188,23 @@ double SequenceSampleMapper::GetPlayEndTime() const
                    mTrimRight;
    return SnapToTrackSample(maxLen);
 }
+
+double SequenceSampleMapper::GetTrimLeft() const
+{
+   return mTrimLeft;
+}
+
+void SequenceSampleMapper::SetTrimLeft(double trim)
+{
+   mTrimLeft = std::max(.0, trim);
+}
+
+void SequenceSampleMapper::TrimLeft(double deltaTime)
+{
+   SetTrimLeft(mTrimLeft + deltaTime);
+}
+
+sampleCount SequenceSampleMapper::GetNumStems() const
+{
+   return mNumSamples - TimeToSamples(mTrimRight) - TimeToSamples(mTrimLeft);
+}

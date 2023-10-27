@@ -116,8 +116,7 @@ AudioSegmentSampleView WaveClip::GetSampleView(
    size_t ii, sampleCount start, size_t length, bool mayThrow) const
 {
    assert(ii < GetWidth());
-   return mSequences[ii]->GetFloatSampleView(
-      start + TimeToSamples(mSequences[0]->mTrimLeft), length, mayThrow);
+   return mSequences[ii]->GetFloatSampleView(start, length, mayThrow);
 }
 
 AudioSegmentSampleView WaveClip::GetSampleView(
@@ -140,8 +139,7 @@ bool WaveClip::GetSamples(size_t ii,
    sampleCount start, size_t len, bool mayThrow) const
 {
    assert(ii < GetWidth());
-   return mSequences[ii]
-      ->Get(buffer, format, start + TimeToSamples(mSequences[0]->mTrimLeft), len, mayThrow);
+   return mSequences[ii]->Get(buffer, format, start, len, mayThrow);
 }
 
 bool WaveClip::GetSamples(samplePtr buffers[], sampleFormat format,
@@ -160,8 +158,7 @@ void WaveClip::SetSamples(size_t ii,
 {
    assert(ii < GetWidth());
    // use Strong-guarantee
-   mSequences[ii]->SetSamples(buffer, format,
-      start + TimeToSamples(mSequences[0]->mTrimLeft), len, effectiveFormat);
+   mSequences[ii]->SetSamples(buffer, format, start, len, effectiveFormat);
 
    // use No-fail-guarantee
    MarkChanged();
@@ -602,7 +599,7 @@ void WaveClip::WriteXML(XMLWriter &xmlFile) const
 
    xmlFile.StartTag(wxT("waveclip"));
    xmlFile.WriteAttr(wxT("offset"), mSequences[0]->GetSequenceStartTime(), 8);
-   xmlFile.WriteAttr(wxT("trimLeft"), mSequences[0]->mTrimLeft, 8);
+   xmlFile.WriteAttr(wxT("trimLeft"), mSequences[0]->GetTrimLeft(), 8);
    xmlFile.WriteAttr(wxT("trimRight"), mSequences[0]->mTrimRight, 8);
    xmlFile.WriteAttr(wxT("rawAudioTempo"), mSequences[0]->mRawAudioTempo.value_or(0.), 8);
    xmlFile.WriteAttr(wxT("clipStretchRatio"), mSequences[0]->mClipStretchRatio, 8);
@@ -1291,10 +1288,9 @@ double WaveClip::SnapToTrackSample(double t) const noexcept
 
 void WaveClip::SetSilence(sampleCount offset, sampleCount length)
 {
-   const auto start = TimeToSamples(mSequences[0]->mTrimLeft) + offset;
    Transaction transaction{ *this };
    for (auto &pSequence : mSequences)
-      pSequence->SetSilence(start, length);
+      pSequence->SetSilence(offset, length);
    transaction.Commit();
    MarkChanged();
 }
@@ -1311,7 +1307,7 @@ double WaveClip::GetPlayStartTime() const noexcept
 
 void WaveClip::SetPlayStartTime(double time)
 {
-   SetSequenceStartTime(time - mSequences[0]->mTrimLeft);
+   SetSequenceStartTime(time - mSequences[0]->GetTrimLeft());
 }
 
 double WaveClip::GetPlayEndTime() const
@@ -1341,18 +1337,17 @@ sampleCount WaveClip::GetPlayEndSample() const
 
 sampleCount WaveClip::GetVisibleSampleCount() const
 {
-    return GetNumSamples()
-       - TimeToSamples(mSequences[0]->mTrimRight) - TimeToSamples(mSequences[0]->mTrimLeft);
+   return mSequences[0]->GetNumStems();
 }
 
 void WaveClip::SetTrimLeft(double trim)
 {
-    mSequences[0]->mTrimLeft = std::max(.0, trim);
+   ForEachSequence([trim](auto& sequence) { sequence.SetTrimLeft(trim); });
 }
 
 double WaveClip::GetTrimLeft() const noexcept
 {
-    return mSequences[0]->mTrimLeft;
+    return mSequences[0]->GetTrimLeft();
 }
 
 void WaveClip::SetTrimRight(double trim)
@@ -1367,7 +1362,8 @@ double WaveClip::GetTrimRight() const noexcept
 
 void WaveClip::TrimLeft(double deltaTime)
 {
-   SetTrimLeft(mSequences[0]->mTrimLeft + deltaTime);
+   ForEachSequence(
+      [deltaTime](auto& sequence) { sequence.TrimLeft(deltaTime); });
 }
 
 void WaveClip::TrimRight(double deltaTime)
@@ -1523,7 +1519,7 @@ bool WaveClip::CheckInvariants() const
 
 WaveClip::Transaction::Transaction(WaveClip &clip)
    : clip{ clip }
-   , mTrimLeft{ clip.mSequences[0]->mTrimLeft }
+   , mTrimLeft{ clip.mSequences[0]->GetTrimLeft() }
    , mTrimRight{ clip.mSequences[0]->mTrimRight }
 {
    sequences.reserve(clip.mSequences.size());
@@ -1538,7 +1534,11 @@ WaveClip::Transaction::~Transaction()
 {
    if (!committed) {
       clip.mSequences.swap(sequences);
-      clip.mSequences[0]->mTrimLeft = mTrimLeft;
-      clip.mSequences[0]->mTrimRight = mTrimRight;
+      clip.ForEachSequence(
+         [this](auto& sequence)
+         {
+            sequence.SetTrimLeft(mTrimLeft);
+            sequence.mTrimRight = mTrimRight;
+         });
    }
 }
