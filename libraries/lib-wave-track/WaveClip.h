@@ -592,6 +592,12 @@ private:
    /// operation (but without putting the cut audio to the clipboard)
    void ClearSequence(double t0, double t1);
 
+   template <typename T> void ForEachSequence(T&& f) const
+   {
+      for (const auto& seq : mSequences)
+         f(*seq);
+   }
+
    //! Restores state when an update loop over mSequences fails midway
    struct Transaction {
       explicit Transaction(WaveClip &clip);

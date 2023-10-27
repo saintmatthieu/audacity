@@ -1,5 +1,6 @@
 #include "SequenceSampleMapper.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 
@@ -89,9 +90,75 @@ void SequenceSampleMapper::HardsetRate(int rate)
    mRate = rate;
 }
 
+void SequenceSampleMapper::OnProjectTempoChange(
+   const std::optional<double>& oldTempo, double newTempo)
+{
+   if (!mRawAudioTempo.has_value())
+      // When we have tempo detection ready (either by header-file
+      // read-up or signal analysis) we can use something smarter than that. In
+      // the meantime, use the tempo of the project when the clip is created as
+      // source tempo.
+      mRawAudioTempo = oldTempo.value_or(newTempo);
+
+   if (oldTempo.has_value())
+   {
+      const auto ratioChange = *oldTempo / newTempo;
+      mSequenceOffset *= ratioChange;
+      mTrimLeft *= ratioChange;
+      mTrimRight *= ratioChange;
+   }
+   mProjectTempo = newTempo;
+}
+
+void SequenceSampleMapper::StretchLeftTo(double t)
+{
+   const auto pet = GetPlayEndTime();
+   if (t >= pet)
+      return;
+   const auto oldPlayDuration = pet - GetPlayStartTime();
+   const auto newPlayDuration = pet - t;
+   const auto ratioChange = newPlayDuration / oldPlayDuration;
+   mSequenceOffset = pet - (pet - mSequenceOffset) * ratioChange;
+   mTrimLeft *= ratioChange;
+   mTrimRight *= ratioChange;
+   mClipStretchRatio *= ratioChange;
+}
+
+void SequenceSampleMapper::StretchRightTo(double t)
+{
+   const auto pst = GetPlayStartTime();
+   const auto oldPlayDuration = GetPlayEndTime() - pst;
+   const auto newPlayDuration = t - pst;
+   const auto ratioChange = newPlayDuration / oldPlayDuration;
+   mSequenceOffset = pst - mTrimLeft * ratioChange;
+   mTrimLeft *= ratioChange;
+   mTrimRight *= ratioChange;
+   mClipStretchRatio *= ratioChange;
+}
+
+void SequenceSampleMapper::RescaleTimesBy(double ratio)
+{
+   mSequenceOffset *= ratio;
+   mTrimLeft *= ratio;
+   mTrimRight *= ratio;
+   mClipStretchRatio *= ratio;
+}
+
+void SequenceSampleMapper::TrimLeftTo(double t)
+{
+   mTrimLeft =
+      std::clamp(t, SnapToTrackSample(mSequenceOffset), GetPlayEndTime()) -
+      mSequenceOffset;
+}
+
 double SequenceSampleMapper::GetSequenceStartTime() const
 {
    return mSequenceOffset;
+}
+
+void SequenceSampleMapper::SetSequenceStartTime(double t)
+{
+   mSequenceOffset = t;
 }
 
 double SequenceSampleMapper::GetSequenceEndTime() const

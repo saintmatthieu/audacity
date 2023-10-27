@@ -242,23 +242,15 @@ size_t WaveClip::GetAppendBufferLen() const
 void WaveClip::OnProjectTempoChange(
    const std::optional<double>& oldTempo, double newTempo)
 {
-   if (!mSequences[0]->mRawAudioTempo.has_value())
-      // When we have tempo detection ready (either by header-file
-      // read-up or signal analysis) we can use something smarter than that. In
-      // the meantime, use the tempo of the project when the clip is created as
-      // source tempo.
-      mSequences[0]->mRawAudioTempo = oldTempo.value_or(newTempo);
+   for (auto &pSequence : mSequences)
+      pSequence->OnProjectTempoChange(oldTempo, newTempo);
 
    if (oldTempo.has_value())
    {
       const auto ratioChange = *oldTempo / newTempo;
-      mSequences[0]->mSequenceOffset *= ratioChange;
-      mSequences[0]->mTrimLeft *= ratioChange;
-      mSequences[0]->mTrimRight *= ratioChange;
       StretchCutLines(ratioChange);
       mEnvelope->RescaleTimesBy(ratioChange);
    }
-   mSequences[0]->mProjectTempo = newTempo;
 }
 
 void WaveClip::StretchLeftTo(double to)
@@ -266,14 +258,12 @@ void WaveClip::StretchLeftTo(double to)
    const auto pet = GetPlayEndTime();
    if (to >= pet)
       return;
+   for (auto& pSequence : mSequences)
+      pSequence->StretchLeftTo(to);
    const auto oldPlayDuration = pet - GetPlayStartTime();
    const auto newPlayDuration = pet - to;
    const auto ratioChange = newPlayDuration / oldPlayDuration;
-   mSequences[0]->mSequenceOffset = pet - (pet - mSequences[0]->mSequenceOffset) * ratioChange;
-   mSequences[0]->mTrimLeft *= ratioChange;
-   mSequences[0]->mTrimRight *= ratioChange;
-   mSequences[0]->mClipStretchRatio *= ratioChange;
-   mEnvelope->SetOffset(mSequences[0]->mSequenceOffset);
+   mEnvelope->SetOffset(mSequences[0]->GetSequenceStartTime());
    mEnvelope->RescaleTimesBy(ratioChange);
    StretchCutLines(ratioChange);
 }
@@ -283,14 +273,12 @@ void WaveClip::StretchRightTo(double to)
    const auto pst = GetPlayStartTime();
    if (to <= pst)
       return;
+   for (auto& pSequence : mSequences)
+      pSequence->StretchRightTo(to);
    const auto oldPlayDuration = GetPlayEndTime() - pst;
    const auto newPlayDuration = to - pst;
    const auto ratioChange = newPlayDuration / oldPlayDuration;
-   mSequences[0]->mSequenceOffset = pst - mSequences[0]->mTrimLeft * ratioChange;
-   mSequences[0]->mTrimLeft *= ratioChange;
-   mSequences[0]->mTrimRight *= ratioChange;
-   mSequences[0]->mClipStretchRatio *= ratioChange;
-   mEnvelope->SetOffset(mSequences[0]->mSequenceOffset);
+   mEnvelope->SetOffset(mSequences[0]->GetSequenceStartTime());
    mEnvelope->RescaleTimesBy(ratioChange);
    StretchCutLines(ratioChange);
 }
@@ -299,10 +287,8 @@ void WaveClip::StretchCutLines(double ratioChange)
 {
    for (const auto& cutline : mCutLines)
    {
-      cutline->mSequences[0]->mSequenceOffset *= ratioChange;
-      cutline->mSequences[0]->mTrimLeft *= ratioChange;
-      cutline->mSequences[0]->mTrimRight *= ratioChange;
-      cutline->mSequences[0]->mClipStretchRatio *= ratioChange;
+      for (auto& sequence : cutline->mSequences)
+         sequence->RescaleTimesBy(ratioChange);
       cutline->mEnvelope->RescaleTimesBy(ratioChange);
    }
 }
@@ -615,7 +601,7 @@ void WaveClip::WriteXML(XMLWriter &xmlFile) const
       return;
 
    xmlFile.StartTag(wxT("waveclip"));
-   xmlFile.WriteAttr(wxT("offset"), mSequences[0]->mSequenceOffset, 8);
+   xmlFile.WriteAttr(wxT("offset"), mSequences[0]->GetSequenceStartTime(), 8);
    xmlFile.WriteAttr(wxT("trimLeft"), mSequences[0]->mTrimLeft, 8);
    xmlFile.WriteAttr(wxT("trimRight"), mSequences[0]->mTrimRight, 8);
    xmlFile.WriteAttr(wxT("rawAudioTempo"), mSequences[0]->mRawAudioTempo.value_or(0.), 8);
@@ -1391,9 +1377,7 @@ void WaveClip::TrimRight(double deltaTime)
 
 void WaveClip::TrimLeftTo(double to)
 {
-   mSequences[0]->mTrimLeft =
-      std::clamp(to, SnapToTrackSample(mSequences[0]->mSequenceOffset), GetPlayEndTime()) -
-      mSequences[0]->mSequenceOffset;
+   ForEachSequence([to](auto& sequence) { sequence.TrimLeftTo(to); });
 }
 
 void WaveClip::TrimRightTo(double to)
@@ -1409,8 +1393,10 @@ double WaveClip::GetSequenceStartTime() const noexcept
 
 void WaveClip::SetSequenceStartTime(double startTime)
 {
-    mSequences[0]->mSequenceOffset = startTime;
-    mEnvelope->SetOffset(startTime);
+   ForEachSequence([startTime](auto& sequence) {
+      sequence.SetSequenceStartTime(startTime);
+   });
+   mEnvelope->SetOffset(startTime);
 }
 
 double WaveClip::GetSequenceEndTime() const
@@ -1420,7 +1406,7 @@ double WaveClip::GetSequenceEndTime() const
 
 sampleCount WaveClip::GetSequenceStartSample() const
 {
-    return TimeToSamples(mSequences[0]->mSequenceOffset);
+   return TimeToSamples(mSequences[0]->GetSequenceStartTime());
 }
 
 void WaveClip::ShiftBy(double delta) noexcept

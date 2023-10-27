@@ -13,6 +13,7 @@ public:
 
    double GetStretchRatio() const;
    double GetSequenceStartTime() const;
+   void SetSequenceStartTime(double t);
    double GetSequenceEndTime() const;
    double GetSequenceDuration() const;
    double GetPlayStartTime() const;
@@ -28,9 +29,16 @@ public:
    //! Only changes the rate ; use with care.
    void HardsetRate(int rate);
 
+   void
+   OnProjectTempoChange(const std::optional<double>& oldTempo, double newTempo);
+   void StretchLeftTo(double t);
+   void StretchRightTo(double t);
+
+   void RescaleTimesBy(double ratio);
+   void TrimLeftTo(double t);
+
    //! Real-time durations, i.e., stretching the clip modifies these.
    //! @{
-   double mSequenceOffset { 0 };
    double mTrimLeft { 0 };
    double mTrimRight { 0 };
    //! @}
@@ -47,6 +55,11 @@ protected:
    size_t mAppendBufferLen { 0 };
 
 private:
+   //! Real-time durations, i.e., stretching the clip modifies these.
+   //! @{
+   double mSequenceOffset { 0 };
+   //! @}
+
    //! Sample rate of the raw audio, i.e., before stretching.
    int mRate;
 };
