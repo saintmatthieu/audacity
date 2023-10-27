@@ -21,6 +21,11 @@ public:
    double GetTrimLeft() const;
    void SetTrimLeft(double trim);
    void TrimLeft(double deltaTime);
+   void TrimLeftTo(double t);
+   double GetTrimRight() const;
+   void SetTrimRight(double trim);
+   void TrimRight(double deltaTime);
+   void TrimRightTo(double t);
    sampleCount GetNumStems() const;
 
    sampleCount TimeToSamples(double t) const;
@@ -39,12 +44,6 @@ public:
    void StretchRightTo(double t);
 
    void RescaleTimesBy(double ratio);
-   void TrimLeftTo(double t);
-
-   //! Real-time durations, i.e., stretching the clip modifies these.
-   //! @{
-   double mTrimRight { 0 };
-   //! @}
 
    // Used in GetStretchRatio which computes the factor, by which the sample
    // interval is multiplied, to get a realtime duration.
@@ -62,6 +61,7 @@ private:
    //! @{
    double mSequenceOffset { 0 };
    double mTrimLeft { 0 };
+   double mTrimRight { 0 };
    //! @}
 
    //! Sample rate of the raw audio, i.e., before stretching.

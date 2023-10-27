@@ -600,7 +600,7 @@ void WaveClip::WriteXML(XMLWriter &xmlFile) const
    xmlFile.StartTag(wxT("waveclip"));
    xmlFile.WriteAttr(wxT("offset"), mSequences[0]->GetSequenceStartTime(), 8);
    xmlFile.WriteAttr(wxT("trimLeft"), mSequences[0]->GetTrimLeft(), 8);
-   xmlFile.WriteAttr(wxT("trimRight"), mSequences[0]->mTrimRight, 8);
+   xmlFile.WriteAttr(wxT("trimRight"), mSequences[0]->GetTrimRight(), 8);
    xmlFile.WriteAttr(wxT("rawAudioTempo"), mSequences[0]->mRawAudioTempo.value_or(0.), 8);
    xmlFile.WriteAttr(wxT("clipStretchRatio"), mSequences[0]->mClipStretchRatio, 8);
    xmlFile.WriteAttr(wxT("name"), mName);
@@ -1352,12 +1352,12 @@ double WaveClip::GetTrimLeft() const noexcept
 
 void WaveClip::SetTrimRight(double trim)
 {
-    mSequences[0]->mTrimRight = std::max(.0, trim);
+   ForEachSequence([trim](auto& sequence) { sequence.SetTrimRight(trim); });
 }
 
 double WaveClip::GetTrimRight() const noexcept
 {
-    return mSequences[0]->mTrimRight;
+    return mSequences[0]->GetTrimRight();
 }
 
 void WaveClip::TrimLeft(double deltaTime)
@@ -1368,7 +1368,8 @@ void WaveClip::TrimLeft(double deltaTime)
 
 void WaveClip::TrimRight(double deltaTime)
 {
-   SetTrimRight(mSequences[0]->mTrimRight + deltaTime);
+   ForEachSequence(
+      [deltaTime](auto& sequence) { sequence.TrimRight(deltaTime); });
 }
 
 void WaveClip::TrimLeftTo(double to)
@@ -1378,8 +1379,7 @@ void WaveClip::TrimLeftTo(double to)
 
 void WaveClip::TrimRightTo(double to)
 {
-   const auto endTime = SnapToTrackSample(GetSequenceEndTime());
-   mSequences[0]->mTrimRight = endTime - std::clamp(to, GetPlayStartTime(), endTime);
+   ForEachSequence([to](auto& sequence) { sequence.TrimRightTo(to); });
 }
 
 double WaveClip::GetSequenceStartTime() const noexcept
@@ -1517,10 +1517,10 @@ bool WaveClip::CheckInvariants() const
    return false;
 }
 
-WaveClip::Transaction::Transaction(WaveClip &clip)
-   : clip{ clip }
-   , mTrimLeft{ clip.mSequences[0]->GetTrimLeft() }
-   , mTrimRight{ clip.mSequences[0]->mTrimRight }
+WaveClip::Transaction::Transaction(WaveClip& clip)
+    : clip { clip }
+    , mTrimLeft { clip.mSequences[0]->GetTrimLeft() }
+    , mTrimRight { clip.mSequences[0]->GetTrimRight() }
 {
    sequences.reserve(clip.mSequences.size());
    auto &factory = clip.GetFactory();
@@ -1538,7 +1538,7 @@ WaveClip::Transaction::~Transaction()
          [this](auto& sequence)
          {
             sequence.SetTrimLeft(mTrimLeft);
-            sequence.mTrimRight = mTrimRight;
+            sequence.SetTrimRight(mTrimRight);
          });
    }
 }
