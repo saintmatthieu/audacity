@@ -5,13 +5,16 @@
 
 #include <numeric>
 
+namespace ClipAnalysis
+{
+
 namespace
 {
 // TODO will have to be something more elaborate. Keeping it here for the
 // record.
 std::vector<size_t> GetBeatIndices(const std::vector<double>& odf)
 {
-   const auto xcorr = ClipAnalysis::GetNormalizedAutocorr(odf);
+   const auto xcorr = GetNormalizedAutocorr(odf);
    const auto mean =
       std::accumulate(xcorr.begin(), xcorr.end(), 0.) / xcorr.size();
    std::vector<size_t> indices;
@@ -38,7 +41,7 @@ std::vector<size_t> GetBeatIndices(const std::vector<double>& odf)
    return indices;
 }
 
-const ClipAnalysis::ODF nothingElse {
+const ODF nothingElse {
    { 0.0592116,  0.0368057,  0.0118619,  0.00713629, 0.00688765, 0.00749884,
      0.00594557, 0.00364093, 0.00609268, 0.0030691,  0.00471843, 0.00963024,
      0.0110642,  0.00843918, 0.00483536, 0.00489409, 0.00491847, 0.00446826,
@@ -65,7 +68,7 @@ const ClipAnalysis::ODF nothingElse {
    { 0, 12, 22, 32, 43, 54, 64, 75, 86, 96, 107, 118 }
 };
 
-const ClipAnalysis::ODF drums {
+const ODF drums {
    { 1.9842,     0.348138,    0.0317856,  0.142962,    0.0267322,  0.0230012,
      0.0186575,  0.00170355,  1.87967,    0.167126,    0.0180388,  0.0939828,
      0.0558142,  0.00835295,  0.0218427,  0.000860311, 0.339384,   0.190026,
@@ -82,22 +85,76 @@ const ClipAnalysis::ODF drums {
 };
 } // namespace
 
-TEST_CASE("GetBpmFromOdf")
+TEST_CASE("GetDivisionLevels")
+{
+   DivisionLevelInput input;
+
+   input.numBars = 1;
+   input.timeSignature = TimeSignature::FourFour;
+   input.totalNumDivs = 4;
+   const auto oneBarFourFour = GetDivisionLevels(input);
+   REQUIRE(oneBarFourFour.has_value());
+   REQUIRE(oneBarFourFour->size() == input.totalNumDivs);
+   REQUIRE(
+      *oneBarFourFour ==
+      std::vector<Level> { L { 0 }, L { 2 }, L { 1 }, L { 2 } });
+   const auto oneBarFourFourOrdinals = ToSeriesOrdinals(*oneBarFourFour);
+   REQUIRE(
+      oneBarFourFourOrdinals ==
+      std::vector<Ordinal> { O { 0 }, O { 0 }, O { 0 }, O { 0 } });
+
+   input.numBars = 2;
+   const auto twoBarsTwoFour = GetDivisionLevels(input);
+   REQUIRE(!twoBarsTwoFour.has_value()); // We don't support it for now.
+
+   input.totalNumDivs *= 2;
+   const auto twoBarsFourFour = GetDivisionLevels(input);
+   REQUIRE(twoBarsFourFour.has_value());
+   REQUIRE(twoBarsFourFour->size() == input.totalNumDivs);
+   REQUIRE(
+      *twoBarsFourFour == std::vector<Level> { L { 0 }, L { 2 }, L { 1 },
+                                               L { 2 }, L { 0 }, L { 2 },
+                                               L { 1 }, L { 2 } });
+
+   input.totalNumDivs *= 3; // Add another sublevel of swung rhythm.
+   const auto twoBarsFourFourSwing = GetDivisionLevels(input);
+   // REQUIRE(twoBarsFourFourSwing == twoBarsFourFour);
+
+   input.numBars = 2;
+   input.totalNumDivs = 12;
+   input.timeSignature = TimeSignature::SixEight;
+   const auto twoBarsSixEight = GetDivisionLevels(input);
+   REQUIRE(twoBarsSixEight.has_value());
+   REQUIRE(twoBarsSixEight->size() == input.totalNumDivs);
+   REQUIRE(
+      *twoBarsSixEight == std::vector<Level> { L { 0 }, L { 2 }, L { 2 },
+                                               L { 1 }, L { 2 }, L { 2 },
+                                               L { 0 }, L { 2 }, L { 2 },
+                                               L { 1 }, L { 2 }, L { 2 } });
+   const auto twoBarsSixEightOrdinals = ToSeriesOrdinals(*twoBarsSixEight);
+   REQUIRE(
+      twoBarsSixEightOrdinals ==
+      std::vector<Ordinal> { O { 0 }, O { 0 }, O { 1 }, O { 0 }, O { 0 },
+                             O { 1 }, O { 1 }, O { 0 }, O { 1 }, O { 0 },
+                             O { 0 }, O { 1 } });
+}
+
+TEST_CASE("GetBpmFromOdf2")
 {
    SECTION("drums")
    {
-      const auto result = ClipAnalysis::GetBpmFromOdf(drums);
+      const auto result = GetBpmFromOdf2(drums);
       REQUIRE(result.has_value());
       REQUIRE(result->numBars == 1);
-      REQUIRE(result->timeSignature == ClipAnalysis::TimeSignature::FourFour);
+      REQUIRE(result->timeSignature == TimeSignature::FourFour);
    }
 
    SECTION("nothingElse")
    {
-      const auto result = ClipAnalysis::GetBpmFromOdf(nothingElse);
+      const auto result = GetBpmFromOdf2(nothingElse);
       REQUIRE(result.has_value());
       REQUIRE(result->numBars == 2);
-      REQUIRE(result->timeSignature == ClipAnalysis::TimeSignature::SixEight);
+      REQUIRE(result->timeSignature == TimeSignature::SixEight);
    }
 }
 
@@ -105,7 +162,7 @@ TEST_CASE("GetBeatIndexPairs")
 {
    SECTION("2 bars of 6/8")
    {
-      const auto pairs = ClipAnalysis::GetBeatIndexPairs(12, 2);
+      const auto pairs = GetBeatIndexPairs(12, 2);
       REQUIRE(pairs.size() == 5);
       REQUIRE(pairs[0] == std::pair<size_t, size_t>(1, 7));
       REQUIRE(pairs[1] == std::pair<size_t, size_t>(2, 8));
@@ -114,3 +171,4 @@ TEST_CASE("GetBeatIndexPairs")
       REQUIRE(pairs[4] == std::pair<size_t, size_t>(5, 11));
    }
 }
+} // namespace ClipAnalysis

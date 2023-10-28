@@ -27,6 +27,8 @@ set( SOURCES
    SpectrumTransformer.h
    TimeDiv.cpp
    TimeDiv.h
+
+   NamedType/named_type.hpp
 )
 set( LIBRARIES
    lib-math
