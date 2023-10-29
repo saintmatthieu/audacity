@@ -29,6 +29,24 @@ set( SOURCES
    TimeDiv.h
 
    NamedType/named_type.hpp
+
+   Bessel.cpp
+   Biquad.cpp
+   Butterworth.cpp
+   Cascade.cpp
+   ChebyshevI.cpp
+   ChebyshevII.cpp
+   Custom.cpp
+   Design.cpp
+   Documentation.cpp
+   Elliptic.cpp
+   Filter.cpp
+   Legendre.cpp
+   Param.cpp
+   PoleFilter.cpp
+   RBJ.cpp
+   RootFinder.cpp
+   State.cpp
 )
 set( LIBRARIES
    lib-math
