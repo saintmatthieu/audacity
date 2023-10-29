@@ -58,7 +58,7 @@ THE SOFTWARE.
 #include <algorithm>
 
 #ifdef _MSC_VER
-namespace tr1 = std::tr1;
+namespace tr1 = std;
 #else
 namespace tr1 = std;
 #endif
