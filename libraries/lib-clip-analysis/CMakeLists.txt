@@ -30,23 +30,23 @@ set( SOURCES
 
    NamedType/named_type.hpp
 
-   Bessel.cpp
-   Biquad.cpp
-   Butterworth.cpp
-   Cascade.cpp
-   ChebyshevI.cpp
-   ChebyshevII.cpp
-   Custom.cpp
-   Design.cpp
-   Documentation.cpp
-   Elliptic.cpp
-   Filter.cpp
-   Legendre.cpp
-   Param.cpp
-   PoleFilter.cpp
-   RBJ.cpp
-   RootFinder.cpp
-   State.cpp
+   DSPFilters/Bessel.cpp
+   DSPFilters/Biquad.cpp
+   DSPFilters/Butterworth.cpp
+   DSPFilters/Cascade.cpp
+   DSPFilters/ChebyshevI.cpp
+   DSPFilters/ChebyshevII.cpp
+   DSPFilters/Custom.cpp
+   DSPFilters/Design.cpp
+   DSPFilters/Documentation.cpp
+   DSPFilters/Elliptic.cpp
+   DSPFilters/Filter.cpp
+   DSPFilters/Legendre.cpp
+   DSPFilters/Param.cpp
+   DSPFilters/PoleFilter.cpp
+   DSPFilters/RBJ.cpp
+   DSPFilters/RootFinder.cpp
+   DSPFilters/State.cpp
 )
 set( LIBRARIES
    lib-math
