@@ -143,7 +143,7 @@ bool operator<(const Likelihood& a, const Likelihood& b)
    const auto disB = std::log(b.dissimilarity);
 
    // TODO tune
-   const auto disWeight = 10.;
+   const auto disWeight = 1.;
    return bpmA - disA * disWeight < bpmB - disB * disWeight;
 }
 
@@ -234,6 +234,19 @@ GetDivisionLevels(const DivisionLevelInput& input)
 std::vector<Ordinal> ToSeriesOrdinals(const std::vector<Level>& divisionLevels)
 {
    std::vector<Ordinal> ordinals(divisionLevels.size());
+   // Sometimes I think only events of equal ordinality should be compared,
+   // sometimes not ... This is to account for the fact that a ternary
+   // subdivision may not have all sub-beats equally accentuated. Example of a
+   // swung rhythm, with level hierarchy `0 1 1 0 1 1 ...`. The first `1` of
+   // each pair is in general not accentuated, leading to a pattern `a b c a b
+   // c`, where `a` is the downbeat, `c` the swung subbeat, and `b` is silence.
+   // In such case, comparing `b`s with `c`s would be misleading.
+   constexpr auto ignoreThis = false;
+   if (ignoreThis)
+      return ordinals;
+   // TODO there is a better way: use `std::pair<std::vector<size_t>,
+   // std::vector<size_t>>`. For binary subdivisions, the vectors have size one,
+   // but with ternary subdivisions, the vectors have size two.
    std::map<Level, Ordinal> levelOrdinals;
    for (auto l = 0; l < divisionLevels.size(); ++l)
    {
@@ -244,7 +257,7 @@ std::vector<Ordinal> ToSeriesOrdinals(const std::vector<Level>& divisionLevels)
             ordinal = O { 0 };
       if (!levelOrdinals.count(divLevel))
          levelOrdinals[divLevel] = O { 0 };
-      ordinals[l] = levelOrdinals.at(divLevel)++;
+      ordinals[l] = l == 0 ? O { 0 } : levelOrdinals.at(divLevel)++;
    }
    return ordinals;
 }
@@ -300,21 +313,39 @@ std::vector<std::pair<II, II>> GetUniqueCombinations(
             pairs.emplace_back(indices[i], indices[j]);
    return pairs;
 }
+
+std::vector<double>
+ToLog(const std::vector<double>& values, const std::vector<size_t>& indices)
+{
+   std::vector<double> result(indices.size());
+   std::transform(
+      indices.begin(), indices.end(), result.begin(),
+      [&](size_t i) { return std::log(values[i]); });
+   return result;
+}
+
+struct Comparison
+{
+   size_t i;
+   size_t j;
+   double d;
+   double w;
+};
+
+struct Hypothesis
+{
+   TimeSignature sig = TimeSignature::_Count;
+   int numBars = 0;
+   double dissimilarity = 0.;
+   double bpmProbability = 0.;
+   std::vector<Comparison> comparisons;
+};
 } // namespace
 
 CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf2(const ODF& odf)
 {
    const int numDivisions = odf.beatIndices.size();
-   const auto odfMean =
-      std::accumulate(odf.values.begin(), odf.values.end(), 0.) /
-      odf.values.size();
-   struct Hypothesis
-   {
-      TimeSignature sig = TimeSignature::_Count;
-      int numBars = 0;
-      double dissimilarity = 0.;
-      double bpmProbability = 0.;
-   };
+   const auto logValues = ToLog(odf.values, odf.beatIndices);
    std::vector<Hypothesis> hypotheses;
    for (auto numBars = 1; numBars <= 8; ++numBars)
       for (auto t = 0; t < static_cast<int>(TimeSignature::_Count); ++t)
@@ -327,33 +358,36 @@ CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf2(const ODF& odf)
          const auto seriesOrdinals = ToSeriesOrdinals(*divLevels);
          const auto levelSet =
             std::set<Level> { divLevels->begin(), divLevels->end() };
-         auto dissimilaritySum = 0.;
-         auto numComparisons = 0;
+         std::vector<Comparison> comparisons;
          for (auto level : levelSet)
          {
             const std::vector<IndexIndex> levelMatchingIndices =
                FilterByLevel(odf.beatIndices.size(), *divLevels, level);
             const auto iiPairs =
                GetUniqueCombinations(levelMatchingIndices, seriesOrdinals);
-            if (iiPairs.empty())
-               continue;
-            const auto dissimilarity = std::accumulate(
-               iiPairs.begin(), iiPairs.end(), 0.,
-               [&](double sum, const std::pair<II, II>& indexIndices) {
-                  const auto diff =
-                     odf.values[odf.beatIndices[indexIndices.first.get()]] -
-                     odf.values[odf.beatIndices[indexIndices.second.get()]];
-                  return sum + diff * diff;
+            std::transform(
+               iiPairs.begin(), iiPairs.end(), std::back_inserter(comparisons),
+               [&](const std::pair<II, II>& p) {
+                  const auto i = p.first.get();
+                  const auto j = p.second.get();
+                  const auto diff = logValues[i] - logValues[j];
+                  const double weight = 1. / (1 << level.get());
+                  return Comparison { odf.beatIndices[i], odf.beatIndices[j],
+                                      diff, weight };
                });
-            dissimilaritySum += dissimilarity;
-            numComparisons += iiPairs.size();
          }
-
-         const auto dissimilarity =
-            dissimilaritySum / (numComparisons * odfMean);
+         const auto weigthSum = std::accumulate(
+            comparisons.begin(), comparisons.end(), 0.,
+            [](double sum, const Comparison& c) { return sum + c.w; });
+         const auto dissimilaritySum = std::accumulate(
+            comparisons.begin(), comparisons.end(), 0.,
+            [](double sum, const Comparison& c) {
+               return sum + (c.d < 0 ? -c.d : c.d) * c.w;
+            });
+         const auto dissimilarity = dissimilaritySum / weigthSum;
          const auto bpmProb = GetBpmProbability(sig, numBars, odf.duration);
          hypotheses.emplace_back(
-            Hypothesis { sig, numBars, dissimilarity, bpmProb });
+            Hypothesis { sig, numBars, dissimilarity, bpmProb, comparisons });
       }
 
    if (hypotheses.empty())
