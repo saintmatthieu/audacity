@@ -7,6 +7,7 @@ add_unit_test(
    WAV_FILE_IO
    SOURCES
       CircularClipTests.cpp
+      GetBeatIndicesTests.cpp
       GetBpmFromOdfTests.cpp
       GetBpmFromOdfXcorrTests.cpp
       FloatVectorClip.cpp

@@ -3,6 +3,8 @@
 #include "ClipAnalysisUtils.h"
 #include "ClipInterface.h"
 #include "FFT.h"
+#include "GetBeatIndices.h"
+#include "ODF.h"
 #include "OnsetDetector.h"
 #include "TimeDiv.h"
 
@@ -13,6 +15,7 @@ using II = IndexIndex;
 #include <map>
 #include <numeric>
 #include <set>
+#include <sstream>
 #include <tuple>
 
 namespace ClipAnalysis
@@ -82,12 +85,13 @@ void EvaluateDissimilarities(
    numComparisons = pairs.size();
 }
 
-void FillTree(const ODF& odf, Tree& tree)
+void FillTree(
+   const ODF& odf, const std::vector<size_t>& beatIndices, Tree& tree)
 {
-   const auto numBeats = odf.beatIndices.size();
+   const auto numBeats = beatIndices.size();
    std::vector<double> beatValues(numBeats);
    std::transform(
-      odf.beatIndices.begin(), odf.beatIndices.end(), beatValues.begin(),
+      beatIndices.begin(), beatIndices.end(), beatValues.begin(),
       [&](const size_t& i) { return odf.values[i]; });
    const auto odfMean =
       std::accumulate(odf.values.begin(), odf.values.end(), 0.) /
@@ -265,7 +269,10 @@ std::vector<Ordinal> ToSeriesOrdinals(const std::vector<Level>& divisionLevels)
 std::optional<Result> GetBpmFromOdf(const ODF& odf)
 {
    Tree tree;
-   FillTree(odf, tree);
+   const auto beatIndices = GetBeatIndices(odf);
+   if (!beatIndices.has_value())
+      return {};
+   FillTree(odf, *beatIndices, tree);
    if (tree.empty())
       return {};
    const auto& [numBars, branch] = *std::max_element(
@@ -342,10 +349,14 @@ struct Hypothesis
 };
 } // namespace
 
-CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf2(const ODF& odf)
+std::optional<Result> GetBpmFromOdf2(const ODF& odf)
 {
-   const int numDivisions = odf.beatIndices.size();
-   const auto logValues = ToLog(odf.values, odf.beatIndices);
+   const auto beatIndices = GetBeatIndices(odf);
+   if (!beatIndices.has_value())
+      return {};
+
+   const int numDivisions = beatIndices->size();
+   const auto logValues = ToLog(odf.values, *beatIndices);
    std::vector<Hypothesis> hypotheses;
    for (auto numBars = 1; numBars <= 8; ++numBars)
       for (auto t = 0; t < static_cast<int>(TimeSignature::_Count); ++t)
@@ -358,11 +369,12 @@ CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf2(const ODF& odf)
          const auto seriesOrdinals = ToSeriesOrdinals(*divLevels);
          const auto levelSet =
             std::set<Level> { divLevels->begin(), divLevels->end() };
+
          std::vector<Comparison> comparisons;
          for (auto level : levelSet)
          {
             const std::vector<IndexIndex> levelMatchingIndices =
-               FilterByLevel(odf.beatIndices.size(), *divLevels, level);
+               FilterByLevel(numDivisions, *divLevels, level);
             const auto iiPairs =
                GetUniqueCombinations(levelMatchingIndices, seriesOrdinals);
             std::transform(
@@ -372,7 +384,7 @@ CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf2(const ODF& odf)
                   const auto j = p.second.get();
                   const auto diff = logValues[i] - logValues[j];
                   const double weight = 1. / (1 << level.get());
-                  return Comparison { odf.beatIndices[i], odf.beatIndices[j],
+                  return Comparison { (*beatIndices)[i], (*beatIndices)[j],
                                       diff, weight };
                });
          }
@@ -409,4 +421,5 @@ CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf2(const ODF& odf)
          beatsPerBar.at(winner.sig) * barsPerMinute;
    return Result { winner.numBars, quarternotesPerMinute, winner.sig };
 }
+
 } // namespace ClipAnalysis

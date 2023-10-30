@@ -5,21 +5,18 @@
 #include <optional>
 #include <vector>
 
+class ClipInterface;
+
 namespace ClipAnalysis
 {
+struct ODF;
+
 using Level = fluent::NamedType<unsigned, struct LevelTag, fluent::Arithmetic>;
 using L = Level;
 
 using Ordinal =
    fluent::NamedType<size_t, struct OrdinalTag, fluent::Arithmetic>;
 using O = Ordinal;
-
-struct ODF
-{
-   std::vector<double> values;
-   const double duration;
-   const std::vector<size_t> beatIndices; // TODO this will have to be guessed.
-};
 
 enum class TimeSignature
 {

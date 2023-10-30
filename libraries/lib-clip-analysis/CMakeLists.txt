@@ -15,10 +15,15 @@ set( SOURCES
    ClipInterface.cpp
    ClipInterface.h
    ClipInterfacePartialImpl.h
+   GetBeatIndices.cpp
+   GetBeatIndices.h
    GetBpmFromOdf.cpp
    GetBpmFromOdf.h
    GetBpmFromOdfXcorr.cpp
    GetBpmFromOdfXcorr.h
+   GetOdf.cpp
+   GetOdf.h
+   ODF.h
    OnsetDetector.cpp
    OnsetDetector.h
    ResamplingClip.cpp

@@ -1,5 +1,6 @@
 #include "ClipAnalysisUtils.h"
 #include "GetBpmFromOdf.h"
+#include "ODF.h"
 
 #include <catch2/catch.hpp>
 
@@ -10,37 +11,6 @@ namespace ClipAnalysis
 
 namespace
 {
-// TODO will have to be something more elaborate. Keeping it here for the
-// record.
-std::vector<size_t> GetBeatIndices(const std::vector<double>& odf)
-{
-   const auto xcorr = GetNormalizedAutocorr(odf);
-   const auto mean =
-      std::accumulate(xcorr.begin(), xcorr.end(), 0.) / xcorr.size();
-   std::vector<size_t> indices;
-   for (auto i = 0u; i < xcorr.size() - 1; ++i)
-   {
-      const auto h = (i - 1) % xcorr.size();
-      const auto j = (i + 1) % xcorr.size();
-      if (xcorr[h] <= xcorr[i] && xcorr[i] >= xcorr[j] && xcorr[i] > mean)
-         indices.push_back(i);
-   }
-   std::transform(
-      indices.begin(), indices.end(), indices.begin(), [&](size_t i) {
-         // TODO we may need to search for largest peak within interval around i
-         // ; but what interval should that be ? In the meantime let's try that.
-         while (true)
-         {
-            const auto h = (i - 1) % odf.size();
-            const auto j = (i + 1) % odf.size();
-            if (odf[h] <= odf[i] && odf[i] >= odf[j])
-               return i;
-            i = odf[h] > odf[j] ? h : j;
-         }
-      });
-   return indices;
-}
-
 const ODF nothingElse {
    { 0.0592116,  0.0368057,  0.0118619,  0.00713629, 0.00688765, 0.00749884,
      0.00594557, 0.00364093, 0.00609268, 0.0030691,  0.00471843, 0.00963024,
@@ -65,7 +35,7 @@ const ODF nothingElse {
      0.018136,   0.0172117,  0.011541,   0.0112245,  0.0105222,  0.0116389,
      0.00875201, 0.0107586 },
    5.075,
-   { 0, 12, 22, 32, 43, 54, 64, 75, 86, 96, 107, 118 }
+   // { 0, 12, 22, 32, 43, 54, 64, 75, 86, 96, 107, 118 }
 };
 
 const ODF drums {
@@ -81,7 +51,7 @@ const ODF drums {
      0.00344126, 0.000653325, 1.78737,    0.378403,    0.0346937,  0.111101,
      0.0337092,  1.10146,     0.178378,   0.0174122 },
    3.329,
-   { 0, 8, 16, 24, 32, 40, 48, 56 }
+   // { 0, 8, 16, 24, 32, 40, 48, 56 }
 };
 } // namespace
 
