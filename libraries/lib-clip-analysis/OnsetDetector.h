@@ -23,14 +23,15 @@ namespace ClipAnalysis
 class OnsetDetector : public SpectrumTransformer
 {
 public:
-   OnsetDetector(int fftSize, bool needsOutput = false);
+   OnsetDetector(int fftSize, double fftRate, bool needsOutput = false);
    bool WindowProcessor(SpectrumTransformer& transformer);
-   const std::vector<double>& GetOnsetDetectionResults() const;
+   std::vector<double> GetOnsetDetectionResults() const;
 
 private:
    void DoOutput(const float* outBuffer, size_t mStepSize) override;
 
    const int mFftSize;
+   const double mFftRate;
    std::vector<float> mPrevPhase;
    std::vector<float> mPrevPhase2;
    std::vector<float> mPrevMagSpec;

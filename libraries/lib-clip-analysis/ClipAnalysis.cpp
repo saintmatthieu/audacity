@@ -110,6 +110,7 @@ std::optional<double> GetBpm(const ClipInterface& clip)
    const int k = 1 << static_cast<int>(
                     std::round(std::log2(playDur * overlap / targetFftDur)));
    const double fftDur = overlap * playDur / k;
+   const auto fftRate = k / playDur;
    // To satisfy this `fftDur` as well as the power-of-two constraint, we will
    // need to resample. We don't need much more than 16kHz in the end.
    const int fftSize =
@@ -122,7 +123,7 @@ std::optional<double> GetBpm(const ClipInterface& clip)
    ResamplingClip stftClip { circularClip, resampleRate };
 
    constexpr auto istftNeeded = false;
-   OnsetDetector detector { fftSize, istftNeeded };
+   OnsetDetector detector { fftSize, fftRate, istftNeeded };
 
    constexpr auto historyLength = 1u;
    detector.Start(historyLength);

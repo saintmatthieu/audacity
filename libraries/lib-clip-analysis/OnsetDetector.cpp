@@ -15,13 +15,14 @@ refactored for use in Audacity.
 #include "OnsetDetector.h"
 #include "AudioSegmentSampleView.h"
 #include "ClipInterface.h"
+#include "DSPFilters/Bessel.h"
 
 #include <array>
 #include <optional>
 
 namespace ClipAnalysis
 {
-OnsetDetector::OnsetDetector(int fftSize, bool needsOutput)
+OnsetDetector::OnsetDetector(int fftSize, double fftRate, bool needsOutput)
     // Use a hann function for analysis and synthesis (if synthesis there is),
     // an overlap of 2 ...
     : SpectrumTransformer { needsOutput, eWinFuncHann, eWinFuncHann, fftSize, 2,
@@ -29,6 +30,7 @@ OnsetDetector::OnsetDetector(int fftSize, bool needsOutput)
                             // thanks.
                             false, false }
     , mFftSize(fftSize)
+    , mFftRate(fftRate)
 {
    mPrevPhase.resize(mFftSize / 2);
    mPrevPhase2.resize(mFftSize / 2);
@@ -96,8 +98,24 @@ bool OnsetDetector::WindowProcessor(SpectrumTransformer& transformer)
    return true;
 }
 
-const std::vector<double>& OnsetDetector::GetOnsetDetectionResults() const
+std::vector<double> OnsetDetector::GetOnsetDetectionResults() const
 {
-   return mOdfVals;
+   constexpr auto useHighPass = false;
+   if (!useHighPass)
+      return mOdfVals;
+
+   constexpr int highpassOrder = 4;
+   constexpr int numChannels = 1;
+   Dsp::SimpleFilter<Dsp::Bessel::HighPass<highpassOrder>, numChannels> hp;
+   // Remove low-frequency component like swelling.
+   constexpr auto cutoff = 3;
+   hp.setup(highpassOrder, mFftRate, cutoff);
+   auto f = mOdfVals;
+   // Duplicate the vector to avoid transients.
+   f.insert(f.end(), f.begin(), f.end());
+   auto data = f.data();
+   hp.process(f.size(), &data);
+   f.erase(f.begin(), f.begin() + f.size() / 2);
+   return f;
 }
 } // namespace ClipAnalysis
