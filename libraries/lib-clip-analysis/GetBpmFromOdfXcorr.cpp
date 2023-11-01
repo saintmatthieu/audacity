@@ -11,6 +11,7 @@
 #include <map>
 #include <numeric>
 #include <sstream>
+#include <unordered_map>
 
 namespace ClipAnalysis
 {
@@ -213,7 +214,8 @@ void recursion(
       auto nextDivs = divs;
       nextDivs.push_back(divisor);
 
-      const auto evalIndices = GetEvalIndices(newDiv, prevIndices, xcorr.values);
+      const auto evalIndices =
+         GetEvalIndices(newDiv, prevIndices, xcorr.values);
       const auto values = GetValues(xcorr.values, evalIndices);
       const auto maxScore =
          values.empty() ? 1. : *std::max_element(values.begin(), values.end());
