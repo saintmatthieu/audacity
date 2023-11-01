@@ -26,13 +26,29 @@ namespace ClipAnalysis
 // onset detection values, which works halfway, but something more sensible and
 // discriminant might be at hand ...
 
-std::optional<double> GetBpm(const ClipInterface& clip)
+std::optional<MeterInfo> GetBpm(const ClipInterface& clip)
 {
    const auto odf = GetOdf(clip);
-   const auto result = GetBpmFromOdf2(odf);
+   auto result = GetBpmFromOdf2(odf);
    if (result.has_value())
-      return result->quarterNotesPerMinute;
+   {
+      MeterInfo info;
+      info.numBars = result->numBars;
+      info.timeSignature = result->timeSignature;
+      info.quarternotesPerMinute = result->quarternotesPerMinute;
+      if (const auto& alt = result->alternative)
+         info.alternative.emplace(
+            alt->numBars, alt->timeSignature, alt->quarternotesPerMinute);
+      return info;
+   }
    else
       return {};
 }
+
+int GetNumQuarternotesPerBar(TimeSignature sig)
+{
+   // 6/8 and 3/4 have both three crotchets per bar.
+   return sig == TimeSignature::FourFour ? 4 : 3;
+}
+
 } // namespace ClipAnalysis

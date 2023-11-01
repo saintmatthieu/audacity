@@ -345,11 +345,16 @@ double WaveClip::GetStretchRatio() const
    return mClipStretchRatio * dstSrcRatio;
 }
 
-void WaveClip::GuessYourTempo()
+std::optional<ClipAnalysis::MeterInfo> WaveClip::GuessYourTempo()
 {
    const auto guess = ClipAnalysis::GetBpm(*this);
-   if (guess.has_value())
-      mRawAudioTempo = guess;
+   if (!guess.has_value())
+      return {};
+   mRawAudioTempo = guess->quarternotesPerMinute;
+   mMeterInfo.emplace(
+      guess->numBars, guess->timeSignature, guess->quarternotesPerMinute,
+      guess->alternative);
+   return mMeterInfo;
 }
 
 std::optional<double> WaveClip::GetTempo() const
@@ -1336,9 +1341,38 @@ void WaveClip::SetName(const wxString& name)
    mName = name;
 }
 
-const wxString& WaveClip::GetName() const
+namespace
 {
-   return mName;
+template <typename MeterInfoType>
+std::string ToString(const MeterInfoType& info)
+{
+   using namespace ClipAnalysis;
+   std::string s;
+   s += std::to_string(info.numBars) + "*";
+   s += info.timeSignature == TimeSignature::FourFour  ? "4/4" :
+        info.timeSignature == TimeSignature::ThreeFour ? "3/4" :
+                                                         "6/8";
+   s += "@";
+   const int roundedTempo = std::round(info.quarternotesPerMinute);
+   s += std::to_string(roundedTempo) + "cpm";
+   return s;
+}
+} // namespace
+
+wxString WaveClip::GetName() const
+{
+   std::string name = mName;
+   if (mMeterInfo.has_value())
+   {
+      using namespace ClipAnalysis;
+      name += " (";
+      name += ToString(*mMeterInfo);
+
+      if (mMeterInfo->alternative)
+         name += " OR " + ToString(*mMeterInfo->alternative);
+      name += ")";
+   }
+   return name;
 }
 
 sampleCount WaveClip::TimeToSamples(double time) const

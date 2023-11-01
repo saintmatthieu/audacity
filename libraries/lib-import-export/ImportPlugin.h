@@ -45,12 +45,13 @@ but little else.
 #ifndef __AUDACITY_IMPORTER__
 #define __AUDACITY_IMPORTER__
 
-
-
-#include <memory>
 #include "Identifier.h"
 #include "Internat.h"
 #include "wxArrayStringEx.h"
+#include "ClipAnalysis.h"
+
+#include <memory>
+#include <optional>
 
 class AudacityProject;
 class WaveTrackFactory;
@@ -114,9 +115,9 @@ public:
    using ByteCount = unsigned long long;
 
    virtual ~ImportFileHandle();
-   
+
    virtual FilePath GetFilename() const = 0;
-   
+
    virtual TranslatableString GetErrorMessage() const;
 
    // This is similar to GetPluginFormatDescription, but if possible the
@@ -146,13 +147,13 @@ public:
    // or tags unmodified.
    // If resulting outTracks is not empty,
    // then each member of it must be a nonempty vector.
-   virtual void Import(ImportProgressListener &progressListener,
+   virtual std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener &progressListener,
                        WaveTrackFactory *trackFactory,
                        TrackHolders &outTracks,
                        Tags *tags) = 0;
 
    virtual void Cancel() = 0;
-   
+
    virtual void Stop() = 0;
 };
 
@@ -163,7 +164,7 @@ class IMPORT_EXPORT_API ImportFileHandleEx : public ImportFileHandle
    bool mStopped{false};
 public:
    ImportFileHandleEx(const FilePath& filename);
-   
+
    FilePath GetFilename() const override;
    void Cancel() override;
    void Stop() override;

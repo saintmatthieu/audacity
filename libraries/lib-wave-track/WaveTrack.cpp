@@ -213,12 +213,13 @@ void WaveTrack::Interval::StretchRightTo(double t)
       GetClip(channel)->StretchRightTo(t);
 }
 
-void WaveTrack::Interval::GuessYourTempo()
+std::optional<ClipAnalysis::MeterInfo> WaveTrack::Interval::GuessYourTempo()
 {
    auto left = GetClip(0);
-   left->GuessYourTempo();
-   if (NChannels() > 1 && left->GetTempo().has_value())
-      GetClip(1)->SetTempo(*left->GetTempo());
+   const auto guess = left->GuessYourTempo();
+   if (NChannels() > 1 && guess.has_value())
+      GetClip(1)->SetTempo(guess->quarternotesPerMinute);
+   return guess;
 }
 
 void WaveTrack::Interval::ApplyStretchRatio(
@@ -251,7 +252,7 @@ void WaveTrack::Interval::SetName(const wxString& name)
    ForEachClip([&](auto& clip) { clip.SetName(name); });
 }
 
-const wxString& WaveTrack::Interval::GetName() const
+wxString WaveTrack::Interval::GetName() const
 {
    //TODO wide wave tracks:  assuming that all 'narrow' clips share common name
    return mpClip->GetName();

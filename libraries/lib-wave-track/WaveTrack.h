@@ -11,6 +11,7 @@
 #ifndef __AUDACITY_WAVETRACK__
 #define __AUDACITY_WAVETRACK__
 
+#include "ClipAnalysis.h"
 #include "ClipInterface.h"
 #include "PlaybackDirection.h"
 #include "Prefs.h"
@@ -929,7 +930,7 @@ public:
       ~Interval() override;
 
       void SetName(const wxString& name);
-      const wxString& GetName() const;
+      wxString GetName() const;
 
       void SetColorIndex(int index);
       int GetColorIndex() const;
@@ -964,7 +965,7 @@ public:
       void StretchLeftTo(double t);
       void StretchRightTo(double t);
 
-      void GuessYourTempo();
+      std::optional<ClipAnalysis::MeterInfo> GuessYourTempo();
       void ApplyStretchRatio(const std::function<void(double)>& reportProgress);
       bool StretchRatioEquals(double value) const;
 

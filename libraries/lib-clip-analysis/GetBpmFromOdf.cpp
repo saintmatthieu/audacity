@@ -351,6 +351,16 @@ struct Hypothesis
    double bpmProbability = 0.;
    std::vector<Comparison> comparisons;
 };
+
+double GetQuarternotesPerMinute(const ODF& odf, const Hypothesis& hypothesis)
+{
+   const auto barsPerMinute = hypothesis.numBars * 60 / odf.duration;
+   return
+      // 6/8 two beats but three quarter notes per bar.
+      hypothesis.sig == TimeSignature::SixEight ?
+         3 * barsPerMinute :
+         beatsPerBar.at(hypothesis.sig) * barsPerMinute;
+}
 } // namespace
 
 std::optional<Result> GetBpmFromOdf2(const ODF& odf)
@@ -428,13 +438,14 @@ std::optional<Result> GetBpmFromOdf2(const ODF& odf)
       });
 
    const auto& winner = hypotheses.front();
-   const auto barsPerMinute = winner.numBars * 60 / odf.duration;
-   const auto quarternotesPerMinute =
-      // 6/8 two beats but three quarter notes per bar.
-      winner.sig == TimeSignature::SixEight ?
-         3 * barsPerMinute :
-         beatsPerBar.at(winner.sig) * barsPerMinute;
-   return Result { winner.numBars, quarternotesPerMinute, winner.sig };
+   const auto quarternotesPerMinute = GetQuarternotesPerMinute(odf, winner);
+   std::optional<AltResult> alternative;
+   if (scores.size() > 1 && scores[1] + 1 > scores[0])
+      alternative.emplace(
+         hypotheses[1].numBars, GetQuarternotesPerMinute(odf, hypotheses[1]),
+         hypotheses[1].sig);
+   return Result { winner.numBars, quarternotesPerMinute, winner.sig,
+                   std::move(alternative) };
 }
 
 } // namespace ClipAnalysis

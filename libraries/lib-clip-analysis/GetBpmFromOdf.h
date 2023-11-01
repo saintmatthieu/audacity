@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ODF.h"
+
 #include <NamedType/named_type.hpp>
 
 #include <optional>
@@ -18,19 +20,26 @@ using Ordinal =
    fluent::NamedType<size_t, struct OrdinalTag, fluent::Arithmetic>;
 using O = Ordinal;
 
-enum class TimeSignature
+struct AltResult
 {
-   FourFour,
-   ThreeFour,
-   SixEight,
-   _Count,
+   AltResult(
+      int numBars, double quarternotesPerMinute, TimeSignature timeSignature)
+       : numBars { numBars }
+       , quarternotesPerMinute { quarternotesPerMinute }
+       , timeSignature { timeSignature }
+   {
+   }
+   const int numBars;
+   const double quarternotesPerMinute;
+   const TimeSignature timeSignature;
 };
 
 struct Result
 {
-   const int numBars;
-   const double quarterNotesPerMinute;
-   const TimeSignature timeSignature;
+   int numBars;
+   double quarternotesPerMinute;
+   TimeSignature timeSignature;
+   std::optional<AltResult> alternative;
 };
 
 CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf(const ODF& odf);

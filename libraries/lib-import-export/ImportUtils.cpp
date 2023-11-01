@@ -46,25 +46,49 @@ void ImportUtils::ShowMessageBox(const TranslatableString &message, const Transl
                            BasicUI::MessageBoxOptions().Caption(caption));
 }
 
-void ImportUtils::FinalizeImport(TrackHolders& outTracks, const std::vector<TrackListHolder>& importedStreams)
+std::optional<ClipAnalysis::MeterInfo> ImportUtils::FinalizeImport(
+   TrackHolders& outTracks, const std::vector<TrackListHolder>& importedStreams)
 {
-   for(auto& stream : importedStreams)
-      FinalizeImport(outTracks, stream);
+   std::vector<ClipAnalysis::MeterInfo> tempi;
+   for (auto& stream : importedStreams)
+   {
+      const auto tempo = FinalizeImport(outTracks, stream);
+      if (tempo.has_value())
+         tempi.emplace_back(
+            tempo->numBars, tempo->timeSignature, tempo->quarternotesPerMinute,
+            tempo->alternative);
+   }
+   if (tempi.size() == 1)
+      return tempi[0];
+   else
+      return {};
 }
 
-void ImportUtils::FinalizeImport(TrackHolders& outTracks, TrackListHolder trackList)
+std::optional<ClipAnalysis::MeterInfo>
+ImportUtils::FinalizeImport(TrackHolders& outTracks, TrackListHolder trackList)
 {
+   std::optional<ClipAnalysis::MeterInfo> projectTempoSuggestion;
    if(trackList->empty())
-      return;
+      return projectTempoSuggestion;
 
+   std::vector<ClipAnalysis::MeterInfo> tempi;
    for (const auto track : trackList->Any<WaveTrack>())
    {
       track->Flush();
-      for (const auto interval : track->Intervals())
-         interval->GuessYourTempo();
+      for (const auto interval : track->Intervals()) {
+         const auto tempo = interval->GuessYourTempo();
+         if (tempo.has_value())
+            tempi.emplace_back(
+               tempo->numBars, tempo->timeSignature,
+               tempo->quarternotesPerMinute, tempo->alternative);
+      }
    }
 
    outTracks.push_back(std::move(trackList));
+   if (tempi.size() == 1)
+      return tempi[0];
+   else
+      return {};
 }
 
 void ImportUtils::ForEachChannel(TrackList& trackList, const std::function<void(WaveChannel&)>& op)

@@ -47,7 +47,7 @@ public:
    ~WavPackImportPlugin();
 
    wxString GetPluginStringID() override;
-   TranslatableString GetPluginFormatDescription() override; 
+   TranslatableString GetPluginFormatDescription() override;
    std::unique_ptr<ImportFileHandle> Open(
      const FilePath &Filename, AudacityProject*) override;
 };
@@ -60,11 +60,11 @@ public:
 
    TranslatableString GetFileDescription() override;
    ByteCount GetFileUncompressedBytes() override;
-   void Import(ImportProgressListener &progressListener,
+   std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener &progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
                Tags *tags) override;
-   
+
    wxInt32 GetStreamCount() override;
    const TranslatableStrings &GetStreamInfo() override;
    void SetStreamUsage(wxInt32 StreamID, bool Use) override;
@@ -107,7 +107,7 @@ std::unique_ptr<ImportFileHandle> WavPackImportPlugin::Open(const FilePath &file
    char errMessage[100]; // To hold possible error message
    int flags = OPEN_WVC | OPEN_FILE_UTF8 | OPEN_TAGS | OPEN_DSD_AS_PCM | OPEN_NORMALIZE;
    WavpackContext *wavpackContext = WavpackOpenFileInput(filename, errMessage, flags, 0);
-   
+
    if (!wavpackContext) {
       // Some error occured(e.g. File not found or is invalid)
       wxLogDebug("WavpackOpenFileInput() failed on file %s, error = %s", filename, errMessage);
@@ -156,13 +156,13 @@ auto WavPackImportFileHandle::GetFileUncompressedBytes() -> ByteCount
    return 0;
 }
 
-void WavPackImportFileHandle::Import(ImportProgressListener &progressListener,
+std::optional<ClipAnalysis::MeterInfo> WavPackImportFileHandle::Import(ImportProgressListener &progressListener,
                                      WaveTrackFactory *trackFactory,
                                      TrackHolders &outTracks,
                                      Tags *tags)
 {
    BeginImport();
-   
+
    const int wavpackMode = WavpackGetMode(mWavPackContext);
 
    outTracks.clear();
@@ -229,7 +229,7 @@ void WavPackImportFileHandle::Import(ImportProgressListener &progressListener,
          } else {
             for (int64_t c = 0; c < samplesRead * mNumChannels; c++)
                floatBuffer[c] = static_cast<float>(wavpackBuffer[c] / static_cast<double>(std::numeric_limits<int32_t>::max()));
-            
+
             unsigned chn = 0;
             ImportUtils::ForEachChannel(*trackList, [&](auto& channel)
             {
@@ -245,7 +245,7 @@ void WavPackImportFileHandle::Import(ImportProgressListener &progressListener,
          }
 
          totalSamplesRead += samplesRead;
-         
+
          progressListener.OnImportProgress(WavpackGetProgress(mWavPackContext));
       } while (!IsCancelled() && !IsStopped() && samplesRead != 0);
    }
@@ -257,17 +257,17 @@ void WavPackImportFileHandle::Import(ImportProgressListener &progressListener,
    if(IsCancelled())
    {
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Cancelled);
-      return;
+      return {};
    }
-   
+
    if (totalSamplesRead < mNumSamples && !IsStopped())
    {
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-      return;
+      return {};
    }
 
    ImportUtils::FinalizeImport(outTracks, trackList);
-   
+
    if (wavpackMode & MODE_VALID_TAG) {
       bool apeTag = wavpackMode & MODE_APETAG;
       int numItems = WavpackGetNumTagItems(mWavPackContext);
@@ -316,6 +316,8 @@ void WavPackImportFileHandle::Import(ImportProgressListener &progressListener,
    progressListener.OnImportResult(IsStopped()
                                    ? ImportProgressListener::ImportResult::Stopped
                                    : ImportProgressListener::ImportResult::Success);
+
+   return {};
 }
 
 wxInt32 WavPackImportFileHandle::GetStreamCount()

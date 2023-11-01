@@ -89,7 +89,7 @@ wxString GetId3v2Genre(Tags& tags, const char* genre)
 
    if (it != end)
       return audacity::ToWXString(it);
-   
+
    return audacity::ToWXString(genre);
 }
 
@@ -128,7 +128,7 @@ public:
 
    TranslatableString GetFileDescription() override;
    ByteCount GetFileUncompressedBytes() override;
-   void Import(ImportProgressListener &progressListener,
+   std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener &progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
                Tags *tags) override;
@@ -260,26 +260,26 @@ void MP3ImportFileHandle::SetStreamUsage(wxInt32 WXUNUSED(StreamID), bool WXUNUS
 {
 }
 
-void MP3ImportFileHandle::Import(ImportProgressListener &progressListener,
+std::optional<ClipAnalysis::MeterInfo> MP3ImportFileHandle::Import(ImportProgressListener &progressListener,
                                  WaveTrackFactory *trackFactory,
                                  TrackHolders &outTracks,
                                  Tags *tags)
 {
    BeginImport();
-   
+
    auto finalAction = finally([handle = mHandle]() { mpg123_close(handle); });
 
    outTracks.clear();
    mTrackFactory = trackFactory;
 
    long long framesCount = mpg123_framelength(mHandle);
-   
+
    if (!SetupOutputFormat())
    {
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-      return;
+      return{};
    }
-   
+
    off_t frameIndex { 0 };
    unsigned char* data { nullptr };
    size_t dataSize { 0 };
@@ -297,10 +297,10 @@ void MP3ImportFileHandle::Import(ImportProgressListener &progressListener,
       if(IsCancelled())
       {
          progressListener.OnImportResult(ImportProgressListener::ImportResult::Cancelled);
-         return;
+         return{};
       }
       //VS: doesn't implement Stop behavior...
-      
+
       constSamplePtr samples = reinterpret_cast<constSamplePtr>(data);
       const size_t samplesCount = dataSize / sizeof(float) / mNumChannels;
 
@@ -338,14 +338,15 @@ void MP3ImportFileHandle::Import(ImportProgressListener &progressListener,
          "Failed to decode MP3 file: %s", mpg123_plain_strerror(ret));
 
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-      return;
+      return{};
    }
 
    ImportUtils::FinalizeImport(outTracks, mTrackList);
 
    ReadTags(tags);
-   
+
    progressListener.OnImportResult(ImportProgressListener::ImportResult::Success);
+   return {};
 }
 
 bool MP3ImportFileHandle::SetupOutputFormat()

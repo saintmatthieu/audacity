@@ -123,15 +123,15 @@ public:
 
    TranslatableString GetFileDescription() override;
    ByteCount GetFileUncompressedBytes() override;
-   void Import(ImportProgressListener& progressListener,
+   std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener& progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
                Tags *tags) override;
-   
+
    FilePath GetFilename() const override;
-   
+
    void Cancel() override;
-   
+
    void Stop() override;
 
    wxInt32 GetStreamCount() override { return 1; }
@@ -272,7 +272,7 @@ auto LOFImportFileHandle::GetFileUncompressedBytes() -> ByteCount
    return 0;
 }
 
-void LOFImportFileHandle::Import(ImportProgressListener& progressListener,
+std::optional<ClipAnalysis::MeterInfo> LOFImportFileHandle::Import(ImportProgressListener& progressListener,
                                  WaveTrackFactory*,
                                  TrackHolders &outTracks,
                                  Tags*)
@@ -297,7 +297,7 @@ void LOFImportFileHandle::Import(ImportProgressListener& progressListener,
    {
       mTextFile->Close();
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-      return;
+      return {};
    }
 
    wxString line = mTextFile->GetFirstLine();
@@ -314,11 +314,12 @@ void LOFImportFileHandle::Import(ImportProgressListener& progressListener,
    if(!mTextFile->Close())
    {
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-      return;
+      return{};
    }
    // set any duration/offset factors for last window, as all files were called
    doDurationAndScrollOffset();
    progressListener.OnImportResult(ImportProgressListener::ImportResult::Success);
+   return {};
 }
 
 FilePath LOFImportFileHandle::GetFilename() const
@@ -351,7 +352,7 @@ static AudacityProject *DoImportMIDIProject(
       pProject = pNewProject = ProjectManager::New();
    auto cleanup = finally( [&]
       { if ( pNewProject ) GetProjectFrame( *pNewProject ).Close(true); } );
-   
+
    if ( DoImportMIDI( *pProject, fileName ) ) {
       pNewProject = nullptr;
       return pProject;

@@ -12,14 +12,13 @@
 #ifndef __AUDACITY_WAVECLIP__
 #define __AUDACITY_WAVECLIP__
 
-
-
-#include "ClientData.h"
-#include "SampleFormat.h"
-#include "ClipInterface.h"
-#include "XMLTagHandler.h"
-#include "SampleCount.h"
 #include "AudioSegmentSampleView.h"
+#include "ClientData.h"
+#include "ClipAnalysis.h"
+#include "ClipInterface.h"
+#include "SampleCount.h"
+#include "SampleFormat.h"
+#include "XMLTagHandler.h"
 
 #include <wx/longlong.h>
 
@@ -167,7 +166,7 @@ public:
    void StretchRightTo(double to);
 
    double GetStretchRatio() const override;
-   void GuessYourTempo();
+   std::optional<ClipAnalysis::MeterInfo> GuessYourTempo();
    std::optional<double> GetTempo() const;
    void SetTempo(double bpm);
 
@@ -558,7 +557,7 @@ public:
    bool SharesBoundaryWithNextClip(const WaveClip* next) const;
 
    void SetName(const wxString& name);
-   const wxString& GetName() const;
+   wxString GetName() const;
 
    // TimeToSamples and SamplesToTime take clip stretch ratio into account.
    // Use them to convert time / sample offsets.
@@ -620,6 +619,7 @@ private:
    double mClipStretchRatio = 1.;
    std::optional<double> mRawAudioTempo;
    std::optional<double> mProjectTempo;
+   std::optional<ClipAnalysis::MeterInfo> mMeterInfo;
 
    //! Sample rate of the raw audio, i.e., before stretching.
    int mRate;
@@ -647,7 +647,7 @@ private:
    bool mIsPlaceholder { false };
 
 private:
-   wxString mName;
+   std::string mName;
 };
 
 #endif

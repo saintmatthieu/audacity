@@ -98,7 +98,7 @@ public:
 
    TranslatableString GetFileDescription() override;
    ByteCount GetFileUncompressedBytes() override;
-   void Import(ImportProgressListener &progressListener,
+   std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener &progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
                Tags *tags) override;
@@ -202,13 +202,13 @@ auto OggImportFileHandle::GetFileUncompressedBytes() -> ByteCount
    return 0;
 }
 
-void OggImportFileHandle::Import(ImportProgressListener &progressListener,
+std::optional<ClipAnalysis::MeterInfo> OggImportFileHandle::Import(ImportProgressListener &progressListener,
                                  WaveTrackFactory *trackFactory,
                                  TrackHolders &outTracks,
                                  Tags *tags)
 {
    BeginImport();
-   
+
    outTracks.clear();
 
    wxASSERT(mFile->IsOpened());
@@ -328,17 +328,17 @@ void OggImportFileHandle::Import(ImportProgressListener &progressListener,
    if (bytesRead < 0)
    {
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-      return;
+      return{};
    }
-   
+
    if(IsCancelled())
    {
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Cancelled);
-      return;
+      return{};
    }
 
    ImportUtils::FinalizeImport(outTracks, mStreams);
-   
+
    //\todo { Extract comments from each stream? }
    if (mVorbisFile->vc[0].comments > 0) {
       tags->Clear();
@@ -355,10 +355,11 @@ void OggImportFileHandle::Import(ImportProgressListener &progressListener,
          tags->SetTag(name, value);
       }
    }
-   
+
    progressListener.OnImportResult(IsStopped()
                                    ? ImportProgressListener::ImportResult::Stopped
                                    : ImportProgressListener::ImportResult::Success);
+   return {};
 }
 
 OggImportFileHandle::~OggImportFileHandle()

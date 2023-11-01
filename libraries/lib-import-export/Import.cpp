@@ -35,6 +35,8 @@ ImportLOF.cpp, and ImportAUP.cpp.
 
 #include "Import.h"
 
+#include "Track.h"
+#include "WaveTrack.h"
 #include "ImportPlugin.h"
 
 #include <algorithm>
@@ -44,6 +46,7 @@ ImportLOF.cpp, and ImportAUP.cpp.
 #include "FileNames.h"
 #include "Project.h"
 #include "WaveTrack.h"
+#include "ProjectTimeSignature.h"
 
 #include "Prefs.h"
 
@@ -61,9 +64,9 @@ public:
    ImportProgressResultProxy(ImportProgressListener* listener)
       : mListener(listener)
    {
-      
+
    }
-   
+
    bool OnImportFileOpened(ImportFileHandle& importFileHandle) override
    {
       mResult = ImportResult::Error;
@@ -71,20 +74,20 @@ public:
          return mListener->OnImportFileOpened(importFileHandle);
       return true;
    }
-   
+
    void OnImportProgress(double progress) override
    {
       if(mListener)
          mListener->OnImportProgress(progress);
    }
-   
+
    void OnImportResult(ImportResult result) override
    {
       mResult = result;
       if(mListener)
          mListener->OnImportResult(result);
    }
-   
+
    ImportResult GetResult() const noexcept
    {
       return mResult;
@@ -641,7 +644,7 @@ bool Importer::Import( AudacityProject &project,
    }
 
    ImportProgressResultProxy importResultProxy(importProgressListener);
-   
+
    // Try the import plugins, in the permuted sequences just determined
    for (const auto plugin : importPlugins)
    {
@@ -653,8 +656,30 @@ bool Importer::Import( AudacityProject &project,
          wxLogMessage(wxT("Open(%s) succeeded"), fName);
          if(!importResultProxy.OnImportFileOpened(*inFile))
             return false;
-         
-         inFile->Import(importResultProxy, trackFactory, tracks, tags);
+
+         const auto projectTempoSuggestion =
+            inFile->Import(importResultProxy, trackFactory, tracks, tags);
+         const auto& projectTracks = TrackList::Get(project);
+         if (
+            projectTempoSuggestion.has_value() &&
+            (projectTracks.empty() ||
+             std::all_of(
+                projectTracks.begin(), projectTracks.end(),
+                [](const Track* track) {
+                   const auto waveTrack = dynamic_cast<const WaveTrack*>(track);
+                   return !waveTrack || waveTrack->GetEndTime() == 0;
+                })))
+         {
+            auto& pts = ProjectTimeSignature::Get(project);
+            pts.SetTempo(projectTempoSuggestion->quarternotesPerMinute);
+            const auto& sig = projectTempoSuggestion->timeSignature;
+            using namespace ClipAnalysis;
+            pts.SetUpperTimeSignature(
+               sig == TimeSignature::FourFour  ? 4 :
+               sig == TimeSignature::ThreeFour ? 3 :
+                                                 6);
+            pts.SetLowerTimeSignature(sig == TimeSignature::SixEight ? 8 : 4);
+         }
          const auto importResult = importResultProxy.GetResult();
          if (importResult == ImportProgressListener::ImportResult::Success ||
              importResult == ImportProgressListener::ImportResult::Stopped)

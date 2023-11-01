@@ -89,12 +89,12 @@ public:
    ~AUPImportFileHandle();
 
    TranslatableString GetErrorMessage() const override;
-   
+
    TranslatableString GetFileDescription() override;
 
    ByteCount GetFileUncompressedBytes() override;
 
-   void Import(ImportProgressListener& progressListener,
+   std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener& progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
                Tags *tags) override;
@@ -306,15 +306,15 @@ auto AUPImportFileHandle::GetFileUncompressedBytes() -> ByteCount
    return 0;
 }
 
-void AUPImportFileHandle::Import(ImportProgressListener& progressListener,
+std::optional<ClipAnalysis::MeterInfo> AUPImportFileHandle::Import(ImportProgressListener& progressListener,
                                  WaveTrackFactory*,
                                  TrackHolders&,
                                  Tags *tags)
 {
    BeginImport();
-   
+
    mHasParseError = false;
-   
+
    auto &history = ProjectHistory::Get(mProject);
    auto &tracks = TrackList::Get(mProject);
    auto &viewInfo = ViewInfo::Get(mProject);
@@ -342,20 +342,20 @@ void AUPImportFileHandle::Import(ImportProgressListener& progressListener,
    {
       mErrorMsg = XO("Couldn't import the project:\n\n%s").Format(xmlFile.GetErrorStr());
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-      return;
+      return{};
    }
 
    if(mHasParseError)
    {
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-      return;
+      return{};
    }
    if(!mErrorMsg.empty())//i.e. warning
    {
       ImportUtils::ShowMessageBox(mErrorMsg);
       mErrorMsg = {};
    }
-   
+
    // (If we keep this entire source file at all)
 
    sampleCount processed = 0;
@@ -366,12 +366,12 @@ void AUPImportFileHandle::Import(ImportProgressListener& progressListener,
       if(IsCancelled())
       {
          progressListener.OnImportResult(ImportProgressListener::ImportResult::Cancelled);
-         return;
+         return{};
       }
       else if(IsStopped())
       {
          progressListener.OnImportResult(ImportProgressListener::ImportResult::Stopped);
-         return;
+         return{};
       }
       mClip = fi.clip;
       mWaveTrack = fi.track;
@@ -386,7 +386,7 @@ void AUPImportFileHandle::Import(ImportProgressListener& progressListener,
                     fi.len, fi.format, fi.origin, fi.channel))
          {
             progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-            return;
+            return{};
          }
       }
 
@@ -415,7 +415,7 @@ void AUPImportFileHandle::Import(ImportProgressListener& progressListener,
    if(mHasParseError)
    {
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-      return;
+      return{};
    }
    if(!mErrorMsg.empty())
    {
@@ -428,7 +428,7 @@ void AUPImportFileHandle::Import(ImportProgressListener& progressListener,
    if (isDirty)
    {
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Success);
-      return;
+      return{};
    }
 
    if (mProjectAttrs.haverate)
@@ -509,8 +509,9 @@ void AUPImportFileHandle::Import(ImportProgressListener& progressListener,
       viewInfo.selectedRegion.setF1(mProjectAttrs.selHigh);
    }
 #endif
-   
+
    progressListener.OnImportResult(ImportProgressListener::ImportResult::Success);
+   return {};
 }
 
 wxInt32 AUPImportFileHandle::GetStreamCount()

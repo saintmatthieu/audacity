@@ -23,6 +23,7 @@
 
 #include "Import.h"
 #include "Tags.h"
+#include "Project.h"
 
 #include <wx/wx.h>
 #include <wx/ffile.h>
@@ -80,7 +81,7 @@ public:
 
    TranslatableString GetFileDescription() override;
    ByteCount GetFileUncompressedBytes() override;
-   void Import(ImportProgressListener &progressListener,
+   std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener &progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
                Tags *tags) override;
@@ -277,13 +278,13 @@ struct id3_tag_deleter {
 using id3_tag_holder = std::unique_ptr<id3_tag, id3_tag_deleter>;
 #endif
 
-void PCMImportFileHandle::Import(ImportProgressListener &progressListener,
+std::optional<ClipAnalysis::MeterInfo> PCMImportFileHandle::Import(ImportProgressListener &progressListener,
                                  WaveTrackFactory *trackFactory,
                                  TrackHolders &outTracks,
                                  Tags *tags)
 {
    BeginImport();
-   
+
    outTracks.clear();
 
    wxASSERT(mFile.get());
@@ -308,7 +309,7 @@ void PCMImportFileHandle::Import(ImportProgressListener &progressListener,
       if (mInfo.channels < 1)
       {
          progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-         return;
+         return{};
       }
       auto maxBlock = std::min(maxBlockSize,
          std::numeric_limits<type>::max() /
@@ -317,9 +318,9 @@ void PCMImportFileHandle::Import(ImportProgressListener &progressListener,
       if (maxBlock < 1)
       {
          progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-         return;
+         return{};
       }
-      
+
       SampleBuffer srcbuffer, buffer;
       wxASSERT(mInfo.channels >= 0);
       while (NULL == srcbuffer.Allocate(maxBlock * mInfo.channels, mFormat).ptr() ||
@@ -329,7 +330,7 @@ void PCMImportFileHandle::Import(ImportProgressListener &progressListener,
          if (maxBlock < 1)
          {
             progressListener.OnImportResult(ImportProgressListener::ImportResult::Error);
-            return;
+            return{};
          }
       }
 
@@ -382,10 +383,10 @@ void PCMImportFileHandle::Import(ImportProgressListener &progressListener,
    if(IsCancelled())
    {
       progressListener.OnImportResult(ImportProgressListener::ImportResult::Cancelled);
-      return;
+      return{};
    }
 
-   ImportUtils::FinalizeImport(outTracks, trackList);
+   const auto projectTempoSuggestion = ImportUtils::FinalizeImport(outTracks, trackList);
 
    const char *str;
 
@@ -580,6 +581,8 @@ void PCMImportFileHandle::Import(ImportProgressListener &progressListener,
    progressListener.OnImportResult(IsStopped()
                                    ? ImportProgressListener::ImportResult::Stopped
                                    : ImportProgressListener::ImportResult::Success);
+
+   return projectTempoSuggestion;
 }
 
 PCMImportFileHandle::~PCMImportFileHandle()
