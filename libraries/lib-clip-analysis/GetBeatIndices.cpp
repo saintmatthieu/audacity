@@ -96,6 +96,9 @@ GetBeatIndices(const ODF& odf, const std::vector<float>& xcorr)
       }
       if (j < prevP)
          break;
+      else if (j == prevP)
+         // Doesn't look good ; just give up.
+         return {};
       beatIndices.push_back(j);
       prevP = j;
       ++i;

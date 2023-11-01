@@ -1354,7 +1354,7 @@ std::string ToString(const MeterInfoType& info)
                                                          "6/8";
    s += "@";
    const int roundedTempo = std::round(info.quarternotesPerMinute);
-   s += std::to_string(roundedTempo) + "cpm";
+   s += std::to_string(roundedTempo);
    return s;
 }
 } // namespace
