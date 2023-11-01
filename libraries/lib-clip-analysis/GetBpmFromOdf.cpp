@@ -133,22 +133,25 @@ void FillTree(
    }
 }
 
+constexpr auto disWeight = 1.;
+
 struct Likelihood
 {
+   Likelihood(double dissimilarity, double bpmProbability)
+       : dissimilarity { dissimilarity }
+       , bpmProbability { bpmProbability } // TODO tune
+       , combinedScore { std::log(bpmProbability) -
+                         disWeight * std::log(dissimilarity) }
+   {
+   }
    const double dissimilarity;
    const double bpmProbability;
+   const double combinedScore;
 };
 
 bool operator<(const Likelihood& a, const Likelihood& b)
 {
-   const auto bpmA = std::log(a.bpmProbability);
-   const auto bpmB = std::log(b.bpmProbability);
-   const auto disA = std::log(a.dissimilarity);
-   const auto disB = std::log(b.dissimilarity);
-
-   // TODO tune
-   const auto disWeight = 1.;
-   return bpmA - disA * disWeight < bpmB - disB * disWeight;
+   return a.combinedScore < b.combinedScore;
 }
 
 auto GetWinnerLeaf(const Branch& branch)
@@ -412,6 +415,14 @@ std::optional<Result> GetBpmFromOdf2(const ODF& odf)
             Likelihood { a.dissimilarity, a.bpmProbability } <
             Likelihood { b.dissimilarity, b.bpmProbability });
       });
+
+   std::vector<double> scores;
+   std::transform(
+      hypotheses.begin(), hypotheses.end(), std::back_inserter(scores),
+      [](const Hypothesis& h) {
+         return Likelihood { h.dissimilarity, h.bpmProbability }.combinedScore;
+      });
+
    const auto& winner = hypotheses.front();
    const auto barsPerMinute = winner.numBars * 60 / odf.duration;
    const auto quarternotesPerMinute =
