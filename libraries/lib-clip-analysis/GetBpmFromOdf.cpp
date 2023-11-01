@@ -272,7 +272,8 @@ std::vector<Ordinal> ToSeriesOrdinals(const std::vector<Level>& divisionLevels)
 std::optional<Result> GetBpmFromOdf(const ODF& odf)
 {
    Tree tree;
-   const auto beatIndices = GetBeatIndices(odf);
+   const auto beatIndices =
+      GetBeatIndices(odf, GetNormalizedAutocorr(odf.values));
    if (!beatIndices.has_value())
       return {};
    FillTree(odf, *beatIndices, tree);
@@ -354,8 +355,11 @@ struct Hypothesis
 
 std::optional<Result> GetBpmFromOdf2(const ODF& odf)
 {
-   const auto beatIndices = GetBeatIndices(odf);
+   const auto xcorr = GetNormalizedAutocorr(odf.values);
+   const auto beatIndices = GetBeatIndices(odf, xcorr);
    if (!beatIndices.has_value())
+      return {};
+   else if (!IsLoop(odf, xcorr, *beatIndices))
       return {};
 
    const int numDivisions = beatIndices->size();

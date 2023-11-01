@@ -2,6 +2,9 @@
 #include "ClipAnalysisUtils.h"
 #include "ODF.h"
 
+#include <algorithm>
+#include <array>
+#include <cassert>
 #include <fstream>
 #include <numeric>
 #include <sstream>
@@ -25,12 +28,11 @@ std::string PrintVector(const T& vector, const std::string& name)
    ss << "];" << std::endl;
    return ss.str();
 }
-
 } // namespace
 
-std::optional<std::vector<size_t>> GetBeatIndices(const ODF& odf)
+std::optional<std::vector<size_t>>
+GetBeatIndices(const ODF& odf, const std::vector<float>& xcorr)
 {
-   const auto xcorr = GetNormalizedAutocorr(odf.values);
    constexpr auto logValues = false;
    const auto lagPerSample = odf.duration / xcorr.size();
    constexpr auto minBpm = 60;
@@ -62,6 +64,9 @@ std::optional<std::vector<size_t>> GetBeatIndices(const ODF& odf)
    const auto end = xcorr.begin() + static_cast<int>(maxSamps);
 
    // Guess beat period
+   // TODO do not begin from the last possible beat index up, but from the most
+   // likely beat index (i.e., around 120 bpm) and search for the first peak in
+   // both up and down directions.
    auto P = std::max<size_t>(minSamps, 1);
    for (; P < maxSamps && P < xcorr.size(); ++P)
       if (xcorr[P] > avg && xcorr[P - 1] < xcorr[P] && xcorr[P] > xcorr[P + 1])
@@ -96,5 +101,91 @@ std::optional<std::vector<size_t>> GetBeatIndices(const ODF& odf)
       ++i;
    }
    return beatIndices;
+}
+
+bool IsLoop(
+   const ODF& odf, const std::vector<float>& xcorr,
+   const std::vector<size_t>& beatIndices)
+{
+   // Should be normalized.
+   assert(xcorr[0] == 1.);
+   std::vector<int> divisors { 2, 3, 4, 6, 8, 9, 12 };
+   const auto numBeats = beatIndices.size();
+   // Filter out divisors that aren't divisors of the number of beats
+   divisors.erase(
+      std::remove_if(
+         divisors.begin(), divisors.end(),
+         [&](auto divisor) { return numBeats % divisor != 0; }),
+      divisors.end());
+   // If there isn't a divisor that satisfies this, we're done.
+   if (divisors.empty())
+      return false;
+
+   std::vector<double> divisorPeriods(divisors.size());
+   std::transform(
+      divisors.begin(), divisors.end(), divisorPeriods.begin(),
+      [&](auto divisor) {
+         return static_cast<double>(xcorr.size()) / divisor;
+      });
+   const auto xcorrLagStep = odf.duration / xcorr.size();
+   // In seconds
+   std::vector<double> averageDivisorBeatDistances(divisors.size());
+   std::transform(
+      divisorPeriods.begin(), divisorPeriods.end(),
+      averageDivisorBeatDistances.begin(), [&](double divisorPeriod) {
+         std::vector<double> beatIndexDistances(numBeats);
+         std::transform(
+            beatIndices.begin(), beatIndices.end(), beatIndexDistances.begin(),
+            [&](auto beatIndex) {
+               // Find multiple of divisor period closest to i
+               const auto closestDivisorPeriodMultiple =
+                  std::round(beatIndex / divisorPeriod) * divisorPeriod;
+               const auto distance =
+                  (beatIndex - closestDivisorPeriodMultiple) * xcorrLagStep;
+               return distance < 0 ? -distance : distance;
+            });
+         return std::accumulate(
+                   beatIndexDistances.begin(), beatIndexDistances.end(), 0.) /
+                numBeats;
+      });
+
+   std::vector<float> averageDivisorValues(divisors.size());
+   std::transform(
+      divisors.begin(), divisors.end(), averageDivisorValues.begin(),
+      [&](auto divisor) {
+         std::vector<float> divisorValues(divisor);
+         const auto step = numBeats / divisor;
+         for (auto i = 0; i < divisor; ++i)
+            divisorValues[i] = xcorr[beatIndices[i * step]];
+         return std::accumulate(
+                   divisorValues.begin(), divisorValues.end(), 0.f) /
+                divisor;
+      });
+
+   const auto xcorrMean = std::accumulate(xcorr.begin(), xcorr.end(), 0.) /
+                          static_cast<double>(xcorr.size());
+   std::vector<double> divisorScores(divisors.size());
+   auto i = 0;
+   std::for_each(divisorScores.begin(), divisorScores.end(), [&](auto& score) {
+      // Scale the distance by -10 to get the log10 of the probability.
+      // This means that a distance of 0.1 second yields a probabilty of 0.1.
+      const auto distanceLog10Prob = -10 * averageDivisorBeatDistances[i];
+
+      // y(x) = a*log(b*x), with y(1) = 1 and y(0.1) = 0.5. This reduces to
+      // y(x) = aÜ(log(x) + 1/a), with a = -1/(2*log(1/10));
+      constexpr auto a = 0.217147240951626;
+      const auto divisorValue = averageDivisorValues[i];
+      const auto x = std::clamp(divisorValue - xcorrMean, 0., 1.);
+      const auto peakinessProb = a * (std::log(x) + 1 / a);
+      const auto peakinessLog10Prob = std::log10(peakinessProb);
+      score = distanceLog10Prob + peakinessLog10Prob;
+      ++i;
+   });
+
+   const auto bestScore = *std::max_element(
+      divisorScores.begin(), divisorScores.end(),
+      [](auto a, auto b) { return a < b; });
+
+   return bestScore > -1;
 }
 } // namespace ClipAnalysis
