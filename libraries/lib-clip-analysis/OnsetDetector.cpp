@@ -25,7 +25,8 @@ namespace ClipAnalysis
 OnsetDetector::OnsetDetector(int fftSize, double fftRate, bool needsOutput)
     // Use a hann function for analysis and synthesis (if synthesis there is),
     // an overlap of 2 ...
-    : SpectrumTransformer { needsOutput, eWinFuncHann, eWinFuncHann, fftSize, 2,
+    : SpectrumTransformer { needsOutput, eWinFuncHann, eWinFuncHann,
+                            static_cast<size_t>(fftSize), 2,
                             // ... and neither leading nor trailing window,
                             // thanks.
                             false, false }
