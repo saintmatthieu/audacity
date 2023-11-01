@@ -3,6 +3,8 @@
 #include "CircularSampleBuffer.h"
 #include "FFT.h"
 
+#include <cmath>
+
 namespace ClipAnalysis
 {
 namespace

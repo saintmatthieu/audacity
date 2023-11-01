@@ -6,6 +6,7 @@
 #include "OnsetDetector.h"
 #include "ResamplingClip.h"
 
+#include <cmath>
 
 namespace ClipAnalysis
 {

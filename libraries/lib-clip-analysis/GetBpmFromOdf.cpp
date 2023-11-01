@@ -12,6 +12,7 @@ using IndexIndex = fluent::NamedType<size_t, struct IndexIndexTag>;
 using II = IndexIndex;
 
 #include <array>
+#include <cmath>
 #include <map>
 #include <numeric>
 #include <set>
