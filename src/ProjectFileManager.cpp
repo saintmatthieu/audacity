@@ -16,45 +16,46 @@ Paul Licameli split from AudacityProject.cpp
 #include <wx/evtloop.h>
 #endif
 
-#include <wx/frame.h>
-#include <wx/log.h>
+#include "AudacityMessageBox.h"
 #include "BasicUI.h"
 #include "CodeConversions.h"
+#include "Export.h"
+#include "Import.h"
+#include "ImportPlugin.h"
+#include "ImportProgressListener.h"
 #include "Legacy.h"
 #include "PlatformCompatibility.h"
 #include "Project.h"
 #include "ProjectFileIO.h"
 #include "ProjectHistory.h"
 #include "ProjectNumericFormats.h"
-#include "ProjectSelectionManager.h"
-#include "ProjectWindows.h"
 #include "ProjectRate.h"
+#include "ProjectSelectionManager.h"
 #include "ProjectSettings.h"
 #include "ProjectStatus.h"
 #include "ProjectWindow.h"
+#include "ProjectWindows.h"
 #include "SelectFile.h"
 #include "SelectUtilities.h"
 #include "SelectionState.h"
 #include "Tags.h"
 #include "TempDirectory.h"
-#include "TrackPanelAx.h"
+#include "TempoDetectionDialog.h"
 #include "TrackPanel.h"
+#include "TrackPanelAx.h"
 #include "UndoManager.h"
 #include "WaveTrack.h"
-#include "wxFileNameWrapper.h"
-#include "Export.h"
-#include "Import.h"
-#include "ImportProgressListener.h"
-#include "ImportPlugin.h"
+#include "XMLFileReader.h"
 #include "import/ImportMIDI.h"
 #include "import/ImportStreamDialog.h"
 #include "toolbars/SelectionBar.h"
-#include "AudacityMessageBox.h"
 #include "widgets/FileHistory.h"
 #include "widgets/UnwritableLocationErrorDialog.h"
 #include "widgets/Warning.h"
+#include "wxFileNameWrapper.h"
 #include "wxPanelWrapper.h"
-#include "XMLFileReader.h"
+#include <wx/frame.h>
+#include <wx/log.h>
 
 #include "HelpText.h"
 
@@ -166,7 +167,7 @@ auto ProjectFileManager::ReadProjectFile(
    ///
    auto parseResult = projectFileIO.LoadProject(fileName, discardAutosave);
    const bool bParseSuccess = parseResult.has_value();
-   
+
    bool err = false;
    std::optional<TranslatableString> linkTypeChangeReason;
 
@@ -615,7 +616,7 @@ bool ProjectFileManager::SaveCopy(const FilePath &fileName /* = wxT("") */)
       {
          // JKC: I removed 'wxFD_OVERWRITE_PROMPT' because we are checking
          // for overwrite ourselves later, and we disallow it.
-         // Previously we disallowed overwrite because we would have had 
+         // Previously we disallowed overwrite because we would have had
          // to DELETE the many smaller files too, or prompt to move them.
          // Maybe we could allow it now that we have aup3 format?
          fName = SelectFile(FileNames::Operation::Export,
@@ -774,7 +775,7 @@ void ProjectFileManager::CompactProjectOnClose()
          // without save.  Don't leave the document blob from the last
          // push of undo history, when that undo state may get purged
          // with deletion of some new sample blocks.
-         // REVIEW: UpdateSaved() might fail too.  Do we need to test 
+         // REVIEW: UpdateSaved() might fail too.  Do we need to test
          // for that and report it?
          projectFileIO.UpdateSaved( mLastSavedTracks.get() );
       }
@@ -1035,12 +1036,12 @@ void ProjectFileManager::FixTracks(TrackList& tracks,
                RealtimeEffectList::Get(*right).Clear();
 
                if(left->GetRate() != right->GetRate())
-                  //i18n-hint: explains why opened project was auto-modified 
+                  //i18n-hint: explains why opened project was auto-modified
                   onUnlink(XO("This project contained stereo tracks with different sample rates per channel."));
                if(left->GetSampleFormat() != right->GetSampleFormat())
-                  //i18n-hint: explains why opened project was auto-modified  
+                  //i18n-hint: explains why opened project was auto-modified
                   onUnlink(XO("This project contained stereo tracks with different sample formats in channels."));
-               //i18n-hint: explains why opened project was auto-modified 
+               //i18n-hint: explains why opened project was auto-modified
                onUnlink(XO("This project contained stereo tracks with non-aligned content."));
             }
          }
@@ -1091,7 +1092,7 @@ AudacityProject *ProjectFileManager::OpenProjectFile(
       formats.GetFrequencySelectionFormatName());
       selectionManager.SSBL_SetBandwidthSelectionFormatName(
          formats.GetBandwidthSelectionFormatName());
-      
+
       ProjectHistory::Get( project ).InitialState();
       TrackFocus::Get(project).Set(*tracks.begin());
       window.HandleResize();
@@ -1161,7 +1162,7 @@ ProjectFileManager::AddImportedTracks(const FilePath &fileName,
    double newRate = 0;
    wxString trackNameBase = fn.GetName();
    int i = -1;
-   
+
    // Fix the bug 2109.
    // In case the project had soloed tracks before importing,
    // all newly imported tracks are muted.
@@ -1184,7 +1185,7 @@ ProjectFileManager::AddImportedTracks(const FilePath &fileName,
       tracks.Append(std::move(*group));
    }
    newTracks.clear();
-      
+
    // Now name them
 
    // Add numbers to track names only if there is more than one (mono or stereo)
@@ -1257,13 +1258,13 @@ class ImportProgress final
 {
    wxWeakRef<AudacityProject> mProject;
 public:
-   
+
    ImportProgress(AudacityProject& project)
       : mProject(&project)
    {
 
    }
-   
+
    bool OnImportFileOpened(ImportFileHandle& importFileHandle) override
    {
       mImportFileHandle = &importFileHandle;
@@ -1280,7 +1281,7 @@ public:
          importFileHandle.SetStreamUsage(0,TRUE);
       return true;
    }
-   
+
    void OnImportProgress(double progress) override
    {
       constexpr double ProgressSteps { 1000.0 };
@@ -1296,7 +1297,7 @@ public:
       else if(result == BasicUI::ProgressResult::Stopped)
          mImportFileHandle->Stop();
    }
-   
+
    void OnImportResult(ImportResult result) override
    {
       mProgressDialog.reset();
@@ -1310,9 +1311,9 @@ public:
          }
       }
    }
-   
+
 private:
-   
+
    ImportFileHandle* mImportFileHandle {nullptr};
    std::unique_ptr<BasicUI::ProgressDialog> mProgressDialog;
 };
@@ -1396,6 +1397,9 @@ bool ProjectFileManager::Import(
                                             newTracks,
                                             newTags.get(),
                                             errorMessage);
+
+      TempoDetectionDialog::Get(project).Show();
+
       if (!errorMessage.empty()) {
          // Error message derived from Importer::Import
          // Additional help via a Help button links to the manual.

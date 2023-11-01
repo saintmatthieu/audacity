@@ -196,6 +196,8 @@ list( APPEND SOURCES
       SseMathFuncs.h
       TagsEditor.cpp
       TagsEditor.h
+      TempoDetectionDialog.cpp
+      TempoDetectionDialog.h
       ThemedWrappers.h
       TimeDialog.cpp
       TimeDialog.h

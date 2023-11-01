@@ -344,15 +344,16 @@ double WaveClip::GetStretchRatio() const
    return mClipStretchRatio * dstSrcRatio;
 }
 
-namespace {
+namespace
+{
+constexpr auto bpmExpectedValue = 115.;
 double GetBpmLogLikelihood(double bpm)
 {
-   constexpr auto mu = 115.;
    constexpr auto alpha = 25.;
-   const auto arg = (bpm - mu) / alpha;
+   const auto arg = (bpm - bpmExpectedValue) / alpha;
    return -0.5 * arg * arg;
 }
-}
+} // namespace
 
 void WaveClip::GuessYourTempo()
 {
