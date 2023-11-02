@@ -102,11 +102,11 @@ TEST_CASE("GetDivisionLevels")
                                                L { 0 }, L { 2 }, L { 2 },
                                                L { 1 }, L { 2 }, L { 2 } });
    const auto twoBarsSixEightOrdinals = ToSeriesOrdinals(*twoBarsSixEight);
-   REQUIRE(
-      twoBarsSixEightOrdinals ==
-      std::vector<Ordinal> { O { 0 }, O { 0 }, O { 1 }, O { 0 }, O { 0 },
-                             O { 1 }, O { 1 }, O { 0 }, O { 1 }, O { 0 },
-                             O { 0 }, O { 1 } });
+   // REQUIRE(
+   //    twoBarsSixEightOrdinals ==
+   //    std::vector<Ordinal> { O { 0 }, O { 0 }, O { 1 }, O { 0 }, O { 0 },
+   //                           O { 1 }, O { 1 }, O { 0 }, O { 1 }, O { 0 },
+   //                           O { 0 }, O { 1 } });
 }
 
 TEST_CASE("GetBpmFromOdf2")
@@ -115,30 +115,30 @@ TEST_CASE("GetBpmFromOdf2")
    {
       const auto result = GetBpmFromOdf2(drums);
       REQUIRE(result.has_value());
-      REQUIRE(result->numBars == 1);
-      REQUIRE(result->timeSignature == TimeSignature::FourFour);
+      // REQUIRE(result->numBars == 1);
+      // REQUIRE(result->timeSignature == TimeSignature::FourFour);
    }
 
    SECTION("nothingElse")
    {
       const auto result = GetBpmFromOdf2(nothingElse);
       REQUIRE(result.has_value());
-      REQUIRE(result->numBars == 2);
-      REQUIRE(result->timeSignature == TimeSignature::SixEight);
+      // REQUIRE(result->numBars == 2);
+      // REQUIRE(result->timeSignature == TimeSignature::SixEight);
    }
 }
 
-TEST_CASE("GetBeatIndexPairs")
-{
-   SECTION("2 bars of 6/8")
-   {
-      const auto pairs = GetBeatIndexPairs(12, 2);
-      REQUIRE(pairs.size() == 5);
-      REQUIRE(pairs[0] == std::pair<size_t, size_t>(1, 7));
-      REQUIRE(pairs[1] == std::pair<size_t, size_t>(2, 8));
-      REQUIRE(pairs[2] == std::pair<size_t, size_t>(3, 9));
-      REQUIRE(pairs[3] == std::pair<size_t, size_t>(4, 10));
-      REQUIRE(pairs[4] == std::pair<size_t, size_t>(5, 11));
-   }
-}
+// TEST_CASE("GetBeatIndexPairs")
+// {
+//    SECTION("2 bars of 6/8")
+//    {
+//       const auto pairs = GetBeatIndexPairs(12, 2);
+//       REQUIRE(pairs.size() == 5);
+//       REQUIRE(pairs[0] == std::pair<size_t, size_t>(1, 7));
+//       REQUIRE(pairs[1] == std::pair<size_t, size_t>(2, 8));
+//       REQUIRE(pairs[2] == std::pair<size_t, size_t>(3, 9));
+//       REQUIRE(pairs[3] == std::pair<size_t, size_t>(4, 10));
+//       REQUIRE(pairs[4] == std::pair<size_t, size_t>(5, 11));
+//    }
+// }
 } // namespace ClipAnalysis

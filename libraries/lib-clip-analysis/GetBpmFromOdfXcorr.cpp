@@ -156,6 +156,7 @@ std::string ToString(TimeSig sig)
       return "6/8";
    default:
       assert(false);
+      return "";
    }
 }
 
