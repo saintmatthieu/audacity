@@ -56,6 +56,8 @@
 #include "BasicUI.h"
 #include "UserException.h"
 
+#include "ProjectTimeSignature.h"
+#include <numeric>
 
 class SetWaveClipNameCommand : public AudacityCommand
 {
@@ -296,6 +298,22 @@ bool WaveTrackAffordanceControls::IsIntervalVisible(const IntervalIterator& it) 
                      it) != mVisibleIntervals.end();
 }
 
+
+namespace
+{
+bool ProjectHasOneClip(const TrackList& projectTracks)
+{
+   return std::accumulate(
+             projectTracks.begin(), projectTracks.end(), 0u,
+             [](size_t sum, const Track* track) {
+                const auto waveTrack = dynamic_cast<const WaveTrack*>(track);
+                if (!waveTrack)
+                   return sum;
+               return waveTrack->GetClips().size() + sum;
+             }) == 1;
+}
+} // namespace
+
 bool WaveTrackAffordanceControls::StartEditClipName(AudacityProject& project, IntervalIterator it)
 {
     bool useDialog{ false };
@@ -327,7 +345,28 @@ bool WaveTrackAffordanceControls::StartEditClipName(AudacityProject& project, In
             mTextEditHelper->Finish(&project);
 
         mEditedInterval = it;
-        mTextEditHelper = MakeTextEditHelper(interval->GetName());
+
+        if (auto interval = *mEditedInterval)
+        {
+           const auto alternative = interval->UseMeterAlternative();
+           if (
+              alternative.has_value() &&
+              ProjectHasOneClip(TrackList::Get(project)))
+           {
+              const auto& sig = alternative->timeSignature;
+              ProjectTimeSignature& pts = ProjectTimeSignature::Get(project);
+              using namespace ClipAnalysis;
+              pts.SetUpperTimeSignature(
+                 sig == TimeSignature::FourFour  ? 4 :
+                 sig == TimeSignature::ThreeFour ? 3 :
+                                                   6);
+              pts.SetLowerTimeSignature(sig == TimeSignature::SixEight ? 8 : 4);
+              pts.SetTempo(alternative->quarternotesPerMinute);
+           }
+        }
+
+      ResetClipNameEdit();
+      //   mTextEditHelper = MakeTextEditHelper(interval->GetName());
     }
 
     return true;

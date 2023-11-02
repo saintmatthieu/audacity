@@ -97,7 +97,7 @@ public:
    std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener& progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
-               Tags *tags) override;
+               Tags *tags, const std::optional<double>& tempoHint = std::nullopt) override;
 
    wxInt32 GetStreamCount() override;
 
@@ -309,7 +309,7 @@ auto AUPImportFileHandle::GetFileUncompressedBytes() -> ByteCount
 std::optional<ClipAnalysis::MeterInfo> AUPImportFileHandle::Import(ImportProgressListener& progressListener,
                                  WaveTrackFactory*,
                                  TrackHolders&,
-                                 Tags *tags)
+                                 Tags *tags, const std::optional<double>& tempoHint)
 {
    BeginImport();
 

@@ -213,10 +213,21 @@ void WaveTrack::Interval::StretchRightTo(double t)
       GetClip(channel)->StretchRightTo(t);
 }
 
-std::optional<ClipAnalysis::MeterInfo> WaveTrack::Interval::GuessYourTempo()
+std::optional<ClipAnalysis::MeterInfo>
+WaveTrack::Interval::UseMeterAlternative()
 {
    auto left = GetClip(0);
-   const auto guess = left->GuessYourTempo();
+   const auto guess = left->UseMeterAlternative();
+   if (NChannels() > 1 && guess.has_value())
+      GetClip(1)->SetTempo(guess->quarternotesPerMinute);
+   return guess;
+}
+
+std::optional<ClipAnalysis::MeterInfo>
+WaveTrack::Interval::GuessYourTempo(std::optional<double> tempoHint)
+{
+   auto left = GetClip(0);
+   const auto guess = left->GuessYourTempo(tempoHint);
    if (NChannels() > 1 && guess.has_value())
       GetClip(1)->SetTempo(guess->quarternotesPerMinute);
    return guess;

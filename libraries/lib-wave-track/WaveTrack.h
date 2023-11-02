@@ -965,7 +965,10 @@ public:
       void StretchLeftTo(double t);
       void StretchRightTo(double t);
 
-      std::optional<ClipAnalysis::MeterInfo> GuessYourTempo();
+      std::optional<ClipAnalysis::MeterInfo> UseMeterAlternative();
+
+      std::optional<ClipAnalysis::MeterInfo>
+      GuessYourTempo(std::optional<double> tempoHint);
       void ApplyStretchRatio(const std::function<void(double)>& reportProgress);
       bool StretchRatioEquals(double value) const;
 

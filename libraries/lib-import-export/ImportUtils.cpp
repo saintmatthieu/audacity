@@ -47,12 +47,13 @@ void ImportUtils::ShowMessageBox(const TranslatableString &message, const Transl
 }
 
 std::optional<ClipAnalysis::MeterInfo> ImportUtils::FinalizeImport(
-   TrackHolders& outTracks, const std::vector<TrackListHolder>& importedStreams)
+   TrackHolders& outTracks, const std::vector<TrackListHolder>& importedStreams,
+   const std::optional<double>& tempoHint)
 {
    std::vector<ClipAnalysis::MeterInfo> tempi;
    for (auto& stream : importedStreams)
    {
-      const auto tempo = FinalizeImport(outTracks, stream);
+      const auto tempo = FinalizeImport(outTracks, stream, tempoHint);
       if (tempo.has_value())
          tempi.emplace_back(
             tempo->numBars, tempo->timeSignature, tempo->quarternotesPerMinute,
@@ -64,8 +65,9 @@ std::optional<ClipAnalysis::MeterInfo> ImportUtils::FinalizeImport(
       return {};
 }
 
-std::optional<ClipAnalysis::MeterInfo>
-ImportUtils::FinalizeImport(TrackHolders& outTracks, TrackListHolder trackList)
+std::optional<ClipAnalysis::MeterInfo> ImportUtils::FinalizeImport(
+   TrackHolders& outTracks, TrackListHolder trackList,
+   const std::optional<double>& tempoHint)
 {
    std::optional<ClipAnalysis::MeterInfo> projectTempoSuggestion;
    if(trackList->empty())
@@ -76,7 +78,7 @@ ImportUtils::FinalizeImport(TrackHolders& outTracks, TrackListHolder trackList)
    {
       track->Flush();
       for (const auto interval : track->Intervals()) {
-         const auto tempo = interval->GuessYourTempo();
+         const auto tempo = interval->GuessYourTempo(tempoHint);
          if (tempo.has_value())
             tempi.emplace_back(
                tempo->numBars, tempo->timeSignature,

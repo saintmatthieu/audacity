@@ -131,7 +131,7 @@ public:
    std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener &progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
-               Tags *tags) override;
+               Tags *tags, const std::optional<double>& tempoHint = std::nullopt) override;
 
    bool SetupOutputFormat();
 
@@ -263,7 +263,7 @@ void MP3ImportFileHandle::SetStreamUsage(wxInt32 WXUNUSED(StreamID), bool WXUNUS
 std::optional<ClipAnalysis::MeterInfo> MP3ImportFileHandle::Import(ImportProgressListener &progressListener,
                                  WaveTrackFactory *trackFactory,
                                  TrackHolders &outTracks,
-                                 Tags *tags)
+                                 Tags *tags, const std::optional<double>& tempoHint)
 {
    BeginImport();
 

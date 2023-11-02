@@ -13,6 +13,7 @@ using II = IndexIndex;
 
 #include <array>
 #include <cmath>
+#include <fstream>
 #include <map>
 #include <numeric>
 #include <set>
@@ -365,7 +366,8 @@ double GetQuarternotesPerMinute(const ODF& odf, const Hypothesis& hypothesis)
 }
 } // namespace
 
-std::optional<Result> GetBpmFromOdf2(const ODF& odf)
+std::optional<Result>
+GetBpmFromOdf2(const ODF& odf, const std::optional<double>& tempoHint)
 {
    const auto xcorr = GetNormalizedAutocorr(odf.values);
    const auto beatIndices = GetBeatIndices(odf, xcorr);
@@ -438,6 +440,29 @@ std::optional<Result> GetBpmFromOdf2(const ODF& odf)
       [](const Hypothesis& h) {
          return Likelihood { h.dissimilarity, h.bpmProbability }.combinedScore;
       });
+
+   std::vector<double> quarternotesPerMinueValues;
+   std::transform(
+      hypotheses.begin(), hypotheses.end(),
+      std::back_inserter(quarternotesPerMinueValues),
+      [&](const Hypothesis& h) { return GetQuarternotesPerMinute(odf, h); });
+
+   if (tempoHint.has_value())
+   {
+      std::ifstream ifs("C:/Users/saint/Downloads/auto-tempo/useHint.txt");
+      auto useHint = true;
+      if (ifs.good())
+         ifs >> useHint;
+      const auto doSwap = std::abs(*tempoHint - quarternotesPerMinueValues[1]) <
+                          std::abs(*tempoHint - quarternotesPerMinueValues[0]);
+      if (useHint && doSwap)
+      {
+         std::swap(hypotheses[0], hypotheses[1]);
+         std::swap(scores[0], scores[1]);
+         std::swap(
+            quarternotesPerMinueValues[0], quarternotesPerMinueValues[1]);
+      }
+   }
 
    const auto& winner = hypotheses.front();
    const auto quarternotesPerMinute = GetQuarternotesPerMinute(odf, winner);

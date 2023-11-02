@@ -44,7 +44,8 @@ struct Result
 
 CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf(const ODF& odf);
 
-CLIP_ANALYSIS_API std::optional<Result> GetBpmFromOdf2(const ODF& odf);
+CLIP_ANALYSIS_API std::optional<Result>
+GetBpmFromOdf2(const ODF& odf, const std::optional<double>& tempoHint = {});
 
 CLIP_ANALYSIS_API std::vector<std::pair<size_t, size_t>>
 GetBeatIndexPairs(int numBeats, int numPeriods);

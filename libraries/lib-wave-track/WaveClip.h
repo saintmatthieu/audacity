@@ -166,9 +166,11 @@ public:
    void StretchRightTo(double to);
 
    double GetStretchRatio() const override;
-   std::optional<ClipAnalysis::MeterInfo> GuessYourTempo();
+   std::optional<ClipAnalysis::MeterInfo>
+   GuessYourTempo(const std::optional<double>& tempoHint);
    std::optional<double> GetTempo() const;
    void SetTempo(double bpm);
+   std::optional<ClipAnalysis::MeterInfo> UseMeterAlternative();
 
    //! Checks for stretch-ratio equality, accounting for rounding errors.
    //! @{

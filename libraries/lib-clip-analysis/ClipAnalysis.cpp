@@ -26,10 +26,11 @@ namespace ClipAnalysis
 // onset detection values, which works halfway, but something more sensible and
 // discriminant might be at hand ...
 
-std::optional<MeterInfo> GetBpm(const ClipInterface& clip)
+std::optional<MeterInfo>
+GetBpm(const ClipInterface& clip, const std::optional<double>& tempoHint)
 {
    const auto odf = GetOdf(clip);
-   auto result = GetBpmFromOdf2(odf);
+   auto result = GetBpmFromOdf2(odf, tempoHint);
    if (result.has_value())
    {
       MeterInfo info;

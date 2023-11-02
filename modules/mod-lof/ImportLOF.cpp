@@ -126,7 +126,7 @@ public:
    std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener& progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
-               Tags *tags) override;
+               Tags *tags, const std::optional<double>& tempoHint = std::nullopt) override;
 
    FilePath GetFilename() const override;
 
@@ -275,7 +275,7 @@ auto LOFImportFileHandle::GetFileUncompressedBytes() -> ByteCount
 std::optional<ClipAnalysis::MeterInfo> LOFImportFileHandle::Import(ImportProgressListener& progressListener,
                                  WaveTrackFactory*,
                                  TrackHolders &outTracks,
-                                 Tags*)
+                                 Tags*, const std::optional<double>& tempoHint)
 {
    // Unlike other ImportFileHandle subclasses, this one never gives any tracks
    // back to the caller.

@@ -54,5 +54,6 @@ struct MeterInfo
 
 CLIP_ANALYSIS_API int GetNumQuarternotesPerBar(TimeSignature timeSignature);
 
-CLIP_ANALYSIS_API std::optional<MeterInfo> GetBpm(const ClipInterface& clip);
+CLIP_ANALYSIS_API std::optional<MeterInfo>
+GetBpm(const ClipInterface& clip, const std::optional<double>& tempoHint);
 } // namespace ClipAnalysis

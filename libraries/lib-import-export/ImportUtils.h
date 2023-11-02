@@ -49,9 +49,11 @@ public:
    //! Flushes the given channels and moves them to \p outTracks
    static std::optional<ClipAnalysis::MeterInfo> FinalizeImport(
       TrackHolders& outTracks,
-      const std::vector<TrackListHolder>& importedStreams);
+      const std::vector<TrackListHolder>& importedStreams,
+      const std::optional<double>& tempoHint = std::nullopt);
 
    //! Flushes the given channels and moves them to \p outTracks
-   static std::optional<ClipAnalysis::MeterInfo>
-   FinalizeImport(TrackHolders& outTracks, TrackListHolder trackList);
+   static std::optional<ClipAnalysis::MeterInfo> FinalizeImport(
+      TrackHolders& outTracks, TrackListHolder trackList,
+      const std::optional<double>& tempoHint = std::nullopt);
 };

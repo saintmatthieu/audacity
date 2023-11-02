@@ -147,10 +147,10 @@ public:
    // or tags unmodified.
    // If resulting outTracks is not empty,
    // then each member of it must be a nonempty vector.
-   virtual std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener &progressListener,
-                       WaveTrackFactory *trackFactory,
-                       TrackHolders &outTracks,
-                       Tags *tags) = 0;
+   virtual std::optional<ClipAnalysis::MeterInfo> Import(
+      ImportProgressListener& progressListener, WaveTrackFactory* trackFactory,
+      TrackHolders& outTracks, Tags* tags,
+      const std::optional<double>& tempoHint = std::nullopt) = 0;
 
    virtual void Cancel() = 0;
 

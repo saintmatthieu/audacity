@@ -84,7 +84,7 @@ public:
    std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener &progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
-               Tags *tags) override;
+               Tags *tags, const std::optional<double>& tempoHint = std::nullopt) override;
 
    wxInt32 GetStreamCount() override { return 1; }
 
@@ -281,7 +281,7 @@ using id3_tag_holder = std::unique_ptr<id3_tag, id3_tag_deleter>;
 std::optional<ClipAnalysis::MeterInfo> PCMImportFileHandle::Import(ImportProgressListener &progressListener,
                                  WaveTrackFactory *trackFactory,
                                  TrackHolders &outTracks,
-                                 Tags *tags)
+                                 Tags *tags, const std::optional<double>& tempoHint)
 {
    BeginImport();
 
@@ -386,7 +386,8 @@ std::optional<ClipAnalysis::MeterInfo> PCMImportFileHandle::Import(ImportProgres
       return{};
    }
 
-   const auto projectTempoSuggestion = ImportUtils::FinalizeImport(outTracks, trackList);
+   const auto projectTempoSuggestion =
+      ImportUtils::FinalizeImport(outTracks, trackList, tempoHint);
 
    const char *str;
 

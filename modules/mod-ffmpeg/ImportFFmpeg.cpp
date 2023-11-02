@@ -209,7 +209,7 @@ public:
    std::optional<ClipAnalysis::MeterInfo> Import(ImportProgressListener& progressListener,
                WaveTrackFactory *trackFactory,
                TrackHolders &outTracks,
-               Tags *tags) override;
+               Tags *tags, const std::optional<double>& tempoHint = std::nullopt) override;
 
    FilePath GetFilename() const override;
 
@@ -451,7 +451,7 @@ auto FFmpegImportFileHandle::GetFileUncompressedBytes() -> ByteCount
 std::optional<ClipAnalysis::MeterInfo> FFmpegImportFileHandle::Import(ImportProgressListener& progressListener,
                                     WaveTrackFactory *trackFactory,
                                     TrackHolders &outTracks,
-                                    Tags *tags)
+                                    Tags *tags, const std::optional<double>& tempoHint)
 {
    outTracks.clear();
    mCancelled = false;

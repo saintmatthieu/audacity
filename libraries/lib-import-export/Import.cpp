@@ -491,6 +491,20 @@ std::unique_ptr<ExtImportItem> Importer::CreateDefaultImportItem()
    return new_item;
 }
 
+namespace
+{
+bool IsProjectEmpty(const TrackList& projectTracks)
+{
+   return projectTracks.empty() ||
+          std::all_of(
+             projectTracks.begin(), projectTracks.end(),
+             [](const Track* track) {
+                const auto waveTrack = dynamic_cast<const WaveTrack*>(track);
+                return !waveTrack || waveTrack->GetEndTime() == 0;
+             });
+}
+} // namespace
+
 // returns number of tracks imported
 bool Importer::Import( AudacityProject &project,
                      const FilePath &fName,
@@ -657,18 +671,17 @@ bool Importer::Import( AudacityProject &project,
          if(!importResultProxy.OnImportFileOpened(*inFile))
             return false;
 
-         const auto projectTempoSuggestion =
-            inFile->Import(importResultProxy, trackFactory, tracks, tags);
          const auto& projectTracks = TrackList::Get(project);
+         const auto projectIsEmpty = IsProjectEmpty(projectTracks);
+         const std::optional<double> tempoHint =
+            !projectIsEmpty ?
+               std::make_optional<double>(
+                  ProjectTimeSignature::Get(project).GetTempo()) :
+               std::nullopt;
+         const auto projectTempoSuggestion = inFile->Import(
+            importResultProxy, trackFactory, tracks, tags, tempoHint);
          if (
-            projectTempoSuggestion.has_value() &&
-            (projectTracks.empty() ||
-             std::all_of(
-                projectTracks.begin(), projectTracks.end(),
-                [](const Track* track) {
-                   const auto waveTrack = dynamic_cast<const WaveTrack*>(track);
-                   return !waveTrack || waveTrack->GetEndTime() == 0;
-                })))
+            projectTempoSuggestion.has_value() && projectIsEmpty)
          {
             auto& pts = ProjectTimeSignature::Get(project);
             pts.SetTempo(projectTempoSuggestion->quarternotesPerMinute);

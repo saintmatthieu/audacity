@@ -345,9 +345,10 @@ double WaveClip::GetStretchRatio() const
    return mClipStretchRatio * dstSrcRatio;
 }
 
-std::optional<ClipAnalysis::MeterInfo> WaveClip::GuessYourTempo()
+std::optional<ClipAnalysis::MeterInfo>
+WaveClip::GuessYourTempo(const std::optional<double>& tempoHint)
 {
-   const auto guess = ClipAnalysis::GetBpm(*this);
+   const auto guess = ClipAnalysis::GetBpm(*this, tempoHint);
    if (!guess.has_value())
       return {};
    mRawAudioTempo = guess->quarternotesPerMinute;
@@ -365,6 +366,19 @@ std::optional<double> WaveClip::GetTempo() const
 void WaveClip::SetTempo(double bpm)
 {
    mRawAudioTempo = bpm;
+}
+
+std::optional<ClipAnalysis::MeterInfo> WaveClip::UseMeterAlternative()
+{
+   if (mMeterInfo.has_value() && mMeterInfo->alternative.has_value())
+   {
+      const auto& alt = *mMeterInfo->alternative;
+      mRawAudioTempo = alt.quarternotesPerMinute;
+      mMeterInfo.emplace(
+         alt.numBars, alt.timeSignature, alt.quarternotesPerMinute,
+         std::nullopt);
+      return mMeterInfo;
+   }
 }
 
 bool WaveClip::HasEqualStretchRatio(const WaveClip& other) const
