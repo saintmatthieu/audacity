@@ -18,6 +18,7 @@ using II = IndexIndex;
 #include <set>
 #include <sstream>
 #include <tuple>
+#include <unordered_map>
 
 namespace ClipAnalysis
 {
