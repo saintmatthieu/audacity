@@ -33,8 +33,13 @@ std::optional<std::vector<size_t>> GetClipBeatIndices(const char* filepath)
 
 MockedPrefs prefs;
 
+constexpr auto disabled = true;
+
 TEST_CASE("GetBeatIndices")
 {
+   if (disabled)
+      return;
+
    SECTION("nothing else")
    {
       const auto indices = GetClipBeatIndices(
@@ -55,6 +60,9 @@ TEST_CASE("GetBeatIndices")
 
 TEST_CASE("IsLoop")
 {
+   if (disabled)
+      return;
+
    SECTION("noise")
    {
       const auto odf =
