@@ -2,8 +2,8 @@
 ````mermaid
 stateDiagram-v2
     DisambiguationButton: ÷2 or ×2 appears for 10s
-    BiasedDetection: Biased Detection
-    Detection: Unbiased Detection
+    BiasedDetection: Consider current project tempo
+    Detection: Ignore current project tempo
     ProjX: Project Meter X
     ProjY: Project Meter Y
     ProjZ: Project Meter Z
@@ -19,21 +19,21 @@ stateDiagram-v2
     ProjX --> Import
     Import --> isLoop: Is loop AND Beats-and-Bars view ON ?
     isLoop --> [*]: no
-    isLoop --> useUnbiased : Project is empty ?
+    isLoop --> useUnbiased : Project was empty ?
     useUnbiased --> Detection : yes
     Detection --> ClipY
     BiasedDetection --> ClipY
-    ClipY --> isEmpty : Project empty ?
+    ClipY --> isEmpty : "Hey, change project meter ?"
     isEmpty --> ProjY : yes
     isEmpty --> Disambiguation : no
     ProjY --> Disambiguation
-    Disambiguation --> isAmbiguous : Could have been Z ?
+    Disambiguation --> isAmbiguous : Was there another likely meter ?
     isAmbiguous --> [*] : no
     isAmbiguous --> DisambiguationButton : yes
     DisambiguationButton --> disambiguationUsed : Used ?
     disambiguationUsed --> [*] : no
-    disambiguationUsed --> ClipZ
-    ClipZ --> isEmpty2 : Project is empty ?
+    disambiguationUsed --> ClipZ : yes
+    ClipZ --> isEmpty2 : Project was empty ?
     isEmpty2 --> [*] : no
     isEmpty2 --> ProjZ : yes
     ProjZ --> [*]
