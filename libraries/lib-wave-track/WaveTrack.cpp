@@ -214,6 +214,11 @@ void WaveTrack::Interval::Flush()
    ForEachClip([](auto& clip) { clip.Flush(); });
 }
 
+void WaveTrack::Interval::ShiftBy(double delta)
+{
+   ForEachClip([delta](auto& clip) { clip.ShiftBy(delta); });
+}
+
 void WaveTrack::Interval::TrimLeftTo(double t)
 {
    for(unsigned channel = 0; channel < NChannels(); ++channel)
@@ -838,11 +843,8 @@ void WaveTrack::MoveTo(double origin)
 {
    double delta = origin - GetStartTime();
    assert(IsLeader());
-   for (const auto pChannel : TrackList::Channels(this)) {
-      for (const auto &clip : pChannel->mClips)
-         // assume No-fail-guarantee
-         clip->ShiftBy(delta);
-   }
+   for (const auto interval : Intervals())
+      interval->ShiftBy(delta);
    WaveTrackData::Get(*this).SetOrigin(origin);
 }
 

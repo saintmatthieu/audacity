@@ -934,6 +934,9 @@ public:
       void Append(constSamplePtr buffer[], sampleFormat format, size_t len);
       void Flush();
 
+      // New:
+      void ShiftBy(double amount);
+
       void SetName(const wxString& name);
       const wxString& GetName() const;
 
