@@ -936,6 +936,8 @@ public:
 
       // New:
       void ShiftBy(double amount);
+      void OnProjectTempoChange(
+         const std::optional<double>& oldTempo, double newTempo);
 
       void SetName(const wxString& name);
       const wxString& GetName() const;

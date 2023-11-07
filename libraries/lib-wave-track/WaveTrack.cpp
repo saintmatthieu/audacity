@@ -219,6 +219,13 @@ void WaveTrack::Interval::ShiftBy(double delta)
    ForEachClip([delta](auto& clip) { clip.ShiftBy(delta); });
 }
 
+void WaveTrack::Interval::OnProjectTempoChange(
+   const std::optional<double>& oldTempo, double newTempo)
+{
+   ForEachClip(
+      [&](auto& clip) { clip.OnProjectTempoChange(oldTempo, newTempo); });
+}
+
 void WaveTrack::Interval::TrimLeftTo(double t)
 {
    for(unsigned channel = 0; channel < NChannels(); ++channel)
@@ -852,9 +859,8 @@ void WaveTrack::DoOnProjectTempoChange(
    const std::optional<double>& oldTempo, double newTempo)
 {
    assert(IsLeader());
-   for (const auto pChannel : TrackList::Channels(this))
-      for (const auto& clip : pChannel->mClips)
-         clip->OnProjectTempoChange(oldTempo, newTempo);
+   for (const auto interval : Intervals())
+      interval->OnProjectTempoChange(oldTempo, newTempo);
 }
 
 TrackListHolder
