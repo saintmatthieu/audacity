@@ -952,6 +952,8 @@ public:
       void SetPlayStartTime(double time);
       double GetPlayStartTime() const;
       double GetPlayEndTime() const;
+      sampleCount GetPlayStartSample() const;
+      sampleCount GetPlayEndSample() const;
       bool IntersectsPlayRegion(double t0, double t1) const;
       bool WithinPlayRegion(double t) const;
 
@@ -986,6 +988,7 @@ public:
       void SetTrimRight(double t);
       void ClearLeft(double t);
       void ClearRight(double t);
+      void SetSilence(sampleCount offset, sampleCount length);
 
       /*!
        * @post result: `result->GetStretchRatio() == 1`

@@ -274,6 +274,12 @@ void WaveTrack::Interval::ClearRight(double t)
       GetClip(channel)->ClearRight(t);
 }
 
+void WaveTrack::Interval::SetSilence(sampleCount offset, sampleCount length)
+{
+   ForEachClip(
+      [offset, length](auto& clip) { clip.SetSilence(offset, length); });
+}
+
 void WaveTrack::Interval::StretchLeftTo(double t)
 {
    for(unsigned channel = 0; channel < NChannels(); ++channel)
@@ -425,6 +431,16 @@ double WaveTrack::Interval::GetPlayEndTime() const
    // TODO wide wave tracks:  assuming that all 'narrow' clips share common
    // beginning
    return mpClip->GetPlayEndTime();
+}
+
+sampleCount WaveTrack::Interval::GetPlayStartSample() const
+{
+   return mpClip->GetPlayStartSample();
+}
+
+sampleCount WaveTrack::Interval::GetPlayEndSample() const
+{
+   return mpClip->GetPlayEndSample();
 }
 
 bool WaveTrack::Interval::IntersectsPlayRegion(double t0, double t1) const
@@ -2401,16 +2417,16 @@ void WaveTrack::Silence(double t0, double t1, ProgressReporter reportProgress)
    auto start = TimeToLongSamples(t0);
    auto end = TimeToLongSamples(t1);
 
-   for (const auto pChannel : TrackList::Channels(this)) {
-      for (const auto &clip : pChannel->mClips) {
-         auto clipStart = clip->GetPlayStartSample();
-         auto clipEnd = clip->GetPlayEndSample();
-         if (clipEnd > start && clipStart < end) {
-            auto offset = std::max(start - clipStart, sampleCount(0));
-            // Clip sample region and Get/Put sample region overlap
-            auto length = std::min(end, clipEnd) - (clipStart + offset);
-            clip->SetSilence(offset, length);
-         }
+   for (const auto interval : Intervals())
+   {
+      auto clipStart = interval->GetPlayStartSample();
+      auto clipEnd = interval->GetPlayEndSample();
+      if (clipEnd > start && clipStart < end)
+      {
+         auto offset = std::max(start - clipStart, sampleCount(0));
+         // Clip sample region and Get/Put sample region overlap
+         auto length = std::min(end, clipEnd) - (clipStart + offset);
+         interval->SetSilence(offset, length);
       }
    }
 }
