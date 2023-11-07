@@ -1276,20 +1276,21 @@ void WaveTrack::Trim (double t0, double t1)
    bool inside0 = false;
    bool inside1 = false;
 
-   const auto range = TrackList::Channels(this);
-   for (auto pChannel : range) {
-      for (const auto &clip : pChannel->mClips) {
-         if (t1 > clip->GetPlayStartTime() && t1 < clip->GetPlayEndTime()) {
-            clip->SetTrimRight(
-               clip->GetTrimRight() + clip->GetPlayEndTime() - t1);
-            inside1 = true;
-         }
+   const auto range = Intervals();
+   for (const auto& interval : range)
+   {
+      if (t1 > interval->GetPlayStartTime() && t1 < interval->GetPlayEndTime())
+      {
+         interval->SetTrimRight(
+            interval->GetTrimRight() + interval->GetPlayEndTime() - t1);
+         inside1 = true;
+      }
 
-         if (t0 > clip->GetPlayStartTime() && t0 < clip->GetPlayEndTime()) {
-            clip->SetTrimLeft(
-               clip->GetTrimLeft() + t0 - clip->GetPlayStartTime());
-            inside0 = true;
-         }
+      if (t0 > interval->GetPlayStartTime() && t0 < interval->GetPlayEndTime())
+      {
+         interval->SetTrimLeft(
+            interval->GetTrimLeft() + t0 - interval->GetPlayStartTime());
+         inside0 = true;
       }
    }
 
