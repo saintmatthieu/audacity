@@ -226,6 +226,11 @@ void WaveTrack::Interval::OnProjectTempoChange(
       [&](auto& clip) { clip.OnProjectTempoChange(oldTempo, newTempo); });
 }
 
+sampleCount WaveTrack::Interval::GetSequenceSamplesCount() const
+{
+   return mpClip->GetSequenceSamplesCount() * NChannels();
+}
+
 void WaveTrack::Interval::TrimLeftTo(double t)
 {
    for(unsigned channel = 0; channel < NChannels(); ++channel)
@@ -1176,9 +1181,8 @@ sampleCount WaveTrack::GetSequenceSamplesCount() const
    assert(IsLeader());
    sampleCount result{ 0 };
 
-   for (const auto pChannel : TrackList::Channels(this))
-      for (const auto& clip : pChannel->mClips)
-         result += clip->GetSequenceSamplesCount();
+   for (const auto interval : Intervals())
+      result += interval->GetSequenceSamplesCount();
 
    return result;
 }
