@@ -1022,6 +1022,10 @@ public:
    using IntervalHolder = std::shared_ptr<Interval>;
    using IntervalConstHolder = std::shared_ptr<const Interval>;
 
+   Interval* CreateInterval(double offset = .0, const wxString& name = wxEmptyString);
+
+   Interval* RightmostOrNewInterval();
+
    ///@return Interval that starts after(before) the beginning of the passed interval
    IntervalConstHolder GetNextInterval(
       const Interval& interval, PlaybackDirection searchDirection) const;

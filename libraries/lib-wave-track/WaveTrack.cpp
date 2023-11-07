@@ -2750,8 +2750,7 @@ clip gets appended; no previously saved contents are lost. */
 void WaveTrack::Flush()
 {
    assert(IsLeader());
-   for (const auto pChannel : TrackList::Channels(this))
-      pChannel->FlushOne();
+   RightmostOrNewInterval()->Flush();
 }
 
 void WaveTrack::SetLegacyFormat(sampleFormat format)
@@ -3825,6 +3824,39 @@ WaveClip* WaveTrack::RightmostOrNewClip()
          double offset = clip->GetPlayStartTime();
          if (maxOffset < offset)
             maxOffset = offset, rightmost = clip;
+      }
+      return rightmost;
+   }
+}
+
+WaveTrack::Interval*
+WaveTrack::CreateInterval(double offset, const wxString& name)
+{
+   auto interval = std::make_shared<Interval>(
+      *this, NChannels(), mpFactory, GetRate(), GetSampleFormat());
+   interval->SetName(name);
+   interval->SetSequenceStartTime(offset);
+   InsertInterval(interval);
+   return interval.get();
+}
+
+WaveTrack::Interval* WaveTrack::RightmostOrNewInterval()
+{
+   const auto intervals = Intervals();
+   if (intervals.empty())
+      return CreateInterval(
+         WaveTrackData::Get(*this).GetOrigin(), MakeNewClipName());
+   else
+   {
+      auto it = intervals.begin();
+      Interval* rightmost = (*it++).get();
+      double maxOffset = rightmost->GetPlayStartTime();
+      for (; it != intervals.end(); ++it)
+      {
+         Interval* interval = (*it).get();
+         double offset = interval->GetPlayStartTime();
+         if (maxOffset < offset)
+            maxOffset = offset, rightmost = interval;
       }
       return rightmost;
    }
