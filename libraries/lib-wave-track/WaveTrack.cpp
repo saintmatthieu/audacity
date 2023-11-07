@@ -1156,10 +1156,8 @@ int WaveTrack::GetWaveColorIndex() const
 void WaveTrack::SetWaveColorIndex(int colorIndex)
 {
    assert(IsLeader());
-   for (const auto pChannel : TrackList::Channels(this)) {
-      for (const auto &clip : pChannel->mClips)
-         clip->SetColourIndex(colorIndex);
-   }
+   for (const auto interval : Intervals())
+      interval->SetColorIndex(colorIndex);
    WaveTrackData::Get(*this).SetWaveColorIndex(colorIndex);
 }
 
