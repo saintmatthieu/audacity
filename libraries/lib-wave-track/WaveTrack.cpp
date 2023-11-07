@@ -2048,7 +2048,6 @@ void WaveTrack::SyncLockAdjust(double oldT1, double newT1)
       // value as T1, when T1 was set to be at the end of one of those clips.
       oldT1 >= endTime)
          return;
-   const auto channels = TrackList::Channels(this);
    if (newT1 > oldT1) {
       // Insert space within the track
 
@@ -2058,10 +2057,9 @@ void WaveTrack::SyncLockAdjust(double oldT1, double newT1)
          if (EditClipsCanMove.Read()) {
             const auto offset = newT1 - oldT1;
             const auto rate = GetRate();
-            for (const auto pChannel : channels)
-               for (const auto& clip : pChannel->mClips)
-                  if (clip->GetPlayStartTime() > oldT1 - (1.0 / rate))
-                     clip->ShiftBy(offset);
+            for (const auto& interval : Intervals())
+               if (interval->GetPlayStartTime() > oldT1 - (1.0 / rate))
+                  interval->ShiftBy(offset);
          }
          return;
       }
@@ -2069,7 +2067,7 @@ void WaveTrack::SyncLockAdjust(double oldT1, double newT1)
          // AWD: Could just use InsertSilence() on its own here, but it doesn't
          // follow EditClipCanMove rules (Paste() does it right)
          const auto duration = newT1 - oldT1;
-         for (const auto pChannel : channels) {
+         for (const auto pChannel : TrackList::Channels(this)) {
             auto tmp = std::make_shared<WaveTrack>(
                mpFactory, GetSampleFormat(), GetRate());
             // tmpList exists only to fix assertion crashes in usage of tmp
