@@ -243,6 +243,11 @@ void WaveTrack::Interval::InsertSilence(double t, double len)
    ForEachClip([&](auto& clip) { clip.InsertSilence(t, len); });
 }
 
+void WaveTrack::Interval::CloseLock() noexcept
+{
+   ForEachClip([&](auto& clip) { clip.CloseLock(); });
+}
+
 void WaveTrack::Interval::TrimLeftTo(double t)
 {
    for(unsigned channel = 0; channel < NChannels(); ++channel)
@@ -3003,10 +3008,8 @@ std::optional<TranslatableString> WaveTrack::GetErrorOpening() const
 bool WaveTrack::CloseLock() noexcept
 {
    assert(IsLeader());
-   for (const auto pChannel : TrackList::Channels(this))
-      for (const auto &clip : pChannel->mClips)
-         clip->CloseLock();
-
+   for (const auto interval : Intervals())
+      interval->CloseLock();
    return true;
 }
 

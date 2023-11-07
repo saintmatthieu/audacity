@@ -943,6 +943,7 @@ public:
          sampleFormat format,
          const std::function<void(size_t)>& progressReport);
       void InsertSilence(double t, double len);
+      void CloseLock() noexcept;
 
       void SetName(const wxString& name);
       const wxString& GetName() const;
