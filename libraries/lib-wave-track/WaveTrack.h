@@ -941,7 +941,8 @@ public:
       sampleCount GetSequenceSamplesCount() const;
       void ConvertToSampleFormat(
          sampleFormat format,
-         const std::function<void(size_t)>& progressReport = {});
+         const std::function<void(size_t)>& progressReport);
+      void InsertSilence(double t, double len);
 
       void SetName(const wxString& name);
       const wxString& GetName() const;
@@ -956,6 +957,8 @@ public:
       sampleCount GetPlayEndSample() const;
       bool IntersectsPlayRegion(double t0, double t1) const;
       bool WithinPlayRegion(double t) const;
+      bool BeforePlayRegion(double t) const;
+      bool SplitsPlayRegion(double t) const;
 
       double GetStretchRatio() const;
 

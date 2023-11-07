@@ -238,6 +238,11 @@ void WaveTrack::Interval::ConvertToSampleFormat(
       [&](auto& clip) { clip.ConvertToSampleFormat(format, progressReport); });
 }
 
+void WaveTrack::Interval::InsertSilence(double t, double len)
+{
+   ForEachClip([&](auto& clip) { clip.InsertSilence(t, len); });
+}
+
 void WaveTrack::Interval::TrimLeftTo(double t)
 {
    for(unsigned channel = 0; channel < NChannels(); ++channel)
@@ -453,6 +458,16 @@ bool WaveTrack::Interval::IntersectsPlayRegion(double t0, double t1) const
 bool WaveTrack::Interval::WithinPlayRegion(double t) const
 {
    return mpClip->WithinPlayRegion(t);
+}
+
+bool WaveTrack::Interval::BeforePlayRegion(double t) const
+{
+   return mpClip->BeforePlayRegion(t);
+}
+
+bool WaveTrack::Interval::SplitsPlayRegion(double t) const
+{
+   return mpClip->SplitsPlayRegion(t);
 }
 
 double WaveTrack::Interval::GetStretchRatio() const
@@ -2442,33 +2457,33 @@ void WaveTrack::InsertSilence(double t, double len)
    if (len <= 0)
       THROW_INCONSISTENCY_EXCEPTION;
 
-   for (const auto pChannel : TrackList::Channels(this)) {
-      auto &clips = pChannel->mClips;
-      if (clips.empty()) {
-         // Special case if there is no clip yet
-         // TODO wide wave tracks -- match clip width
-         auto clip = std::make_shared<WaveClip>(1,
-            mpFactory, GetSampleFormat(), GetRate(), this->GetWaveColorIndex());
-         clip->InsertSilence(0, len);
-         // use No-fail-guarantee
-         pChannel->InsertClip(move(clip));
-      }
-      else
-      {
-         // Assume at most one clip contains t
-         const auto end = clips.end();
-         const auto it = std::find_if(clips.begin(), end,
-            [&](const WaveClipHolder &clip) { return clip->SplitsPlayRegion(t); } );
+   auto intervals = Intervals();
+   if (intervals.empty())
+   {
+      // Special case if there is no clip yet
+      auto interval = std::make_shared<Interval>(
+         *this, NChannels(), mpFactory, GetRate(), GetSampleFormat());
+      interval->InsertSilence(0, len);
+      // use No-fail-guarantee
+      InsertInterval(std::move(interval));
+   }
+   else
+   {
+      // Assume at most one clip contains t
+      const auto end = intervals.end();
+      const auto it =
+         std::find_if(intervals.begin(), end, [&](const auto& interval) {
+            return interval->SplitsPlayRegion(t);
+         });
 
-         // use Strong-guarantee
-         if (it != end)
-            it->get()->InsertSilence(t, len);
+      // use Strong-guarantee
+      if (it != end)
+         (*it)->InsertSilence(t, len);
 
-         // use No-fail-guarantee
-         for (const auto &clip : clips)
-            if (clip->BeforePlayRegion(t))
-               clip->ShiftBy(len);
-      }
+      // use No-fail-guarantee
+      for (const auto& interval : intervals)
+         if (interval->BeforePlayRegion(t))
+            interval->ShiftBy(len);
    }
 }
 
