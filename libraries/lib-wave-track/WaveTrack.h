@@ -939,6 +939,9 @@ public:
       void OnProjectTempoChange(
          const std::optional<double>& oldTempo, double newTempo);
       sampleCount GetSequenceSamplesCount() const;
+      void ConvertToSampleFormat(
+         sampleFormat format,
+         const std::function<void(size_t)>& progressReport = {});
 
       void SetName(const wxString& name);
       const wxString& GetName() const;

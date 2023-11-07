@@ -231,6 +231,13 @@ sampleCount WaveTrack::Interval::GetSequenceSamplesCount() const
    return mpClip->GetSequenceSamplesCount() * NChannels();
 }
 
+void WaveTrack::Interval::ConvertToSampleFormat(
+   sampleFormat format, const std::function<void(size_t)>& progressReport)
+{
+   ForEachClip(
+      [&](auto& clip) { clip.ConvertToSampleFormat(format, progressReport); });
+}
+
 void WaveTrack::Interval::TrimLeftTo(double t)
 {
    for(unsigned channel = 0; channel < NChannels(); ++channel)
@@ -1208,10 +1215,8 @@ void WaveTrack::ConvertToSampleFormat(sampleFormat format,
    const std::function<void(size_t)> & progressReport)
 {
    assert(IsLeader());
-   for (const auto pChannel : TrackList::Channels(this)) {
-      for (const auto& clip : pChannel->mClips)
-         clip->ConvertToSampleFormat(format, progressReport);
-   }
+   for (const auto interval : Intervals())
+      interval->ConvertToSampleFormat(format, progressReport);
    WaveTrackData::Get(*this).SetSampleFormat(format);
 }
 
