@@ -3832,7 +3832,7 @@ WaveClip* WaveTrack::RightmostOrNewClip()
    }
 }
 
-WaveTrack::Interval*
+WaveTrack::IntervalHolder
 WaveTrack::CreateInterval(double offset, const wxString& name)
 {
    auto interval = std::make_shared<Interval>(
@@ -3840,10 +3840,10 @@ WaveTrack::CreateInterval(double offset, const wxString& name)
    interval->SetName(name);
    interval->SetSequenceStartTime(offset);
    InsertInterval(interval);
-   return interval.get();
+   return interval;
 }
 
-WaveTrack::Interval* WaveTrack::RightmostOrNewInterval()
+WaveTrack::IntervalHolder WaveTrack::RightmostOrNewInterval()
 {
    const auto intervals = Intervals();
    if (intervals.empty())
@@ -3852,11 +3852,11 @@ WaveTrack::Interval* WaveTrack::RightmostOrNewInterval()
    else
    {
       auto it = intervals.begin();
-      Interval* rightmost = (*it++).get();
+      auto rightmost = *it++;
       double maxOffset = rightmost->GetPlayStartTime();
       for (; it != intervals.end(); ++it)
       {
-         Interval* interval = (*it).get();
+         IntervalHolder interval = *it;
          double offset = interval->GetPlayStartTime();
          if (maxOffset < offset)
             maxOffset = offset, rightmost = interval;
