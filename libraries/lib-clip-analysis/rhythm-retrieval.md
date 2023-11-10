@@ -128,7 +128,7 @@ state TempoAdjustment {
    FinalTempo --> [*]
 }
 musicMode --> TempoAdjustment: yes
-musicMode --> ansQ1: no\n"Switch to B&B View ?"
+musicMode --> ansQ1: no\nProject was empty AND\n"Switch to B&B View ?"
 ansQ1 --> [*]: no
 ansQ1 --> TempoAdjustment: yes
 TempoAdjustment --> ClipY
