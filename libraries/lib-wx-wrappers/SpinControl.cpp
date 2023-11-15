@@ -339,8 +339,13 @@ void SpinControl::SetValue(double value, bool silent)
 {
    value = std::clamp(value, mMinValue, mMaxValue);
 
-   // Should some epsilon be used here?
-   if (value == mValue)
+   // `value` may be the text readout of `mTextControl`, whose difference with
+   // the actual stored `mValue` can be greater than 0.001. Even such a small
+   // delta between project tempo and clip raw audio tempo can yield a tiny
+   // speed change, e.g. 100.1%, which is upsetting. This is an imperfect
+   // workaround. Better ideas welcome.
+   constexpr auto epsilon = 0.002;
+   if (std::abs(value - mValue) < epsilon)
       return;
 
    mValue = value;
