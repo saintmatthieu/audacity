@@ -30,7 +30,7 @@ constexpr auto bpmExpectedValue = 120.;
 
 // When we get time-signature estimate, we may need a map for that, since 6/8
 // has 1.5 quarter notes per beat.
-constexpr auto quarternotesPerBeat = 4;
+constexpr auto quarternotesPerBeat = 1.;
 } // namespace
 
 MusicInformation::MusicInformation(const std::string& filename, double duration)
