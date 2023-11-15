@@ -630,6 +630,8 @@ list( APPEND SOURCES
       prefs/ModulePrefs.h
       prefs/MousePrefs.cpp
       prefs/MousePrefs.h
+      prefs/MusicInformationRetrievalPrefs.cpp
+      prefs/MusicInformationRetrievalPrefs.h
       prefs/PlaybackPrefs.cpp
       prefs/PlaybackPrefs.h
       prefs/PrefsDialog.cpp
