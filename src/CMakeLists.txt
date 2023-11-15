@@ -1343,6 +1343,7 @@ set( AUDACITY_LIBRARIES
    lib-export-ui-interface
    lib-file-formats-interface
    lib-menus-interface
+   lib-music-information-retrieval-interface
 )
 
 if (USE_VST)
