@@ -89,6 +89,22 @@ EnumSetting< bool > ImportExportPrefs::AllegroStyleSetting{
    wxT("/FileFormats/AllegroStyle"),
 };
 
+EnumSetting<bool> ImportExportPrefs::MusicFileImportSetting {
+   wxT("/FileFormats/MusicFileImportSettingChoice"),
+   {
+      EnumValueSymbol { wxT("No"), XXO("Do &nothing") },
+      /* i18n-hint: The music theory "beat" */
+      EnumValueSymbol {
+         wxT("Yes"),
+         XXO(
+            "S&witch view to Beats and Measures and align with musical grid") },
+      EnumValueSymbol { wxT("Ask"), XXO("&Ask me each time") },
+   },
+   2,
+   { false, false, true },
+   wxT("/FileFormats/MusicFileImportSetting"),
+};
+
 void ImportExportPrefs::PopulateOrExchange(ShuttleGui & S)
 {
    S.SetBorder(2);
@@ -129,6 +145,24 @@ void ImportExportPrefs::PopulateOrExchange(ShuttleGui & S)
    }
    S.EndStatic();
 #endif
+
+   S.StartStatic(XO(
+      "View is Minutes and Seconds and Audacity detects music content in imported file:"));
+   {
+      S.StartPanel();
+      {
+         S.StartRadioButtonGroup(ImportExportPrefs::MusicFileImportSetting);
+         {
+            S.TieRadioButton();
+            S.TieRadioButton();
+            S.TieRadioButton();
+         }
+         S.EndRadioButtonGroup();
+      }
+      S.EndPanel();
+   }
+   S.EndStatic();
+
    S.EndScroller();
 }
 
@@ -136,7 +170,7 @@ bool ImportExportPrefs::Commit()
 {
    ShuttleGui S(this, eIsSavingToPrefs);
    PopulateOrExchange(S);
-   
+
    return true;
 }
 

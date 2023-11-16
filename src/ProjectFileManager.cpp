@@ -17,8 +17,8 @@ Paul Licameli split from AudacityProject.cpp
 #endif
 
 #include "AdornedRulerPanel.h"
-#include "AudacityMessageBox.h"
 #include "AudacityDontAskAgainMessageDialog.h"
+#include "AudacityMessageBox.h"
 #include "BasicUI.h"
 #include "CodeConversions.h"
 #include "Export.h"
@@ -56,7 +56,7 @@ Paul Licameli split from AudacityProject.cpp
 #include "XMLFileReader.h"
 #include "import/ImportMIDI.h"
 #include "import/ImportStreamDialog.h"
-#include "prefs/MusicInformationRetrievalPrefs.h"
+#include "prefs/ImportExportPrefs.h"
 #include "toolbars/SelectionBar.h"
 #include "tracks/playabletrack/wavetrack/WaveTrackUtils.h"
 #include "widgets/FileHistory.h"
@@ -64,6 +64,7 @@ Paul Licameli split from AudacityProject.cpp
 #include "widgets/Warning.h"
 #include "wxFileNameWrapper.h"
 #include "wxPanelWrapper.h"
+
 
 #include <optional>
 #include <wx/frame.h>
@@ -1344,7 +1345,7 @@ enum class UserResponseToMirPrompt
 
 UserResponseToMirPrompt UserWantsMirResultToConfigureProject(AudacityProject& project)
 {
-   const auto policy = UseMirResultToConfigureProject.Read();
+   const auto policy = ImportExportPrefs::MusicFileImportSetting.Read();
    if (policy == wxString("Ask"))
    {
       AudacityDontAskAgainMessageDialog m(
@@ -1352,7 +1353,7 @@ UserResponseToMirPrompt UserWantsMirResultToConfigureProject(AudacityProject& pr
          XO("Use detected music information to configure project?"));
       const auto yes = m.ShowDialog();
       if (m.IsChecked())
-         UseMirResultToConfigureProject.Write(
+         ImportExportPrefs::MusicFileImportSetting.Write(
             yes ? wxString("Yes") : wxString("No"));
       return yes ? UserResponseToMirPrompt::ManualYes :
                    UserResponseToMirPrompt::No;
