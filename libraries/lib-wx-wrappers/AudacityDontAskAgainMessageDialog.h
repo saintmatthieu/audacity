@@ -17,9 +17,6 @@ private:
 
    void OnCheckBoxEvent(wxCommandEvent& evt);
    void OnClose(wxCloseEvent& event);
-   void OnKeyDown(wxKeyEvent& event);
-   void OnButtonClick(wxCommandEvent& event);
 
    bool mChecked = false;
-   bool mOk = false;
 };

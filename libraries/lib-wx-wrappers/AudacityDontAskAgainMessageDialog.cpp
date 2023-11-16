@@ -12,8 +12,6 @@ constexpr auto style = wxDEFAULT_DIALOG_STYLE | wxCENTRE;
 BEGIN_EVENT_TABLE(AudacityDontAskAgainMessageDialog, wxDialogWrapper)
 EVT_CHECKBOX(wxID_ANY, AudacityDontAskAgainMessageDialog::OnCheckBoxEvent)
 EVT_CLOSE(AudacityDontAskAgainMessageDialog::OnClose)
-EVT_CHAR_HOOK(AudacityDontAskAgainMessageDialog::OnKeyDown)
-EVT_BUTTON(wxID_NO, AudacityDontAskAgainMessageDialog::OnButtonClick)
 END_EVENT_TABLE()
 
 AudacityDontAskAgainMessageDialog::AudacityDontAskAgainMessageDialog(
@@ -46,6 +44,8 @@ AudacityDontAskAgainMessageDialog::AudacityDontAskAgainMessageDialog(
    // Manually implement wxCENTRE flag behavior
    if (style | wxCENTRE != 0)
       CentreOnParent();
+
+   SetEscapeId(wxID_NO);
 }
 
 bool AudacityDontAskAgainMessageDialog::ShowDialog()
@@ -66,20 +66,4 @@ void AudacityDontAskAgainMessageDialog::OnCheckBoxEvent(wxCommandEvent& evt)
 void AudacityDontAskAgainMessageDialog::OnClose(wxCloseEvent& event)
 {
    EndModal(wxID_NO);
-}
-
-void AudacityDontAskAgainMessageDialog::OnKeyDown(wxKeyEvent& event)
-{
-   if (event.GetKeyCode() == WXK_ESCAPE)
-      EndModal(wxID_NO);
-   else
-      event.Skip();
-}
-
-void AudacityDontAskAgainMessageDialog::OnButtonClick(wxCommandEvent& event)
-{
-   if (event.GetId() == wxID_NO)
-      EndModal(wxID_NO);
-   else
-      event.Skip();
 }
