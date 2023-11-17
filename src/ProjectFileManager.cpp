@@ -27,6 +27,7 @@ Paul Licameli split from AudacityProject.cpp
 #include "ImportPlugin.h"
 #include "ImportProgressListener.h"
 #include "Legacy.h"
+#include "MirAudioSource.h"
 #include "MusicInformationRetrieval.h"
 #include "PlatformCompatibility.h"
 #include "Project.h"
@@ -1378,7 +1379,17 @@ void ReactOnMusicFileImport(
    const auto newTrackDuration =
       newTrack.GetEndTime() - newTrack.GetStartTime();
 
-   MIR::MusicInformation musicInfo { fileName, newTrackDuration };
+   class MockMirAudioSource : public MIR::MirAudioSource {
+   public:
+     int GetSampleRate() const override { return 0; }
+     size_t ReadFloats(float *buffer, long long where,
+                       size_t numFrames) const override {
+       return 0;
+     }
+   };
+   MockMirAudioSource mockAudioSource;
+
+   MIR::MusicInformation musicInfo { fileName, newTrackDuration, mockAudioSource };
 
    if (!musicInfo)
       return;

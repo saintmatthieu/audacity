@@ -1,8 +1,11 @@
 add_unit_test(
    NAME
       lib-music-information-retrieval
+   WAV_FILE_IO
    SOURCES
       MusicInformationRetrievalTests.cpp
+      WavMirAudioSource.cpp
+      WavMirAudioSource.h
    LIBRARIES
       lib-music-information-retrieval
 )

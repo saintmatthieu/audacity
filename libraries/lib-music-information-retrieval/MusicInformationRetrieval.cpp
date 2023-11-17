@@ -9,6 +9,8 @@
 
 **********************************************************************/
 #include "MusicInformationRetrieval.h"
+#include "FixedTempoEstimator.h"
+#include "MirAudioSource.h"
 
 #include <cassert>
 #include <cmath>
@@ -119,5 +121,11 @@ std::optional<double> GetBpmFromFilename(const std::string& filename)
    }
    else
       return {};
+}
+
+std::optional<double> GetBpmFromSignal(const MirAudioSource& source)
+{
+   FixedTempoEstimator estimator(source.GetSampleRate());
+   return {};
 }
 } // namespace MIR

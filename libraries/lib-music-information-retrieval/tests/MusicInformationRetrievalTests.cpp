@@ -1,3 +1,4 @@
+#include "WavMirAudioSource.h"
 #include <MusicInformationRetrieval.h>
 #include <catch2/catch.hpp>
 
@@ -25,5 +26,11 @@ TEST_CASE("GetBpmFromFilename")
       });
    REQUIRE(
       std::all_of(success.begin(), success.end(), [](bool b) { return b; }));
+}
+
+TEST_CASE("GetBpmFromSignal")
+{
+   WavMirAudioSource source("C:/Users/saint/Downloads/longtail_128bpm.wav");
+   GetBpmFromSignal(source);
 }
 } // namespace MIR
