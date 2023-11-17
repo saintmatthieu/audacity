@@ -1403,11 +1403,13 @@ void ReactOnMusicFileImport(
    {
       // B&B view and not first track -> silently stretch clip.
       clip->SetRawAudioTempo(syncInfo.rawAudioTempo);
+      clip->TrimQuarternotesFromRight(syncInfo.excessDurationInQuarternotes);
       clip->StretchBy(syncInfo.recommendedStretchFactor);
    }
    else if (isFirstWaveTrack && isBeatsAndMeasures)
    {
       clip->SetRawAudioTempo(syncInfo.rawAudioTempo);
+      clip->TrimQuarternotesFromRight(syncInfo.excessDurationInQuarternotes);
       DoUseMirResultToConfigureProject(project, syncInfo.rawAudioTempo);
    }
    else
@@ -1424,6 +1426,8 @@ void ReactOnMusicFileImport(
             AdornedRulerPanel::Get(*proj).SetTimeDisplayMode(
                TimeDisplayMode::BeatsAndMeasures);
             clip->SetRawAudioTempo(syncInfo.rawAudioTempo);
+            clip->TrimQuarternotesFromRight(
+               syncInfo.excessDurationInQuarternotes);
             DoUseMirResultToConfigureProject(*proj, syncInfo.rawAudioTempo);
             if (ans == UserResponseToMirPrompt::ManualYes)
                UndoManager::Get(*proj).PushState(
