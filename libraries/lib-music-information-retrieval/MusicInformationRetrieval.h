@@ -16,6 +16,9 @@
 
 namespace MIR
 {
+
+class MirAudioSource;
+
 /*!
  * Information needed to time-synchronize the audio file with the project.
  */
@@ -47,7 +50,9 @@ public:
     * @brief Construct a new Music Information object
     * @detail For now we only exploit the filename and duration ...
     */
-   MusicInformation(const std::string& filename, double duration);
+   MusicInformation(
+      const std::string& filename, double duration,
+      const MirAudioSource& source);
 
    const std::string filename;
    const double duration;

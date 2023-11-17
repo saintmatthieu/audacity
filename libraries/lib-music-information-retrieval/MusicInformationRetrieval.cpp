@@ -33,7 +33,8 @@ constexpr auto bpmExpectedValue = 120.;
 constexpr auto quarternotesPerBeat = 1.;
 } // namespace
 
-MusicInformation::MusicInformation(const std::string& filename, double duration)
+MusicInformation::MusicInformation(
+   const std::string& filename, double duration, const MirAudioSource& source)
     : filename { RemovePathPrefix(filename) }
     , duration { duration }
     , mBpm { GetBpmFromFilename(filename) }
