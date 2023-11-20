@@ -9,8 +9,11 @@
 
 **********************************************************************/
 #include "MusicInformationRetrieval.h"
-#include "FixedTempoEstimator.h"
+// #include "FixedTempoEstimator.h"
 #include "MirAudioSource.h"
+
+#include <vamp-hostsdk/PluginLoader.h>
+#include <vamp-hostsdk/PluginSummarisingAdapter.h>
 
 #include <cassert>
 #include <cmath>
@@ -125,7 +128,65 @@ std::optional<double> GetBpmFromFilename(const std::string& filename)
 
 std::optional<double> GetBpmFromSignal(const MirAudioSource& source)
 {
-   FixedTempoEstimator estimator(source.GetSampleRate());
-   return {};
+   // FixedTempoEstimator estimator(source.GetSampleRate());
+   auto loader = Vamp::HostExt::PluginLoader::getInstance();
+   const auto plugins = loader->listPlugins();
+   // Find plugin `mvamp:marsyas_ibt`:
+   const auto pluginIt =
+      std::find_if(plugins.begin(), plugins.end(), [](const auto& plugin) {
+         return plugin.find("qm-vamp-plugins:qm-tempotracker") != std::string::npos;
+      });
+   if (pluginIt == plugins.end())
+      return {};
+   const auto sampleRate = source.GetSampleRate();
+   auto ibt = std::unique_ptr<Vamp::Plugin> { loader->loadPlugin(
+      *pluginIt, sampleRate, Vamp::HostExt::PluginLoader::ADAPT_INPUT_DOMAIN) };
+   const auto outputDescriptors = ibt->getOutputDescriptors();
+   const auto parameterDescriptors = ibt->getParameterDescriptors();
+   const auto blockSize = ibt->getPreferredBlockSize();
+   const auto stepSize = ibt->getPreferredStepSize();
+   constexpr auto numChannels = 1;
+   const auto initialized = ibt->initialise(numChannels, stepSize, blockSize);
+   assert(initialized);
+   if (!initialized)
+      return {};
+   long start = 0;
+   std::vector<float> buffer(blockSize);
+   std::vector<float*> bufferPtr { buffer.data() };
+   while (source.ReadFloats(buffer.data(), start, blockSize) == blockSize)
+   {
+      const auto timestamp =
+         Vamp::RealTime::frame2RealTime(start, (int)(sampleRate + 0.5));
+      // Don't use output for this particular VAMP since it's acausal.
+      ibt->process(bufferPtr.data(), timestamp);
+      start += stepSize;
+   }
+   const auto features = ibt->getRemainingFeatures();
+   if (features.empty())
+      return {};
+   // Find median of BPMs, taking average of middle two if the count is even:
+   std::vector<double> bpms;
+   std::transform(
+      features.at(0).begin(), features.at(0).end(), std::back_inserter(bpms),
+      [](const auto& feature) {
+         // parse feature.label to get BPM. String looks like "63.8021BPM".
+         try
+         {
+            const auto bpmString =
+               feature.label.substr(0, feature.label.size() - 3);
+            return std::stod(bpmString);
+         }
+         catch (...)
+         {
+            return 0.;
+         }
+      });
+   bpms.erase(std::remove(bpms.begin(), bpms.end(), 0.), bpms.end());
+   std::sort(bpms.begin(), bpms.end());
+   const auto median =
+      bpms.size() % 2 == 0 ?
+         (bpms[bpms.size() / 2 - 1] + bpms[bpms.size() / 2]) / 2 :
+         bpms[bpms.size() / 2];
+   return median;
 }
 } // namespace MIR

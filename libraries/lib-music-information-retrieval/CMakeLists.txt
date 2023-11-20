@@ -12,6 +12,7 @@ set( SOURCES
 
 set( LIBRARIES
    libvampp
+   libvamp
 )
 
 audacity_library( lib-music-information-retrieval "${SOURCES}" "${LIBRARIES}"

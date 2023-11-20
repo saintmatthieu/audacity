@@ -30,7 +30,7 @@ TEST_CASE("GetBpmFromFilename")
 
 TEST_CASE("GetBpmFromSignal")
 {
-   WavMirAudioSource source("C:/Users/saint/Downloads/longtail_128bpm.wav");
+   WavMirAudioSource source("C:/Users/saint/Downloads/GTZAN dataset/Data/genres_original/jazz/jazz.00090.wav");
    GetBpmFromSignal(source);
 }
 } // namespace MIR
