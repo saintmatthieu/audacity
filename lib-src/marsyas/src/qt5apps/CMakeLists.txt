@@ -1,0 +1,58 @@
+find_package(Qt5Quick 5.1 REQUIRED)
+find_package(Qt5Widgets 5.1 REQUIRED)
+if(MARSYAS_OPENGL)
+  find_package(Qt5OpenGL 5.1 REQUIRED)
+endif()
+
+get_target_property(qt5_core_filename Qt5::Core LOCATION)
+get_filename_component(qt5_core_dir ${qt5_core_filename} PATH)
+if(APPLE)
+  get_filename_component(qt5_dir ${qt5_core_dir}/../.. ABSOLUTE)
+else()
+  get_filename_component(qt5_dir ${qt5_core_dir}/.. ABSOLUTE)
+endif()
+
+add_subdirectory(common)
+
+macro(marsyas_qt5_app APP)
+  if(WIN32 AND NOT MSVC)
+    add_executable(${APP} WIN32 ${ARGN})
+  else()
+    add_executable(${APP} ${ARGN})
+  endif()
+
+  target_link_libraries(${APP} marsyas marsyas-qt5)
+
+  if(MSVC)
+    set_property( TARGET ${APP} APPEND PROPERTY LINK_FLAGS_RELEASE "/SUBSYSTEM:windows /ENTRY:mainCRTStartup" )
+  endif()
+
+  # Do not install on Mac OS because of absolute paths to Qt dependencies
+  if(NOT APPLE)
+     install(TARGETS ${APP} DESTINATION bin)
+  endif()
+endmacro()
+
+if(WITH_CPP11)
+  add_subdirectory(inspector)
+endif()
+
+if(MARSYAS_AUDIOIO AND MARSYAS_REALTIME)
+  add_subdirectory(MarPlayer)
+  if(MARSYAS_MIDIIO)
+    add_subdirectory(MarGrid2)
+  endif()
+  add_subdirectory(MarPhasevocoder)
+  add_subdirectory(MarLpc)
+  if(MARSYAS_OPENGL)
+    add_subdirectory(MarPanning)
+    add_subdirectory(MarSndPeek)
+    add_subdirectory(MarCorrelogram)
+  endif()
+endif()
+
+if(WIN32)
+  install(FILES ${qt5_dir}/plugins/platforms/qwindows.dll DESTINATION bin/platforms)
+  install(DIRECTORY ${qt5_dir}/qml/QtQuick.2 DESTINATION bin)
+  install(DIRECTORY ${qt5_dir}/qml/QtQuick/Layouts DESTINATION bin/QtQuick)
+endif()

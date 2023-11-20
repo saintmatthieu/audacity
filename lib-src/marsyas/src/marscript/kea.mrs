@@ -1,0 +1,61 @@
+kea : Series {
+
+  ~ GenericClassifier : "classifier.mrs"
+
+  + public weka_file = ""
+
+  + public classification = "svm"
+
+  + public svm_svm = classifier/svm/svm
+  + public svm_kernel = classifier/svm/kernel
+  + public svm_gamma = 4
+  + public svm_c = 1.0
+
+  + done = report/done
+
+  inSamples = 1
+
+  -> weka: WekaSource
+  {
+    validationMode = "kFold,NS,10"
+    filename = /weka_file
+  }
+
+  -> classifier: GenericClassifier { mode = /weka/mode }
+
+  -> report: ClassificationReport { mode = /classifier/mode }
+
+  when (classification == "svm")
+  {
+    classifier/enableChild = "SVMClassifier/svm"
+    classifier/svm/gamma = /svm_gamma
+    classifier/svm/C = /svm_c
+  }
+  when (classification == "gaussian")
+  {
+    classifier/enableChild = "GaussianClassifier/gaussian"
+  }
+  when (classification == "zero-r")
+  {
+    classifier/enableChild = "ZeroRClassifier/zero_r"
+  }
+
+  when (weka/regression)
+  {
+    classifier/svm/output_classPerms = false
+    classifier/nClasses = 1
+    report/nClasses = 1
+    report/regression = true
+  }
+  else
+  {
+    classifier/nClasses = weka/nClasses
+    report/nClasses = weka/nClasses
+    report/classNames = weka/classNames
+  }
+
+  when (weka/done)
+  {
+    report/mode = "report"
+  }
+}

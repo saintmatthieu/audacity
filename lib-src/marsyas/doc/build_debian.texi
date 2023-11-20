@@ -1,0 +1,127 @@
+@node Building latest Marsyas on Debian/Ubuntu
+@subsection Building latest Marsyas on Debian/Ubuntu
+
+These instructions are for building the latest development version of Marsyas.
+It is assumed that you have already obtained the source code.
+If not, please consult @ref{Get Marsyas sources} for instructions.
+
+@subsubsection Install prerequisits
+
+These are the prerequisits and their corresponding Debian package names:
+
+@itemize
+@item (Required) GNU Compiler Collection and related tools: 'build-essential'
+@item (Required) CMake: 'cmake'
+@item (Recommended) JACK development files: 'libjack-jack2-dev' or 'libjack-dev' for older version
+@item (Recommended) ALSA development files: 'libasound2-dev'
+@end itemize
+
+If you want to use all Marsyas features, you will need a compiler with a
+decent C++11 support. Any recent Linux distribution will probably include
+a new enough GNU compiler.
+
+JACK and ALSA are different interfaces between a program and the computer's
+real-time audio input/output capabilities. Preferrably, you would build with
+support for both, so that either one of them can be used.
+
+As usual on Debian-based Linux distributions, let's use Apt to install required
+packages. You can install all of the above packages with a single command like
+this:
+@example
+sudo apt-get install build-essential cmake libjack-jack2-dev libasound2-dev
+@end example
+
+
+@subsubsection Configure Marsyas using CMake
+
+@enumerate
+
+@item Navigate to the top-level directory of Marsyas sources. For example:
+
+@example
+cd ~/marsyas
+@end example
+
+@item Create a build directory within, which will contain configuration
+options and compiled Marsyas libraries and programs. Navigate to the build
+directory:
+
+@example
+mkdir build
+cd build
+@end example
+
+@item Run CMake, passing it the Marsyas source directory as argument:
+
+@example
+cmake ..
+@end example
+
+@end enumerate
+
+CMake should now have generated a number of new files in the build directory,
+including a file named "Makefile" which allows you to compile Marsyas.
+
+If you would like to use CMake options to enable and disable specific features,
+please see instructions in @ref{Configuring with CMake}.
+
+
+@subsubsection Compile Marsyas using 'make'
+
+Still in the build directory, use the 'make' command to compile Marsyas.
+
+@example
+make
+@end example
+
+@emph{Geeky note: If your CPU has multiple cores (it is capable of running
+multiple threads in parallel), you can shorten the compilation time by running
+several instances of 'make' in parallel by using the '-j' option followed by
+the number of instances. The example below runs 3 parallel 'make' instances:}
+
+@example
+make -j3
+@end example
+
+You could also compile Marsyas in Debug mode, which would help developers
+discover bugs in case you run into troubles when using Marsyas. However,
+Marsyas will run significantly slower when compiled in Debug mode.
+
+To compile in Debug mode, you need to first use 'cmake' to change a CMake
+option named CMAKE_BUILD_TYPE, and then run 'make'. Please mind the "."
+at the end of the first command, to indicate the current directory:
+
+@example
+cmake -DCMAKE_BUILD_TYPE=Debug .
+make -j3
+@end example
+
+
+@subsubsection Marsyas usage and system-wide installation
+
+After compiling, you should have several Marsyas programs in the
+@code{build/bin} subdirectory and the Marsyas library in the @code{build/lib}
+subdirectory.
+
+For example, assuming that you are in the @code{build} directory, you can run
+the @code{sfplay} program to play an uncompressed sound file like this:
+@example
+./bin/sfplay my_sound_file.wav
+@end example
+
+If you want to make the programs and the library available outside of your
+build directory, you should use the following command to install all parts
+of Marsyas to appropriate system locations:
+
+@example
+make install
+@end example
+
+By default, the above command will install programs and libraries under the
+@code{/usr/local} prefix. You can change that by setting the CMake option
+CMAKE_INSTALL_PREFIX to the desired prefix before installation:
+
+@example
+cmake -DCMAKE_INSTALL_PREFIX=~/marsyas-install .
+make install
+@end example

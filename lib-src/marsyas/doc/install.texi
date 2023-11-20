@@ -1,0 +1,172 @@
+@node Source installation
+@chapter Source installation
+
+This chapter shows the steps to get a working version of
+Marsyas. Compiling and installing a large piece of software 
+like Marsyas is not trivial. In the summer 2008 we switched 
+our build system from a combination of autotools and qmake 
+to using CMake. We believe that this change has greatly simplified 
+the building process across all supported platforms and configurations. 
+Starting with the Belfast release 0.2.17 CMake is the only 
+supported way to build Marsyas. 
+
+
+@menu
+* Get Marsyas sources::
+* Step-by-step building instructions::
+* Configuring with CMake::
+* Post-install setup::          
+* Structure of distribution::   
+@end menu
+
+
+@node Get Marsyas sources
+@section Get Marsyas sources
+
+@unnumberedsubsec Stable(-ish) Version
+
+Marsyas is currently approaching the next stable release
+(version 0.5.0). The source code is in the "release/0.5" branch of our
+git repository, hosted on GitHub, and it can be downloaded using
+the following link:
+@uref{https://github.com/marsyas/marsyas/archive/release/0.5.zip}
+
+@unnumberedsubsec Development Version
+
+If you intend to keep updating your copy of the Marsyas sources along with the
+latest development or contribute to development, you will need to use git to
+interact with the Marsyas git repository.
+
+The Marsyas git repository is hosted on GitHub:
+@uref{https://github.com/marsyas/marsyas/}
+
+@unnumberedsubsubsec Read access
+
+To clone the repository onto your computer, use the following git command:
+@example 
+git clone https://github.com/marsyas/marsyas.git
+@end example
+
+@unnumberedsubsubsec Write access
+
+The above command will only provide read access to the online repository
+(for latest updates). If you want to publish your contributions back to the
+online repository, you will need write access:
+@enumerate
+@item
+Create a GitHub account, if you don't have one yet.
+@item
+Ask permission for write access to the repository on marsyas development
+mailing list.
+@item
+Clone the repository using the following command:
+@end enumerate
+
+@example
+git clone git@@github.com:marsyas/marsyas.git
+@end example
+
+
+
+@include build.texi
+
+@include configure.texi
+
+
+@node Post-install setup
+@section Post-install setup
+
+@menu
+* Vim editor support::          
+* Datasets::                    
+@end menu
+
+@node Vim editor support
+@subsection Vim editor support
+
+A syntax file for vim color highlighting is in @file{misc/marsyas.vim}.
+To use this file, copy it to @file{$HOME/.vim/syntax} add the following
+lines to @file{$HOME/.vim/filetype.vim}:
+
+@example
+if exists("did_load_filetypes")
+  finish
+endif
+augroup filetypedetect
+  au! BufNewFile,BufRead *.cpp          setf marsyas
+  au! BufNewFile,BufRead *.h            setf marsyas
+augroup END
+@end example
+
+
+@node Datasets
+@subsection Datasets
+
+Useful datasets:
+
+@itemize
+@item
+@uref{http://marsyas.info/marsyas-coffee/marsyas-coffee-latest.tar.bz2,
+marsyas-coffee}:
+data set used for large black-box tests in Marsyas.  (NOW
+DEFUNCT, MIGHT POSSIBLY BE USED AGAIN LATER)
+
+@item
+@uref{http://marsyas.info/download/data_sets}: large data sets.
+
+@end itemize
+
+
+@node Structure of distribution
+@section Structure of distribution 
+
+Marsyas is primarily targeting researchers and software developers who
+want to advance the existing knowledge within Marsyas' area of application
+and in turn develop Marsyas further. For that purpose, familiarity with the
+structure of the source code and file system is important.
+
+The root directory contains the following files:
+
+@itemize
+@item @b{AUTHORS, COPYING, README, TODO:} these files are
+self-explanatory.
+@end itemize 
+
+
+@noindent
+In addition, there are the following subdirectories:
+
+@itemize
+@item @b{src/} All the C++ source files.
+
+@item @b{src/marsyas/} The Marsyas framework and modules (MarSystems). This is
+compiled into a library for use in other executable programs.
+
+@item @b{src/marsyas/core} Framework core.
+@item @b{src/marsyas/realtime} Facilities for realtime MarSystem execution.
+@item @b{src/marsyas/debug} Facilities for dataflow debugging.
+@item @b{src/marsyas/marsystems} Concrete MarSystems.
+@item @b{src/marsyas/optional} Optionally-compiled MarSystems that depend on
+third-party libraries.
+
+
+@item @b{src/apps/} Various command-line applications.
+
+@item @b{src/Qt4Apps/} GUI applications using Qt 4. Most of those have been
+ported to use Qt 5.
+
+@item @b{src/qt5apps/} GUI applications using Qt 5. All future GUI applications
+using Qt shall be developed here.
+
+@item @b{src/tests/unit_tests/} Tests for individual framework modules
+(MarSystems).
+
+@item @b{src/tests/black-box/} Tests for executable programs.
+
+@item @b{doc/} Source files for documentation (which you are currently reading).
+
+@item @b{scripts/} Convenient scripts to help programming with Marsyas.
+
+@item @b{scripts/MATLAB/} MATLAB scripts.
+
+@end itemize
