@@ -20,7 +20,7 @@
 #define MARSYAS_SVMCLASSIFIER_H
 
 #include <marsyas/system/MarSystem.h>
-#include "svm.h"
+#include "libsvm/svm.h"
 #include <marsyas/WekaData.h>
 
 namespace Marsyas

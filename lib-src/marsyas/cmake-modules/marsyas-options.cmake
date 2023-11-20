@@ -213,6 +213,8 @@ if(MARSYAS_AUDIOIO AND NOT WITH_CPP11)
   message(FATAL_ERROR "MARSYAS_AUDIOIO is enabled, but it requires WITH_CPP11 which is disabled.")
 endif()
 
+# Temporarily disable WITH_CPP11 - we are not intrested in MARSYAL_REALTIME or MARSYAS_SCRIPT:
+set(WITH_CPP11 OFF)
 if(WITH_CPP11)
   set(MARSYAS_REALTIME ON)
   set(MARSYAS_JSON OFF)

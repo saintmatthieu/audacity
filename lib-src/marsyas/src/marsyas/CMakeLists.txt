@@ -141,7 +141,7 @@ endif()
 
 ## OTHERLIBS
 
-set( EXTERNALS_DIR ${CMAKE_SOURCE_DIR}/src/otherlibs )
+set( EXTERNALS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../otherlibs )
 
 if(MARSYAS_JSON)
   include_directories( ${EXTERNALS_DIR}/json++ )
@@ -186,7 +186,7 @@ if (MARSYAS_MAD)
     include_directories(${mad_INCLUDE_DIR})
 endif (MARSYAS_MAD)
 
-if (MARSYAS_PNG) 
+if (MARSYAS_PNG)
     include_directories(${FREETYPE_INCLUDE_DIR_freetype2})
 	include_directories(${FREETYPE_INCLUDE_DIR_ft2build})
 
@@ -210,7 +210,7 @@ endif (MARSYAS_GSTREAMER)
 if (MARSYAS_MATLAB)
 #	list(APPEND Marsyas_SOURCES MATLABengine.cpp)
 	include_directories(${MATLAB_INCLUDE_DIR})
-endif (MARSYAS_MATLAB)  
+endif (MARSYAS_MATLAB)
 
 if (MARSYAS_AUDIOIO)
 	list(APPEND Marsyas_SOURCES ${EXTERNALS_DIR}/RtAudio/RtAudio.cpp)

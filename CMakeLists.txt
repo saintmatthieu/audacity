@@ -725,4 +725,13 @@ endif()
    print_properties( TARGET "wxWidgets" )
 #]]
 
+set( VAMP_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/lib-src/libvamp" CACHE INTERNAL "" )
+set( MARSYAS_STATIC ON CACHE BOOL "" FORCE )
+set( WITH_QT OFF CACHE BOOL "" FORCE )
+set( MARSYAS_BUILD_APPS OFF CACHE BOOL "" FORCE )
+set( WITH_OSC OFF CACHE BOOL "" FORCE )
+set( MARSYAS_MIDIIO OFF CACHE BOOL "" FORCE )
+add_subdirectory(lib-src/marsyas)
+# add_subdirectory(lib-src/marsyas/src/mvamp)
+
 include( Package ) # do this last
