@@ -28,9 +28,11 @@ TEST_CASE("GetBpmFromFilename")
       std::all_of(success.begin(), success.end(), [](bool b) { return b; }));
 }
 
-TEST_CASE("GetBpmFromSignal")
+TEST_CASE("GetBeatFittingCoefficients")
 {
-   WavMirAudioSource source("C:/Users/saint/Downloads/GTZAN dataset/Data/genres_original/jazz/jazz.00090.wav");
-   GetBpmFromSignal(source);
+   WavMirAudioSource source("C:/Users/saint/Downloads/GTZAN dataset/Data/genres_original/rock/rock.00087.wav");
+   // WavMirAudioSource source(
+   //    "C:/Users/saint/Downloads/looperman-l-1564425-0235618-swing-funk-808-kit.wav");
+   const auto result = GetBeatFittingCoefficients(source);
 }
 } // namespace MIR

@@ -1343,6 +1343,7 @@ set( AUDACITY_LIBRARIES
    lib-file-formats-interface
    lib-menus-interface
    lib-music-information-retrieval-interface
+   lib-wave-track
 )
 
 if (USE_VST)

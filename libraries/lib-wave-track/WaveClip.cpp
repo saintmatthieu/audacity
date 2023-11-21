@@ -1378,6 +1378,15 @@ void WaveClip::SetSequenceStartTime(double startTime)
     mEnvelope->SetOffset(startTime);
 }
 
+void WaveClip::SetSequenceStartQuarters(double q)
+{
+   assert(mRawAudioTempo.has_value());
+   if (!mRawAudioTempo.has_value())
+      return;
+   const auto secondsPerQuarter = 60 * GetStretchRatio() / *mRawAudioTempo;
+   SetSequenceStartTime(q * secondsPerQuarter);
+}
+
 double WaveClip::GetSequenceEndTime() const
 {
    const auto numSamples = GetNumSamples();

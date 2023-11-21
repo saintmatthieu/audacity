@@ -458,6 +458,11 @@ void WaveTrack::Interval::SetSequenceStartTime(double t)
    ForEachClip([t](auto& clip) { clip.SetSequenceStartTime(t); });
 }
 
+void WaveTrack::Interval::SetSequenceStartQuarters(double q)
+{
+   ForEachClip([q](auto& clip) { clip.SetSequenceStartQuarters(q); });
+}
+
 double WaveTrack::Interval::GetSequenceEndTime() const
 {
    return mpClip->GetSequenceEndTime();

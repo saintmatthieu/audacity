@@ -970,6 +970,7 @@ public:
       bool IsPlaceholder() const;
 
       void SetSequenceStartTime(double t);
+      void SetSequenceStartQuarters(double q);
       void TrimLeftTo(double t);
       void TrimRightTo(double t);
       void TrimQuarternotesFromRight(double numQuarternotes);

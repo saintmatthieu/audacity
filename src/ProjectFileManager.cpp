@@ -54,6 +54,7 @@ Paul Licameli split from AudacityProject.cpp
 #include "UndoManager.h"
 #include "WaveClip.h"
 #include "WaveTrack.h"
+#include "WideClip.h"
 #include "XMLFileReader.h"
 #include "import/ImportMIDI.h"
 #include "import/ImportStreamDialog.h"
@@ -1379,17 +1380,37 @@ void ReactOnMusicFileImport(
    const auto newTrackDuration =
       newTrack.GetEndTime() - newTrack.GetStartTime();
 
-   class MockMirAudioSource : public MIR::MirAudioSource {
+   class ClipMirAudioSource : public MIR::MirAudioSource
+   {
    public:
-     int GetSampleRate() const override { return 0; }
-     size_t ReadFloats(float *buffer, long long where,
-                       size_t numFrames) const override {
-       return 0;
-     }
-   };
-   MockMirAudioSource mockAudioSource;
+      ClipMirAudioSource(const ClipInterface& clip)
+          : mClip(clip)
+      {
+      }
 
-   MIR::MusicInformation musicInfo { fileName, newTrackDuration, mockAudioSource };
+      int GetSampleRate() const override
+      {
+         return mClip.GetRate();
+      }
+
+      size_t ReadFloats(
+         float* buffer, long long where, size_t numFrames) const override
+      {
+         constexpr auto mayThrow = false;
+         const_cast<std::optional<AudioSegmentSampleView>&>(mCache).emplace(
+            mClip.GetSampleView(0, where, numFrames, mayThrow));
+         const auto& cache = *mCache;
+         cache.Copy(buffer, cache.GetSampleCount());
+         return cache.GetSampleCount();
+      }
+
+   private:
+      const ClipInterface& mClip;
+      std::optional<AudioSegmentSampleView> mCache;
+   };
+   const auto wideClip = newTrack.GetClipInterfaces()[0];
+   ClipMirAudioSource source { *wideClip };
+   MIR::MusicInformation musicInfo { fileName, newTrackDuration, source };
 
    if (!musicInfo)
       return;
@@ -1416,11 +1437,13 @@ void ReactOnMusicFileImport(
       clip->SetRawAudioTempo(syncInfo.rawAudioTempo);
       clip->TrimQuarternotesFromRight(syncInfo.excessDurationInQuarternotes);
       clip->StretchBy(syncInfo.recommendedStretchFactor);
+      clip->SetSequenceStartQuarters(syncInfo.offsetInQuarternotes);
    }
    else if (isFirstWaveTrack && isBeatsAndMeasures)
    {
       clip->SetRawAudioTempo(syncInfo.rawAudioTempo);
       clip->TrimQuarternotesFromRight(syncInfo.excessDurationInQuarternotes);
+      clip->SetSequenceStartQuarters(syncInfo.offsetInQuarternotes);
       DoUseMirResultToConfigureProject(project, syncInfo.rawAudioTempo);
    }
    else
@@ -1439,6 +1462,7 @@ void ReactOnMusicFileImport(
             clip->SetRawAudioTempo(syncInfo.rawAudioTempo);
             clip->TrimQuarternotesFromRight(
                syncInfo.excessDurationInQuarternotes);
+            clip->SetSequenceStartQuarters(syncInfo.offsetInQuarternotes);
             DoUseMirResultToConfigureProject(*proj, syncInfo.rawAudioTempo);
             if (ans == UserResponseToMirPrompt::ManualYes)
                UndoManager::Get(*proj).PushState(

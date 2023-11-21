@@ -41,6 +41,8 @@ struct ProjectSyncInfo
     * trimming.
     */
    const double excessDurationInQuarternotes;
+
+   const double offsetInQuarternotes;
 };
 
 class MUSIC_INFORMATION_RETRIEVAL_API MusicInformation
@@ -80,7 +82,12 @@ private:
     * Else, the most likely QPM can be guessed, but there's always a risk of
     * over- or underestimating by a factor of two.
     */
-   std::optional<double> mBpm;
+   const std::optional<double> mBpm;
+
+   /*!
+    * In seconds
+    */
+   const std::optional<double> mOffset;
 
    // Additional information (time signature(s), key(s), genre, etc) to be added
    // here.
@@ -90,7 +97,7 @@ private:
 MUSIC_INFORMATION_RETRIEVAL_API std::optional<double>
 GetBpmFromFilename(const std::string& filename);
 
-MUSIC_INFORMATION_RETRIEVAL_API std::optional<double>
-GetBpmFromSignal(const MirAudioSource& source);
+MUSIC_INFORMATION_RETRIEVAL_API std::optional<std::pair<double, double>>
+GetBeatFittingCoefficients(const MirAudioSource& source);
 
 } // namespace MIR

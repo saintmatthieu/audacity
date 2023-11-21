@@ -185,6 +185,7 @@ public:
 
    double GetSequenceStartTime() const noexcept;
    void SetSequenceStartTime(double startTime);
+   void SetSequenceStartQuarters(double q);
    double GetSequenceEndTime() const;
    //! Returns the index of the first sample of the underlying sequence
    sampleCount GetSequenceStartSample() const;
