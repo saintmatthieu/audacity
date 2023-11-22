@@ -1,4 +1,5 @@
 #include "GetBeatsUsingBTrack.h"
+#include "GetVampFeatures.h"
 #include "MirAudioSource.h"
 
 #include <BTrack.h>
@@ -28,17 +29,17 @@ std::optional<BeatInfo> GetBeats(const MirAudioSource& source)
    long long start = 0;
    std::vector<float> fBuff(frameSize);
    std::vector<double> dBuff(frameSize);
-   BeatInfo info;
+   std::vector<double> beatTimes;
    while (source.ReadFloats(fBuff.data(), start, frameSize) == frameSize)
    {
       std::copy(fBuff.begin(), fBuff.end(), dBuff.begin());
       btrack.processAudioFrame(dBuff.data());
       if (btrack.beatDueInCurrentFrame())
-         info.beatTimes.push_back(
-            (start + frameSize / 2) / source.GetSampleRate());
+         beatTimes.push_back((start + frameSize / 2) / source.GetSampleRate());
       start += hopSize;
    }
-   return info;
+
+   return { { beatTimes } };
 }
 } // namespace GetBeatsUsingBTrack
 } // namespace MIR
