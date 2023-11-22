@@ -149,7 +149,7 @@ std::optional<std::pair<double, double>>
 GetBeatFittingCoefficients(const MirAudioSource& source)
 {
    const auto info =
-      GetBeatInfo(BeatTrackingAlgorithm::QeenMaryBarBeatTrack, source);
+      GetBeats(BeatTrackingAlgorithm::QeenMaryBarBeatTrack, source);
    if (!info.has_value() || info->beatTimes.size() < 2)
       return {};
 
