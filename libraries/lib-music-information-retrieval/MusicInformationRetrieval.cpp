@@ -9,13 +9,9 @@
 
 **********************************************************************/
 #include "MusicInformationRetrieval.h"
-// #include "FixedTempoEstimator.h"
+#include "GetBeats.h"
 #include "MirAudioSource.h"
 
-#include <vamp-hostsdk/PluginLoader.h>
-#include <vamp-hostsdk/PluginSummarisingAdapter.h>
-
-#include <array>
 #include <cassert>
 #include <cmath>
 #include <numeric>
@@ -152,50 +148,10 @@ std::optional<double> GetBpmFromFilename(const std::string& filename)
 std::optional<std::pair<double, double>>
 GetBeatFittingCoefficients(const MirAudioSource& source)
 {
-   // FixedTempoEstimator estimator(source.GetSampleRate());
-   auto loader = Vamp::HostExt::PluginLoader::getInstance();
-   const auto plugins = loader->listPlugins();
-   // Find plugin `mvamp:marsyas_ibt`:
-   const auto pluginIt =
-      std::find_if(plugins.begin(), plugins.end(), [](const auto& plugin) {
-         return plugin.find("qm-vamp-plugins:qm-barbeattracker") !=
-                std::string::npos;
-      });
-   if (pluginIt == plugins.end())
+   const auto info =
+      GetBeatInfo(BeatTrackingAlgorithm::QeenMaryBarBeatTrack, source);
+   if (!info.has_value() || info->beatTimes.size() < 2)
       return {};
-   const auto sampleRate = source.GetSampleRate();
-   auto ibt = std::unique_ptr<Vamp::Plugin> { loader->loadPlugin(
-      *pluginIt, sampleRate, Vamp::HostExt::PluginLoader::ADAPT_INPUT_DOMAIN) };
-   const auto outputDescriptors = ibt->getOutputDescriptors();
-   const auto parameterDescriptors = ibt->getParameterDescriptors();
-   const auto blockSize = ibt->getPreferredBlockSize();
-   const auto stepSize = ibt->getPreferredStepSize();
-   constexpr auto numChannels = 1;
-   const auto initialized = ibt->initialise(numChannels, stepSize, blockSize);
-   assert(initialized);
-   if (!initialized)
-      return {};
-   long start = 0;
-   std::vector<float> buffer(blockSize);
-   std::vector<float*> bufferPtr { buffer.data() };
-   while (source.ReadFloats(buffer.data(), start, blockSize) == blockSize)
-   {
-      const auto timestamp =
-         Vamp::RealTime::frame2RealTime(start, (int)(sampleRate + 0.5));
-      // Don't use output for this particular VAMP since it's acausal.
-      ibt->process(bufferPtr.data(), timestamp);
-      start += stepSize;
-   }
-   const auto features = ibt->getRemainingFeatures();
-   if (features.empty())
-      return {};
-   // Find median of BPMs, taking average of middle two if the count is even:
-   std::vector<double> beatTimes;
-   std::transform(
-      features.at(0).begin(), features.at(0).end(),
-      std::back_inserter(beatTimes), [](const Vamp::Plugin::Feature& feature) {
-         return feature.timestamp.sec + feature.timestamp.nsec / 1e9;
-      });
 
    // Fit a model which assumes constant tempo, and hence a beat time `t_k` at
    // `alpha*(k0+k) + beta`, in least-square sense, where `k0` is the index of
@@ -222,8 +178,8 @@ GetBeatFittingCoefficients(const MirAudioSource& source)
 
    // Get index of first beat, which is readily available from the beat tracking
    // algorithm:
-   const auto k0 = std::stoi(features.at(0).at(0).label) - 1;
-   const auto N = beatTimes.size();
+   const auto k0 = info->indexOfFirstBeat.value_or(0);
+   const auto N = info->beatTimes.size();
    const auto X =
       N * k0 * k0 + k0 * N * (N - 1) + N * (N - 1) * (2 * N - 1) / 6.;
    const auto Y = N * k0 + N * (N - 1) / 2.;
@@ -244,9 +200,9 @@ GetBeatFittingCoefficients(const MirAudioSource& source)
       return X - Y * (k0 + k);
    });
    const auto alpha =
-      std::inner_product(W0.begin(), W0.end(), beatTimes.begin(), 0.) / d;
+      std::inner_product(W0.begin(), W0.end(), info->beatTimes.begin(), 0.) / d;
    const auto beta =
-      std::inner_product(W1.begin(), W1.end(), beatTimes.begin(), 0.) / d;
+      std::inner_product(W1.begin(), W1.end(), info->beatTimes.begin(), 0.) / d;
 
    return { { alpha, beta } };
 }
