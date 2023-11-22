@@ -7,6 +7,8 @@ set( SOURCES
    FixedTempoEstimator.h
    GetBeats.cpp
    GetBeats.h
+   GetBeatsUsingBTrack.cpp
+   GetBeatsUsingBTrack.h
    GetBeatsUsingQueenMaryBarBeatTracking.cpp
    GetBeatsUsingQueenMaryBarBeatTracking.h
    MirAudioSource.h
@@ -16,6 +18,7 @@ set( SOURCES
 )
 
 set( LIBRARIES
+   btrack
    libvampp
    libvamp
 )

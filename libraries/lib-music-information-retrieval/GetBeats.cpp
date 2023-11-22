@@ -1,4 +1,5 @@
 #include "GetBeats.h"
+#include "GetBeatsUsingBTrack.h"
 #include "GetBeatsUsingQueenMaryBarBeatTracking.h"
 
 #include <cassert>
@@ -6,13 +7,15 @@
 namespace MIR
 {
 std::optional<BeatInfo>
-GetBeatInfo(BeatTrackingAlgorithm algorithm, const MirAudioSource& source)
+GetBeats(BeatTrackingAlgorithm algorithm, const MirAudioSource& source)
 {
    switch (algorithm)
    {
    case BeatTrackingAlgorithm::QeenMaryBarBeatTrack:
       return GetBeatsUsingQueenMaryBarBeatTracking::GetBeats(source);
-   defautl:
+   case BeatTrackingAlgorithm::BTrack:
+      return GetBeatsUsingBTrack::GetBeats(source);
+   default:
       assert(false);
       return {};
    }
