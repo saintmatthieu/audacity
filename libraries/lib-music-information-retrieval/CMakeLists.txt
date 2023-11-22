@@ -3,6 +3,8 @@ Library for Music Information Retrieval (MIR) algorithms.
 ]]
 
 set( SOURCES
+   CreateVampPluginInstance.cpp
+   CreateVampPluginInstance.h
    FixedTempoEstimator.cpp
    FixedTempoEstimator.h
    GetBeats.cpp

@@ -1,10 +1,9 @@
 #include "GetBeatsUsingQueenMaryBarBeatTracking.h"
+#include "CreateVampPluginInstance.h"
 #include "MirAudioSource.h"
 
 #include <algorithm>
 #include <cassert>
-#include <vamp-hostsdk/PluginLoader.h>
-#include <vamp-hostsdk/PluginSummarisingAdapter.h>
 
 namespace MIR
 {
@@ -12,19 +11,11 @@ namespace GetBeatsUsingQueenMaryBarBeatTracking
 {
 std::optional<BeatInfo> GetBeats(const MirAudioSource& source)
 {
-   auto loader = Vamp::HostExt::PluginLoader::getInstance();
-   const auto plugins = loader->listPlugins();
-   // Find plugin `mvamp:marsyas_ibt`:
-   const auto pluginIt =
-      std::find_if(plugins.begin(), plugins.end(), [](const auto& plugin) {
-         return plugin.find("qm-vamp-plugins:qm-barbeattracker") !=
-                std::string::npos;
-      });
-   if (pluginIt == plugins.end())
-      return {};
    const auto sampleRate = source.GetSampleRate();
-   auto ibt = std::unique_ptr<Vamp::Plugin> { loader->loadPlugin(
-      *pluginIt, sampleRate, Vamp::HostExt::PluginLoader::ADAPT_INPUT_DOMAIN) };
+   const auto ibt =
+      GetVampPluginInstance("qm-vamp-plugins:qm-barbeattracker", sampleRate);
+   if (!ibt)
+      return {};
    const auto outputDescriptors = ibt->getOutputDescriptors();
    const auto parameterDescriptors = ibt->getParameterDescriptors();
    const auto blockSize = ibt->getPreferredBlockSize();
