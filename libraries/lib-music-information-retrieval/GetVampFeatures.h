@@ -13,12 +13,12 @@ class MirAudioSource;
 
 struct VampPluginConfig
 {
-   std::optional<double> frameSize;
-   std::optional<double> hopSize;
+   std::optional<int> blockSize;
+   std::optional<int> stepSize;
    std::map<std::string, float> parameters;
 };
 
 Vamp::Plugin::FeatureSet GetVampFeatures(
    const std::string& pluginKey, const MirAudioSource& source,
-   VampPluginConfig config = {});
+   const VampPluginConfig& config = {});
 } // namespace MIR

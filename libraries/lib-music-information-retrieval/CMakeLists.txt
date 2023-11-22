@@ -13,6 +13,8 @@ set( SOURCES
    GetVampFeatures.h
    MirAudioSource.h
    MirTypes.h
+   MirUtils.cpp
+   MirUtils.h
    MusicInformationRetrieval.cpp
    MusicInformationRetrieval.h
 )

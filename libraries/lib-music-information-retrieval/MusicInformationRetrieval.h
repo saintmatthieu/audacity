@@ -97,7 +97,8 @@ private:
 MUSIC_INFORMATION_RETRIEVAL_API std::optional<double>
 GetBpmFromFilename(const std::string& filename);
 
-MUSIC_INFORMATION_RETRIEVAL_API std::optional<std::pair<double, double>>
-GetBeatFittingCoefficients(const MirAudioSource& source);
+MUSIC_INFORMATION_RETRIEVAL_API void GetBpmAndOffset(
+   const MirAudioSource& source, std::optional<double>& bpm,
+   std::optional<double>& offset);
 
 } // namespace MIR

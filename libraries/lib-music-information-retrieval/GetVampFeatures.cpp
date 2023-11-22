@@ -39,14 +39,14 @@ Vamp::Plugin::FeatureSet GetVampFeatures(
    if (!plugin)
       return {};
 
-   const auto blockSize = plugin->getPreferredBlockSize();
-   const auto stepSize = plugin->getPreferredStepSize();
+   const auto blockSize =
+      config.blockSize.value_or(plugin->getPreferredBlockSize());
+   const auto stepSize =
+      config.stepSize.value_or(plugin->getPreferredStepSize());
    constexpr auto numChannels = 1;
-   const auto initialized =
-      plugin->initialise(numChannels, stepSize, blockSize);
-   assert(initialized);
-   if (!initialized)
+   if (!plugin->initialise(numChannels, stepSize, blockSize))
       return {};
+
    std::for_each(
       config.parameters.begin(), config.parameters.end(),
       [&plugin](const auto& parameter) {

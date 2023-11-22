@@ -30,9 +30,12 @@ TEST_CASE("GetBpmFromFilename")
 
 TEST_CASE("GetBeatFittingCoefficients")
 {
-   WavMirAudioSource source("C:/Users/saint/Downloads/GTZAN dataset/Data/genres_original/rock/rock.00087.wav");
+   WavMirAudioSource source(
+      "C:/Users/saint/Downloads/GTZAN dataset/Data/genres_original/rock/rock.00087.wav");
    // WavMirAudioSource source(
    //    "C:/Users/saint/Downloads/looperman-l-1564425-0235618-swing-funk-808-kit.wav");
-   const auto result = GetBeatFittingCoefficients(source);
+   std::optional<double> bpm;
+   std::optional<double> offset;
+   GetBpmAndOffset(source, bpm, offset);
 }
 } // namespace MIR
