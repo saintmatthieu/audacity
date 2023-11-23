@@ -65,5 +65,3 @@ if( NOT CMAKE_SYSTEM_NAME MATCHES "Darwin" )
                DESTINATION "${_PKGDATA}" )
    endif()
 endif()
-
-add_subdirectory(vamp)

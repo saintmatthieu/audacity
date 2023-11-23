@@ -1,11 +1,12 @@
 #pragma once
 
+#include <BTrack.h>
 #include <vamp-sdk/Plugin.h>
 
-class MyVampPlugin : public Vamp::Plugin
+class BeatSynchronousChromagram : public Vamp::Plugin
 {
 public:
-   MyVampPlugin(float inputSampleRate);
+   BeatSynchronousChromagram(float inputSampleRate);
 
    bool
    initialise(size_t inputChannels, size_t stepSize, size_t blockSize) override;
@@ -32,4 +33,7 @@ public:
    std::string getCopyright() const override;
 
    int getPluginVersion() const override;
+
+private:
+   BTrack mBTrack;
 };

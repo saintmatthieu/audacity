@@ -26,6 +26,8 @@ set( SOURCES
    CommandLineArgs.h
    Composite.cpp
    Composite.h
+   GetBeatFittingCoefficients.cpp
+   GetBeatFittingCoefficients.h
    GlobalVariable.h
    MemoryX.cpp
    MemoryX.h

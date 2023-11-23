@@ -1,15 +1,13 @@
-#include "MirUtils.h"
-#include "MirTypes.h"
+#include "GetBeatFittingCoefficients.h"
 
 #include <algorithm> // transform
 #include <numeric>   // iota
 
-namespace MIR
+std::optional<std::pair<double, double>> GetBeatFittingCoefficients(
+   const std::vector<double>& beatTimes,
+   const std::optional<int>& indexOfFirstBeat)
 {
-std::optional<std::pair<double, double>>
-GetBeatFittingCoefficients(const BeatInfo& info)
-{
-   if (info.beatTimes.size() < 2)
+   if (beatTimes.size() < 2)
       return {};
    // Fit a model which assumes constant tempo, and hence a beat time `t_k` at
    // `alpha*(k0+k) + beta`, in least-square sense, where `k0` is the index of
@@ -36,8 +34,8 @@ GetBeatFittingCoefficients(const BeatInfo& info)
 
    // Get index of first beat, which is readily available from the beat tracking
    // algorithm:
-   const auto k0 = info.indexOfFirstBeat.value_or(0);
-   const auto N = info.beatTimes.size();
+   const auto k0 = indexOfFirstBeat.value_or(0);
+   const auto N = beatTimes.size();
    const auto X =
       N * k0 * k0 + k0 * N * (N - 1) + N * (N - 1) * (2 * N - 1) / 6.;
    const auto Y = N * k0 + N * (N - 1) / 2.;
@@ -58,10 +56,9 @@ GetBeatFittingCoefficients(const BeatInfo& info)
       return X - Y * (k0 + k);
    });
    const auto alpha =
-      std::inner_product(W0.begin(), W0.end(), info.beatTimes.begin(), 0.) / d;
+      std::inner_product(W0.begin(), W0.end(), beatTimes.begin(), 0.) / d;
    const auto beta =
-      std::inner_product(W1.begin(), W1.end(), info.beatTimes.begin(), 0.) / d;
+      std::inner_product(W1.begin(), W1.end(), beatTimes.begin(), 0.) / d;
 
    return { { alpha, beta } };
 }
-} // namespace MIR

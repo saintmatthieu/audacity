@@ -9,9 +9,9 @@
 
 **********************************************************************/
 #include "MusicInformationRetrieval.h"
+#include "GetBeatFittingCoefficients.h"
 #include "GetBeats.h"
 #include "MirAudioSource.h"
-#include "MirUtils.h"
 
 #include <cassert>
 #include <cmath>
@@ -150,7 +150,8 @@ void GetBpmAndOffset(
    const auto info = GetBeats(BeatTrackingAlgorithm::BTrack, source);
    if (!info || info->beatTimes.size() < 2)
       return;
-   const auto coefs = GetBeatFittingCoefficients(*info);
+   const auto coefs =
+      GetBeatFittingCoefficients(info->beatTimes, info->indexOfFirstBeat);
    if (!coefs)
       return;
    const auto& [alpha, beta] = *coefs;

@@ -13,8 +13,6 @@ set( SOURCES
    GetVampFeatures.h
    MirAudioSource.h
    MirTypes.h
-   MirUtils.cpp
-   MirUtils.h
    MusicInformationRetrieval.cpp
    MusicInformationRetrieval.h
 )
@@ -23,6 +21,7 @@ set( LIBRARIES
    btrack
    libvampp
    libvamp
+   lib-vamp-plugins-interface
 )
 
 audacity_library( lib-music-information-retrieval "${SOURCES}" "${LIBRARIES}"

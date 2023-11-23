@@ -1,8 +1,8 @@
 #include <vamp-sdk/PluginAdapter.h>
 
-#include "MyVampPlugin.h"
+#include "BeatSynchronousChromagram.h"
 
-static Vamp::PluginAdapter<MyVampPlugin> myVampPlugin;
+static Vamp::PluginAdapter<BeatSynchronousChromagram> myVampPlugin;
 
 const VampPluginDescriptor*
 vampGetPluginDescriptor(unsigned int vampApiVersion, unsigned int index)
