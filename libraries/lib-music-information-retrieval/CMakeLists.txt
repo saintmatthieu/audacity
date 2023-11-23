@@ -21,6 +21,7 @@ set( LIBRARIES
    btrack
    libvampp
    libvamp
+   lib-utility
    lib-vamp-plugins-interface
 )
 

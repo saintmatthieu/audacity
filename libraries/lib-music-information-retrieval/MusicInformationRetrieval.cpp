@@ -147,7 +147,7 @@ void GetBpmAndOffset(
    const MirAudioSource& source, std::optional<double>& bpm,
    std::optional<double>& offset)
 {
-   const auto info = GetBeats(BeatTrackingAlgorithm::BTrack, source);
+   const auto info = GetBeats(BeatTrackingAlgorithm::QeenMaryBarBeatTrack, source);
    if (!info || info->beatTimes.size() < 2)
       return;
    const auto coefs =
