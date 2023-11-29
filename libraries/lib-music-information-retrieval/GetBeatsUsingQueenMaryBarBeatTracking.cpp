@@ -1,5 +1,6 @@
 #include "GetBeatsUsingQueenMaryBarBeatTracking.h"
-#include "GetVampFeatures.h"
+#include "BarBeatTrack.h"
+#include "GetVampFeaturesFromPlugin.h"
 #include "MirAudioSource.h"
 
 #include <algorithm>
@@ -12,8 +13,9 @@ namespace GetBeatsUsingQueenMaryBarBeatTracking
 std::optional<BeatInfo> GetBeats(const MirAudioSource& source)
 {
    const auto sampleRate = source.GetSampleRate();
-   const auto features =
-      GetVampFeatures("qmvampplugins:qm-barbeattracker", source);
+   BarBeatTracker barBeatTracker(sampleRate);
+   const auto features = GetVampFeaturesFromPlugin<Vamp::Plugin::FeatureSet>(
+      barBeatTracker, source, {});
    if (features.empty())
       return {};
    std::vector<double> beatTimes;

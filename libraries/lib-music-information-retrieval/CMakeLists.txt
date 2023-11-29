@@ -11,6 +11,7 @@ set( SOURCES
    GetBeatsUsingQueenMaryBarBeatTracking.h
    GetVampFeatures.cpp
    GetVampFeatures.h
+   GetVampFeaturesFromPlugin.h
    MirAudioSource.h
    MirTypes.h
    MusicInformationRetrieval.cpp
@@ -24,6 +25,7 @@ set( LIBRARIES
    lib-utility
    lib-vamp-plugins-interface
    lib-math
+   qm-vamp-plugins
 )
 
 audacity_library( lib-music-information-retrieval "${SOURCES}" "${LIBRARIES}"

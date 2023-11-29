@@ -1,25 +1,18 @@
 #pragma once
 
-#include <vamp-hostsdk/Plugin.h>
+#include "MirTypes.h"
 
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vamp-hostsdk/Plugin.h>
 
 namespace MIR
 {
 class MirAudioSource;
 
-struct VampPluginConfig
-{
-   std::optional<int> blockSize;
-   std::optional<int> stepSize;
-   std::map<std::string, float> parameters;
-};
-
 Vamp::Plugin::FeatureSet GetVampFeatures(
-   const std::string& pluginKey,
-   const MirAudioSource& source,
+   const std::string& pluginKey, const MirAudioSource& source,
    const VampPluginConfig& config = {});
 } // namespace MIR
