@@ -1,0 +1,13 @@
+
+CFLAGS += -DNDEBUG -O3 -fno-exceptions -Wall -Wextra -fPIC -msse -msse2 -mfpmath=sse -ftree-vectorize -DUSE_PTHREADS
+
+CXXFLAGS += $(CFLAGS)
+
+LDFLAGS	 += -shared -Wl,--no-undefined -Wl,-Bstatic -lqm-dsp -Wl,-Bdynamic -lpthread -Wl,--version-script=vamp-plugin.map
+
+PLUGIN_EXT   := .so
+
+MAKEFILE_EXT := .linux64
+
+include build/general/Makefile.inc
+
