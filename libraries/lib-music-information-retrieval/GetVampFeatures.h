@@ -19,6 +19,7 @@ struct VampPluginConfig
 };
 
 Vamp::Plugin::FeatureSet GetVampFeatures(
-   const std::string& pluginKey, const MirAudioSource& source,
+   const std::string& pluginKey,
+   const MirAudioSource& source,
    const VampPluginConfig& config = {});
 } // namespace MIR

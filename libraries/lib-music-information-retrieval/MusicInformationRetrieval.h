@@ -45,6 +45,12 @@ struct ProjectSyncInfo
    const double offsetInQuarternotes;
 };
 
+struct Key
+{
+   const int pitchClass;
+   const bool isMajor;
+};
+
 class MUSIC_INFORMATION_RETRIEVAL_API MusicInformation
 {
 public:
@@ -99,6 +105,9 @@ GetBpmFromFilename(const std::string& filename);
 
 MUSIC_INFORMATION_RETRIEVAL_API void GetBpmAndOffset(
    const MirAudioSource& source, std::optional<double>& bpm,
-   std::optional<double>& offset);
+   std::optional<double>& offset, std::optional<double> tuningThreshold = {});
+
+MUSIC_INFORMATION_RETRIEVAL_API std::optional<Key>
+GetKey(const MirAudioSource& source);
 
 } // namespace MIR

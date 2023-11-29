@@ -12,6 +12,7 @@ public:
    WavMirAudioSource(const std::string& filename);
 
    int GetSampleRate() const override;
+   long long GetNumSamples() const override;
    size_t
    ReadFloats(float* buffer, long long start, size_t numFrames) const override;
 

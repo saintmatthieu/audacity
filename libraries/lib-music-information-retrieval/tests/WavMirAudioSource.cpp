@@ -26,6 +26,11 @@ int WavMirAudioSource::GetSampleRate() const
    return mSampleRate;
 }
 
+long long WavMirAudioSource::GetNumSamples() const
+{
+   return mSamples.size();
+}
+
 size_t WavMirAudioSource::ReadFloats(
    float* buffer, long long start, size_t numFrames) const
 {

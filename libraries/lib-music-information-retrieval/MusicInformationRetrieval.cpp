@@ -11,6 +11,7 @@
 #include "MusicInformationRetrieval.h"
 #include "GetBeatFittingCoefficients.h"
 #include "GetBeats.h"
+#include "GetVampFeatures.h"
 #include "MirAudioSource.h"
 
 #include <cassert>
@@ -145,9 +146,10 @@ std::optional<double> GetBpmFromFilename(const std::string& filename)
 
 void GetBpmAndOffset(
    const MirAudioSource& source, std::optional<double>& bpm,
-   std::optional<double>& offset)
+   std::optional<double>& offset, std::optional<double> tuningThreshold)
 {
-   const auto info = GetBeats(BeatTrackingAlgorithm::QeenMaryBarBeatTrack, source);
+   const auto info =
+      GetBeats(BeatTrackingAlgorithm::QeenMaryBarBeatTrack, source);
    if (!info || info->beatTimes.size() < 2)
       return;
    const auto coefs =
@@ -155,7 +157,45 @@ void GetBpmAndOffset(
    if (!coefs)
       return;
    const auto& [alpha, beta] = *coefs;
+   // Estimate variance of fit error:
+   const auto k0 = info->indexOfFirstBeat.value_or(0);
+   std::vector<int> k(info->beatTimes.size());
+   std::iota(k.begin(), k.end(), k0);
+   std::vector<double> squaredErrors(info->beatTimes.size());
+   std::transform(
+      k.begin(), k.end(), info->beatTimes.begin(), squaredErrors.begin(),
+      [alpha, beta](int k, double t) {
+         const auto err = t - alpha * k - beta;
+         return err * err;
+      });
+   const auto mean =
+      std::accumulate(squaredErrors.begin(), squaredErrors.end(), 0.) /
+      static_cast<double>(squaredErrors.size());
+   // If the average error is more than something noticeable, i.e., a 16th of a
+   // beat (at most a 32nd, more likely a 64th), then don't trust the fit.
+   constexpr auto meanBeatErrorThreshold = 1. / 16;
+   const auto meanThreshold =
+      tuningThreshold.value_or(meanBeatErrorThreshold * meanBeatErrorThreshold);
+   if (mean >= meanThreshold)
+      return;
    bpm = 60. / alpha;
    offset = -beta;
+}
+
+MUSIC_INFORMATION_RETRIEVAL_API std::optional<Key>
+GetKey(const MirAudioSource& source)
+{
+   const auto sampleRate = source.GetSampleRate();
+   VampPluginConfig config;
+   const auto roundedNumSamples =
+      1 << static_cast<int>(std::floor(std::log2(source.GetNumSamples())));
+   config.blockSize = roundedNumSamples;
+   config.stepSize = roundedNumSamples;
+   const auto features =
+      GetVampFeatures("qm-vamp-plugins:qm-keydetector", source, config);
+   if (features.empty())
+      return {};
+   // TODO
+   return {};
 }
 } // namespace MIR

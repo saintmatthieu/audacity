@@ -1393,6 +1393,12 @@ void ReactOnMusicFileImport(
          return mClip.GetRate();
       }
 
+      long long GetNumSamples() const override
+      {
+         assert(mClip.GetStretchRatio() == 1);
+         return mClip.GetVisibleSampleCount().as_long_long();
+      }
+
       size_t ReadFloats(
          float* buffer, long long where, size_t numFrames) const override
       {
