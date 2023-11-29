@@ -1,20 +1,19 @@
 #include "GetBeatFittingCoefficients.h"
 
 #include <algorithm> // transform
-#include <numeric>   // iota
+#include <cassert>
+#include <numeric> // iota
 
-std::optional<std::pair<double, double>> GetBeatFittingCoefficients(
+std::pair<double, double> GetBeatFittingCoefficients(
    const std::vector<double>& beatTimes,
    const std::optional<int>& indexOfFirstBeat)
 {
-   if (beatTimes.size() < 2)
-      return {};
-   // Fit a model which assumes constant tempo, and hence a beat time `t_k` at
-   // `alpha*(k0+k) + beta`, in least-square sense, where `k0` is the index of
-   // the first beat, which we know, and `k \in [0, N)`. That is, find `beta`
-   // and `alpha` such that `sum_k (t_k - alpha*(k0+k) - beta)^2` is minimized.
-   // In matrix form, this is
-   // | k0     1 | | alpha | = | t_0     |
+   assert(beatTimes.size() > 1);
+   // Fit a model which assumes constant tempo, and hence a beat time `t_k`
+   // at `alpha*(k0+k) + beta`, in least-square sense, where `k0` is the
+   // index of the first beat, which we know, and `k \in [0, N)`. That is,
+   // find `beta` and `alpha` such that `sum_k (t_k - alpha*(k0+k) - beta)^2`
+   // is minimized. In matrix form, this is | k0     1 | | alpha | = | t_0 |
    // | k0+1   1 | | beta  |   | t_1     |
    // | k0+2   1 |             | t_2     |
    // |  ...     |             | ...     |
@@ -32,8 +31,8 @@ std::optional<std::pair<double, double>> GetBeatFittingCoefficients(
    // Now M A^T = | Z  Z-Y  Z-2Y ... Z-(N-1)Y | = W
    //             | -Y X-Y  2X-Y ... (N-1)X-Y |
 
-   // Get index of first beat, which is readily available from the beat tracking
-   // algorithm:
+   // Get index of first beat, which is readily available from the beat
+   // tracking algorithm:
    const auto k0 = indexOfFirstBeat.value_or(0);
    const auto N = beatTimes.size();
    const auto X =
@@ -60,5 +59,5 @@ std::optional<std::pair<double, double>> GetBeatFittingCoefficients(
    const auto beta =
       std::inner_product(W1.begin(), W1.end(), beatTimes.begin(), 0.) / d;
 
-   return { { alpha, beta } };
+   return { alpha, beta };
 }

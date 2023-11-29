@@ -11,7 +11,7 @@ GetBeats(BeatTrackingAlgorithm algorithm, const MirAudioSource& source)
 {
    switch (algorithm)
    {
-   case BeatTrackingAlgorithm::QeenMaryBarBeatTrack:
+   case BeatTrackingAlgorithm::QueenMaryBarBeatTrack:
       return GetBeatsUsingQueenMaryBarBeatTracking::GetBeats(source);
    case BeatTrackingAlgorithm::BTrack:
       return GetBeatsUsingBTrack::GetBeats(source);

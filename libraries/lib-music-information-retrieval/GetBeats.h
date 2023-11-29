@@ -11,10 +11,10 @@ namespace MIR
 {
 enum class BeatTrackingAlgorithm
 {
-   QeenMaryBarBeatTrack,
+   QueenMaryBarBeatTrack,
    BTrack,
 };
 
-std::optional<BeatInfo>
+MUSIC_INFORMATION_RETRIEVAL_API std::optional<BeatInfo>
 GetBeats(BeatTrackingAlgorithm algorithm, const MirAudioSource& source);
 } // namespace MIR

@@ -23,6 +23,7 @@ set( LIBRARIES
    libvamp
    lib-utility
    lib-vamp-plugins-interface
+   lib-math
 )
 
 audacity_library( lib-music-information-retrieval "${SOURCES}" "${LIBRARIES}"

@@ -13,7 +13,7 @@ std::optional<BeatInfo> GetBeats(const MirAudioSource& source)
 {
    const auto sampleRate = source.GetSampleRate();
    const auto features =
-      GetVampFeatures("qm-vamp-plugins:qm-barbeattracker", source);
+      GetVampFeatures("qmvampplugins:qm-barbeattracker", source);
    if (features.empty())
       return {};
    std::vector<double> beatTimes;

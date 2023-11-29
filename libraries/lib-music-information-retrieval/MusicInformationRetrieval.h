@@ -18,6 +18,7 @@ namespace MIR
 {
 
 class MirAudioSource;
+struct BeatInfo;
 
 /*!
  * Information needed to time-synchronize the audio file with the project.
@@ -103,11 +104,17 @@ private:
 MUSIC_INFORMATION_RETRIEVAL_API std::optional<double>
 GetBpmFromFilename(const std::string& filename);
 
+struct ClassifierTuningThresholds
+{
+   const double isRhythmic;
+   const double hasConstantTempo;
+};
+
 MUSIC_INFORMATION_RETRIEVAL_API void GetBpmAndOffset(
-   const MirAudioSource& source, std::optional<double>& bpm,
-   std::optional<double>& offset, std::optional<double> tuningThreshold = {});
+   const MirAudioSource& source, const BeatInfo& beatInfo,
+   std::optional<double>& bpm, std::optional<double>& offset,
+   std::optional<ClassifierTuningThresholds> tuningThresholds = {});
 
 MUSIC_INFORMATION_RETRIEVAL_API std::optional<Key>
 GetKey(const MirAudioSource& source);
-
 } // namespace MIR
