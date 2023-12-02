@@ -9,7 +9,8 @@ namespace MIR
 class WavMirAudioSource : public MirAudioSource
 {
 public:
-   WavMirAudioSource(const std::string& filename);
+   WavMirAudioSource(
+      const std::string& filename, std::optional<double> timeLimit = {});
 
    int GetSampleRate() const override;
    long long GetNumSamples() const override;

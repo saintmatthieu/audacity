@@ -20,6 +20,12 @@ namespace MIR
 class MirAudioSource;
 struct BeatInfo;
 
+struct ODF
+{
+   std::vector<double> values;
+   const double duration;
+};
+
 /*!
  * Information needed to time-synchronize the audio file with the project.
  */
@@ -111,9 +117,44 @@ struct ClassifierTuningThresholds
 };
 
 MUSIC_INFORMATION_RETRIEVAL_API void GetBpmAndOffset(
-   const MirAudioSource& source, const BeatInfo& beatInfo,
+   double rmsNormalizedOdfXcorrStd, const BeatInfo& beatInfo,
    std::optional<double>& bpm, std::optional<double>& offset,
    std::optional<ClassifierTuningThresholds> tuningThresholds = {});
+
+MUSIC_INFORMATION_RETRIEVAL_API double GetBeatFittingErrorRms(
+   const std::pair<double, double>& coefs, const BeatInfo& info);
+
+MUSIC_INFORMATION_RETRIEVAL_API bool IsRhythmic(
+   double rmsNormalizedOdfXcorrStd, std::optional<double> tuningThreshold);
+
+MUSIC_INFORMATION_RETRIEVAL_API bool HasConstantTempo(
+   double beatFittingErrorRms, std::optional<double> tuningThreshold);
+
+MUSIC_INFORMATION_RETRIEVAL_API double
+GetNormalizedAutocorrCurvatureRms(const std::vector<double>& x);
+
+MUSIC_INFORMATION_RETRIEVAL_API double GetBeatSnr(
+   const std::vector<double>& odf, double odfSampleRate,
+   const std::vector<double>& beatTimes);
+
+MUSIC_INFORMATION_RETRIEVAL_API std::optional<std::vector<size_t>>
+GetBeatIndices(const ODF& odf, const std::vector<float>& xcorr);
+
+MUSIC_INFORMATION_RETRIEVAL_API bool IsLoop(
+   const ODF& odf, const std::vector<float>& xcorr,
+   const std::vector<size_t>& beatIndices);
+
+MUSIC_INFORMATION_RETRIEVAL_API std::vector<float>
+GetNormalizedAutocorrelation(const std::vector<double>& x);
+
+MUSIC_INFORMATION_RETRIEVAL_API std::vector<float>
+GetNormalizedAutocorrelation(const std::vector<float>& x);
+
+MUSIC_INFORMATION_RETRIEVAL_API std::pair<double, double>
+GetApproximateGcd(const std::vector<float>& odf, double odfSampleRate);
+
+MUSIC_INFORMATION_RETRIEVAL_API std::vector<float>
+GetOnsetDetectionFunction(const MirAudioSource& source, double& odfSampleRate);
 
 MUSIC_INFORMATION_RETRIEVAL_API std::optional<Key>
 GetKey(const MirAudioSource& source);

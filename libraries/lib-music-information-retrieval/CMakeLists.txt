@@ -3,6 +3,8 @@ Library for Music Information Retrieval (MIR) algorithms.
 ]]
 
 set( SOURCES
+   BeatFinder.cpp
+   BeatFinder.h
    GetBeats.cpp
    GetBeats.h
    GetBeatsUsingBTrack.cpp
@@ -12,6 +14,8 @@ set( SOURCES
    GetVampFeatures.cpp
    GetVampFeatures.h
    GetVampFeaturesFromPlugin.h
+   QueenMaryBeatFinder.cpp
+   QueenMaryBeatFinder.h
    MirAudioSource.h
    MirTypes.h
    MusicInformationRetrieval.cpp

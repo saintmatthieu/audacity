@@ -4,6 +4,7 @@
 #include "MirTypes.h"
 
 #include <algorithm>
+#include <vamp-sdk/Plugin.h>
 
 namespace MIR
 {

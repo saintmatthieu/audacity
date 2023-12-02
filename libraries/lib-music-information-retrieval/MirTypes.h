@@ -19,4 +19,10 @@ struct VampPluginConfig
    std::optional<int> stepSize;
    std::map<std::string, float> parameters;
 };
+
+enum class BeatTrackingAlgorithm
+{
+   QueenMaryBarBeatTrack,
+   BTrack,
+};
 } // namespace MIR

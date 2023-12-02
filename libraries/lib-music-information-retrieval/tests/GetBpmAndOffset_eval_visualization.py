@@ -17,12 +17,35 @@ import matplotlib.pyplot as plt
 csv_path = sys.argv[1]
 df = pd.read_csv(csv_path)
 
-# Store in new variable o2 the values in the octave error column when present.
-o2 = df['o2'].dropna()
+# The file has columns truth,normalizedAutocorrCurvatureRms,beatFittingErrorRms,filename
+# We want a scatter plot showing `normalizedAutocorrCurvatureRms` vs `beatFittingErrorRms`,
+# with the samples colored by `truth`.
+# Additionally, hovering over a sample should show the filename.
 
-# Show distribution of octave error
-sns.histplot(o2, bins=20)
-plt.xlabel('Octave error')
-plt.ylabel('Count')
-plt.title('Distribution of octave error for true positives')
+# Create a figure.
+fig = plt.figure(figsize=(8, 8))
+
+# In the following plot, samples with invalidBeatFittingErrorRmsValue need a special color to be recognized better.
+# Create that scatter plot.
+sns.scatterplot(
+    data=df,
+    x="beatSnr",
+    y="beatFittingErrorRms",
+    hue="truth",
+    size="truth",
+    sizes=(50, 200),
+    palette="deep",
+    legend="full",
+)
+
+# Add a title.
+plt.title("Beat tracking accuracy")
+
+# Add a grid.
+plt.grid(True)
+
+# Add a legend.
+plt.legend(loc="lower right")
+
+# Show the plot.
 plt.show()

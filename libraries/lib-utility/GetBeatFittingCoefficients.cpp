@@ -8,6 +8,8 @@ std::pair<double, double> GetBeatFittingCoefficients(
    const std::vector<double>& beatTimes,
    const std::optional<int>& indexOfFirstBeat)
 {
+   // TODO consider adding weights based on local energy.
+
    assert(beatTimes.size() > 1);
    // Fit a model which assumes constant tempo, and hence a beat time `t_k`
    // at `alpha*(k0+k) + beta`, in least-square sense, where `k0` is the

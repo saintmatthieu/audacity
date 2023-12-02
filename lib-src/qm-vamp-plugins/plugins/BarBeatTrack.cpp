@@ -374,6 +374,11 @@ BarBeatTracker::getRemainingFeatures()
     return barBeatTrack();
 }
 
+const std::vector<double>* BarBeatTracker::getDetectionFunctionOutput() const
+{
+   return m_d ? &m_d->dfOutput : nullptr;
+}
+
 BarBeatTracker::FeatureSet
 BarBeatTracker::barBeatTrack()
 {

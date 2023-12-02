@@ -51,7 +51,9 @@ public:
 
     FeatureSet getRemainingFeatures();
 
-protected:
+    const std::vector<double>* getDetectionFunctionOutput() const;
+
+ protected:
     BarBeatTrackerData *m_d;
     static float m_stepSecs;
     int m_bpb;

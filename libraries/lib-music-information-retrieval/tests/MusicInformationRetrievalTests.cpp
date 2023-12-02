@@ -1,5 +1,7 @@
 #include "WavMirAudioSource.h"
 
+#include <BeatFinder.h>
+#include <GetBeatFittingCoefficients.h>
 #include <GetBeats.h>
 #include <MusicInformationRetrieval.h>
 #include <catch2/catch.hpp>
@@ -148,12 +150,16 @@ TEST_CASE("GetBpmAndOffset")
          const auto stem = GetFilenameStem(wavFile);
          const auto bpmFromFilename = GetBpmFromFilename(wavFile);
          const WavMirAudioSource source { wavFile };
+         const auto beatFinder = BeatFinder::CreateInstance(
+            source, BeatTrackingAlgorithm::QueenMaryBarBeatTrack);
          std::optional<double> bpm;
          std::optional<double> offset;
-         const auto beatInfo =
-            GetBeats(BeatTrackingAlgorithm::QueenMaryBarBeatTrack, source);
+         const auto beatInfo = beatFinder->GetBeats();
          if (beatInfo.has_value())
-            GetBpmAndOffset(source, *beatInfo, bpm, offset);
+            GetBpmAndOffset(
+               GetNormalizedAutocorrCurvatureRms(
+                  beatFinder->GetOnsetDetectionFunction()),
+               *beatInfo, bpm, offset);
          ProgressBar(progressBarWidth, 100 * i++ / wavFiles.size());
          // For convenience, add the octave-2 error here, too, not leaving
          // it for computation in the python evaluation script.
@@ -178,24 +184,90 @@ TEST_CASE("GetBpmAndOffset")
       });
 }
 
+namespace
+{
+// {
+// "beatTimes": [5.05034],
+// "indexOfFirstBeat": 0
+// }
+auto ToString(const std::optional<BeatInfo>& beatInfo)
+{
+   if (!beatInfo)
+      return std::string { "null" };
+   auto separator = "";
+   std::string beatTimes = "[";
+   std::for_each(
+      beatInfo->beatTimes.begin(), beatInfo->beatTimes.end(), [&](double time) {
+         beatTimes += separator;
+         beatTimes += std::to_string(time);
+      });
+   beatTimes += "]";
+   std::string indexOfFirstBeat = "null";
+   if (beatInfo->indexOfFirstBeat.has_value())
+      indexOfFirstBeat = std::to_string(*beatInfo->indexOfFirstBeat);
+   return std::string { "{\n\t\"beatTimes\": " } + beatTimes +
+          ",\n\t\"indexOfFirstBeat\": " + indexOfFirstBeat + "\n}";
+}
+
+constexpr auto timeLimit = 10;
+} // namespace
+
 TEST_CASE("Tuning")
 {
    constexpr int progressBarWidth = 50;
    const auto wavFiles =
       GetWavFilesUnderDir("C:/Users/saint/Documents/auto-tempo");
-   std::vector<std::optional<BeatInfo>> beatInfos;
+   std::ofstream sampleValueCsv { std::string(CMAKE_CURRENT_SOURCE_DIR) +
+                                  "/sampleValues_" + GIT_COMMIT_HASH + ".csv" };
+   sampleValueCsv << "truth,isLoop,beatSnr,beatFittingErrorRms,filename\n";
+   using Sample = std::optional<std::pair<
+      double /*beatSnr*/, double /*line-fitting error RMS*/
+      >>;
+   std::vector<Sample> samples;
    const auto numFiles = wavFiles.size();
+   // std::ofstream ofs { "./beatInfo.json" };
    auto count = 0;
-   std::cout << "Computing beats...\n";
    std::transform(
       wavFiles.begin(), wavFiles.begin() + numFiles,
-      std::back_inserter(beatInfos), [&](const std::string& wavFile) {
-         const WavMirAudioSource source { wavFile };
-         const auto beatInfo =
-            GetBeats(BeatTrackingAlgorithm::QueenMaryBarBeatTrack, source);
+      std::back_inserter(samples), [&](const std::string& wavFile) {
+         const WavMirAudioSource source { wavFile, timeLimit };
+         auto instance = BeatFinder::CreateInstance(
+            source, BeatTrackingAlgorithm::QueenMaryBarBeatTrack);
          ProgressBar(progressBarWidth, 100 * count++ / numFiles);
-         return beatInfo;
+         Sample sample;
+         const auto odf = instance->GetOnsetDetectionFunction();
+         const auto odfSr = instance->GetOnsetDetectionFunctionSampleRate();
+         if (const auto& beatInfo = instance->GetBeats();
+             beatInfo.has_value() && beatInfo->beatTimes.size() > 1)
+         {
+            const auto coefs = GetBeatFittingCoefficients(
+               beatInfo->beatTimes, beatInfo->indexOfFirstBeat);
+            const auto rms = GetBeatFittingErrorRms(coefs, *beatInfo);
+            const auto snr = GetBeatSnr(odf, odfSr, beatInfo->beatTimes);
+            sample.emplace(snr, rms);
+         }
+
+         const ODF odfStruct { odf, odf.size() / odfSr };
+         const auto autoCorr = GetNormalizedAutocorrelation(odf);
+         const auto beatIndices = GetBeatIndices(odfStruct, autoCorr);
+         const auto isLoop = beatIndices.has_value() ?
+                                IsLoop(odfStruct, autoCorr, *beatIndices) :
+                                false;
+
+         sampleValueCsv << (GetBpmFromFilename(wavFile).has_value() ? "true" :
+                                                                      "false")
+                        << "," << (isLoop ? "true" : "false") << ","
+                        << (sample.has_value() ? sample->first : 0.) << ","
+                        << (sample.has_value() ? sample->second : 0.) << ","
+                        << wavFile << "\n";
+
+         return sample;
       });
+
+   constexpr auto tune = false;
+   if (!tune)
+      return;
+
    struct TuningStep
    {
       const double isRhythmicThreshold;
@@ -205,29 +277,15 @@ TEST_CASE("Tuning")
    };
 
    const std::vector<double> isRhythmicThresholds {
-      0., 6e+3, 6e+6, 6e+9, std::numeric_limits<double>::max(),
+      1e3, 5e3, 2e4, 3e4, 4e4, 5e4,
    };
-
    const std::vector<double> lineFittingThresholds {
-      0.,
-      0.0005,
-      // 0.0025,
-      // 0.005,
-      // 0.05,
-      // 0.25,
-      // 0.5,
-      // 1,
-      // 2,
-      // 3,
-      // 4,
-      // 5,
-      std::numeric_limits<double>::max(),
+      0., 0.0005, 0.0025, 0.005, 0.05, 0.25,
    };
 
    const auto numEvals = lineFittingThresholds.size() *
-                         isRhythmicThresholds.size() * beatInfos.size();
-   count = 0;
-   std::cout << "Evaluating...\n";
+                         isRhythmicThresholds.size() * samples.size();
+
    std::vector<TuningStep> steps;
    std::for_each(
       isRhythmicThresholds.begin(), isRhythmicThresholds.end(),
@@ -240,21 +298,16 @@ TEST_CASE("Tuning")
                std::vector<std::string> falseNegatives;
                std::vector<std::string> trueNegatives;
                auto i = 0;
-               assert(beatInfos.size() == wavFiles.size());
+               assert(samples.size() == wavFiles.size());
                std::for_each(
-                  beatInfos.begin(), beatInfos.end(),
-                  [&](const std::optional<BeatInfo>& beatInfo) {
+                  samples.begin(), samples.end(), [&](const Sample& sample) {
                      auto actual = false;
                      const auto& wavFile = wavFiles[i++];
-                     if (beatInfo.has_value())
+                     if (sample.has_value())
                      {
-                        std::optional<double> bpm;
-                        std::optional<double> offset;
-                        const WavMirAudioSource source { wavFile };
-                        GetBpmAndOffset(
-                           source, *beatInfo, bpm, offset,
-                           { { lineFittingThreshold, isRhythmicThreshold } });
-                        actual = bpm.has_value();
+                        const auto& [snr, rms] = *sample;
+                        actual = IsRhythmic(snr, isRhythmicThreshold) &&
+                                 HasConstantTempo(rms, lineFittingThreshold);
                      }
                      const auto expected =
                         GetBpmFromFilename(wavFile).has_value();
@@ -272,8 +325,8 @@ TEST_CASE("Tuning")
                const double fp = falsePositives.size();
                const double fn = falseNegatives.size();
                const double tn = trueNegatives.size();
-               return TuningStep { lineFittingThreshold, isRhythmicThreshold,
-                                   tp / (tp + fp), fp / (fp + tn) };
+               return TuningStep { isRhythmicThreshold, lineFittingThreshold,
+                                   tp / (tp + fn), fp / (fp + tn) };
             });
       });
    std::ofstream csvFile { std::string(CMAKE_CURRENT_SOURCE_DIR) + "/ROC_" +
@@ -287,20 +340,55 @@ TEST_CASE("Tuning")
       });
 }
 
-TEST_CASE("GetBpmAndOffsetOnce")
+TEST_CASE("GetBpmAndOffset_once")
 {
-   // const auto filename =
-   //    "C:/Users/saint/Documents/auto-tempo/Big_Band_Drums_-_210BPM_Sticks_-_Krupa_Toms_-_Quiet_with_Crash.wav";
-   const auto filename =
-      "C:/Users/saint/Documents/auto-tempo\\iroyinspeech\\clips\\common_voice_yo_36525942.wav";
-   std::optional<double> bpm;
-   std::optional<double> offset;
-   const WavMirAudioSource source { filename };
-   const auto beatInfo =
-      GetBeats(BeatTrackingAlgorithm::QueenMaryBarBeatTrack, source);
-   if (!beatInfo.has_value())
-      return;
-   GetBpmAndOffset(source, *beatInfo, bpm, offset);
+   const auto wavFile =
+      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Club_BigBassHits_136bpm_Gm.wav";
+   const WavMirAudioSource source { wavFile, timeLimit };
+   const auto beatFinder = BeatFinder::CreateInstance(
+      source, BeatTrackingAlgorithm::QueenMaryBarBeatTrack);
+   const auto beatInfo = beatFinder->GetBeats();
+   if (beatInfo.has_value() && beatInfo->beatTimes.size() > 1)
+   {
+      const auto coefs = GetBeatFittingCoefficients(
+         beatInfo->beatTimes, beatInfo->indexOfFirstBeat);
+      const auto rms = GetBeatFittingErrorRms(coefs, *beatInfo);
+      const auto odf = beatFinder->GetOnsetDetectionFunction();
+      const auto odfSr = beatFinder->GetOnsetDetectionFunctionSampleRate();
+      const auto& beatTimes = beatInfo->beatTimes;
+      const auto snr = GetBeatSnr(odf, odfSr, beatTimes);
+   }
+   const auto odf = beatFinder->GetOnsetDetectionFunction();
+   GetNormalizedAutocorrCurvatureRms(odf);
+
+   const auto odfSr = beatFinder->GetOnsetDetectionFunctionSampleRate();
+   const ODF odfStruct { odf, odf.size() / odfSr };
+   const auto autoCorr = GetNormalizedAutocorrelation(odf);
+   const auto beatIndices = GetBeatIndices(odfStruct, autoCorr);
+   const auto isLoop = beatIndices.has_value() ?
+                          IsLoop(odfStruct, autoCorr, *beatIndices) :
+                          false;
+}
+
+TEST_CASE("NewStuff")
+{
+   const auto wavFile =
+      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Club_BigBassHits_136bpm_Gm.wav";
+   // const auto wavFile =
+   //    "C:/Users/saint/Downloads/anotherOneBitesTheDust.wav";
+   const WavMirAudioSource source { wavFile, timeLimit };
+   auto odfSr = 0.;
+   const auto odf = GetOnsetDetectionFunction(source, odfSr);
+   const auto autoCorr = GetNormalizedAutocorrelation(odf);
+   std::ofstream ofs("C:/Users/saint/Downloads/log_odf.txt");
+   std::for_each(odf.begin(), odf.end(), [&](float x) { ofs << x << ","; });
+   ofs << std::endl;
+   std::ofstream ofsAutocorr("C:/Users/saint/Downloads/log_autocorr.txt");
+   std::for_each(
+      autoCorr.begin(), autoCorr.end(),
+      [&](float x) { ofsAutocorr << x << ","; });
+   ofsAutocorr << std::endl;
+   const auto [gcd, confidence] = GetApproximateGcd(odf, odfSr);
 }
 
 TEST_CASE("GetKey")
