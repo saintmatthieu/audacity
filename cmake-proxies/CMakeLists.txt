@@ -3,6 +3,8 @@
 #       directory          option      symbol      req   chk   version
 addlib( qm-vamp-plugins    qm-vamp-plugins     QM_VAMP_PLUGINS   YES    YES  "" )
 addlib( qm-dsp             qm-dsp      QM_DSP      YES   YES   "" )
+# addlib( Gaussian-Mixture-Model             Gaussian-Mixture-Model      Gaussian_Mixture_Model      YES   YES   "" )
+# addlib( Gaussian-Utils Gaussian-Utils Gaussian_Utils YES YES "" )
 
 # Optional libraries
 #

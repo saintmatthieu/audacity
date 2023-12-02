@@ -30,6 +30,8 @@ set( LIBRARIES
    lib-vamp-plugins-interface
    lib-math
    qm-vamp-plugins
+   # Gaussian-Mixture-Model
+   # Gaussian-Utils
 )
 
 audacity_library( lib-music-information-retrieval "${SOURCES}" "${LIBRARIES}"
