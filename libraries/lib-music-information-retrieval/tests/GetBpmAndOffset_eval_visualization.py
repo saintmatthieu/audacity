@@ -29,8 +29,8 @@ fig = plt.figure(figsize=(8, 8))
 # Create that scatter plot.
 sns.scatterplot(
     data=df,
-    x="beatSnr",
-    y="beatFittingErrorRms",
+    x="errorRms",
+    y="errorRms",
     hue="truth",
     size="truth",
     sizes=(50, 200),

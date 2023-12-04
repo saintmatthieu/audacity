@@ -28,9 +28,11 @@ public:
       return mSource.GetSampleRate();
    }
 
-   size_t
-   ReadFloats(float* buffer, long long where, size_t numFrames) const override
+   size_t ReadFloats(
+      float* buffer, long long where, size_t numFrames,
+      bool wrapAround) const override
    {
+      assert(!wrapAround); // Not supported (yet)
       return mSource.ReadFloats(buffer, where + offset, numFrames);
    }
 
@@ -45,7 +47,7 @@ std::optional<BeatInfo> GetBeats(const MirAudioSource& source)
    const auto info = AudacityVamp::GetBeatInfo(
       std::bind(
          &MirAudioSource::ReadFloats, &source, std::placeholders::_1,
-         std::placeholders::_2, std::placeholders::_3),
+         std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
       source.GetSampleRate());
    if (!info)
       return {};

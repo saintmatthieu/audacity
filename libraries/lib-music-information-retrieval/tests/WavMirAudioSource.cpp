@@ -1,5 +1,6 @@
 #include "WavMirAudioSource.h"
 
+#include <cassert>
 #include <exception>
 
 namespace MIR
@@ -39,13 +40,28 @@ long long WavMirAudioSource::GetNumSamples() const
 }
 
 size_t WavMirAudioSource::ReadFloats(
-   float* buffer, long long start, size_t numFrames) const
+   float* buffer, long long start, size_t numFrames, bool wrapAround) const
 {
+   if (wrapAround)
+   {
+      assert(mSamples.size() >= numFrames);
+      while (start < 0)
+         start += mSamples.size();
+      while (start >= mSamples.size())
+         start -= static_cast<long long>(mSamples.size());
+   }
    const auto end = std::min<long long>(start + numFrames, mSamples.size());
    const auto numToRead = end - start;
-   if (numToRead <= 0)
+   if (numToRead <= 0 && !wrapAround)
       return 0;
    std::copy(mSamples.begin() + start, mSamples.begin() + end, buffer);
-   return numFrames;
+   if (wrapAround)
+   {
+      const auto remainingToRead = numFrames - numToRead;
+      std::copy(mSamples.begin() + end, mSamples.end(), buffer + numToRead);
+      return numFrames;
+   }
+   else
+      return numToRead;
 }
 } // namespace MIR

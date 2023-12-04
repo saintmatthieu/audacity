@@ -14,8 +14,9 @@ public:
 
    int GetSampleRate() const override;
    long long GetNumSamples() const override;
-   size_t
-   ReadFloats(float* buffer, long long start, size_t numFrames) const override;
+   size_t ReadFloats(
+      float* buffer, long long start, size_t numFrames,
+      bool wrapAround) const override;
 
 private:
    const std::vector<float> mSamples;

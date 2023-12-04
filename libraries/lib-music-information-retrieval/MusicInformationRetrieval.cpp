@@ -16,6 +16,9 @@
 #include "GetVampFeatures.h"
 #include "MirAudioSource.h"
 
+#include <dsp/mfcc/MFCC.h>
+
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <fstream>
@@ -26,6 +29,8 @@ namespace MIR
 {
 namespace
 {
+constexpr auto pi = 3.141592653589793;
+
 auto RemovePathPrefix(const std::string& filename)
 {
    return filename.substr(filename.find_last_of("/\\") + 1);
@@ -61,15 +66,23 @@ void FillMetadata(
 }
 
 template <typename T>
-std::vector<size_t> GetOnsetIndices(const std::vector<T>& odf)
+std::vector<int> GetOnsetIndices(const std::vector<T>& odf)
 {
-   // Find indices of all peaks in `odf` whose value is larger than the average.
-   const auto avg =
-      std::accumulate(odf.begin(), odf.end(), 0) / static_cast<T>(odf.size());
-   std::vector<size_t> peakIndices;
+   // constexpr auto maxCount = 10;
+   constexpr auto maxCount = std::numeric_limits<size_t>::max();
+   std::vector<int> peakIndices;
    for (auto i = 1; i < odf.size() - 1; ++i)
-      if (odf[i - 1] <= odf[i] && odf[i] >= odf[i + 1] && odf[i] > avg)
+      if (odf[i - 1] < odf[i] && odf[i] > odf[i + 1])
          peakIndices.push_back(i);
+   if (peakIndices.size() > maxCount)
+   {
+      std::sort(peakIndices.begin(), peakIndices.end(), [&](int a, int b) {
+         return odf[a] > odf[b];
+      });
+      peakIndices.erase(peakIndices.begin() + maxCount, peakIndices.end());
+      std::sort(peakIndices.begin(), peakIndices.end());
+   }
+
    return peakIndices;
 }
 } // namespace
@@ -437,7 +450,8 @@ bool IsLoop(
    return bestScore > -1;
 }
 
-std::vector<float> GetNormalizedAutocorrelation(const std::vector<double>& x)
+std::vector<float>
+GetNormalizedAutocorrelation(const std::vector<double>& x, bool full)
 {
    const auto N = x.size();
    const auto M = 1 << static_cast<int>(std::ceil(std::log2(x.size())));
@@ -464,6 +478,9 @@ std::vector<float> GetNormalizedAutocorrelation(const std::vector<double>& x)
       powSpec.begin() + 1, powSpec.begin() + M / 2 - 1, powSpec.rbegin());
    std::vector<float> xcorr(M);
    InverseRealFFT(M, powSpec.data(), nullptr, xcorr.data());
+   if (!full)
+      // Discard symmetric right-hand side of xcorr:
+      xcorr.erase(xcorr.begin() + M / 2 + 1, xcorr.end());
    const auto normalizer = 1 / xcorr[0];
    std::transform(
       xcorr.begin(), xcorr.end(), xcorr.begin(),
@@ -471,30 +488,177 @@ std::vector<float> GetNormalizedAutocorrelation(const std::vector<double>& x)
    return xcorr;
 }
 
-std::vector<float> GetNormalizedAutocorrelation(const std::vector<float>& x)
+std::vector<float>
+GetNormalizedAutocorrelation(const std::vector<float>& x, bool full)
 {
    std::vector<double> xDouble(x.begin(), x.end());
-   return GetNormalizedAutocorrelation(xDouble);
+   return GetNormalizedAutocorrelation(xDouble, full);
 }
+
+namespace
+{
+template <typename T, typename U = T>
+std::vector<U> UpsampleByLinearInterpolation(const std::vector<T>& x, size_t M)
+{
+   const auto N = x.size();
+   std::vector<U> upsampled(M);
+   const auto step = static_cast<double>(N) / M;
+   auto n = 0.;
+   std::for_each(upsampled.begin(), upsampled.end(), [&](U& u) {
+      const auto n0 = static_cast<int>(n);
+      const auto u0 = x[n0 % N];
+      const auto u1 = x[(n0 + 1) % N];
+      const auto frac = n - n0;
+      u = u0 * (1 - frac) + u1 * frac;
+      n += step;
+   });
+   return upsampled;
+}
+
+template <typename T>
+std::vector<std::vector<T>>
+GetSelfSimilarityMatrix(const std::vector<std::vector<T>>& xx, int sampleRate)
+{
+   // Get the MFCC of each inner vector.
+   std::vector<std::vector<double>> mfccs(xx.size());
+   std::transform(
+      xx.begin(), xx.end(), mfccs.begin(),
+      [sampleRate](const std::vector<T>& x) {
+         const auto M = 1 << static_cast<int>(std::ceil(std::log2(x.size())));
+         const auto xi = UpsampleByLinearInterpolation<T, double>(x, M);
+         const auto iSampleRate =
+            static_cast<int>(1. * sampleRate * M / x.size() + .5);
+         MFCCConfig config { iSampleRate };
+         config.fftsize = M;
+         MFCC mfcc { config };
+         std::vector<double> y(config.nceps + 1);
+         mfcc.process(xi.data(), y.data());
+         return y;
+      });
+   // Now compute the self-similarity matrix of the MFCCs based on Euclidean
+   // distance:
+   std::vector<std::vector<T>> ssm(xx.size());
+   std::transform(
+      mfccs.begin(), mfccs.end(), ssm.begin(),
+      [&](const std::vector<double>& x) {
+         std::vector<T> row(xx.size());
+         std::transform(
+            mfccs.begin(), mfccs.end(), row.begin(),
+            [&](const std::vector<double>& y) {
+               return std::inner_product(
+                  x.begin(), x.end(), y.begin(), 0.,
+                  [](double a, double b) { return a + b; },
+                  [](double a, double b) { return (a + -b) * (a - b); });
+            });
+         return row;
+      });
+   return ssm;
+}
+
+template <typename T>
+void DoSSMStuff(const std::vector<T>& input, int sampleRate)
+{
+   // We will try all hypotheses of 1, 2, 3, 4, 6 or 8 bars of 4/4, 3/4 or 6/8.
+   // Assuming the ODF is that of a loop, for each combination we divide the
+   // ODF accordingly. E.g., for the combination of 2 bars of 6/8, we divide the
+   // input in 2*8 = 16 vectors.
+   constexpr std::array<int, 6> numBars { 1, 2, 3, 4, 6, 8 };
+   constexpr std::array<int, 3> beatsPerBar = { 4, 3, 2 };
+   std::vector<double> scores;
+
+   constexpr auto log = false;
+   std::ofstream ofs;
+   if (log)
+      ofs.open("C:/Users/saint/Downloads/mfcc_ssm.m");
+   auto f = 1;
+   std::for_each(numBars.begin(), numBars.end(), [&](int numBars) {
+      std::transform(
+         beatsPerBar.begin(), beatsPerBar.end(), std::back_inserter(scores),
+         [&](int beatsPerBar) {
+            const auto numBeats = numBars * beatsPerBar;
+            std::vector<std::vector<float>> partitionedInput(numBeats);
+            const int partitionSize = std::ceil(input.size() / numBeats);
+            auto m = 0;
+            std::for_each(
+               partitionedInput.begin(), partitionedInput.end(),
+               [&](std::vector<float>& partition) {
+                  partition.resize(partitionSize);
+                  const auto numSamplesToCopy = std::min<int>(
+                     partitionSize, input.size() - m * partitionSize);
+                  std::copy(
+                     input.begin() + m * partitionSize,
+                     input.begin() + m * partitionSize + numSamplesToCopy,
+                     partition.begin());
+                  std::fill(
+                     partition.begin() + numSamplesToCopy, partition.end(), 0.);
+                  ++m;
+               });
+            // Now we have `numBeats` vectors of size `partitionSize`. We can
+            // now compute the self-similarity matrix of these vectors.
+            const auto ssm =
+               GetSelfSimilarityMatrix(partitionedInput, sampleRate);
+
+            if (!log)
+               return 0.;
+
+            // Now log this result in a file, indicating the number of bars and
+            // beats per bar:
+            const std::string varName = std::string { "ssm" } +
+                                        std::to_string(numBars) + "By" +
+                                        std::to_string(beatsPerBar);
+            ofs << varName + " = [";
+            std::for_each(
+               ssm.begin(), ssm.end(), [&](const std::vector<float>& row) {
+                  std::for_each(
+                     row.begin(), row.end(), [&](float x) { ofs << x << ","; });
+                  ofs << std::endl;
+               });
+            ofs << "];" << std::endl;
+            const std::string xticks = "(0:" + std::to_string(numBeats) + "-1)";
+            ofs << "figure(" << std::to_string(f++) << "), imagesc(" << xticks
+                << "+.5," << xticks << "+.5," << varName
+                << "), axis equal, colorbar, grid" << std::endl;
+            ofs << "set(gca, 'xtick', " << xticks << ",'ytick', " << xticks
+                << ")" << std::endl;
+            ofs << "title('" << varName << "')" << std::endl << std::endl;
+
+            // For now, until we implement it.
+            return 0.;
+         });
+   });
+}
+} // namespace
 
 std::pair<double, double>
 GetApproximateGcd(const std::vector<float>& odf, double odfSampleRate)
 {
    const auto peakIndices = GetOnsetIndices(odf);
-   std::vector<std::pair<double /*time*/, double /*weights*/>> onsets(
-      peakIndices.size());
+   std::ofstream ofsPeaks("C:/Users/saint/Downloads/log_peaks.txt");
+   std::for_each(peakIndices.begin(), peakIndices.end(), [&](int i) {
+      ofsPeaks << i << ",";
+   });
+   ofsPeaks << std::endl;
+
+   struct Onset
+   {
+      int index;
+      float weight;
+   };
+
+   std::vector<Onset> onsets;
    std::transform(
-      peakIndices.begin(), peakIndices.end(), onsets.begin(), [&](size_t i) {
-         return std::pair<double, double> { i / odfSampleRate, odf[i] };
+      peakIndices.begin(), peakIndices.end(), std::back_inserter(onsets),
+      [&](int i) {
+         return Onset { i, odf[i] };
       });
    // Normalize `onsets` so that they sum up to 1:
    const auto normalizer =
-      1. /
-      std::accumulate(onsets.begin(), onsets.end(), 0., [](double a, auto b) {
-         return a + b.second;
-      });
-   std::for_each(
-      onsets.begin(), onsets.end(), [&](auto& x) { x.second *= normalizer; });
+      1. / std::accumulate(
+              onsets.begin(), onsets.end(), 0.,
+              [](double a, const Onset& onset) { return a + onset.weight; });
+   std::for_each(onsets.begin(), onsets.end(), [&](Onset& onset) {
+      onset.weight *= normalizer;
+   });
 
    // `onsets` was derived from audio which may be a musical loop or
    // not. We will therefore return our best guess together with a confidence
@@ -504,31 +668,100 @@ GetApproximateGcd(const std::vector<float>& odf, double odfSampleRate)
    // We still have to try and find the approximate GCD. We may use
    // `onsets` as relative weights.
 
-   // Just doing it brute force, iterating through all BPM values from 60 to
-   // 600.
-   constexpr auto firstBpm = 60;
-   std::vector<int> bpmCandidates(600 - firstBpm + 1);
-   std::iota(bpmCandidates.begin(), bpmCandidates.end(), firstBpm);
-   std::vector<double> errorRms(bpmCandidates.size());
+   // Trying with top-voted answer to
+   // https://math.stackexchange.com/questions/1834472/approximate-greatest-common-divisor
+   constexpr auto minBpm = 60;
+   constexpr auto maxBpm = 600;
+   const auto lagMin = static_cast<int>(odfSampleRate * 60 / maxBpm);
+   const auto lagMax =
+      std::min<int>(odf.size(), static_cast<int>(odfSampleRate * 60 / minBpm));
+   std::vector<int> candidates(lagMax - lagMin + 1);
+   std::iota(candidates.begin(), candidates.end(), lagMin);
+   std::vector<double> gcdAppeal(candidates.size());
    std::transform(
-      bpmCandidates.begin(), bpmCandidates.end(), errorRms.begin(),
-      [&](int bpm) {
-         const auto period = 60. / bpm;
-         std::vector<double> errors(onsets.size());
-         std::transform(
-            onsets.begin(), onsets.end(), errors.begin(),
-            [&](const std::pair<double, double>& onset) {
-               const auto [t, weight] = onset;
-               const auto closestBeatIndex = std::round(t / period);
-               const auto distance = t - closestBeatIndex * period;
-               return distance * distance * weight;
-            });
-         return std::accumulate(errors.begin(), errors.end(), 0.);
+      candidates.begin(), candidates.end(), gcdAppeal.begin(), [&](int period) {
+         const auto meanSin = std::accumulate(
+                                 peakIndices.begin(), peakIndices.end(), 0.,
+                                 [period](double sum, int i) {
+                                    return sum + std::sin(2 * pi * i / period);
+                                 }) /
+                              peakIndices.size();
+         const auto meanCos = std::accumulate(
+                                 peakIndices.begin(), peakIndices.end(), 0.,
+                                 [period](double sum, int i) {
+                                    return sum + std::cos(2 * pi * i / period);
+                                 }) /
+                              peakIndices.size();
+         const auto tmp = meanCos - 1;
+         return 1 - .5 * std::sqrt(meanSin * meanSin + tmp * tmp);
       });
-   const auto winner =
-      std::distance(
-         errorRms.begin(), std::min_element(errorRms.begin(), errorRms.end()));
-   return { bpmCandidates[winner], errorRms[winner] };
+   const auto winner = std::distance(
+      gcdAppeal.begin(), std::max_element(gcdAppeal.begin(), gcdAppeal.end()));
+   const auto gcd = candidates[winner];
+   const auto errorRms = std::sqrt(
+      std::accumulate(
+         onsets.begin(), onsets.end(), 0.,
+         [&](double sum, const Onset& onset) {
+            const auto expected =
+               std::round(static_cast<double>(onset.index) / gcd) * gcd;
+            const auto error = (onset.index - expected) / odfSampleRate;
+            return sum + error * error;
+         }) /
+      onsets.size());
+
+   // Don't preserve the symmetric right-hand side of the autocorrelation as
+   // this may intefere with the HPS.
+   constexpr auto full = false;
+   const auto xcorr = GetNormalizedAutocorrelation(odf, full);
+
+   // Derive harmonic product spectrum (HPS) of xcorr
+   constexpr auto maxNumHarmonics = 4;
+   std::vector<float> ixcorr(xcorr.size() * maxNumHarmonics);
+   // Interpolate linearly `xcorr` to get `ixcorr`.
+   auto i = 0;
+   std::for_each(xcorr.begin(), xcorr.end(), [&](float x) {
+      const auto x0 = xcorr[i];
+      const auto x1 = xcorr[(i + 1) % xcorr.size()];
+      for (auto j = 0; j < maxNumHarmonics; ++j)
+      {
+         const auto frac = static_cast<float>(j) / maxNumHarmonics;
+         const auto x = x0 * (1 - frac) + x1 * frac;
+         ixcorr[i * maxNumHarmonics + j] = x;
+      }
+      ++i;
+   });
+   std::vector<float> hps(xcorr.size());
+   std::copy(xcorr.begin(), xcorr.end(), hps.begin());
+   for (auto i = 2; i <= maxNumHarmonics; ++i)
+   {
+      auto j = 0;
+      std::for_each(
+         hps.begin(), hps.end(), [&](float& x) { x *= ixcorr[i * j++]; });
+   }
+   // Find index of first trough in HPS:
+   auto prev = std::numeric_limits<float>::max();
+   const auto it = std::find_if(hps.begin(), hps.end(), [&](float x) {
+      const auto found = x > prev;
+      prev = x;
+      return found;
+   });
+   const auto maxIt = std::max_element(it, hps.end());
+   const auto maxIndex = std::distance(hps.begin(), maxIt);
+   const auto xcorrSampleRate = 1. * odfSampleRate * xcorr.size() / odf.size();
+   const auto beatPeriod = maxIndex / xcorrSampleRate / maxNumHarmonics;
+   const auto bpm = 60. / beatPeriod;
+   const auto confidence = std::pow(*maxIt, 1. / maxNumHarmonics);
+
+   std::ofstream xcorrOfs("C:/Users/saint/Downloads/log_xcorr.txt");
+   std::for_each(
+      xcorr.begin(), xcorr.end(), [&](float x) { xcorrOfs << x << ","; });
+   xcorrOfs << std::endl;
+
+   std::ofstream hpsOfs("C:/Users/saint/Downloads/log_hps.txt");
+   std::for_each(hps.begin(), hps.end(), [&](float x) { hpsOfs << x << ","; });
+   hpsOfs << std::endl;
+
+   return { bpm, confidence };
 }
 
 namespace
@@ -540,56 +773,95 @@ std::pair<int, int> GetHopAndFrameSizes(int sampleRate)
       1 << (10 + (int)std::round(std::log2(sampleRate / 44100.)));
    return { hopSize, 2 * hopSize };
 }
+
+std::vector<double> MakeHann(size_t N)
+{
+   std::vector<double> w(N);
+   for (auto n = 0; n < N; ++n)
+      w[n] = .5 * (1 - std::cosf(2 * pi * n / N));
+   const auto sum = std::accumulate(w.begin(), w.end(), 0.);
+   std::transform(
+      w.begin(), w.end(), w.begin(), [sum](float x) { return x / sum; });
+   return w;
+}
 } // namespace
 
-std::vector<float>
-GetOnsetDetectionFunction(const MirAudioSource& source, double& odfSampleRate)
+std::vector<float> GetOnsetDetectionFunction(
+   const MirAudioSource& source, double& odfSampleRate,
+   double smoothingThreshold)
 {
    const auto sampleRate = source.GetSampleRate();
    const auto [hopSize, frameSize] = GetHopAndFrameSizes(sampleRate);
-   long long start = 0;
    std::vector<float> buffer(frameSize);
    std::vector<float> odf;
    const auto powSpecSize = frameSize / 2 + 1;
    std::vector<float> prevPowSpec(powSpecSize);
    std::fill(prevPowSpec.begin(), prevPowSpec.end(), 0.f);
 
-   std::vector<float> hann(frameSize);
-   auto n = 0;
-   std::transform(hann.begin(), hann.end(), hann.begin(), [&](float x) {
-      return 0.5f * (1 - std::cos(2 * 3.141592653589793 * n++ / frameSize));
-   });
+   const auto hann = MakeHann(frameSize);
 
    std::ofstream ofsStft("C:/Users/saint/Downloads/log_stft.txt");
 
-   while (source.ReadFloats(buffer.data(), start, frameSize) == frameSize)
+   long long start = -frameSize;
+   auto isFirst = true;
+   while (source.ReadFloats(buffer.data(), start, frameSize, start < 0) ==
+          frameSize)
    {
       std::transform(
          buffer.begin(), buffer.end(), hann.begin(), buffer.begin(),
          [](float a, float b) { return a * b; });
       PowerSpectrum(frameSize, buffer.data(), buffer.data());
+
+      // Normalize the spectrum
+      std::transform(
+         buffer.begin(), buffer.end(), buffer.begin(),
+         [frameSize](float x) { return x / frameSize; });
+
       // Compress the frame as per Fundamentals of Music Processing, (6.5)
       constexpr auto gamma = 100.;
       std::transform(
          buffer.begin(), buffer.begin() + powSpecSize, buffer.begin(),
          [](float x) { return std::log(1 + gamma * std::sqrt(x)); });
-      auto k = 0;
-      const auto sum = std::accumulate(
-         buffer.begin(), buffer.begin() + powSpecSize, 0.,
-         [&](float a, float mag) {
-            // Half-wave-rectified stuff
-            return a + std::max(0.f, mag - prevPowSpec[k++]);
-         });
 
-      std::for_each(buffer.begin(), buffer.begin() + powSpecSize, [&](float x) {
-         ofsStft << x << ",";
-      });
-      ofsStft << std::endl;
+      constexpr auto verticalSmoothing = false;
+      if (verticalSmoothing)
+      {
+         assert(frameSize == 2048); // We'll need to generalize
+         constexpr auto hannSize = 100;
+         assert(hannSize % 2 == 0);
+         const auto vHann = MakeHann(hannSize);
+         for (auto n = 0; n < powSpecSize; ++n)
+         {
+            auto sum = 0.f;
+            for (auto m = 0; m < hannSize; ++m)
+            {
+               const auto k = n + m - hannSize / 2;
+               if (k >= 0 && k < powSpecSize)
+                  sum += vHann[m] * buffer[k];
+            }
+            buffer[n] = sum;
+         }
+      }
 
+      if (!isFirst)
+      {
+         auto k = 0;
+         const auto sum = std::accumulate(
+            buffer.begin(), buffer.begin() + powSpecSize, 0.,
+            [&](float a, float mag) {
+               // Half-wave-rectified stuff
+               return a + std::max(0.f, mag - prevPowSpec[k++]);
+            });
+         std::for_each(
+            buffer.begin(), buffer.begin() + powSpecSize,
+            [&](float x) { ofsStft << x << ","; });
+         ofsStft << std::endl;
+         odf.push_back(sum);
+      }
       std::copy(
          buffer.begin(), buffer.begin() + powSpecSize, prevPowSpec.begin());
-      odf.push_back(sum);
       start += hopSize;
+      isFirst = false;
    }
 
    std::ofstream ofsRawOdf("C:/Users/saint/Downloads/log_raw.txt");
@@ -597,16 +869,22 @@ GetOnsetDetectionFunction(const MirAudioSource& source, double& odfSampleRate)
       odf.begin(), odf.end(), [&](float x) { ofsRawOdf << x << ","; });
    ofsRawOdf << std::endl;
 
-   constexpr auto idealM = 20;
-   const auto M = std::min(idealM, static_cast<int>(odf.size()) / idealM + 1);
-   n = 0;
+   constexpr auto M = 5;
+   std::vector<float> window(2 * M + 1);
+   for (auto n = 0; n < 2 * M + 1; ++n)
+      window[n] = .5 * (1 - std::cosf(2 * pi * n / (2 * M + 1)));
+   const auto windowSum = std::accumulate(window.begin(), window.end(), 0.);
+   std::transform(
+      window.begin(), window.end(), window.begin(),
+      [windowSum](double w) { return w / windowSum; });
+   auto n = 0;
    std::vector<double> movingAverage(odf.size());
-   std::transform(odf.begin(), odf.end(), movingAverage.begin(), [&](float x) {
-      auto sum = 0.;
-      for (auto i = 0; i < M; ++i)
-         sum += odf[(n + i) % odf.size()];
+   std::transform(odf.begin(), odf.end(), movingAverage.begin(), [&](float) {
+      auto y = 0.;
+      for (auto i = -M; i <= M; ++i)
+         y += odf[(n + i) % odf.size()] * window[i + M];
       ++n;
-      return sum / (2 * M + 1);
+      return y;
    });
 
    std::ofstream ofsAvg("C:/Users/saint/Downloads/log_avg.txt");
@@ -615,15 +893,194 @@ GetOnsetDetectionFunction(const MirAudioSource& source, double& odfSampleRate)
    });
    ofsAvg << std::endl;
 
-   constexpr auto smooth = false;
-   if (smooth)
+   if (smoothingThreshold > 0.)
       // subtract moving average from odf:
       std::transform(
          odf.begin(), odf.end(), movingAverage.begin(), odf.begin(),
-         [](float a, float b) { return std::max(a - b, 0.f); });
+         [smoothingThreshold](float a, float b) {
+            return std::max<float>(a - b * smoothingThreshold, 0.f);
+         });
 
    odfSampleRate = static_cast<double>(sampleRate) / hopSize;
    return odf;
+}
+
+void NewStuff(const MirAudioSource& source)
+{
+   // Load all samples of `source` in a vector:
+   std::vector<float> samples(source.GetNumSamples());
+   source.ReadFloats(samples.data(), 0, samples.size(), false);
+   DoSSMStuff(samples, source.GetSampleRate());
+}
+
+namespace
+{
+template <typename T>
+std::vector<T>
+GetCrossCorrelation(const std::vector<T>& x, const std::vector<T>& y)
+{
+   // We don't expect `x` and `y` to be large, doing it in the time domain
+   // should be fine - for now.
+   std::vector<T> xcorr(x.size());
+   std::transform(x.begin(), x.end(), xcorr.begin(), [](T) { return 0.; });
+   for (auto i = 0; i < x.size(); ++i)
+      for (auto j = 0; j < y.size(); ++j)
+      {
+         const auto k = (i + j) % x.size();
+         xcorr[i] += x[k] * y[j];
+      }
+   return xcorr;
+}
+} // namespace
+
+std::optional<std::pair<double /*score*/, double /*amplitude*/>>
+Experiment1(const std::vector<float>& odf, double odfSampleRate)
+{
+   const auto odfDuration = odf.size() / odfSampleRate;
+   constexpr std::array<int, 6> numBars { 1, 2, 3, 4, 6, 8 };
+
+   const auto peakIndices = GetOnsetIndices(odf);
+   if (peakIndices.empty())
+      return {};
+
+   const auto peakSum = std::accumulate(
+      peakIndices.begin(), peakIndices.end(), 0.,
+      [&](double sum, int i) { return sum + odf[i]; });
+
+   enum class TimeSignature
+   {
+      FourFour,
+      FourFourSwing,
+      ThreeFour,
+      SixEight,
+      SixEightSwung,
+      _count
+   };
+
+   // iterate through all time signatures:
+   constexpr std::array<TimeSignature, static_cast<int>(TimeSignature::_count)>
+      timeSignatures { TimeSignature::FourFour, TimeSignature::FourFourSwing,
+                       TimeSignature::ThreeFour, TimeSignature::SixEight,
+                       TimeSignature::SixEightSwung };
+
+   // Maps a combination of time-signature and number of bars (encoded as
+   // string) to a score.
+   std::map<std::string, std::pair<double /*score*/, int /*lag*/>> scores;
+
+   // We iterate through all time signatures, and for each, in the inner loop,
+   // we will determine a sensible set of number of bars.
+   std::for_each(
+      timeSignatures.begin(), timeSignatures.end(), [&](TimeSignature ts) {
+         const std::vector<bool> pattern =
+            ts == TimeSignature::FourFour ?
+               // `true` eight times:
+               std::vector<bool>(8, true) :
+               ts == TimeSignature::FourFourSwing ?
+                  // `true, false, true` four times:
+                  std::vector<bool> { true, false, true, true, false, true,
+                                      true, false, true, true, false, true } :
+                  ts == TimeSignature::ThreeFour ? // `true` three times:
+                     std::vector<bool>(3, true) :
+                     ts == TimeSignature::SixEight ? // `true` six times:
+                        std::vector<bool>(6, true) :
+                        // `true, false, true` six times:
+                        std::vector<bool> { true,  false, true,  true,
+                                            false, true,  true,  false,
+                                            true,  true,  false, true };
+         // TODO Use the pattern (for swung rhythms).
+         const auto numDivsPerBar = pattern.size();
+         constexpr auto minNumDivsPerMinute = 100;
+         constexpr auto maxNumDivsPerMinute = 700;
+         const int minNumBars = std::max<double>(
+            odfDuration * minNumDivsPerMinute / numDivsPerBar / 60, 1);
+         const int maxNumBars =
+            odfDuration * maxNumDivsPerMinute / numDivsPerBar / 60;
+         std::vector<double> subScores(maxNumBars - minNumBars + 1);
+         auto numBars = minNumBars;
+         std::for_each(
+            subScores.begin(), subScores.end(), [&](double& subScore) {
+               const auto numDivs = numBars * numDivsPerBar;
+               const auto odfSamplesPerDiv = 1. * odf.size() / numDivs;
+
+               // We will auto-correlate the odf with a pulse train with
+               // frequency `numDivs`, to compensate for possible lag (not using
+               // for-loop)
+               std::vector<float> pulseTrain(odf.size());
+               std::fill(pulseTrain.begin(), pulseTrain.end(), 0.f);
+               for (auto i = 0; i < numDivs; ++i)
+                  pulseTrain[static_cast<int>(i * odfSamplesPerDiv + .5)] = 1.f;
+
+               // There may be a tiny lag between the pulse train and the odf.
+               // Take the inner product until we've reached the first peak:
+               auto lag = 0;
+               auto max = std::numeric_limits<float>::lowest();
+               for (auto i = 0; i < static_cast<int>(odfSamplesPerDiv); ++i)
+               {
+                  const auto p = std::inner_product(
+                     odf.begin(), odf.end(), pulseTrain.begin(), 0.f);
+                  if (p >= max)
+                  {
+                     max = p;
+                     lag = i;
+                  }
+                  else
+                     break;
+                  std::rotate(
+                     pulseTrain.begin(),
+                     pulseTrain.begin() + pulseTrain.size() - 1,
+                     pulseTrain.end());
+               }
+               std::vector<int> shiftedPeakIndices(peakIndices.size());
+               std::transform(
+                  peakIndices.begin(), peakIndices.end(),
+                  shiftedPeakIndices.begin(),
+                  [&](int peakIndex) { return peakIndex - lag; });
+
+               // Get the distance of all peaks to the closest div:
+               std::vector<double> peakDistances(peakIndices.size());
+               std::transform(
+                  shiftedPeakIndices.begin(), shiftedPeakIndices.end(),
+                  peakDistances.begin(), [&](int peakIndex) {
+                     const auto closestDiv =
+                        std::round(peakIndex / odfSamplesPerDiv);
+                     // Normalized distance between 0 and 1:
+                     const auto distance =
+                        (peakIndex - closestDiv * odfSamplesPerDiv) /
+                        odfSamplesPerDiv;
+                     return distance < 0 ? -distance : distance;
+                  });
+               // Calculate the score as the sum of the distances weighted by
+               // the odf values:
+               const auto score =
+                  std::inner_product(
+                     peakDistances.begin(), peakDistances.end(),
+                     peakIndices.begin(), 0.,
+                     [](double a, double b) { return a + b; },
+                     [&](double a, int i) { return a * odf[i]; }) /
+                  peakSum;
+
+               const std::string key =
+                  std::to_string(numBars) + "x" + std::to_string(numDivsPerBar);
+               scores[key] = { score, lag };
+
+               ++numBars;
+               return score;
+            });
+      });
+
+   // Look at the amplitude across all scores. If it's too small, then it
+   // probably isn't something with a definite rhythm.
+   const auto maxScoreIt = std::max_element(
+      scores.begin(), scores.end(), [](const auto& a, const auto& b) {
+         return a.second.first < b.second.first;
+      });
+   const auto minScoreIt = std::min_element(
+      scores.begin(), scores.end(), [](const auto& a, const auto& b) {
+         return a.second.first < b.second.first;
+      });
+   const auto amplitude = maxScoreIt->second.first - minScoreIt->second.first;
+
+   return std::pair { minScoreIt->second.first, amplitude };
 }
 
 std::optional<Key> GetKey(const MirAudioSource& source)

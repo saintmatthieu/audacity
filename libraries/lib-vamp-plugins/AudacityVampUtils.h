@@ -13,7 +13,7 @@ struct BeatInfo
 };
 
 using RandomAccessReaderFn =
-   std::function<size_t(float* dst, long long where, size_t numFrames)>;
+   std::function<size_t(float* dst, long long where, size_t numFrames, bool)>;
 
 VAMP_PLUGINS_API std::optional<BeatInfo>
 GetBeatInfo(const RandomAccessReaderFn&, int sampleRate);

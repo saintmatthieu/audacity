@@ -145,16 +145,23 @@ MUSIC_INFORMATION_RETRIEVAL_API bool IsLoop(
    const std::vector<size_t>& beatIndices);
 
 MUSIC_INFORMATION_RETRIEVAL_API std::vector<float>
-GetNormalizedAutocorrelation(const std::vector<double>& x);
+GetNormalizedAutocorrelation(const std::vector<double>& x, bool full = true);
 
 MUSIC_INFORMATION_RETRIEVAL_API std::vector<float>
-GetNormalizedAutocorrelation(const std::vector<float>& x);
+GetNormalizedAutocorrelation(const std::vector<float>& x, bool full = true);
 
 MUSIC_INFORMATION_RETRIEVAL_API std::pair<double, double>
 GetApproximateGcd(const std::vector<float>& odf, double odfSampleRate);
 
-MUSIC_INFORMATION_RETRIEVAL_API std::vector<float>
-GetOnsetDetectionFunction(const MirAudioSource& source, double& odfSampleRate);
+MUSIC_INFORMATION_RETRIEVAL_API std::vector<float> GetOnsetDetectionFunction(
+   const MirAudioSource& source, double& odfSampleRate,
+   double smoothingThreshold = 1.);
+
+MUSIC_INFORMATION_RETRIEVAL_API void NewStuff(const MirAudioSource& source);
+
+MUSIC_INFORMATION_RETRIEVAL_API
+   std::optional<std::pair<double /*score*/, double /*amplitude*/>>
+   Experiment1(const std::vector<float>& odf, double odfSampleRate);
 
 MUSIC_INFORMATION_RETRIEVAL_API std::optional<Key>
 GetKey(const MirAudioSource& source);

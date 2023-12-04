@@ -6,6 +6,8 @@ set( SOURCES
    PRIVATE
       ${TARGET_ROOT}/dsp/chromagram/Chromagram.cpp
       ${TARGET_ROOT}/dsp/chromagram/Chromagram.h
+      ${TARGET_ROOT}/dsp/mfcc/MFCC.cpp
+      ${TARGET_ROOT}/dsp/mfcc/MFCC.h
       ${TARGET_ROOT}/dsp/onsets/DetectionFunction.cpp
       ${TARGET_ROOT}/dsp/onsets/DetectionFunction.h
       ${TARGET_ROOT}/dsp/phasevocoder/PhaseVocoder.cpp

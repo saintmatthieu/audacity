@@ -89,7 +89,7 @@ GetBeatInfo(const RandomAccessReaderFn& sampleGetter, int sampleRate)
    std::vector<double> dBuff(frameSize);
    BeatInfo result;
 
-   while (sampleGetter(fBuff.data(), start, frameSize) == frameSize)
+   while (sampleGetter(fBuff.data(), start, frameSize, false) == frameSize)
    {
       std::copy(fBuff.begin(), fBuff.end(), dBuff.begin());
       btrack.processAudioFrame(dBuff.data());
