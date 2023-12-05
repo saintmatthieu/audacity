@@ -277,12 +277,11 @@ TEST_CASE("Tuning")
       GetWavFilesUnderDir("C:/Users/saint/Documents/auto-tempo");
    std::ofstream sampleValueCsv { std::string(CMAKE_CURRENT_SOURCE_DIR) +
                                   "/sampleValues_" + GIT_COMMIT_HASH + ".csv" };
-   sampleValueCsv << "truth,score,filename\n";
+   sampleValueCsv << "truth,score,bpm,filename\n";
    struct Sample
    {
       bool truth;
       double score;
-      std::string filename;
    };
    std::vector<Sample> samples;
    const auto numFiles = wavFiles.size();
@@ -294,12 +293,12 @@ TEST_CASE("Tuning")
          auto odfSr = 0.;
          const auto odf = GetOnsetDetectionFunction(source, odfSr);
          // const auto [bpm, confidence] = GetApproximateGcd(odf, odfSr);
-         const auto score = Experiment1(odf, odfSr);
+         const auto result = Experiment1(odf, odfSr);
          ProgressBar(progressBarWidth, 100 * count++ / numFiles);
          const auto truth = GetBpmFromFilename(wavFile).has_value();
-         sampleValueCsv << (truth ? "true" : "false") << "," << score << ","
-                        << wavFile << "\n";
-         return Sample { truth, score, wavFile };
+         sampleValueCsv << (truth ? "true" : "false") << "," << result.score
+                        << "," << result.bpm << "," << wavFile << "\n";
+         return Sample { truth, result.score };
       });
 
    const auto auc = GetAreaUnderRocCurve(samples);

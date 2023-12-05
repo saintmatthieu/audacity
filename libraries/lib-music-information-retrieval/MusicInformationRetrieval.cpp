@@ -919,14 +919,15 @@ GetCrossCorrelation(const std::vector<T>& x, const std::vector<T>& y)
 }
 } // namespace
 
-double Experiment1(const std::vector<float>& odf, double odfSampleRate)
+Experiment1Result
+Experiment1(const std::vector<float>& odf, double odfSampleRate)
 {
    const auto odfDuration = odf.size() / odfSampleRate;
    constexpr std::array<int, 6> numBars { 1, 2, 3, 4, 6, 8 };
 
    const auto peakIndices = GetOnsetIndices(odf);
    if (peakIndices.empty())
-      return .5; // Worst score
+      return { .5, 0. }; // Worst score
 
    const auto peakSum = std::accumulate(
       peakIndices.begin(), peakIndices.end(), 0.,
@@ -950,7 +951,13 @@ double Experiment1(const std::vector<float>& odf, double odfSampleRate)
 
    // Maps a combination of time-signature and number of bars (encoded as
    // string) to a score.
-   std::map<std::string, std::pair<double /*score*/, int /*lag*/>> scores;
+   struct Score
+   {
+      double score;
+      int lag;
+      double bpm;
+   };
+   std::map<std::string, Score> scores;
 
    // We iterate through all time signatures, and for each, in the inner loop,
    // we will determine a sensible set of number of bars.
@@ -973,7 +980,7 @@ double Experiment1(const std::vector<float>& odf, double odfSampleRate)
                                             false, true,  true,  false,
                                             true,  true,  false, true };
          // TODO Use the pattern (for swung rhythms).
-         const auto numDivsPerBar = pattern.size();
+         const int numDivsPerBar = pattern.size();
          constexpr auto minNumDivsPerMinute = 100;
          constexpr auto maxNumDivsPerMinute = 700;
          const int minNumBars = std::max<double>(
@@ -1046,7 +1053,8 @@ double Experiment1(const std::vector<float>& odf, double odfSampleRate)
 
                const std::string key =
                   std::to_string(numBars) + "x" + std::to_string(numDivsPerBar);
-               scores[key] = { score, lag };
+               const auto bpm = 60. * numDivs / odfDuration;
+               scores[key] = { score, lag, bpm };
 
                ++numBars;
                return score;
@@ -1057,18 +1065,19 @@ double Experiment1(const std::vector<float>& odf, double odfSampleRate)
    // probably isn't something with a definite rhythm.
    const auto maxScoreIt = std::max_element(
       scores.begin(), scores.end(), [](const auto& a, const auto& b) {
-         return a.second.first < b.second.first;
+         return a.second.score < b.second.score;
       });
    const auto minScoreIt = std::min_element(
       scores.begin(), scores.end(), [](const auto& a, const auto& b) {
-         return a.second.first < b.second.first;
+         return a.second.score < b.second.score;
       });
-   const auto amplitude = maxScoreIt->second.first - minScoreIt->second.first;
+   const auto amplitude = maxScoreIt->second.score - minScoreIt->second.score;
 
    // The errors range from 0 to 0.5. At the moment we set the range of the
    // amplitude weight from 0.5 to 1, but we could consider scaling it to the
    // [0, 1] range.
-   return minScoreIt->second.first * (1 - amplitude);
+   return { minScoreIt->second.score * (1 - amplitude),
+            minScoreIt->second.bpm };
 }
 
 std::optional<Key> GetKey(const MirAudioSource& source)
