@@ -1037,7 +1037,7 @@ Experiment1(const std::vector<float>& odf, double odfSampleRate)
                         std::round(peakIndex / odfSamplesPerDiv);
                      // Normalized distance between 0 and 1:
                      const auto distance =
-                        (peakIndex - closestDiv * odfSamplesPerDiv) /
+                        2 * (peakIndex - closestDiv * odfSamplesPerDiv) /
                         odfSamplesPerDiv;
                      return distance < 0 ? -distance : distance;
                   });
@@ -1073,9 +1073,7 @@ Experiment1(const std::vector<float>& odf, double odfSampleRate)
       });
    const auto amplitude = maxScoreIt->second.score - minScoreIt->second.score;
 
-   // The errors range from 0 to 0.5. At the moment we set the range of the
-   // amplitude weight from 0.5 to 1, but we could consider scaling it to the
-   // [0, 1] range.
+   // The errors range from 0 to 1, and so does `1 - amplitude`.
    return { minScoreIt->second.score * (1 - amplitude),
             minScoreIt->second.bpm };
 }
