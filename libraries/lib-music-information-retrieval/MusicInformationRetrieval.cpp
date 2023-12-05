@@ -145,41 +145,27 @@ ProjectSyncInfo MusicInformation::GetProjectSyncInfo(
 
 std::optional<double> GetBpmFromFilename(const std::string& filename)
 {
-   // Regex: If we have a succession of 2 or 3 digits preceeded by either
-   // underscore or dash, optionally followed by (case-insensitive) "bpm", and
-   // then either dash, underscore or dot, we have a match.
-   const std::regex bpmRegex { R"((?:_|-)(\d{2,3})(bpm)?(_|-|\.))",
-                               std::regex::icase };
+   // regex matching a forward or backward slash:
 
-   // Now there may be several matches, as in "Hipness_808_fonky3_89.wav" -
-   // let's find them all.
+   // Regex: <(anything + (directory) separator) or nothing> <2 or 3 digits>
+   // <optional separator> <bpm (case-insensitive)> <separator or nothing>
+   const std::regex bpmRegex {
+      R"((?:.*(?:_|-|\s|\.|/|\\))?(\d+)(?:_|-|\s|\.)?bpm(?:(?:_|-|\s|\.).*)?)",
+      std::regex::icase
+   };
    std::smatch matches;
-   std::string::const_iterator searchStart(filename.cbegin());
-   std::vector<int> bpmCandidates;
-   while (std::regex_search(searchStart, filename.cend(), matches, bpmRegex))
-   {
+   if (std::regex_match(filename, matches, bpmRegex))
       try
       {
-         const auto bpm = std::stoi(matches[1]);
-         if (30 < bpm && bpm < 220)
-            bpmCandidates.push_back(bpm);
+         const auto value = std::stoi(matches[1]);
+         return 30 <= value && value <= 300 ? std::optional<double> { value } :
+                                              std::nullopt;
       }
       catch (const std::invalid_argument& e)
       {
          assert(false);
       }
-      searchStart = matches.suffix().first;
-   }
-
-   const auto bestMatch = std::min_element(
-      bpmCandidates.begin(), bpmCandidates.end(),
-      [](int a, int b) { return std::abs(a - 120) < std::abs(b - 120); });
-   if (bestMatch != bpmCandidates.end())
-   {
-      return *bestMatch;
-   }
-   else
-      return {};
+   return {};
 }
 
 void GetBpmAndOffset(
@@ -933,15 +919,14 @@ GetCrossCorrelation(const std::vector<T>& x, const std::vector<T>& y)
 }
 } // namespace
 
-std::optional<std::pair<double /*score*/, double /*amplitude*/>>
-Experiment1(const std::vector<float>& odf, double odfSampleRate)
+double Experiment1(const std::vector<float>& odf, double odfSampleRate)
 {
    const auto odfDuration = odf.size() / odfSampleRate;
    constexpr std::array<int, 6> numBars { 1, 2, 3, 4, 6, 8 };
 
    const auto peakIndices = GetOnsetIndices(odf);
    if (peakIndices.empty())
-      return {};
+      return .5; // Worst score
 
    const auto peakSum = std::accumulate(
       peakIndices.begin(), peakIndices.end(), 0.,
@@ -1080,7 +1065,10 @@ Experiment1(const std::vector<float>& odf, double odfSampleRate)
       });
    const auto amplitude = maxScoreIt->second.first - minScoreIt->second.first;
 
-   return std::pair { minScoreIt->second.first, amplitude };
+   // The errors range from 0 to 0.5. At the moment we set the range of the
+   // amplitude weight from 0.5 to 1, but we could consider scaling it to the
+   // [0, 1] range.
+   return minScoreIt->second.first * (1 - amplitude);
 }
 
 std::optional<Key> GetKey(const MirAudioSource& source)

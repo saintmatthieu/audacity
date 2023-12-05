@@ -17,35 +17,39 @@ import matplotlib.pyplot as plt
 csv_path = sys.argv[1]
 df = pd.read_csv(csv_path)
 
-# The file has columns truth,normalizedAutocorrCurvatureRms,beatFittingErrorRms,filename
-# We want a scatter plot showing `normalizedAutocorrCurvatureRms` vs `beatFittingErrorRms`,
-# with the samples colored by `truth`.
-# Additionally, hovering over a sample should show the filename.
+# The file has columns truth,score,filename
+# Given a threshold T, classify samples whose score is less than T as positive-by-measurement, and calculate the true positive rate (TPR) and false positive rate (FPR).
+# Repeat for many values of T, and plot the ROC curve.
+# The ROC curve is the plot of TPR vs FPR.
+# The area under the ROC curve (AUC) is a measure of the quality of the classifier.
+# AUC=1 is perfect, AUC=0.5 is random guessing, AUC=0 is the worst possible classifier.
 
-# Create a figure.
-fig = plt.figure(figsize=(8, 8))
+# Calculate the TPR and FPR for each threshold.
+# Sort the dataframe by score.
+df = df.sort_values(by='score')
+# Calculate the TPR and FPR.
+TPR = []
+FPR = []
+for threshold in df['score']:
+    # Count the number of true positives and false positives.
+    TP = 0
+    FP = 0
+    for i in range(len(df)):
+        if df['score'][i] < threshold:
+            # Positive-by-measurement.
+            if df['truth'][i] == 1:
+                # Positive-by-truth.
+                TP += 1
+            else:
+                # Negative-by-truth.
+                FP += 1
+    # Calculate the TPR and FPR.
+    TPR.append(TP / sum(df['truth']))
+    FPR.append(FP / (len(df) - sum(df['truth'])))
 
-# In the following plot, samples with invalidBeatFittingErrorRmsValue need a special color to be recognized better.
-# Create that scatter plot.
-sns.scatterplot(
-    data=df,
-    x="errorRms",
-    y="errorRms",
-    hue="truth",
-    size="truth",
-    sizes=(50, 200),
-    palette="deep",
-    legend="full",
-)
-
-# Add a title.
-plt.title("Beat tracking accuracy")
-
-# Add a grid.
-plt.grid(True)
-
-# Add a legend.
-plt.legend(loc="lower right")
-
-# Show the plot.
+# Plot the ROC curve.
+plt.plot(FPR, TPR)
+plt.xlabel('False positive rate')
+plt.ylabel('True positive rate')
+plt.title('ROC curve')
 plt.show()

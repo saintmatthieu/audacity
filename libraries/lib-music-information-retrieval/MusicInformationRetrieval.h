@@ -160,8 +160,7 @@ MUSIC_INFORMATION_RETRIEVAL_API std::vector<float> GetOnsetDetectionFunction(
 MUSIC_INFORMATION_RETRIEVAL_API void NewStuff(const MirAudioSource& source);
 
 MUSIC_INFORMATION_RETRIEVAL_API
-   std::optional<std::pair<double /*score*/, double /*amplitude*/>>
-   Experiment1(const std::vector<float>& odf, double odfSampleRate);
+double Experiment1(const std::vector<float>& odf, double odfSampleRate);
 
 MUSIC_INFORMATION_RETRIEVAL_API std::optional<Key>
 GetKey(const MirAudioSource& source);

@@ -17,6 +17,44 @@ namespace MIR
 {
 namespace
 {
+template <typename Result>
+double GetAreaUnderRocCurve(std::vector<Result> results)
+{
+   std::sort(results.begin(), results.end(), [](const auto& a, const auto& b) {
+      return a.score < b.score;
+   });
+   const auto numPositives = std::count_if(
+      results.begin(), results.end(), [](const auto& s) { return s.truth; });
+   const auto numNegatives = results.size() - numPositives;
+   std::vector<double> truePositiveRates(results.size() + 1);
+   std::vector<double> falsePositiveRates(results.size() + 1);
+   for (size_t i = 0; i < results.size(); ++i)
+   {
+      const auto numTruePositives =
+         std::count_if(results.begin(), results.begin() + i, [](const auto& s) {
+            return s.truth;
+         });
+      const auto numFalsePositives =
+         std::count_if(results.begin(), results.begin() + i, [](const auto& s) {
+            return !s.truth;
+         });
+      truePositiveRates[i] =
+         static_cast<double>(numTruePositives) / numPositives;
+      falsePositiveRates[i] =
+         static_cast<double>(numFalsePositives) / numNegatives;
+   }
+   truePositiveRates.back() = 1.;
+   falsePositiveRates.back() = 1.;
+
+   // Now compute the area under the curve.
+   double auc = 0.;
+   for (size_t i = 0; i < results.size(); ++i)
+      auc += (truePositiveRates[i + 1] + truePositiveRates[i]) *
+             (falsePositiveRates[i + 1] - falsePositiveRates[i]) / 2.;
+
+   return auc;
+}
+
 std::vector<std::string> GetWavFilesUnderDir(const char* dir)
 {
    // Only compile this if std::filesystem is available.
@@ -209,8 +247,28 @@ auto ToString(const std::optional<BeatInfo>& beatInfo)
           ",\n\t\"indexOfFirstBeat\": " + indexOfFirstBeat + "\n}";
 }
 
-constexpr auto timeLimit = 10;
+constexpr auto timeLimit = 60;
 } // namespace
+
+TEST_CASE("GetAreaUnderRocCurve")
+{
+   // Yes, we are testing a test function, but an important one.
+   struct Sample
+   {
+      bool truth;
+      double score;
+   };
+
+   REQUIRE(
+      GetAreaUnderRocCurve(
+         std::vector<Sample> { { true, 0. }, { false, 1. } }) == 1.);
+   REQUIRE(
+      GetAreaUnderRocCurve(
+         std::vector<Sample> { { false, 1. }, { true, 0. } }) == 1.);
+   REQUIRE(
+      GetAreaUnderRocCurve(
+         std::vector<Sample> { { false, 0. }, { true, 1. } }) == 0.);
+}
 
 TEST_CASE("Tuning")
 {
@@ -220,12 +278,14 @@ TEST_CASE("Tuning")
    std::ofstream sampleValueCsv { std::string(CMAKE_CURRENT_SOURCE_DIR) +
                                   "/sampleValues_" + GIT_COMMIT_HASH + ".csv" };
    sampleValueCsv << "truth,score,filename\n";
-   using Sample = std::pair<
-      double /*beatSnr*/, double /*line-fitting error RMS*/
-      >;
+   struct Sample
+   {
+      bool truth;
+      double score;
+      std::string filename;
+   };
    std::vector<Sample> samples;
    const auto numFiles = wavFiles.size();
-   // std::ofstream ofs { "./beatInfo.json" };
    auto count = 0;
    std::transform(
       wavFiles.begin(), wavFiles.begin() + numFiles,
@@ -234,92 +294,20 @@ TEST_CASE("Tuning")
          auto odfSr = 0.;
          const auto odf = GetOnsetDetectionFunction(source, odfSr);
          // const auto [bpm, confidence] = GetApproximateGcd(odf, odfSr);
-         const auto result = Experiment1(odf, odfSr);
-         const auto score =
-            result.has_value() ?
-               std::make_optional(result->first * (1 - result->second)) :
-               std::nullopt;
+         const auto score = Experiment1(odf, odfSr);
          ProgressBar(progressBarWidth, 100 * count++ / numFiles);
-         sampleValueCsv << (GetBpmFromFilename(wavFile).has_value() ? "true" :
-                                                                      "false")
-                        << ","
-                        << (score.has_value() ? std::to_string(*score) : "nan")
-                        << "," << wavFile << "\n";
-         // return Sample { bpm, confidence };
-         return Sample { 0., 0. };
+         const auto truth = GetBpmFromFilename(wavFile).has_value();
+         sampleValueCsv << (truth ? "true" : "false") << "," << score << ","
+                        << wavFile << "\n";
+         return Sample { truth, score, wavFile };
       });
 
-   constexpr auto tune = false;
-   if (!tune)
-      return;
+   const auto auc = GetAreaUnderRocCurve(samples);
 
-   struct TuningStep
-   {
-      const double isRhythmicThreshold;
-      const double lineFittingThreshold;
-      const double truePositiveRate;
-      const double falsePositiveRate;
-   };
-
-   const std::vector<double> isRhythmicThresholds {
-      1e3, 5e3, 2e4, 3e4, 4e4, 5e4,
-   };
-   const std::vector<double> lineFittingThresholds {
-      0., 0.0005, 0.0025, 0.005, 0.05, 0.25,
-   };
-
-   const auto numEvals = lineFittingThresholds.size() *
-                         isRhythmicThresholds.size() * samples.size();
-
-   std::vector<TuningStep> steps;
-   std::for_each(
-      isRhythmicThresholds.begin(), isRhythmicThresholds.end(),
-      [&](double isRhythmicThreshold) {
-         std::transform(
-            lineFittingThresholds.begin(), lineFittingThresholds.end(),
-            std::back_inserter(steps), [&](double lineFittingThreshold) {
-               std::vector<std::string> truePositives;
-               std::vector<std::string> falsePositives;
-               std::vector<std::string> falseNegatives;
-               std::vector<std::string> trueNegatives;
-               auto i = 0;
-               assert(samples.size() == wavFiles.size());
-               std::for_each(
-                  samples.begin(), samples.end(), [&](const Sample& sample) {
-                     auto actual = false;
-                     const auto& wavFile = wavFiles[i++];
-                     const auto& [snr, rms] = sample;
-                     actual = IsRhythmic(snr, isRhythmicThreshold) &&
-                              HasConstantTempo(rms, lineFittingThreshold);
-                     const auto expected =
-                        GetBpmFromFilename(wavFile).has_value();
-                     if (expected && actual)
-                        truePositives.push_back(wavFile);
-                     else if (expected && !actual)
-                        falseNegatives.push_back(wavFile);
-                     else if (!expected && actual)
-                        falsePositives.push_back(wavFile);
-                     else if (!expected && !actual)
-                        trueNegatives.push_back(wavFile);
-                     ProgressBar(progressBarWidth, 100 * count++ / numEvals);
-                  });
-               const double tp = truePositives.size();
-               const double fp = falsePositives.size();
-               const double fn = falseNegatives.size();
-               const double tn = trueNegatives.size();
-               return TuningStep { isRhythmicThreshold, lineFittingThreshold,
-                                   tp / (tp + fn), fp / (fp + tn) };
-            });
-      });
-   std::ofstream csvFile { std::string(CMAKE_CURRENT_SOURCE_DIR) + "/ROC_" +
-                           GIT_COMMIT_HASH + ".csv" };
-   csvFile << "isRhythmicThreshold,lineFittingThreshold,TPR,FPR\n";
-   std::for_each(
-      steps.begin(), steps.end(), [&csvFile](const TuningStep& step) {
-         csvFile << step.isRhythmicThreshold << "," << step.lineFittingThreshold
-                 << "," << step.truePositiveRate << ","
-                 << step.falsePositiveRate << "\n";
-      });
+   // Log the AUC
+   std::ofstream aucFile { std::string(CMAKE_CURRENT_SOURCE_DIR) + "/auc_" +
+                           GIT_COMMIT_HASH + ".txt" };
+   aucFile << auc << "\n";
 }
 
 TEST_CASE("GetBpmAndOffset_once")
