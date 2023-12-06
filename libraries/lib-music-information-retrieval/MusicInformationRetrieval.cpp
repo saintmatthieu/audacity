@@ -1126,12 +1126,31 @@ Experiment1Result Experiment1(
    ofsOdfXcorr << std::endl;
 
    // `score` will be used as discriminant for whether we consider this to be a
-   // loop or not. Now we'll be looking for the best BPM candidate. It will
-   // probably be lower. We scan for the best candidate looking at the
-   // auto-correlation values corresponding to possible numbers of divisions,
-   // and weight this by the likelihood of the BPM. We'll also look at the
-   // likelihood of the BPM based on the harmonic product spectrum of the
-   // auto-correlation.
+   // loop or not. Now we'll be looking for the best BPM candidate, which should
+   // be a straightforward multiplier or divisor of the tatum. Once we've
+   // filtered the division candidates based on this, we scan for the best
+   // candidate looking at the auto-correlation values corresponding to possible
+   // numbers of divisions, and weight this by the likelihood of the BPM. We'll
+   // also look at the likelihood of the BPM based on the harmonic product
+   // spectrum of the auto-correlation.
+   constexpr std::array<double, 9> tatumMultiples { 1.,     2.,     3.,
+                                                    4.,     6.,     1. / 2,
+                                                    1. / 3, 1. / 4, 1. / 6 };
+
+   std::vector<int> possibleNumBeats { possibleNumDivs.begin(),
+                                       possibleNumDivs.end() };
+   possibleNumBeats.erase(
+      std::remove_if(
+         possibleNumBeats.begin(), possibleNumBeats.end(),
+         [&](int numBeats) {
+            return std::none_of(
+               tatumMultiples.begin(), tatumMultiples.end(),
+               [&](double multiple) {
+                  return static_cast<int>(numBeats * multiple) == numTatums;
+               });
+         }),
+      possibleNumBeats.end());
+
    struct Stuff
    {
       double bpm;
@@ -1142,7 +1161,7 @@ Experiment1Result Experiment1(
    };
    std::map<int /*xcorr peak index*/, Stuff> bpmsAndScores;
    std::for_each(
-      possibleNumDivs.begin(), possibleNumDivs.end(), [&](int numBeats) {
+      possibleNumBeats.begin(), possibleNumBeats.end(), [&](int numBeats) {
          const auto candidateBpm = 1. * numBeats / audioFileDuration * 60;
          // Don't give the BPM likelihood too much weight:
          constexpr auto stdDevFactor = 3.;
