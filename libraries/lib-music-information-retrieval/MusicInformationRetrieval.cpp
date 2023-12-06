@@ -24,6 +24,7 @@
 #include <fstream>
 #include <numeric>
 #include <regex>
+#include <set>
 
 namespace MIR
 {
@@ -36,10 +37,10 @@ auto RemovePathPrefix(const std::string& filename)
    return filename.substr(filename.find_last_of("/\\") + 1);
 }
 
-// About right for a 4/4, which is the most common time signature.
-// When we get more clever, we may have different BPMs for different signatures,
-// i.e., about 64 BPM for 6/8, and 140 for 3/4.
-constexpr auto bpmExpectedValue = 120.;
+// Normal distribution parameters obtained by fitting a gaussian in the GTZAN
+// dataset tempo values.
+constexpr auto bpmExpectedValue = 126.3333;
+constexpr auto bpmStdDev = 29.7953;
 
 // When we get time-signature estimate, we may need a map for that, since 6/8
 // has 1.5 quarter notes per beat.
@@ -917,6 +918,15 @@ GetCrossCorrelation(const std::vector<T>& x, const std::vector<T>& y)
       }
    return xcorr;
 }
+
+double GetBpmLikelihood(double bpm)
+{
+   constexpr auto sqrt2pi = 2.5066282746310002;
+   const auto tmp = (bpm - bpmExpectedValue) / bpmStdDev;
+   // Do not normalized by sqrt2pi * bpmStdDev: we're only interested in
+   // relative values, and also this way the peak of the distribution is 1.
+   return std::exp(-.5 * tmp * tmp);
+}
 } // namespace
 
 Experiment1Result
@@ -943,11 +953,56 @@ Experiment1(const std::vector<float>& odf, double odfSampleRate)
       _count
    };
 
-   // iterate through all time signatures:
-   constexpr std::array<TimeSignature, static_cast<int>(TimeSignature::_count)>
-      timeSignatures { TimeSignature::FourFour, TimeSignature::FourFourSwing,
-                       TimeSignature::ThreeFour, TimeSignature::SixEight,
-                       TimeSignature::SixEightSwung };
+   // First entry is number of beats per bar
+   const std::vector<std::vector<int>> barDivisions {
+      { 4 },    // simple 4/4
+      { 4, 2 }, // 4/4 with regular subdivision (quavers)
+      { 4, 3 }, // 4/4 with swung subdivision
+      { 4, 4 }, // 4/4 with 16th-note subdivisions
+      { 3 },    // simple 3/4
+      { 3, 2 }, // 3/4 with regular subdivision (quavers)
+      { 3, 3 }, // 3/4 with swung subdivision
+      { 3, 4 }, // 3/4 with 16th-note subdivisions
+      { 2, 3 }, // simple 6/8
+      { 2, 9 }, // 6/8 with swung subdivision
+   };
+
+   // The element-wise products of the entries in `barDivisions` may come to the
+   // same result. Let's take the set of these products:
+   std::set<int> numDivsPerBar;
+   std::for_each(
+      barDivisions.begin(), barDivisions.end(),
+      [&](const std::vector<int>& barDivisors) {
+         const auto numDivs = std::accumulate(
+            barDivisors.begin(), barDivisors.end(), 1, std::multiplies<int>());
+         numDivsPerBar.insert(numDivs);
+      });
+
+   // For each of these, find a sensible range of possible number of bars based
+   // on realistic tatum rate values.
+   std::vector<std::pair<int, int>> numBarRanges(numDivsPerBar.size());
+   std::transform(
+      numDivsPerBar.begin(), numDivsPerBar.end(), numBarRanges.begin(),
+      [&](int numDivsPerBar) {
+         constexpr auto minNumDivsPerMinute = 100;
+         constexpr auto maxNumDivsPerMinute = 700;
+         const auto minNumBars = std::max<double>(
+            odfDuration * minNumDivsPerMinute / numDivsPerBar / 60, 1);
+         const auto maxNumBars =
+            odfDuration * maxNumDivsPerMinute / numDivsPerBar / 60;
+         return std::make_pair(minNumBars, maxNumBars);
+      });
+
+   // Reduce these two to a set of total-number-of-divisions hypotheses:
+   assert(numDivsPerBar.size() == numBarRanges.size());
+   std::set<int> numDivHypotheses;
+   auto i = 0;
+   std::for_each(
+      numDivsPerBar.begin(), numDivsPerBar.end(), [&](int numDivsPerBar) {
+         const auto [minNumBars, maxNumBars] = numBarRanges[i++];
+         for (auto numBars = minNumBars; numBars <= maxNumBars; ++numBars)
+            numDivHypotheses.insert(numBars * numDivsPerBar);
+      });
 
    // Maps a combination of time-signature and number of bars (encoded as
    // string) to a score.
@@ -957,109 +1012,81 @@ Experiment1(const std::vector<float>& odf, double odfSampleRate)
       int lag;
       double bpm;
    };
-   std::map<std::string, Score> scores;
+   std::map<int, Score> scores;
 
    // We iterate through all time signatures, and for each, in the inner loop,
    // we will determine a sensible set of number of bars.
    std::for_each(
-      timeSignatures.begin(), timeSignatures.end(), [&](TimeSignature ts) {
-         const std::vector<bool> pattern =
-            ts == TimeSignature::FourFour ?
-               // `true` eight times:
-               std::vector<bool>(8, true) :
-               ts == TimeSignature::FourFourSwing ?
-                  // `true, false, true` four times:
-                  std::vector<bool> { true, false, true, true, false, true,
-                                      true, false, true, true, false, true } :
-                  ts == TimeSignature::ThreeFour ? // `true` three times:
-                     std::vector<bool>(3, true) :
-                     ts == TimeSignature::SixEight ? // `true` six times:
-                        std::vector<bool>(6, true) :
-                        // `true, false, true` six times:
-                        std::vector<bool> { true,  false, true,  true,
-                                            false, true,  true,  false,
-                                            true,  true,  false, true };
-         // TODO Use the pattern (for swung rhythms).
-         const int numDivsPerBar = pattern.size();
-         constexpr auto minNumDivsPerMinute = 100;
-         constexpr auto maxNumDivsPerMinute = 700;
-         const int minNumBars = std::max<double>(
-            odfDuration * minNumDivsPerMinute / numDivsPerBar / 60, 1);
-         const int maxNumBars =
-            odfDuration * maxNumDivsPerMinute / numDivsPerBar / 60;
-         std::vector<double> subScores(maxNumBars - minNumBars + 1);
-         auto numBars = minNumBars;
-         std::for_each(
-            subScores.begin(), subScores.end(), [&](double& subScore) {
-               const auto numDivs = numBars * numDivsPerBar;
-               const auto odfSamplesPerDiv = 1. * odf.size() / numDivs;
+      numDivHypotheses.begin(), numDivHypotheses.end(), [&](const int numDivs) {
+         const auto odfSamplesPerDiv = 1. * odf.size() / numDivs;
 
-               // We will auto-correlate the odf with a pulse train with
-               // frequency `numDivs`, to compensate for possible lag (not using
-               // for-loop)
-               std::vector<float> pulseTrain(odf.size());
-               std::fill(pulseTrain.begin(), pulseTrain.end(), 0.f);
-               for (auto i = 0; i < numDivs; ++i)
-                  pulseTrain[static_cast<int>(i * odfSamplesPerDiv + .5)] = 1.f;
+         // We will auto-correlate the odf with a pulse train with
+         // frequency `numDivs`, to compensate for possible lag (not using
+         // for-loop)
+         std::vector<float> pulseTrain(odf.size());
+         std::fill(pulseTrain.begin(), pulseTrain.end(), 0.f);
+         for (auto i = 0; i < numDivs; ++i)
+            pulseTrain[static_cast<int>(i * odfSamplesPerDiv + .5)] = 1.f;
 
-               // There may be a tiny lag between the pulse train and the odf.
-               // Take the inner product until we've reached the first peak:
-               auto lag = 0;
-               auto max = std::numeric_limits<float>::lowest();
-               for (auto i = 0; i < static_cast<int>(odfSamplesPerDiv); ++i)
-               {
-                  const auto p = std::inner_product(
-                     odf.begin(), odf.end(), pulseTrain.begin(), 0.f);
-                  if (p >= max)
-                  {
-                     max = p;
-                     lag = i;
-                  }
-                  else
-                     break;
-                  std::rotate(
-                     pulseTrain.begin(),
-                     pulseTrain.begin() + pulseTrain.size() - 1,
-                     pulseTrain.end());
-               }
-               std::vector<int> shiftedPeakIndices(peakIndices.size());
-               std::transform(
-                  peakIndices.begin(), peakIndices.end(),
-                  shiftedPeakIndices.begin(),
-                  [&](int peakIndex) { return peakIndex - lag; });
+         // There may be a tiny lag between the pulse train and the odf.
+         // Take the inner product until we've reached the first peak:
+         auto lag = 0;
+         auto max = std::numeric_limits<float>::lowest();
+         for (auto i = 0; i < static_cast<int>(odfSamplesPerDiv); ++i)
+         {
+            const auto p = std::inner_product(
+               odf.begin(), odf.end(), pulseTrain.begin(), 0.f);
+            if (p >= max)
+            {
+               max = p;
+               lag = i;
+            }
+            else
+               break;
+            std::rotate(
+               pulseTrain.begin(), pulseTrain.begin() + pulseTrain.size() - 1,
+               pulseTrain.end());
+         }
+         std::vector<int> shiftedPeakIndices(peakIndices.size());
+         std::transform(
+            peakIndices.begin(), peakIndices.end(), shiftedPeakIndices.begin(),
+            [&](int peakIndex) { return peakIndex - lag; });
 
-               // Get the distance of all peaks to the closest div:
-               std::vector<double> peakDistances(peakIndices.size());
-               std::transform(
-                  shiftedPeakIndices.begin(), shiftedPeakIndices.end(),
-                  peakDistances.begin(), [&](int peakIndex) {
-                     const auto closestDiv =
-                        std::round(peakIndex / odfSamplesPerDiv);
-                     // Normalized distance between 0 and 1:
-                     const auto distance =
-                        2 * (peakIndex - closestDiv * odfSamplesPerDiv) /
-                        odfSamplesPerDiv;
-                     return distance < 0 ? -distance : distance;
-                  });
-               // Calculate the score as the sum of the distances weighted by
-               // the odf values:
-               const auto score =
-                  std::inner_product(
-                     peakDistances.begin(), peakDistances.end(),
-                     peakIndices.begin(), 0.,
-                     [](double a, double b) { return a + b; },
-                     [&](double a, int i) { return a * odf[i]; }) /
-                  peakSum;
-
-               const std::string key =
-                  std::to_string(numBars) + "x" + std::to_string(numDivsPerBar);
-               const auto bpm = 60. * numDivs / odfDuration;
-               scores[key] = { score, lag, bpm };
-
-               ++numBars;
-               return score;
+         // Get the distance of all peaks to the closest div:
+         std::vector<double> peakDistances(peakIndices.size());
+         std::transform(
+            shiftedPeakIndices.begin(), shiftedPeakIndices.end(),
+            peakDistances.begin(), [&](int peakIndex) {
+               const auto closestDiv = std::round(peakIndex / odfSamplesPerDiv);
+               // Normalized distance between 0 and 1:
+               const auto distance =
+                  2 * (peakIndex - closestDiv * odfSamplesPerDiv) /
+                  odfSamplesPerDiv;
+               return distance < 0 ? -distance : distance;
             });
+         // Calculate the score as the sum of the distances weighted by
+         // the odf values:
+         const auto score =
+            std::inner_product(
+               peakDistances.begin(), peakDistances.end(), peakIndices.begin(),
+               0., [](double a, double b) { return a + b; },
+               [&](double a, int i) { return a * odf[i]; }) /
+            peakSum;
+
+         const auto bpm = 60. * numDivs / odfDuration;
+         scores[numDivs] = { score, lag, bpm };
+         return score;
       });
+
+   // Log tatum rates and corresponding scores:
+   std::ofstream ofsTatum("C:/Users/saint/Downloads/log_tatum.txt");
+   std::ofstream ofsScore("C:/Users/saint/Downloads/log_score.txt");
+   std::for_each(scores.begin(), scores.end(), [&](const auto& score) {
+      ofsTatum << score.second.bpm << ",";
+      ofsScore << score.second.score << ",";
+   });
+   ofsTatum << std::endl;
+   ofsScore << std::endl;
 
    // Look at the amplitude across all scores. If it's too small, then it
    // probably isn't something with a definite rhythm.
@@ -1073,9 +1100,77 @@ Experiment1(const std::vector<float>& odf, double odfSampleRate)
       });
    const auto amplitude = maxScoreIt->second.score - minScoreIt->second.score;
 
+   const auto score = minScoreIt->second.score * (1 - amplitude);
+   const auto tatumRate = minScoreIt->second.bpm;
+
+   // Take full auto-correlation:
+   const auto odfXcorr = GetNormalizedAutocorrelation(odf, true);
+   const auto odfXcorrSampleRate = odfXcorr.size() * odfSampleRate / odf.size();
+
+   // Log odfXcorr:
+   std::ofstream ofsOdfXcorr("C:/Users/saint/Downloads/log_odf_xcorr.txt");
+   std::for_each(odfXcorr.begin(), odfXcorr.end(), [&](float x) {
+      ofsOdfXcorr << x << ",";
+   });
+   ofsOdfXcorr << std::endl;
+
+   // Now we have the tatum rate. The vast majority of the time, this is going
+   // to be faster than the beat rate. There may be occasions, though, where
+   // it's slower (e.g. a swung drum rhythm, where the triplet part is only
+   // slightly audible).
+   // Let's look for other BPM candidates that are multiples of the tatum rate,
+   // by weighing their autocorrelation values with the BPM likelihood.
+
+   auto bpm = tatumRate;
+   struct Stuff
+   {
+      double score;
+      int xcorrPeakIndex;
+   };
+   std::map<double, Stuff> bpmsAndScores;
+   constexpr std::array<int, 5> bpmMultipliers { 1, 2, 3, 4, 6 };
+   bool goUp = true;
+   const auto estimateCandidateScore = [&](int multiplier) {
+      const auto candidate = goUp ? bpm * multiplier : bpm / multiplier;
+      const auto likelihood = GetBpmLikelihood(candidate);
+      // Look for closest peak in `odfXcorr`:
+      const auto lag =
+         static_cast<int>(odfXcorrSampleRate * 60 / candidate + .5);
+      auto j = lag;
+      while (true)
+      {
+         const auto i = (j - 1) % odfXcorr.size();
+         const auto k = (j + 1) % odfXcorr.size();
+         if (odfXcorr[i] <= odfXcorr[j] && odfXcorr[j] >= odfXcorr[k])
+            break;
+         j = odfXcorr[i] > odfXcorr[k] ? j - 1 : j + 1;
+      }
+      // Let's see if there already is an entry in `bpmsAndScores` that has this
+      // `xcorrPeakIndex` value. If there is, ignore this candidate.
+      const auto it = std::find_if(
+         bpmsAndScores.begin(), bpmsAndScores.end(),
+         [&](const auto& bpmAndScore) {
+            return bpmAndScore.second.xcorrPeakIndex == j;
+         });
+      if (it == bpmsAndScores.end())
+         bpmsAndScores[candidate] = { odfXcorr[j] * likelihood, j };
+   };
+   std::for_each(
+      bpmMultipliers.begin(), bpmMultipliers.end(), estimateCandidateScore);
+   goUp = false;
+   std::for_each(
+      bpmMultipliers.begin(), bpmMultipliers.end(), estimateCandidateScore);
+
+   // Find the best BPM candidate:
+   const auto bestBpmIt = std::max_element(
+      bpmsAndScores.begin(), bpmsAndScores.end(),
+      [](const auto& a, const auto& b) {
+         return a.second.score < b.second.score;
+      });
+   const auto bestBpm = bestBpmIt->first;
+
    // The errors range from 0 to 1, and so does `1 - amplitude`.
-   return { minScoreIt->second.score * (1 - amplitude),
-            minScoreIt->second.bpm };
+   return { score, tatumRate, bestBpm };
 }
 
 std::optional<Key> GetKey(const MirAudioSource& source)

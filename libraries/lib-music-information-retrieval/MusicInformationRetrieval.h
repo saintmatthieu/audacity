@@ -162,6 +162,7 @@ MUSIC_INFORMATION_RETRIEVAL_API void NewStuff(const MirAudioSource& source);
 struct Experiment1Result
 {
    const double score;
+   const double tatumRate;
    const double bpm;
 };
 

@@ -277,7 +277,7 @@ TEST_CASE("Tuning")
       GetWavFilesUnderDir("C:/Users/saint/Documents/auto-tempo");
    std::ofstream sampleValueCsv { std::string(CMAKE_CURRENT_SOURCE_DIR) +
                                   "/sampleValues_" + GIT_COMMIT_HASH + ".csv" };
-   sampleValueCsv << "truth,score,bpm,filename\n";
+   sampleValueCsv << "truth,score,tatumRate,bpm,filename\n";
    struct Sample
    {
       bool truth;
@@ -297,7 +297,8 @@ TEST_CASE("Tuning")
          ProgressBar(progressBarWidth, 100 * count++ / numFiles);
          const auto truth = GetBpmFromFilename(wavFile).has_value();
          sampleValueCsv << (truth ? "true" : "false") << "," << result.score
-                        << "," << result.bpm << "," << wavFile << "\n";
+                        << "," << result.tatumRate << "," << result.bpm << ","
+                        << wavFile << "\n";
          return Sample { truth, result.score };
       });
 
@@ -375,7 +376,7 @@ TEST_CASE("Experiment1")
    // const auto wavFile =
    // "C:/Users/saint/Downloads/anotherOneBitesTheDust.wav";
    const auto wavFile =
-      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Big_Band_Drums_-_210BPM_Sticks_-_Controlled_Snare_Hi_Hat.wav";
+      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Hipness_Guitar_fonkyDI_89bpm_Em.wav";
    const WavMirAudioSource source { wavFile, timeLimit };
    double odfSr = 0.;
    constexpr auto smoothingThreshold = 2.;
