@@ -155,7 +155,7 @@ GetApproximateGcd(const std::vector<float>& odf, double odfSampleRate);
 
 MUSIC_INFORMATION_RETRIEVAL_API std::vector<float> GetOnsetDetectionFunction(
    const MirAudioSource& source, double& odfSampleRate,
-   double smoothingThreshold = 1.);
+   double smoothingThreshold);
 
 MUSIC_INFORMATION_RETRIEVAL_API void NewStuff(const MirAudioSource& source);
 
@@ -167,8 +167,9 @@ struct Experiment1Result
 };
 
 MUSIC_INFORMATION_RETRIEVAL_API
-Experiment1Result
-Experiment1(const std::vector<float>& odf, double odfSampleRate);
+Experiment1Result Experiment1(
+   const std::vector<float>& odf, double odfSampleRate,
+   double audioFileDuration);
 
 MUSIC_INFORMATION_RETRIEVAL_API std::optional<Key>
 GetKey(const MirAudioSource& source);

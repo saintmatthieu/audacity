@@ -17,6 +17,8 @@ namespace MIR
 {
 namespace
 {
+constexpr auto smoothingThreshold = 1.;
+
 template <typename Result>
 double GetAreaUnderRocCurve(std::vector<Result> results)
 {
@@ -291,9 +293,11 @@ TEST_CASE("Tuning")
       std::back_inserter(samples), [&](const std::string& wavFile) {
          const WavMirAudioSource source { wavFile, timeLimit };
          auto odfSr = 0.;
-         const auto odf = GetOnsetDetectionFunction(source, odfSr);
+         const auto odf = GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
+         const auto audioFileDuration =
+            1.* source.GetNumSamples() / source.GetSampleRate();
          // const auto [bpm, confidence] = GetApproximateGcd(odf, odfSr);
-         const auto result = Experiment1(odf, odfSr);
+         const auto result = Experiment1(odf, odfSr, audioFileDuration);
          ProgressBar(progressBarWidth, 100 * count++ / numFiles);
          const auto truth = GetBpmFromFilename(wavFile).has_value();
          sampleValueCsv << (truth ? "true" : "false") << "," << result.score
@@ -350,7 +354,7 @@ TEST_CASE("NewStuff")
       "C:/Users/saint/Documents/auto-tempo/Muse Hub/Club_BWAAHM_136bpm_Gm.wav";
    const WavMirAudioSource source { wavFile, timeLimit };
    auto odfSr = 0.;
-   const auto odf = GetOnsetDetectionFunction(source, odfSr);
+   const auto odf = GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
    std::ofstream ofs("C:/Users/saint/Downloads/log_odf.txt");
    std::for_each(odf.begin(), odf.end(), [&](float x) { ofs << x << ","; });
    ofs << std::endl;
@@ -376,13 +380,14 @@ TEST_CASE("Experiment1")
    // const auto wavFile =
    // "C:/Users/saint/Downloads/anotherOneBitesTheDust.wav";
    const auto wavFile =
-      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Hipness_Guitar_fonkyDI_89bpm_Em.wav";
+      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Disco_Beat_2_116bpm.wav";
    const WavMirAudioSource source { wavFile, timeLimit };
    double odfSr = 0.;
-   constexpr auto smoothingThreshold = 2.;
    const auto odf =
       GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
-   Experiment1(odf, odfSr);
+   const auto audioFileDuration =
+      1.* source.GetNumSamples() / source.GetSampleRate();
+   Experiment1(odf, odfSr, audioFileDuration);
    std::ofstream ofs("C:/Users/saint/Downloads/log_odf.txt");
    std::for_each(odf.begin(), odf.end(), [&](float x) { ofs << x << ","; });
    ofs << std::endl;
