@@ -928,13 +928,24 @@ double GetBpmLikelihood(double bpm, double stdDevFactor = 1.)
    return std::exp(-.5 * tmp * tmp);
 }
 
-bool IsPrimeDecompositionTwoThreeOnly(int n)
+constexpr bool IsPrimeDecompositionTwoThreeOnly(int n)
 {
    while (n % 2 == 0)
       n /= 2;
    while (n % 3 == 0)
       n /= 3;
    return n == 1;
+}
+
+constexpr int CountThreesInPrimeDecomposition(int n)
+{
+   int count = 0;
+   while (n % 3 == 0)
+   {
+      ++count;
+      n /= 3;
+   }
+   return count;
 }
 
 // Function to generate numbers whose prime factorization contains only twos or
@@ -945,6 +956,17 @@ std::vector<int> GetPowersOf2And3(int lower, int upper)
    for (int i = lower; i <= upper; ++i)
       if (IsPrimeDecompositionTwoThreeOnly(i))
          result.push_back(i);
+   return result;
+}
+
+std::vector<int> GetPossibleBarDivisors(int lower, int upper)
+{
+   auto result = GetPowersOf2And3(lower, upper);
+   result.erase(
+      std::remove_if(
+         result.begin(), result.end(),
+         [](int n) { return CountThreesInPrimeDecomposition(n) > 2; }),
+      result.end());
    return result;
 }
 } // namespace
@@ -975,14 +997,19 @@ Experiment1Result Experiment1(
    std::set<int> possibleNumDivs;
    std::for_each(numBars.begin(), numBars.end(), [&](int numBars) {
       const auto barDuration = audioFileDuration / numBars;
-      const int minNumTatumsPerBar = minNumTatumsPerMinute * barDuration / 60;
-      const int maxNumTatumsPerBar =
-         std::ceil(maxNumTatumsPerMinute * barDuration / 60);
+      const int minNumTatumsPerBar =
+         std::max<int>(minNumTatumsPerMinute * barDuration / 60, 3);
+      const int maxNumTatumsPerBar = std::max<int>(
+         minNumTatumsPerBar,
+         std::ceil(maxNumTatumsPerMinute * barDuration / 60));
       const auto possibleBarDivisors =
-         GetPowersOf2And3(minNumTatumsPerBar, maxNumTatumsPerBar);
+         GetPossibleBarDivisors(minNumTatumsPerBar, maxNumTatumsPerBar);
       std::for_each(
          possibleBarDivisors.begin(), possibleBarDivisors.end(),
-         [&](int numDivs) { possibleNumDivs.insert(numDivs * numBars); });
+         [&](int numDivsPerBar) {
+            const auto numDivs = numDivsPerBar * numBars;
+            possibleNumDivs.insert(numDivs);
+         });
    });
 
    // Maps a combination of time-signature and number of bars (encoded as
