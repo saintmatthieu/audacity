@@ -4,6 +4,7 @@
 #include <GetBeatFittingCoefficients.h>
 #include <GetBeats.h>
 #include <MusicInformationRetrieval.h>
+#include <array>
 #include <catch2/catch.hpp>
 #include <fstream>
 #include <iostream>
@@ -272,6 +273,32 @@ TEST_CASE("GetAreaUnderRocCurve")
          std::vector<Sample> { { false, 0. }, { true, 1. } }) == 0.);
 }
 
+namespace
+{
+struct OctaveError
+{
+   double factor;
+   double remainder;
+};
+
+OctaveError GetOctaveError(double expected, double actual)
+{
+   constexpr std::array<double, 5> factors { 1., 2., .5, 3., 1. / 3 };
+   std::vector<OctaveError> octaveErrors;
+   std::transform(
+      factors.begin(), factors.end(), std::back_inserter(octaveErrors),
+      [&](double factor) {
+         const auto remainder = std::log2(factor * actual / expected);
+         return OctaveError { factor, remainder };
+      });
+   return *std::min_element(
+      octaveErrors.begin(), octaveErrors.end(),
+      [](const auto& a, const auto& b) {
+         return std::abs(a.remainder) < std::abs(b.remainder);
+      });
+}
+} // namespace
+
 TEST_CASE("Tuning")
 {
    constexpr int progressBarWidth = 50;
@@ -279,11 +306,13 @@ TEST_CASE("Tuning")
       GetWavFilesUnderDir("C:/Users/saint/Documents/auto-tempo");
    std::ofstream sampleValueCsv { std::string(CMAKE_CURRENT_SOURCE_DIR) +
                                   "/sampleValues_" + GIT_COMMIT_HASH + ".csv" };
-   sampleValueCsv << "truth,score,tatumRate,bpm,filename\n";
+   sampleValueCsv
+      << "truth,score,tatumRate,bpm,octaveFactor,octaveError,filename\n";
    struct Sample
    {
       bool truth;
       double score;
+      std::optional<OctaveError> octaveError;
    };
    std::vector<Sample> samples;
    const auto numFiles = wavFiles.size();
@@ -293,25 +322,51 @@ TEST_CASE("Tuning")
       std::back_inserter(samples), [&](const std::string& wavFile) {
          const WavMirAudioSource source { wavFile, timeLimit };
          auto odfSr = 0.;
-         const auto odf = GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
+         const auto odf =
+            GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
          const auto audioFileDuration =
-            1.* source.GetNumSamples() / source.GetSampleRate();
+            1. * source.GetNumSamples() / source.GetSampleRate();
          // const auto [bpm, confidence] = GetApproximateGcd(odf, odfSr);
          const auto result = Experiment1(odf, odfSr, audioFileDuration);
          ProgressBar(progressBarWidth, 100 * count++ / numFiles);
-         const auto truth = GetBpmFromFilename(wavFile).has_value();
+         const auto expected = GetBpmFromFilename(wavFile);
+         const auto truth = expected.has_value();
+         const std::optional<OctaveError> error =
+            truth ? std::make_optional(GetOctaveError(*expected, result.bpm)) :
+                    std::nullopt;
          sampleValueCsv << (truth ? "true" : "false") << "," << result.score
                         << "," << result.tatumRate << "," << result.bpm << ","
+                        << (error.has_value() ? error->factor : 0.) << ","
+                        << (error.has_value() ? error->remainder : 0.) << ","
                         << wavFile << "\n";
-         return Sample { truth, result.score };
+         return Sample { truth, result.score, error };
       });
 
+   // AUC of ROC curve. Tells how good our loop/not-loop clasifier is.
    const auto auc = GetAreaUnderRocCurve(samples);
-
-   // Log the AUC
    std::ofstream aucFile { std::string(CMAKE_CURRENT_SOURCE_DIR) + "/auc_" +
                            GIT_COMMIT_HASH + ".txt" };
    aucFile << auc << "\n";
+
+   // Get RMS of octave errors. Tells how good the BPM estimation is.
+   const auto octaveErrors = std::accumulate(
+      samples.begin(), samples.end(), std::vector<double> {},
+      [&](std::vector<double> octaveErrors, const Sample& sample) {
+         if (sample.octaveError.has_value())
+            octaveErrors.push_back(sample.octaveError->remainder);
+         return octaveErrors;
+      });
+   const auto octaveErrorStd = std::sqrt(
+      std::accumulate(
+         octaveErrors.begin(), octaveErrors.end(), 0.,
+         [&](double sum, double octaveError) {
+            return sum + octaveError * octaveError;
+         }) /
+      octaveErrors.size());
+   std::ofstream octaveErrorRmsFile { std::string(CMAKE_CURRENT_SOURCE_DIR) +
+                                      "/octaveErrorRms_" + GIT_COMMIT_HASH +
+                                      ".txt" };
+   octaveErrorRmsFile << octaveErrorStd << "\n";
 }
 
 TEST_CASE("GetBpmAndOffset_once")
@@ -354,7 +409,8 @@ TEST_CASE("NewStuff")
       "C:/Users/saint/Documents/auto-tempo/Muse Hub/Club_BWAAHM_136bpm_Gm.wav";
    const WavMirAudioSource source { wavFile, timeLimit };
    auto odfSr = 0.;
-   const auto odf = GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
+   const auto odf =
+      GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
    std::ofstream ofs("C:/Users/saint/Downloads/log_odf.txt");
    std::for_each(odf.begin(), odf.end(), [&](float x) { ofs << x << ","; });
    ofs << std::endl;
@@ -386,7 +442,7 @@ TEST_CASE("Experiment1")
    const auto odf =
       GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
    const auto audioFileDuration =
-      1.* source.GetNumSamples() / source.GetSampleRate();
+      1. * source.GetNumSamples() / source.GetSampleRate();
    Experiment1(odf, odfSr, audioFileDuration);
    std::ofstream ofs("C:/Users/saint/Downloads/log_odf.txt");
    std::for_each(odf.begin(), odf.end(), [&](float x) { ofs << x << ","; });

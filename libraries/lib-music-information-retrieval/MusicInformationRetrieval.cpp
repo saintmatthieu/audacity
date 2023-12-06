@@ -1134,11 +1134,13 @@ Experiment1Result Experiment1(
    // auto-correlation.
    struct Stuff
    {
-      double xcorrValue;
+      double bpm;
+      int numBeats;
+      double finalScore;
       double likelihood;
-      int xcorrPeakIndex;
+      double xcorrValue;
    };
-   std::map<double, Stuff> bpmsAndScores;
+   std::map<int /*xcorr peak index*/, Stuff> bpmsAndScores;
    std::for_each(
       possibleNumDivs.begin(), possibleNumDivs.end(), [&](int numBeats) {
          const auto candidateBpm = 1. * numBeats / audioFileDuration * 60;
@@ -1146,9 +1148,8 @@ Experiment1Result Experiment1(
          constexpr auto stdDevFactor = 3.;
          const auto likelihood = GetBpmLikelihood(candidateBpm, 3.);
          // Look for closest peak in `odfXcorr`:
-         const auto lag =
-            static_cast<int>(odfXcorrSampleRate * 60 / candidateBpm + .5);
-         auto j = lag;
+         const auto lag = odfXcorrSampleRate * 60 / candidateBpm;
+         auto j = static_cast<int>(lag + .5);
          while (true)
          {
             const auto i = (j - 1) % odfXcorr.size();
@@ -1157,26 +1158,27 @@ Experiment1Result Experiment1(
                break;
             j = odfXcorr[i] > odfXcorr[k] ? j - 1 : j + 1;
          }
-         // Let's see if there already is an entry in `bpmsAndScores` that has
-         // this `xcorrPeakIndex` value. If there is, ignore this candidate.
-         const auto it = std::find_if(
-            bpmsAndScores.begin(), bpmsAndScores.end(),
-            [&](const auto& bpmAndScore) {
-               return bpmAndScore.second.xcorrPeakIndex == j;
-            });
-         if (it == bpmsAndScores.end())
-            bpmsAndScores[candidateBpm] = { odfXcorr[j], likelihood, j };
+         // If there already is an entry at that xcorr index, keep the one whose
+         // index is closest to `lag`:
+         const auto it = bpmsAndScores.find(j);
+         if (it != bpmsAndScores.end())
+         {
+            const auto otherLag = odfXcorrSampleRate * 60 / it->second.bpm;
+            if (std::abs(otherLag - j) < std::abs(lag - j))
+               return;
+         }
+         bpmsAndScores[j] = { candidateBpm, numBeats, likelihood * odfXcorr[j],
+                              likelihood, odfXcorr[j] };
       });
 
    // Find the best BPM candidate:
    const auto bestBpmIt = std::max_element(
       bpmsAndScores.begin(), bpmsAndScores.end(),
       [](const auto& a, const auto& b) {
-         return a.second.likelihood * a.second.xcorrValue <
-                b.second.likelihood * b.second.xcorrValue;
+         return a.second.finalScore < b.second.finalScore;
       });
    const auto bestBpm =
-      bestBpmIt == bpmsAndScores.end() ? 0. : bestBpmIt->first;
+      bestBpmIt == bpmsAndScores.end() ? 0. : bestBpmIt->second.bpm;
 
    // The errors range from 0 to 1, and so does `1 - amplitude`.
    return { score, tatumRate, bestBpm };
