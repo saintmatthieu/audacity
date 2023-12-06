@@ -1153,13 +1153,14 @@ Experiment1Result Experiment1(
 
    struct Stuff
    {
-      double bpm;
       int numBeats;
       double finalScore;
       double likelihood;
-      double xcorrValue;
+      std::vector<int> xcorrIndices;
+      std::vector<double> xcorrValues;
+      double xcorrAvg;
    };
-   std::map<int /*xcorr peak index*/, Stuff> bpmsAndScores;
+   std::map<double /*bpm*/, Stuff> bpmsAndScores;
    std::for_each(
       possibleNumBeats.begin(), possibleNumBeats.end(), [&](int numBeats) {
          const auto candidateBpm = 1. * numBeats / audioFileDuration * 60;
@@ -1168,26 +1169,39 @@ Experiment1Result Experiment1(
          const auto likelihood = GetBpmLikelihood(candidateBpm, 3.);
          // Look for closest peak in `odfXcorr`:
          const auto lag = odfXcorrSampleRate * 60 / candidateBpm;
-         auto j = static_cast<int>(lag + .5);
+
+         // Traverse all the auto-correlation by steps of `k*lag`, each time
+         // finding the closest peak, and average the values. Doing this rather
+         // than evaluating only just one peak is more robust to rhythms which
+         // miss beats.
+         auto harmonic = 1;
+         Stuff& stuff = bpmsAndScores[candidateBpm];
+         auto& indices = stuff.xcorrIndices;
+         auto& values = stuff.xcorrValues;
+         // We've requested the full auto-correlation, so its size must be even:
+         assert(odfXcorr.size() % 2 == 0);
+         const auto middleIndex = odfXcorr.size() / 2;
          while (true)
          {
-            const auto i = (j - 1) % odfXcorr.size();
-            const auto k = (j + 1) % odfXcorr.size();
-            if (odfXcorr[i] <= odfXcorr[j] && odfXcorr[j] >= odfXcorr[k])
+            auto j = static_cast<int>(harmonic++ * lag + .5);
+            if (j > middleIndex)
                break;
-            j = odfXcorr[i] > odfXcorr[k] ? j - 1 : j + 1;
+            while (true)
+            {
+               const auto i = (j - 1) % odfXcorr.size();
+               const auto k = (j + 1) % odfXcorr.size();
+               if (odfXcorr[i] <= odfXcorr[j] && odfXcorr[j] >= odfXcorr[k])
+                  break;
+               j = odfXcorr[i] > odfXcorr[k] ? j - 1 : j + 1;
+            }
+            indices.push_back(j);
+            values.push_back(odfXcorr[j]);
          }
-         // If there already is an entry at that xcorr index, keep the one whose
-         // index is closest to `lag`:
-         const auto it = bpmsAndScores.find(j);
-         if (it != bpmsAndScores.end())
-         {
-            const auto otherLag = odfXcorrSampleRate * 60 / it->second.bpm;
-            if (std::abs(otherLag - j) < std::abs(lag - j))
-               return;
-         }
-         bpmsAndScores[j] = { candidateBpm, numBeats, likelihood * odfXcorr[j],
-                              likelihood, odfXcorr[j] };
+         stuff.likelihood = likelihood;
+         stuff.numBeats = numBeats;
+         stuff.xcorrAvg =
+            std::accumulate(values.begin(), values.end(), 0.) / values.size();
+         stuff.finalScore = likelihood * stuff.xcorrAvg;
       });
 
    // Find the best BPM candidate:
@@ -1197,7 +1211,7 @@ Experiment1Result Experiment1(
          return a.second.finalScore < b.second.finalScore;
       });
    const auto bestBpm =
-      bestBpmIt == bpmsAndScores.end() ? 0. : bestBpmIt->second.bpm;
+      bestBpmIt == bpmsAndScores.end() ? 0. : bestBpmIt->first;
 
    // The errors range from 0 to 1, and so does `1 - amplitude`.
    return { score, tatumRate, bestBpm };

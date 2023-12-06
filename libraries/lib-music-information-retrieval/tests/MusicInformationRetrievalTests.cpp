@@ -436,7 +436,7 @@ TEST_CASE("Experiment1")
    // const auto wavFile =
    // "C:/Users/saint/Downloads/anotherOneBitesTheDust.wav";
    const auto wavFile =
-      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Disco_Beat_2_116bpm.wav";
+      "C:/Users/saint/Documents/auto-tempo/Muse Hub/z_Club_Melody_136bpm_Gm.wav";
    const WavMirAudioSource source { wavFile, timeLimit };
    double odfSr = 0.;
    const auto odf =
