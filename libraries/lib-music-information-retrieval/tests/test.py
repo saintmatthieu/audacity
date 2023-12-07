@@ -1,135 +1,48 @@
-import numpy as np
-from sklearn.cluster import KMeans
+# The first argument is the name of a csv file with
+# truth,score
+# header. Produce code to visualize the ROC.
+#
+# Usage: python3 visualizeROC.py <csv file>
+#
+# Example: python3 visualizeROC.py ../data/ROC.csv
+#
+
+import sys
+import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.mixture import GaussianMixture
 
-# Your data
-data = np.array([
-   11.9806,
-    0.9822,
-    1.2926,
-    0.5066,
-   28.4472,
-    1.7225,
-    2.0192,
-    0.1337,
-    0.5291,
-    0.0310,
-    0.2958,
-   14.0836,
-    1.0363,
-    0.9064,
-    1.2565,
-    0.3673,
-    0.1809,
-    0.2829,
-   43.5186,
-    0.6836,
-    0.5675,
-    0.4652,
-    0.0889,
-   10.8533,
-    1.2677,
-    0.1786,
-    0.5948,
-    0.7589,
-   34.1595,
-    0.1598,
-    0.0796,
-    0.5358,
-    0.5146,
-    0.0976,
-    0.9018,
-   13.0228,
-    0.2551,
-    1.1563,
-    0.1901,
-   33.6033,
-    0.2644,
-    1.0245,
-    0.4078,
-    3.3070,
-   12.7668,
-    1.9988,
-    0.3981,
-    0.7090,
-    0.5228,
-    0.2166,
-   32.7867,
-    0.7641,
-    1.3770,
-    0.3026,
-    0.4323,
-    0.0831,
-    1.9938,
-   18.6101,
-    0.2459,
-    0.5568,
-    0.9498,
-    0.3664,
-    0.4547,
-    1.0528,
-   25.3977,
-    0.4191,
-    0.2442,
-    0.2241,
-    3.2847,
-   17.1270,
-    0.3526,
-    0.3595,
-    0.3569,
-    0.5443,
-   28.9230,
-    0.8336,
-    0.3378,
-    0.3320,
-    2.3709,
-   11.0663,
-    0.3067,
-    0.3180,
-   14.9657,
-    7.2310,
-    0.6279,
-    0.3926,
-    4.1129,
-   21.5832,
-    0.2428,
-    4.2240,
-    2.0573,
-    1.4840,
-    0.2419,
-    1.1393,
-    0.3572,
-   22.2907,
-    0.2077,
-    0.5851,
-    0.6677,
-    0.5462,
-    0.2674,
-    1.5397,
-   18.5702,
-    4.2124,
-    2.1279,
-    0.5472,
-    0.5321,
-    0.3010,
-   51.1812,
-    0.5529,
-    0.2019,
-    0.3776,
-])
+# Read the CSV file.
+csv_path = sys.argv[1]
+df = pd.read_csv(csv_path)
 
-# Reshape the data for scikit-learn (2D array)
-data = data.reshape(-1, 1)
+# The file has columns truth,score
+# Calculate the TPR and FPR for each threshold.
+# Sort the dataframe by score.
+df = df.sort_values(by='score')
+# Calculate the TPR and FPR.
+TPR = []
+FPR = []
+for threshold in df['score']:
+    # Count the number of true positives and false positives.
+    TP = 0
+    FP = 0
+    for i in range(len(df)):
+        if df['score'][i] < threshold:
+            # Positive-by-measurement.
+            if df['truth'][i] == 1:
+                # Positive-by-truth.
+                TP += 1
+            else:
+                # Negative-by-truth.
+                FP += 1
+    # Calculate the TPR and FPR.
+    TPR.append(TP / sum(df['truth']))
+    FPR.append(FP / (len(df) - sum(df['truth'])))
 
-# Fit a Gaussian Mixture Model with 2 components
-gmm = GaussianMixture(n_components=2, random_state=42)
-gmm.fit(data)
-
-# Predict the component for each data point
-labels = gmm.predict(data)
-
-# Plot the data and GMM components
-plt.scatter(data, np.zeros_like(data), c=labels, cmap='viridis')
-plt.title('Gaussian Mixture Model with 2 Components')
+# Plot the ROC curve.
+plt.plot(FPR, TPR)
+plt.xlabel('False positive rate')
+plt.ylabel('True positive rate')
+plt.title('ROC curve')
 plt.show()

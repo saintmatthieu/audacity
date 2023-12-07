@@ -53,17 +53,9 @@ void FillMetadata(
    const auto bpmFromFilename = GetBpmFromFilename(filename);
    if (bpmFromFilename.has_value())
       bpm = bpmFromFilename;
-   else
-   {
-      auto beatFinder = BeatFinder::CreateInstance(
-         source, BeatTrackingAlgorithm::QueenMaryBarBeatTrack);
-      const auto& beatInfo = beatFinder->GetBeats();
-      if (beatInfo.has_value())
-         GetBpmAndOffset(
-            GetNormalizedAutocorrCurvatureRms(
-               beatFinder->GetOnsetDetectionFunction()),
-            *beatInfo, bpm, offset);
-   }
+   else if (const auto bpmFromSource = GetBpm(source);
+            bpmFromSource.has_value())
+      bpm = bpmFromSource;
 }
 
 template <typename T>
@@ -191,6 +183,22 @@ void GetBpmAndOffset(
    const auto& [alpha, beta] = coefs;
    bpm = 60. / alpha;
    offset = -beta;
+}
+
+std::optional<double> GetBpm(const MirAudioSource& source)
+{
+   double odfSr = 0.;
+   const auto odf =
+      GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
+   std::ofstream ofs("C:/Users/saint/Downloads/log_odf.txt");
+   std::for_each(odf.begin(), odf.end(), [&](float x) { ofs << x << ","; });
+   ofs << std::endl;
+   const auto audioFileDuration =
+      1. * source.GetNumSamples() / source.GetSampleRate();
+   const auto result = Experiment1(odf, odfSr, audioFileDuration);
+   return result.score >= rhythmicClassifierScoreThreshold ?
+             std::optional<double> {} :
+             result.bpm;
 }
 
 double GetBeatFittingErrorRms(

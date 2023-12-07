@@ -1,0 +1,116 @@
+AUC: 0.960452
+Threshold: 0.0205721
+Octave error RMS: 0.154776
+Git commit: 40f017b9e66e799f5fff28e470b0171f733ee3c5
+Audio file hash: 70.3808
+Audio files:
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36518279.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36518280.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36518281.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36518282.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36518283.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520588.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520639.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520640.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520641.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520642.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520643.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520708.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520709.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520710.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520711.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520713.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520742.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520743.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520744.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520745.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520746.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520754.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520755.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520756.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520757.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520758.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520759.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520760.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520761.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520762.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36520763.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36521453.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36521454.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36521455.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36521456.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36521457.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36523681.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36523682.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524035.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524036.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524037.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524038.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524039.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524040.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524041.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524042.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524043.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524044.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524145.wav
+C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524146.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_120BPM_-_Old_School_-_Shuffle_Backbeat.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_150BPM_Sticks_-_150BPM_-_Sticks_-_Fill_6.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_150BPM_Sticks_-_150BPM_-_Sticks_-_Fill_8.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_210BPM_Sticks_-_Controlled_Snare_Hi_Hat.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_Baritone_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_BigBassHits_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_BWAAHM_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_MoogBass_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_SuperHeavyKick_136bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Crash_Hit_Bright.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Disco_Beat_2_116bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Dub_Roll_123bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Explosion_1.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Funky_Guitar_Riff_1_116bpm_Em.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Guitar_Rhythm_Lick1_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Hats_Percussion_Loop_123bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Heavy_Bucket_Beat_136bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Heavy_Kick_Beat_136bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Hipness_808_fonky2_89bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Hipness_808_fonky3_89bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Hipness_Guitar_fonkyDI_89bpm_Em.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Hipness_Guitar_fonkyLickHigh_89bpm_Em.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Kick_Bounce_Triplet_245bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Noise_Filter_Gate_123bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Perc_Loop_Filtered_Top_245bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Slow_Chimes.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Snare_Roll_123bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Snare_Roll_Variation_123bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Snare_Roll_Variation_2_123bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Tambourine_-_110bpm_-_01.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Tambourine_-_130bpm_-_01.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Tambourine_-_130bpm_-_02.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Tambourine_-_130bpm_-_03.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Tambourine_-_150bpm_-_01.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Tambourine_-_70bpm_-_01.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Tambourine_-_90bpm_-_01.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Tape_Echo_Piano_Eb_123BPM.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Whoosh_Rev.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_animal_horse_passby_gallop_gravel_passby_pass-by_galloping_canter_stones_pebbles_lightrain.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_animal_horse_passby_gallop_wetgrass_passby_pass-by_galloping_canter_windy.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_atmosphere_designed_forest_magic_abstract_ambience_environment_woodland_trees_spell_conjure_birds.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_atmosphere_nautical_harbour__akerbrygge_docks_underbridge_ambience_environment_harbor_dock_harbour_boatlapping.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Brushes_-_Fill_5.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Brushes_-_Short_Fill_12.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Brushes_-_Short_Fill_4.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Old_School_-_Fill_14.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Old_School_-_Fill_3.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Old_School_-_Intro_Flll_1.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Old_School_-_Outro_Fill_1.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_150BPM_-_Brushes_-_Fills_5.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_150BPM_-_Brushes_-_Fills_7.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_150BPM_Sticks_-_150BPM_-_Sticks_-_Fill_14.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_210BPM_Sticks_-_Boogie_Fills_15.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_210BPM_Sticks_-_Krupa_Toms_-_Quiet_with_Crash.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_210BPM_Sticks_-_Let_Loose.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_Conga_Snare_-_120BPM_-_Fill_4.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Club_GuitarMelody_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Club_Melody_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Club_SaxMelody_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Club_Screamer_Gm.wav

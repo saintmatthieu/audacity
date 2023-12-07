@@ -20,6 +20,14 @@ namespace
 {
 TEST_CASE("LinearFit")
 {
+   struct Foo
+   {
+      int x = 1;
+   };
+   const auto foo = std::make_shared<Foo>();
+   const auto bar = std::move(foo);
+   REQUIRE(foo->x == 1);
+
    SECTION("A")
    {
       const std::vector<double> x { 1.0, 2.0, 3.0, 4.0, 5.0 };
@@ -58,10 +66,15 @@ TEST_CASE("LinearFit")
    }
 }
 
-constexpr auto smoothingThreshold = 1.;
+struct RocInfo
+{
+   const double areaUnderCurve;
+   const double threshold;
+};
 
 template <typename Result>
-double GetAreaUnderRocCurve(std::vector<Result> results)
+RocInfo
+GetRocInfo(std::vector<Result> results, double allowedFalsePositiveRate = 0.)
 {
    std::sort(results.begin(), results.end(), [](const auto& a, const auto& b) {
       return a.score < b.score;
@@ -95,7 +108,14 @@ double GetAreaUnderRocCurve(std::vector<Result> results)
       auc += (truePositiveRates[i + 1] + truePositiveRates[i]) *
              (falsePositiveRates[i + 1] - falsePositiveRates[i]) / 2.;
 
-   return auc;
+   // Find the score corresponding to the desired false positive rate.
+   const auto it = std::lower_bound(
+      falsePositiveRates.begin(), falsePositiveRates.end(),
+      allowedFalsePositiveRate);
+   const auto index = std::distance(falsePositiveRates.begin(), it);
+   const auto threshold = results[index].score;
+
+   return { auc, threshold };
 }
 
 std::vector<std::string> GetWavFilesUnderDir(const char* dir)
@@ -250,8 +270,7 @@ TEST_CASE("GetBpmAndOffset")
 
    // Write CSV file with results.
    std::ofstream csvFile { std::string(CMAKE_CURRENT_SOURCE_DIR) +
-                           "/GetBpmAndOffset_eval_" + GIT_COMMIT_HASH +
-                           ".csv" };
+                           "/GetBpmAndOffset_eval.csv" };
    csvFile << "filename,expected,actual,o2\n";
    std::for_each(
       evalSamples.begin(), evalSamples.end(),
@@ -293,7 +312,7 @@ auto ToString(const std::optional<BeatInfo>& beatInfo)
 constexpr auto timeLimit = 60;
 } // namespace
 
-TEST_CASE("GetAreaUnderRocCurve")
+TEST_CASE("GetRocInfo")
 {
    // Yes, we are testing a test function, but an important one.
    struct Sample
@@ -303,14 +322,14 @@ TEST_CASE("GetAreaUnderRocCurve")
    };
 
    REQUIRE(
-      GetAreaUnderRocCurve(
-         std::vector<Sample> { { true, 0. }, { false, 1. } }) == 1.);
+      GetRocInfo(std::vector<Sample> { { true, 0. }, { false, 1. } })
+         .areaUnderCurve == 1.);
    REQUIRE(
-      GetAreaUnderRocCurve(
-         std::vector<Sample> { { false, 1. }, { true, 0. } }) == 1.);
+      GetRocInfo(std::vector<Sample> { { false, 1. }, { true, 0. } })
+         .areaUnderCurve == 1.);
    REQUIRE(
-      GetAreaUnderRocCurve(
-         std::vector<Sample> { { false, 0. }, { true, 1. } }) == 0.);
+      GetRocInfo(std::vector<Sample> { { false, 0. }, { true, 1. } })
+         .areaUnderCurve == 0.);
 }
 
 namespace
@@ -337,6 +356,19 @@ OctaveError GetOctaveError(double expected, double actual)
          return std::abs(a.remainder) < std::abs(b.remainder);
       });
 }
+
+void UpdateHash(const MirAudioSource& source, float& hash)
+{
+   // Sum samples to hash.
+   long long start = 0;
+   constexpr auto bufferSize = 1024;
+   std::vector<float> buffer(bufferSize);
+   while (source.ReadFloats(buffer.data(), start, bufferSize) > 0)
+   {
+      hash += std::accumulate(buffer.begin(), buffer.end(), 0.f);
+      start += bufferSize;
+   }
+}
 } // namespace
 
 TEST_CASE("Tuning")
@@ -345,9 +377,13 @@ TEST_CASE("Tuning")
    const auto wavFiles =
       GetWavFilesUnderDir("C:/Users/saint/Documents/auto-tempo");
    std::ofstream sampleValueCsv { std::string(CMAKE_CURRENT_SOURCE_DIR) +
-                                  "/sampleValues_" + GIT_COMMIT_HASH + ".csv" };
+                                  "/sampleValues.csv" };
    sampleValueCsv
       << "truth,score,tatumRate,bpm,octaveFactor,octaveError,filename\n";
+
+   // We will want to compute a hash of the audio files used.
+   float hash = 0.f;
+
    struct Sample
    {
       bool truth;
@@ -361,6 +397,7 @@ TEST_CASE("Tuning")
       wavFiles.begin(), wavFiles.begin() + numFiles,
       std::back_inserter(samples), [&](const std::string& wavFile) {
          const WavMirAudioSource source { wavFile, timeLimit };
+         UpdateHash(source, hash);
          auto odfSr = 0.;
          const auto odf =
             GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
@@ -382,11 +419,15 @@ TEST_CASE("Tuning")
          return Sample { truth, result.score, error };
       });
 
+   // Log ROC curve:
+   std::ofstream rocFile { std::string(CMAKE_CURRENT_SOURCE_DIR) + "/ROC.csv" };
+   rocFile << "truth,score\n";
+   std::for_each(samples.begin(), samples.end(), [&](const auto& sample) {
+      rocFile << sample.truth << "," << sample.score << "\n";
+   });
+
    // AUC of ROC curve. Tells how good our loop/not-loop clasifier is.
-   const auto auc = GetAreaUnderRocCurve(samples);
-   std::ofstream aucFile { std::string(CMAKE_CURRENT_SOURCE_DIR) + "/auc_" +
-                           GIT_COMMIT_HASH + ".txt" };
-   aucFile << auc << "\n";
+   const auto auc = GetRocInfo(samples);
 
    // Get RMS of octave errors. Tells how good the BPM estimation is.
    const auto octaveErrors = std::accumulate(
@@ -403,10 +444,23 @@ TEST_CASE("Tuning")
             return sum + octaveError * octaveError;
          }) /
       octaveErrors.size());
-   std::ofstream octaveErrorRmsFile { std::string(CMAKE_CURRENT_SOURCE_DIR) +
-                                      "/octaveErrorRms_" + GIT_COMMIT_HASH +
-                                      ".txt" };
-   octaveErrorRmsFile << octaveErrorStd << "\n";
+
+   std::ofstream summaryFile { std::string(CMAKE_CURRENT_SOURCE_DIR) +
+                               "/summary.txt" };
+   summaryFile << "AUC: " << auc.areaUnderCurve << "\n"
+               << "Threshold: " << auc.threshold << "\n"
+               << "Octave error RMS: " << octaveErrorStd << "\n"
+               << "Git commit: " << GIT_COMMIT_HASH << "\n"
+               << "Audio file hash: " << hash << "\n"
+               << "Audio files:\n";
+   // Add list of wav file paths to summary file:
+   std::for_each(
+      wavFiles.begin(), wavFiles.end(),
+      [&](const std::string& wavFile) { summaryFile << wavFile << "\n"; });
+
+   // If this changed, then some non-refactoring code change happened and either
+   // they must be rectified or the threshold must be adjusted.
+   REQUIRE(auc.threshold == rhythmicClassifierScoreThreshold);
 }
 
 TEST_CASE("GetBpmAndOffset_once")
@@ -475,8 +529,10 @@ TEST_CASE("Experiment1")
    //    "C:/Users/saint/Documents/auto-tempo/iroyinspeech/clips/common_voice_yo_36520588.wav";
    // const auto wavFile =
    // "C:/Users/saint/Downloads/anotherOneBitesTheDust.wav";
+   // const auto wavFile =
+   //    "C:/Users/saint/Downloads/Muse Hub/Tambourine_-_130_-_01.wav";
    const auto wavFile =
-      "C:/Users/saint/Documents/auto-tempo/Muse Hub/z_Big_Band_Drums_-_150BPM_-_Brushes_-_Fills_7.wav";
+      "C:/Users/saint/Documents/auto-tempo/looperman/looperman funky drums - 96bpm.wav";
    const WavMirAudioSource source { wavFile, timeLimit };
    double odfSr = 0.;
    const auto odf =

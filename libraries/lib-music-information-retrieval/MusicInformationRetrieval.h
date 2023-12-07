@@ -22,6 +22,11 @@ namespace MIR
 class MirAudioSource;
 struct BeatInfo;
 
+// Score threshold above which an `MirAudioSource` is *not* considered a loop. (Left public for testing.)
+static constexpr auto rhythmicClassifierScoreThreshold = 0.16;
+
+static constexpr auto smoothingThreshold = 1.;
+
 struct ODF
 {
    std::vector<double> values;
@@ -122,6 +127,9 @@ MUSIC_INFORMATION_RETRIEVAL_API void GetBpmAndOffset(
    double rmsNormalizedOdfXcorrStd, const BeatInfo& beatInfo,
    std::optional<double>& bpm, std::optional<double>& offset,
    std::optional<ClassifierTuningThresholds> tuningThresholds = {});
+
+MUSIC_INFORMATION_RETRIEVAL_API std::optional<double>
+GetBpm(const MirAudioSource& source);
 
 MUSIC_INFORMATION_RETRIEVAL_API double GetBeatFittingErrorRms(
    const std::pair<double, double>& coefs, const BeatInfo& info);
