@@ -1215,6 +1215,25 @@ Experiment1Result Experiment1(
 
    // The errors range from 0 to 1, and so does `1 - amplitude`.
    return { score, tatumRate, bestBpm };
+
+   // std::vector<int> tatumIndices(peakIndices.size());
+   // std::transform(
+   //    peakIndices.begin(), peakIndices.end(), tatumIndices.begin(),
+   //    [&](int peakIndex) {
+   //       return std::round(peakIndex * tatumRate / 60 / odfSampleRate);
+   //    });
+   // std::vector<double> odfPeakValues(peakIndices.size());
+   // std::transform(
+   //    peakIndices.begin(), peakIndices.end(), odfPeakValues.begin(),
+   //    [&](int peakIndex) { return odf[peakIndex]; });
+   // const auto [tatumA, tatumB] =
+   //    LinearFit(tatumIndices, peakIndices, odfPeakValues);
+   // // `tatumA` is in ODF samples per tatum. We want to convert this to BPM.
+   // const auto refinedTatumRate = odfSampleRate / tatumA * 60;
+   // const auto refinedBpm = refinedTatumRate * bestBpm / tatumRate;
+
+   // // The errors range from 0 to 1, and so does `1 - amplitude`.
+   // return { score, tatumRate, refinedBpm };
 }
 
 std::optional<Key> GetKey(const MirAudioSource& source)

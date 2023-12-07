@@ -18,6 +18,46 @@ namespace MIR
 {
 namespace
 {
+TEST_CASE("LinearFit")
+{
+   SECTION("A")
+   {
+      const std::vector<double> x { 1.0, 2.0, 3.0, 4.0, 5.0 };
+      const std::vector<double> y { 2.0, 3.0, 4.0, 5.0, 6.0 };
+      const std::vector<double> weights { 1.0, 2.0, 1.0, 3.0, 1.0 };
+      const auto result = LinearFit(x, y, weights);
+      REQUIRE(result.first == 1.0);
+      REQUIRE(result.second == 1.0);
+   }
+   SECTION("B")
+   {
+      const std::vector<int> x { 1, 2, 3, 4, 5 };
+      const std::vector<int> y { 2, 3, 4, 5, 6 };
+      const std::vector<double> weights { 1.0, 1.0, 1.0, 1.0, 1.0 };
+      const auto result = LinearFit(x, y, weights);
+      REQUIRE(result.first == 1.0);
+      REQUIRE(result.second == 1.0);
+   }
+   SECTION("C")
+   {
+      const std::vector<double> x { 1.0, 2.0, 3.0, 4.0, 5.0 };
+      const std::vector<double> y { 2.0, 3.0, 4.0, 5.0, 7.0 };
+      const std::vector<double> weights { 1.0, 1.0, 1.0, 1.0, 0.0 };
+      const auto result = LinearFit(x, y, weights);
+      REQUIRE(result.first == 1.0);
+      REQUIRE(result.second == 1.0);
+   }
+   SECTION("D")
+   {
+      const std::vector<double> x { 1.0, 2.0, 3.0, 4.0, 5.0 };
+      const std::vector<double> y { 2.0, 4.0, 6.0, 8.0, 10.0 };
+      const std::vector<double> weights { 1.0, 1.0, 1.0, 1.0, 0.0 };
+      const auto result = LinearFit(x, y, weights);
+      REQUIRE(result.first == 2.0);
+      REQUIRE(result.second == 0.0);
+   }
+}
+
 constexpr auto smoothingThreshold = 1.;
 
 template <typename Result>
@@ -436,7 +476,7 @@ TEST_CASE("Experiment1")
    // const auto wavFile =
    // "C:/Users/saint/Downloads/anotherOneBitesTheDust.wav";
    const auto wavFile =
-      "C:/Users/saint/Documents/auto-tempo/Muse Hub/z_Club_Melody_136bpm_Gm.wav";
+      "C:/Users/saint/Documents/auto-tempo/Muse Hub/z_Big_Band_Drums_-_150BPM_-_Brushes_-_Fills_7.wav";
    const WavMirAudioSource source { wavFile, timeLimit };
    double odfSr = 0.;
    const auto odf =
