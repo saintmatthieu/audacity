@@ -1,8 +1,8 @@
-AUC: 0.960452
+AUC: 0.956497
 Threshold: 0.0205721
-Octave error RMS: 0.154776
+Octave error RMS: 0.142702
 Git commit: 40f017b9e66e799f5fff28e470b0171f733ee3c5
-Audio file hash: 70.3808
+Audio file hash: -2418.33
 Audio files:
 C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36518279.wav
 C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36518280.wav
@@ -54,6 +54,15 @@ C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524043.
 C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524044.wav
 C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524145.wav
 C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36524146.wav
+C:/Users/saint/Documents/auto-tempo\looperman\looperman funky drums - 96bpm.wav
+C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-0448131-0068829-megapaul-reverend-ebhard-and-the-followers-of-funk-100bpm-c.wav
+C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-0605220-0048636-ensam-sub-arp - 120bpm.wav
+C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-0754067-0068843-mooz-bass-riff-bassline-in-c-100bpm.wav
+C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-0841698-0075094-byngsies-glitchhop-succubass-100bpm.wav
+C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-1564425-0338146-quiet-storm-ep-ii 64bpm.wav
+C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-4881796-0338438-1970-sex-drums 75bpm.wav
+C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-5383014-0346325-roofa-can-we-pretend-i-tory-lanez 78bpm.wav
+C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-5407804-0299820-funk-sp-type-melody-luxo-plvco 90bpm.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_120BPM_-_Old_School_-_Shuffle_Backbeat.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_150BPM_Sticks_-_150BPM_-_Sticks_-_Fill_6.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_150BPM_Sticks_-_150BPM_-_Sticks_-_Fill_8.wav
