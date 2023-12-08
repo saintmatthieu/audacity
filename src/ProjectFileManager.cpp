@@ -1449,42 +1449,14 @@ void ReactOnMusicFileImport(
          return mClip.GetVisibleSampleCount().as_long_long();
       }
 
-      size_t ReadFloats(
-         float* buffer, long long where, size_t numFrames,
-         bool wrapAround) const override
+      void ReadFloats(
+         float* buffer, long long where, size_t numFrames) const override
       {
-         const auto numSamplesInClip = GetNumSamples();
-         if (wrapAround)
-         {
-            assert(numSamplesInClip >= numFrames);
-            while (where < 0)
-               where += numSamplesInClip;
-            while (where >= numSamplesInClip)
-               where -= static_cast<long long>(numSamplesInClip);
-         }
-         const auto end = std::min<long long>(
-            where + numFrames, mClip.GetVisibleSampleCount().as_long_long());
-         const auto numToRead = end - where;
-         if (numToRead <= 0 && !wrapAround)
-            return 0;
          constexpr auto mayThrow = false;
-         // TODO use mix of left and right channels.
          const_cast<std::optional<AudioSegmentSampleView>&>(mCache).emplace(
-            mClip.GetSampleView(0, where, numToRead, mayThrow));
-         mCache->Copy(buffer, numToRead);
-         MixRightChannel(where, numToRead, buffer);
-
-         const auto remainingToRead = numFrames - numToRead;
-         if (wrapAround && remainingToRead > 0)
-         {
-            const_cast<std::optional<AudioSegmentSampleView>&>(mCache).emplace(
-               mClip.GetSampleView(0, 0, numToRead, mayThrow));
-            mCache->Copy(buffer + numToRead, remainingToRead);
-            MixRightChannel(0, remainingToRead, buffer + numToRead);
-            return numFrames;
-         }
-         else
-            return numToRead;
+            mClip.GetSampleView(0, where, numFrames, mayThrow));
+         mCache->Copy(buffer, numFrames);
+         MixRightChannel(where, numFrames, buffer);
       }
 
    private:

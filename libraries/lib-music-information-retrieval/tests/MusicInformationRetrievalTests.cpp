@@ -222,93 +222,8 @@ TEST_CASE("GetBpmFromFilename")
       std::all_of(success.begin(), success.end(), [](bool b) { return b; }));
 }
 
-TEST_CASE("GetBpmAndOffset")
-{
-   std::optional<const char*> dir;
-   dir = "C:/Users/saint/Documents/auto-tempo";
-   if (!dir)
-      return;
-
-   const auto wavFiles = GetWavFilesUnderDir(*dir);
-   if (wavFiles.empty())
-      // Probably <filesystem> is not available.
-      return;
-
-   // Iterate through all files in the directory.
-   struct EvalSample
-   {
-      const std::string filename;
-      const std::optional<double> expected;
-      const std::optional<double> actual;
-      const std::optional<double> o2;
-   };
-   std::vector<EvalSample> evalSamples;
-   constexpr int progressBarWidth = 50;
-   auto i = 0;
-   auto progress = std::transform(
-      wavFiles.begin(), wavFiles.end(), std::back_inserter(evalSamples),
-      [&](const auto& wavFile) {
-         const auto stem = GetFilenameStem(wavFile);
-         const auto bpmFromFilename = GetBpmFromFilename(wavFile);
-         const WavMirAudioSource source { wavFile };
-         const auto beatFinder = BeatFinder::CreateInstance(
-            source, BeatTrackingAlgorithm::QueenMaryBarBeatTrack);
-         std::optional<double> bpm;
-         std::optional<double> offset;
-         const auto beatInfo = beatFinder->GetBeats();
-         if (beatInfo.has_value())
-            GetBpmAndOffset(
-               GetNormalizedAutocorrCurvatureRms(
-                  beatFinder->GetOnsetDetectionFunction()),
-               *beatInfo, bpm, offset);
-         ProgressBar(progressBarWidth, 100 * i++ / wavFiles.size());
-         // For convenience, add the octave-2 error here, too, not leaving
-         // it for computation in the python evaluation script.
-         return EvalSample { stem, bpmFromFilename, bpm,
-                             GetOctaveError(bpmFromFilename, bpm) };
-      });
-
-   // Write CSV file with results.
-   std::ofstream csvFile { std::string(CMAKE_CURRENT_SOURCE_DIR) +
-                           "/GetBpmAndOffset_eval.csv" };
-   csvFile << "filename,expected,actual,o2\n";
-   std::for_each(
-      evalSamples.begin(), evalSamples.end(),
-      [&csvFile](const auto& evalSample) {
-         csvFile << evalSample.filename << ","
-                 << evalSample.expected.value_or(0.) << ","
-                 << evalSample.actual.value_or(0.) << ",";
-         if (evalSample.o2.has_value())
-            csvFile << *evalSample.o2;
-         csvFile << "\n";
-      });
-}
-
 namespace
 {
-// {
-// "beatTimes": [5.05034],
-// "indexOfFirstBeat": 0
-// }
-auto ToString(const std::optional<BeatInfo>& beatInfo)
-{
-   if (!beatInfo)
-      return std::string { "null" };
-   auto separator = "";
-   std::string beatTimes = "[";
-   std::for_each(
-      beatInfo->beatTimes.begin(), beatInfo->beatTimes.end(), [&](double time) {
-         beatTimes += separator;
-         beatTimes += std::to_string(time);
-      });
-   beatTimes += "]";
-   std::string indexOfFirstBeat = "null";
-   if (beatInfo->indexOfFirstBeat.has_value())
-      indexOfFirstBeat = std::to_string(*beatInfo->indexOfFirstBeat);
-   return std::string { "{\n\t\"beatTimes\": " } + beatTimes +
-          ",\n\t\"indexOfFirstBeat\": " + indexOfFirstBeat + "\n}";
-}
-
 constexpr auto timeLimit = 60;
 } // namespace
 
@@ -357,19 +272,52 @@ OctaveError GetOctaveError(double expected, double actual)
       });
 }
 
+template <int bufferSize = 1024>
 void UpdateHash(const MirAudioSource& source, float& hash)
 {
    // Sum samples to hash.
    long long start = 0;
-   constexpr auto bufferSize = 1024;
-   std::vector<float> buffer(bufferSize);
-   while (source.ReadFloats(buffer.data(), start, bufferSize) > 0)
+   std::array<float, bufferSize> buffer;
+   while (true)
    {
-      hash += std::accumulate(buffer.begin(), buffer.end(), 0.f);
-      start += bufferSize;
+      const auto numSamples =
+         std::min<long long>(bufferSize, source.GetNumSamples() - start);
+      if (numSamples == 0)
+         break;
+      source.ReadFloats(buffer.data(), start, numSamples);
+      hash += std::accumulate(buffer.begin(), buffer.begin() + numSamples, 0.f);
+      start += numSamples;
    }
 }
 } // namespace
+
+TEST_CASE("UpdateHash")
+{
+   class SquareWaveSource : public MirAudioSource
+   {
+      const int period = 8;
+
+      int GetSampleRate() const override
+      {
+         return 10;
+      }
+      long long GetNumSamples() const override
+      {
+         return period * 10;
+      }
+      void ReadFloats(
+         float* buffer, long long where, size_t numFrames) const override
+      {
+         for (size_t i = 0; i < numFrames; ++i)
+            buffer[i] = (where + i) % period < period / 2 ? 1.f : -1.f;
+      }
+   };
+
+   float hash = 0.f;
+   constexpr auto bufferSize = 5;
+   UpdateHash<bufferSize>(SquareWaveSource {}, hash);
+   REQUIRE(hash == 0.);
+}
 
 TEST_CASE("Tuning")
 {
@@ -463,36 +411,6 @@ TEST_CASE("Tuning")
    REQUIRE(auc.threshold == rhythmicClassifierScoreThreshold);
 }
 
-TEST_CASE("GetBpmAndOffset_once")
-{
-   const auto wavFile =
-      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Club_BigBassHits_136bpm_Gm.wav";
-   const WavMirAudioSource source { wavFile, timeLimit };
-   const auto beatFinder = BeatFinder::CreateInstance(
-      source, BeatTrackingAlgorithm::QueenMaryBarBeatTrack);
-   const auto beatInfo = beatFinder->GetBeats();
-   if (beatInfo.has_value() && beatInfo->beatTimes.size() > 1)
-   {
-      const auto coefs = GetBeatFittingCoefficients(
-         beatInfo->beatTimes, beatInfo->indexOfFirstBeat);
-      const auto rms = GetBeatFittingErrorRms(coefs, *beatInfo);
-      const auto odf = beatFinder->GetOnsetDetectionFunction();
-      const auto odfSr = beatFinder->GetOnsetDetectionFunctionSampleRate();
-      const auto& beatTimes = beatInfo->beatTimes;
-      const auto snr = GetBeatSnr(odf, odfSr, beatTimes);
-   }
-   const auto odf = beatFinder->GetOnsetDetectionFunction();
-   GetNormalizedAutocorrCurvatureRms(odf);
-
-   const auto odfSr = beatFinder->GetOnsetDetectionFunctionSampleRate();
-   const ODF odfStruct { odf, odf.size() / odfSr };
-   const auto autoCorr = GetNormalizedAutocorrelation(odf);
-   const auto beatIndices = GetBeatIndices(odfStruct, autoCorr);
-   const auto isLoop = beatIndices.has_value() ?
-                          IsLoop(odfStruct, autoCorr, *beatIndices) :
-                          false;
-}
-
 TEST_CASE("NewStuff")
 {
    // const auto wavFile =
@@ -523,33 +441,86 @@ TEST_CASE("MoreNewStuff")
    NewStuff(source);
 }
 
+namespace
+{
+template <typename T>
+void PrintPythonVector(
+   std::ofstream& ofs, const std::vector<T>& v, const char* name)
+{
+   ofs << name << " = [";
+   std::for_each(v.begin(), v.end(), [&](T x) { ofs << x << ","; });
+   ofs << "]\n";
+}
+} // namespace
+
 TEST_CASE("Experiment1")
 {
    // const auto wavFile =
    //    "C:/Users/saint/Documents/auto-tempo/iroyinspeech/clips/common_voice_yo_36520588.wav";
    // const auto wavFile =
    // "C:/Users/saint/Downloads/anotherOneBitesTheDust.wav";
-   // const auto wavFile =
-   //    "C:/Users/saint/Downloads/Muse Hub/Tambourine_-_130_-_01.wav";
    const auto wavFile =
-      "C:/Users/saint/Documents/auto-tempo/looperman/looperman funky drums - 96bpm.wav";
+      "C:/Users/saint/Downloads/Muse Hub/Crash_Hit_Bright.wav";
+   // const auto wavFile =
+   //    "C:/Users/saint/Documents/auto-tempo/looperman/looperman funky drums -
+   //    96bpm.wav";
+   // const auto wavFile = "C:/Users/saint/Downloads/short_chirp.wav";
    const WavMirAudioSource source { wavFile, timeLimit };
    double odfSr = 0.;
-   const auto odf =
-      GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
+   std::vector<std::vector<float>> postProcessedStft;
+   const auto odf = GetOnsetDetectionFunction(
+      source, odfSr, smoothingThreshold, &postProcessedStft);
+   Experiment1DebugOutput debugOutput;
    const auto audioFileDuration =
       1. * source.GetNumSamples() / source.GetSampleRate();
-   Experiment1(odf, odfSr, audioFileDuration);
-   std::ofstream ofs("C:/Users/saint/Downloads/log_odf.txt");
-   std::for_each(odf.begin(), odf.end(), [&](float x) { ofs << x << ","; });
-   ofs << std::endl;
-}
+   const Experiment1Result result =
+      Experiment1(odf, odfSr, audioFileDuration, &debugOutput);
 
-TEST_CASE("GetKey")
-{
-   const auto filename =
-      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Club_Baritone_136_Gm.wav";
-   const WavMirAudioSource source { filename };
-   GetKey(source);
+   std::ofstream debug_output_module { std::string(CMAKE_CURRENT_SOURCE_DIR) +
+                                       "/debug_output.py" };
+   // Write the content of `debugOutput` to `debug_output.py`.
+   debug_output_module << "wavFile = \"" << wavFile << "\"\n";
+   debug_output_module << "odfSr = " << odfSr << "\n";
+   debug_output_module << "audioFileDuration = " << audioFileDuration << "\n";
+   debug_output_module << "score = " << result.score << "\n";
+   debug_output_module << "tatumRate = " << result.tatumRate << "\n";
+   debug_output_module << "bpm = " << result.bpm << "\n";
+   debug_output_module << "lag = " << result.lag << "\n";
+   debug_output_module << "odf_peak_indices = [";
+   std::for_each(
+      debugOutput.odfPeakIndices.begin(), debugOutput.odfPeakIndices.end(),
+      [&](int i) { debug_output_module << i << ","; });
+   debug_output_module << "]\n";
+   debug_output_module << "tatum_scores = {";
+   std::for_each(
+      debugOutput.tatumScores.begin(), debugOutput.tatumScores.end(),
+      [&](const auto& entry) {
+         const auto& [numTatums, tatumInfo] = entry;
+         debug_output_module << numTatums << ": {";
+         debug_output_module << "\"score\":" << tatumInfo.score << ", ";
+         debug_output_module << "\"lag\":" << tatumInfo.lag << ", ";
+         debug_output_module << "\"tpm\":" << tatumInfo.tpm << ", ";
+         debug_output_module << "},";
+      });
+   debug_output_module << "}\n";
+   PrintPythonVector(debug_output_module, odf, "odf");
+   PrintPythonVector(
+      debug_output_module, debugOutput.odfAutoCorr, "odf_auto_corr");
+
+   std::ofstream stft_log_module { std::string { CMAKE_CURRENT_SOURCE_DIR } +
+                                   "/stft_log.py" };
+   stft_log_module << "wavFile = \"" << wavFile << "\"\n";
+   stft_log_module << "sampleRate = " << source.GetSampleRate() << "\n";
+   stft_log_module << "frameRate = " << odfSr << "\n";
+   stft_log_module << "stft = [";
+   std::for_each(
+      postProcessedStft.begin(), postProcessedStft.end(), [&](const auto& row) {
+         stft_log_module << "[";
+         std::for_each(row.begin(), row.end(), [&](float x) {
+            stft_log_module << x << ",";
+         });
+         stft_log_module << "],";
+      });
+   stft_log_module << "]\n";
 }
 } // namespace MIR

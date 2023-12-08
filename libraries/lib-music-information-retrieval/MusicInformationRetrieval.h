@@ -11,6 +11,7 @@
 #pragma once
 
 #include <cassert>
+#include <map>
 #include <numeric>
 #include <optional>
 #include <string>
@@ -18,11 +19,11 @@
 
 namespace MIR
 {
-
 class MirAudioSource;
 struct BeatInfo;
 
-// Score threshold above which an `MirAudioSource` is *not* considered a loop. (Left public for testing.)
+// Score threshold above which an `MirAudioSource` is *not* considered a loop.
+// (Left public for testing.)
 static constexpr auto rhythmicClassifierScoreThreshold = 0.16;
 
 static constexpr auto smoothingThreshold = 1.;
@@ -165,7 +166,8 @@ GetApproximateGcd(const std::vector<float>& odf, double odfSampleRate);
 
 MUSIC_INFORMATION_RETRIEVAL_API std::vector<float> GetOnsetDetectionFunction(
    const MirAudioSource& source, double& odfSampleRate,
-   double smoothingThreshold);
+   double smoothingThreshold,
+   std::vector<std::vector<float>>* postProcessedStft = nullptr);
 
 MUSIC_INFORMATION_RETRIEVAL_API void NewStuff(const MirAudioSource& source);
 
@@ -174,15 +176,29 @@ struct Experiment1Result
    const double score;
    const double tatumRate;
    const double bpm;
+   const int lag;
+};
+
+// Maps a combination of time-signature and number of bars (encoded as
+// string) to a score.
+struct TatumScore
+{
+   double score;
+   int lag;
+   double tpm; // Tatum per minute
+};
+
+struct Experiment1DebugOutput
+{
+   std::vector<int> odfPeakIndices;
+   std::map<int /*numTatums*/, TatumScore> tatumScores;
+   std::vector<float> odfAutoCorr;
 };
 
 MUSIC_INFORMATION_RETRIEVAL_API
 Experiment1Result Experiment1(
    const std::vector<float>& odf, double odfSampleRate,
-   double audioFileDuration);
-
-MUSIC_INFORMATION_RETRIEVAL_API std::optional<Key>
-GetKey(const MirAudioSource& source);
+   double audioFileDuration, Experiment1DebugOutput* debugOutput = nullptr);
 
 template <typename T, typename U>
 std::pair<double, double> LinearFit(

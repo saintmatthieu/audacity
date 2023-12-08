@@ -15,6 +15,7 @@
 #include "GetBeats.h"
 #include "GetVampFeatures.h"
 #include "MirAudioSource.h"
+#include "StftFrameProvider.h"
 
 #include <dsp/mfcc/MFCC.h>
 
@@ -162,12 +163,12 @@ std::optional<double> GetBpmFromFilename(const std::string& filename)
 }
 
 void GetBpmAndOffset(
-   double odfXcorrCurvRms, const BeatInfo& beatInfo, std::optional<double>& bpm,
-   std::optional<double>& offset,
+   double odfAutoCorrCurvRms, const BeatInfo& beatInfo,
+   std::optional<double>& bpm, std::optional<double>& offset,
    std::optional<ClassifierTuningThresholds> tuningThresholds)
 {
    if (!IsRhythmic(
-          odfXcorrCurvRms,
+          odfAutoCorrCurvRms,
           tuningThresholds.has_value() ?
              std::optional<double> { tuningThresholds->isRhythmic } :
              std::nullopt))
@@ -761,14 +762,6 @@ GetApproximateGcd(const std::vector<float>& odf, double odfSampleRate)
 
 namespace
 {
-std::pair<int, int> GetHopAndFrameSizes(int sampleRate)
-{
-   // 1024 for sample rate 44.1kHz
-   const auto hopSize =
-      1 << (10 + (int)std::round(std::log2(sampleRate / 44100.)));
-   return { hopSize, 2 * hopSize };
-}
-
 std::vector<double> MakeHann(size_t N)
 {
    std::vector<double> w(N);
@@ -783,39 +776,30 @@ std::vector<double> MakeHann(size_t N)
 
 std::vector<float> GetOnsetDetectionFunction(
    const MirAudioSource& source, double& odfSampleRate,
-   double smoothingThreshold)
+   double smoothingThreshold,
+   std::vector<std::vector<float>>* postProcessedStft)
 {
-   const auto sampleRate = source.GetSampleRate();
-   const auto [hopSize, frameSize] = GetHopAndFrameSizes(sampleRate);
+   StftFrameProvider frameProvider { source };
+   const auto sampleRate = frameProvider.GetSampleRate();
+   const auto frameSize = frameProvider.GetFftSize();
    std::vector<float> buffer(frameSize);
    std::vector<float> odf;
    const auto powSpecSize = frameSize / 2 + 1;
+   std::vector<float> powSpec(powSpecSize);
    std::vector<float> prevPowSpec(powSpecSize);
    std::fill(prevPowSpec.begin(), prevPowSpec.end(), 0.f);
 
-   const auto hann = MakeHann(frameSize);
-
-   std::ofstream ofsStft("C:/Users/saint/Downloads/log_stft.txt");
-
-   long long start = -frameSize;
    auto isFirst = true;
-   while (source.ReadFloats(buffer.data(), start, frameSize, start < 0) ==
-          frameSize)
+   while (frameProvider.GetNextFrame(buffer))
    {
-      std::transform(
-         buffer.begin(), buffer.end(), hann.begin(), buffer.begin(),
-         [](float a, float b) { return a * b; });
-      PowerSpectrum(frameSize, buffer.data(), buffer.data());
-
-      // Normalize the spectrum
-      std::transform(
-         buffer.begin(), buffer.end(), buffer.begin(),
-         [frameSize](float x) { return x / frameSize; });
+      // StftFrameProvider already applies a normalizing Hann window, no need to
+      // either window it here or normalize it by frame size afterwards.
+      PowerSpectrum(frameSize, buffer.data(), powSpec.data());
 
       // Compress the frame as per Fundamentals of Music Processing, (6.5)
       constexpr auto gamma = 100.;
       std::transform(
-         buffer.begin(), buffer.begin() + powSpecSize, buffer.begin(),
+         powSpec.begin(), powSpec.end(), powSpec.begin(),
          [](float x) { return std::log(1 + gamma * std::sqrt(x)); });
 
       constexpr auto verticalSmoothing = false;
@@ -832,9 +816,9 @@ std::vector<float> GetOnsetDetectionFunction(
             {
                const auto k = n + m - hannSize / 2;
                if (k >= 0 && k < powSpecSize)
-                  sum += vHann[m] * buffer[k];
+                  sum += vHann[m] * powSpec[k];
             }
-            buffer[n] = sum;
+            powSpec[n] = sum;
          }
       }
 
@@ -842,27 +826,19 @@ std::vector<float> GetOnsetDetectionFunction(
       {
          auto k = 0;
          const auto sum = std::accumulate(
-            buffer.begin(), buffer.begin() + powSpecSize, 0.,
-            [&](float a, float mag) {
+            powSpec.begin(), powSpec.end(), 0., [&](float a, float mag) {
                // Half-wave-rectified stuff
                return a + std::max(0.f, mag - prevPowSpec[k++]);
             });
-         std::for_each(
-            buffer.begin(), buffer.begin() + powSpecSize,
-            [&](float x) { ofsStft << x << ","; });
-         ofsStft << std::endl;
          odf.push_back(sum);
       }
-      std::copy(
-         buffer.begin(), buffer.begin() + powSpecSize, prevPowSpec.begin());
-      start += hopSize;
-      isFirst = false;
-   }
 
-   std::ofstream ofsRawOdf("C:/Users/saint/Downloads/log_raw.txt");
-   std::for_each(
-      odf.begin(), odf.end(), [&](float x) { ofsRawOdf << x << ","; });
-   ofsRawOdf << std::endl;
+      std::copy(powSpec.begin(), powSpec.end(), prevPowSpec.begin());
+      isFirst = false;
+
+      if (postProcessedStft)
+         postProcessedStft->push_back(powSpec);
+   }
 
    constexpr auto M = 5;
    std::vector<float> window(2 * M + 1);
@@ -882,12 +858,6 @@ std::vector<float> GetOnsetDetectionFunction(
       return y;
    });
 
-   std::ofstream ofsAvg("C:/Users/saint/Downloads/log_avg.txt");
-   std::for_each(movingAverage.begin(), movingAverage.end(), [&](double x) {
-      ofsAvg << x << ",";
-   });
-   ofsAvg << std::endl;
-
    if (smoothingThreshold > 0.)
       // subtract moving average from odf:
       std::transform(
@@ -896,7 +866,7 @@ std::vector<float> GetOnsetDetectionFunction(
             return std::max<float>(a - b * smoothingThreshold, 0.f);
          });
 
-   odfSampleRate = static_cast<double>(sampleRate) / hopSize;
+   odfSampleRate = frameProvider.GetFrameRate();
    return odf;
 }
 
@@ -904,7 +874,7 @@ void NewStuff(const MirAudioSource& source)
 {
    // Load all samples of `source` in a vector:
    std::vector<float> samples(source.GetNumSamples());
-   source.ReadFloats(samples.data(), 0, samples.size(), false);
+   source.ReadFloats(samples.data(), 0, samples.size());
    DoSSMStuff(samples, source.GetSampleRate());
 }
 
@@ -981,9 +951,12 @@ std::vector<int> GetPossibleBarDivisors(int lower, int upper)
 
 Experiment1Result Experiment1(
    const std::vector<float>& odf, double odfSampleRate,
-   double audioFileDuration)
+   double audioFileDuration, Experiment1DebugOutput* debugOutput)
 {
    const auto peakIndices = GetOnsetIndices(odf);
+   if (debugOutput)
+      debugOutput->odfPeakIndices = peakIndices;
+
    if (peakIndices.empty())
       return { 1., 0. }; // Worst score
 
@@ -1002,7 +975,7 @@ Experiment1Result Experiment1(
    const int maxNumBars = std::ceil(audioFileDuration / minBarDuration);
    std::vector<int> numBars(maxNumBars - minNumBars + 1);
    std::iota(numBars.begin(), numBars.end(), minNumBars);
-   std::set<int> possibleNumDivs;
+   std::set<int> possibleNumTatums;
    std::for_each(numBars.begin(), numBars.end(), [&](int numBars) {
       const auto barDuration = audioFileDuration / numBars;
       const int minNumTatumsPerBar =
@@ -1014,34 +987,26 @@ Experiment1Result Experiment1(
          GetPossibleBarDivisors(minNumTatumsPerBar, maxNumTatumsPerBar);
       std::for_each(
          possibleBarDivisors.begin(), possibleBarDivisors.end(),
-         [&](int numDivsPerBar) {
-            const auto numDivs = numDivsPerBar * numBars;
-            possibleNumDivs.insert(numDivs);
+         [&](int numTatumsPerBar) {
+            const auto numTatums = numTatumsPerBar * numBars;
+            possibleNumTatums.insert(numTatums);
          });
    });
 
-   // Maps a combination of time-signature and number of bars (encoded as
-   // string) to a score.
-   struct Score
-   {
-      double score;
-      int lag;
-      double bpm;
-   };
-   std::map<int, Score> scores;
+   std::map<int, TatumScore> scores;
 
    // We iterate through all time signatures, and for each, in the inner loop,
    // we will determine a sensible set of number of bars.
    std::for_each(
-      possibleNumDivs.begin(), possibleNumDivs.end(), [&](int numDivs) {
-         const auto odfSamplesPerDiv = 1. * odf.size() / numDivs;
+      possibleNumTatums.begin(), possibleNumTatums.end(), [&](int numTatums) {
+         const auto odfSamplesPerDiv = 1. * odf.size() / numTatums;
 
          // We will auto-correlate the odf with a pulse train with
-         // frequency `numDivs`, to compensate for possible lag (not using
+         // frequency `numTatums`, to compensate for possible lag (not using
          // for-loop)
          std::vector<float> pulseTrain(odf.size());
          std::fill(pulseTrain.begin(), pulseTrain.end(), 0.f);
-         for (auto i = 0; i < numDivs; ++i)
+         for (auto i = 0; i < numTatums; ++i)
             pulseTrain[static_cast<int>(i * odfSamplesPerDiv + .5)] = 1.f;
 
          // const auto crossCorr = GetCrossCorrelation(odf, pulseTrain);
@@ -1091,20 +1056,13 @@ Experiment1Result Experiment1(
                [&](double a, int i) { return a * odf[i]; }) /
             peakSum;
 
-         const auto bpm = 60. * numDivs / audioFileDuration;
-         scores[numDivs] = { score, lag, bpm };
+         const auto bpm = 60. * numTatums / audioFileDuration;
+         scores[numTatums] = { score, lag, bpm };
          return score;
       });
 
-   // Log tatum rates and corresponding scores:
-   std::ofstream ofsTatum("C:/Users/saint/Downloads/log_tatum.txt");
-   std::ofstream ofsScore("C:/Users/saint/Downloads/log_score.txt");
-   std::for_each(scores.begin(), scores.end(), [&](const auto& score) {
-      ofsTatum << score.second.bpm << ",";
-      ofsScore << score.second.score << ",";
-   });
-   ofsTatum << std::endl;
-   ofsScore << std::endl;
+   if (debugOutput)
+      debugOutput->tatumScores = scores;
 
    // Look at the amplitude across all scores. If it's too small, then it
    // probably isn't something with a definite rhythm.
@@ -1119,19 +1077,17 @@ Experiment1Result Experiment1(
    const auto amplitude = maxScoreIt->second.score - minScoreIt->second.score;
 
    const auto score = minScoreIt->second.score * (1 - amplitude);
-   const auto tatumRate = minScoreIt->second.bpm;
+   const auto tpm = minScoreIt->second.tpm;
    const auto numTatums = minScoreIt->first;
+   const auto lag = minScoreIt->second.lag;
 
    // Take full auto-correlation:
-   const auto odfXcorr = GetNormalizedAutocorrelation(odf, true);
-   const auto odfXcorrSampleRate = odfXcorr.size() * odfSampleRate / odf.size();
+   const auto odfAutoCorr = GetNormalizedAutocorrelation(odf, true);
+   const auto odfAutoCorrSampleRate =
+      odfAutoCorr.size() * odfSampleRate / odf.size();
 
-   // Log odfXcorr:
-   std::ofstream ofsOdfXcorr("C:/Users/saint/Downloads/log_odf_xcorr.txt");
-   std::for_each(odfXcorr.begin(), odfXcorr.end(), [&](float x) {
-      ofsOdfXcorr << x << ",";
-   });
-   ofsOdfXcorr << std::endl;
+   if (debugOutput)
+      debugOutput->odfAutoCorr = odfAutoCorr;
 
    // `score` will be used as discriminant for whether we consider this to be a
    // loop or not. Now we'll be looking for the best BPM candidate, which should
@@ -1145,8 +1101,8 @@ Experiment1Result Experiment1(
                                                     4.,     6.,     1. / 2,
                                                     1. / 3, 1. / 4, 1. / 6 };
 
-   std::vector<int> possibleNumBeats { possibleNumDivs.begin(),
-                                       possibleNumDivs.end() };
+   std::vector<int> possibleNumBeats { possibleNumTatums.begin(),
+                                       possibleNumTatums.end() };
    possibleNumBeats.erase(
       std::remove_if(
          possibleNumBeats.begin(), possibleNumBeats.end(),
@@ -1175,8 +1131,8 @@ Experiment1Result Experiment1(
          // Don't give the BPM likelihood too much weight:
          constexpr auto stdDevFactor = 3.;
          const auto likelihood = GetBpmLikelihood(candidateBpm, 3.);
-         // Look for closest peak in `odfXcorr`:
-         const auto lag = odfXcorrSampleRate * 60 / candidateBpm;
+         // Look for closest peak in `odfAutoCorr`:
+         const auto lag = odfAutoCorrSampleRate * 60 / candidateBpm;
 
          // Traverse all the auto-correlation by steps of `k*lag`, each time
          // finding the closest peak, and average the values. Doing this rather
@@ -1187,8 +1143,8 @@ Experiment1Result Experiment1(
          auto& indices = stuff.xcorrIndices;
          auto& values = stuff.xcorrValues;
          // We've requested the full auto-correlation, so its size must be even:
-         assert(odfXcorr.size() % 2 == 0);
-         const auto middleIndex = odfXcorr.size() / 2;
+         assert(odfAutoCorr.size() % 2 == 0);
+         const auto middleIndex = odfAutoCorr.size() / 2;
          while (true)
          {
             auto j = static_cast<int>(harmonic++ * lag + .5);
@@ -1196,14 +1152,16 @@ Experiment1Result Experiment1(
                break;
             while (true)
             {
-               const auto i = (j - 1) % odfXcorr.size();
-               const auto k = (j + 1) % odfXcorr.size();
-               if (odfXcorr[i] <= odfXcorr[j] && odfXcorr[j] >= odfXcorr[k])
+               const auto i = (j - 1) % odfAutoCorr.size();
+               const auto k = (j + 1) % odfAutoCorr.size();
+               if (
+                  odfAutoCorr[i] <= odfAutoCorr[j] &&
+                  odfAutoCorr[j] >= odfAutoCorr[k])
                   break;
-               j = odfXcorr[i] > odfXcorr[k] ? j - 1 : j + 1;
+               j = odfAutoCorr[i] > odfAutoCorr[k] ? j - 1 : j + 1;
             }
             indices.push_back(j);
-            values.push_back(odfXcorr[j]);
+            values.push_back(odfAutoCorr[j]);
          }
          stuff.likelihood = likelihood;
          stuff.numBeats = numBeats;
@@ -1222,7 +1180,7 @@ Experiment1Result Experiment1(
       bestBpmIt == bpmsAndScores.end() ? 0. : bestBpmIt->first;
 
    // The errors range from 0 to 1, and so does `1 - amplitude`.
-   return { score, tatumRate, bestBpm };
+   return { score, tpm, bestBpm, lag };
 
    // std::vector<int> tatumIndices(peakIndices.size());
    // std::transform(
@@ -1242,21 +1200,5 @@ Experiment1Result Experiment1(
 
    // // The errors range from 0 to 1, and so does `1 - amplitude`.
    // return { score, tatumRate, refinedBpm };
-}
-
-std::optional<Key> GetKey(const MirAudioSource& source)
-{
-   const auto sampleRate = source.GetSampleRate();
-   VampPluginConfig config;
-   const auto roundedNumSamples =
-      1 << static_cast<int>(std::floor(std::log2(source.GetNumSamples())));
-   config.blockSize = roundedNumSamples;
-   config.stepSize = roundedNumSamples;
-   const auto features =
-      GetVampFeatures("qmvampplugins:qm-keydetector", source, config);
-   if (features.empty())
-      return {};
-   // TODO
-   return {};
 }
 } // namespace MIR

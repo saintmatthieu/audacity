@@ -171,3 +171,5 @@ appimagetool/*
 .build.arm64/
 .conan/
 .debug/
+libraries/lib-music-information-retrieval/tests/debug_output.py
+libraries/lib-music-information-retrieval/tests/stft_log.py

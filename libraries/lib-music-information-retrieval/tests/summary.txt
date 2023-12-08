@@ -1,8 +1,8 @@
-AUC: 0.956497
-Threshold: 0.0205721
-Octave error RMS: 0.142702
-Git commit: 40f017b9e66e799f5fff28e470b0171f733ee3c5
-Audio file hash: -2418.33
+AUC: 0.926554
+Threshold: 0.0269202
+Octave error RMS: 0.148912
+Git commit: b9774737507a7390e36ca43e88aacde00e782f20
+Audio file hash: -2491.37
 Audio files:
 C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36518279.wav
 C:/Users/saint/Documents/auto-tempo\iroyinspeech\clips\common_voice_yo_36518280.wav
