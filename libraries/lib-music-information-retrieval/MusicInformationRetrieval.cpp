@@ -13,11 +13,11 @@
 #include "FFT.h"
 #include "GetBeatFittingCoefficients.h"
 #include "GetBeats.h"
-#include "GetVampFeatures.h"
+// #include "GetVampFeatures.h"
 #include "MirAudioSource.h"
 #include "StftFrameProvider.h"
 
-#include <dsp/mfcc/MFCC.h>
+// #include <dsp/mfcc/MFCC.h>
 
 #include <array>
 #include <cassert>
@@ -511,6 +511,7 @@ std::vector<U> UpsampleByLinearInterpolation(const std::vector<T>& x, size_t M)
    return upsampled;
 }
 
+/*
 template <typename T>
 std::vector<std::vector<T>>
 GetSelfSimilarityMatrix(const std::vector<std::vector<T>>& xx, int sampleRate)
@@ -623,6 +624,7 @@ void DoSSMStuff(const std::vector<T>& input, int sampleRate)
          });
    });
 }
+*/
 } // namespace
 
 std::pair<double, double>
@@ -880,14 +882,6 @@ std::vector<float> GetOnsetDetectionFunction(
       });
 
    return odf;
-}
-
-void NewStuff(const MirAudioSource& source)
-{
-   // Load all samples of `source` in a vector:
-   std::vector<float> samples(source.GetNumSamples());
-   source.ReadFloats(samples.data(), 0, samples.size());
-   DoSSMStuff(samples, source.GetSampleRate());
 }
 
 namespace

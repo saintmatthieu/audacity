@@ -25,13 +25,13 @@ set( SOURCES
 )
 
 set( LIBRARIES
-   btrack
-   libvampp
-   libvamp
+   # btrack
+   # libvampp
+   # libvamp
    lib-utility
-   lib-vamp-plugins-interface
+   # lib-vamp-plugins-interface
    lib-math
-   qm-vamp-plugins
+   # qm-vamp-plugins
    # Gaussian-Mixture-Model
    # Gaussian-Utils
 )

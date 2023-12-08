@@ -60,7 +60,7 @@ set( LIBRARIES
    lib-stretching-sequence
    lib-menus
    lib-music-information-retrieval
-   lib-vamp-plugins
+   # lib-vamp-plugins
 )
 
 if ( ${_OPT}has_networking )

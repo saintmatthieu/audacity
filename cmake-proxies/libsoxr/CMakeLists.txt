@@ -19,7 +19,7 @@ list( APPEND SOURCES
       ${TARGET_ROOT}/src/filter.c
       ${TARGET_ROOT}/src/pffft32s.c
       ${TARGET_ROOT}/src/soxr.c
-      ${TARGET_ROOT}/src/soxr-lsr.c
+      # ${TARGET_ROOT}/src/soxr-lsr.c
       ${TARGET_ROOT}/src/util32s.c
       ${TARGET_ROOT}/src/vr32.c
 )

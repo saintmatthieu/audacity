@@ -1049,6 +1049,7 @@ set( LIBRARIES
       $<$<BOOL:${USE_NYQUIST}>:libnyquist>
       $<$<BOOL:${USE_SBSMS}>:libsbsms>
       $<$<BOOL:${USE_SOUNDTOUCH}>:soundtouch>
+      $<$<BOOL:${USE_VAMP}>:libvamp>
       $<$<PLATFORM_ID:Linux,FreeBSD,OpenBSD,NetBSD,CYGWIN>:PkgConfig::GLIB>
       $<$<PLATFORM_ID:Linux,FreeBSD,OpenBSD,NetBSD,CYGWIN>:PkgConfig::GTK>
       $<$<TARGET_EXISTS:Threads::Threads>:Threads::Threads>
@@ -1343,7 +1344,6 @@ set( AUDACITY_LIBRARIES
    lib-file-formats-interface
    lib-menus-interface
    lib-music-information-retrieval-interface
-   lib-wave-track
 )
 
 if (USE_VST)

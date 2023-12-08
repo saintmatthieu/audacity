@@ -175,8 +175,6 @@ MUSIC_INFORMATION_RETRIEVAL_API std::vector<float> GetOnsetDetectionFunction(
    const MirAudioSource& source, double& odfSampleRate,
    double smoothingThreshold, OdfDebugInfo* debugInfo = nullptr);
 
-MUSIC_INFORMATION_RETRIEVAL_API void NewStuff(const MirAudioSource& source);
-
 struct Experiment1Result
 {
    const double score = std::numeric_limits<double>::max();

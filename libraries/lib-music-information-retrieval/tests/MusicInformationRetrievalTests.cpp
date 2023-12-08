@@ -411,36 +411,6 @@ TEST_CASE("Tuning")
    REQUIRE(auc.threshold == rhythmicClassifierScoreThreshold);
 }
 
-TEST_CASE("NewStuff")
-{
-   // const auto wavFile =
-   //    "C:/Users/saint/Documents/auto-tempo/iroyinspeech/clips/common_voice_yo_36518280.wav";
-   // const auto wavFile =
-   // "C:/Users/saint/Downloads/anotherOneBitesTheDust.wav";
-   const auto wavFile =
-      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Club_BWAAHM_136bpm_Gm.wav";
-   const WavMirAudioSource source { wavFile, timeLimit };
-   auto odfSr = 0.;
-   const auto odf =
-      GetOnsetDetectionFunction(source, odfSr, smoothingThreshold);
-   std::ofstream ofs("C:/Users/saint/Downloads/log_odf.txt");
-   std::for_each(odf.begin(), odf.end(), [&](float x) { ofs << x << ","; });
-   ofs << std::endl;
-   const auto [gcd, confidence] = GetApproximateGcd(odf, odfSr);
-}
-
-TEST_CASE("MoreNewStuff")
-{
-   // const auto wavFile =
-   //    "C:/Users/saint/Documents/auto-tempo/iroyinspeech/clips/common_voice_yo_36518280.wav";
-   // const auto wavFile =
-   // "C:/Users/saint/Downloads/anotherOneBitesTheDust.wav";
-   const auto wavFile =
-      "C:/Users/saint/Documents/auto-tempo/Muse Hub/Club_MoogBass_136bpm_Gm.wav";
-   const WavMirAudioSource source { wavFile, timeLimit };
-   NewStuff(source);
-}
-
 namespace
 {
 template <typename T>
