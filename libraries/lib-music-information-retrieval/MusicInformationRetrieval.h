@@ -26,7 +26,7 @@ struct BeatInfo;
 // (Left public for testing.)
 static constexpr auto rhythmicClassifierScoreThreshold = 0.16;
 
-static constexpr auto smoothingThreshold = 1.;
+static constexpr auto smoothingThreshold = 1.5;
 
 struct ODF
 {
@@ -164,19 +164,25 @@ GetNormalizedAutocorrelation(const std::vector<float>& x, bool full = true);
 MUSIC_INFORMATION_RETRIEVAL_API std::pair<double, double>
 GetApproximateGcd(const std::vector<float>& odf, double odfSampleRate);
 
+struct OdfDebugInfo
+{
+   std::vector<std::vector<float>> postProcessedStft;
+   std::vector<float> rawOdf;
+   std::vector<float> movingAverage;
+};
+
 MUSIC_INFORMATION_RETRIEVAL_API std::vector<float> GetOnsetDetectionFunction(
    const MirAudioSource& source, double& odfSampleRate,
-   double smoothingThreshold,
-   std::vector<std::vector<float>>* postProcessedStft = nullptr);
+   double smoothingThreshold, OdfDebugInfo* debugInfo = nullptr);
 
 MUSIC_INFORMATION_RETRIEVAL_API void NewStuff(const MirAudioSource& source);
 
 struct Experiment1Result
 {
-   const double score;
-   const double tatumRate;
-   const double bpm;
-   const int lag;
+   const double score = std::numeric_limits<double>::max();
+   const double tatumRate = 0;
+   const double bpm = 0;
+   const int lag = 0;
 };
 
 // Maps a combination of time-signature and number of bars (encoded as

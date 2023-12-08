@@ -776,10 +776,10 @@ std::vector<double> MakeHann(size_t N)
 
 std::vector<float> GetOnsetDetectionFunction(
    const MirAudioSource& source, double& odfSampleRate,
-   double smoothingThreshold,
-   std::vector<std::vector<float>>* postProcessedStft)
+   double smoothingThreshold, OdfDebugInfo* debugInfo)
 {
    StftFrameProvider frameProvider { source };
+   odfSampleRate = frameProvider.GetFrameRate();
    const auto sampleRate = frameProvider.GetSampleRate();
    const auto frameSize = frameProvider.GetFftSize();
    std::vector<float> buffer(frameSize);
@@ -836,11 +836,13 @@ std::vector<float> GetOnsetDetectionFunction(
       std::copy(powSpec.begin(), powSpec.end(), prevPowSpec.begin());
       isFirst = false;
 
-      if (postProcessedStft)
-         postProcessedStft->push_back(powSpec);
+      if (debugInfo)
+         debugInfo->postProcessedStft.push_back(powSpec);
    }
 
-   constexpr auto M = 5;
+   constexpr auto smoothingWindowDuration = 0.2;
+   const int M =
+      std::round(smoothingWindowDuration * odfSampleRate / 4) * 2 + 1;
    std::vector<float> window(2 * M + 1);
    for (auto n = 0; n < 2 * M + 1; ++n)
       window[n] = .5 * (1 - std::cosf(2 * pi * n / (2 * M + 1)));
@@ -849,24 +851,34 @@ std::vector<float> GetOnsetDetectionFunction(
       window.begin(), window.end(), window.begin(),
       [windowSum](double w) { return w / windowSum; });
    auto n = 0;
-   std::vector<double> movingAverage(odf.size());
+   decltype(odf) movingAverage(odf.size());
    std::transform(odf.begin(), odf.end(), movingAverage.begin(), [&](float) {
       auto y = 0.;
       for (auto i = -M; i <= M; ++i)
-         y += odf[(n + i) % odf.size()] * window[i + M];
+      {
+         auto k = n + i;
+         if (k < 0)
+            k += odf.size();
+         else if (k >= odf.size())
+            k -= odf.size();
+         y += odf[k] * window[i + M];
+      }
       ++n;
-      return y;
+      return y * smoothingThreshold;
    });
 
-   if (smoothingThreshold > 0.)
-      // subtract moving average from odf:
-      std::transform(
-         odf.begin(), odf.end(), movingAverage.begin(), odf.begin(),
-         [smoothingThreshold](float a, float b) {
-            return std::max<float>(a - b * smoothingThreshold, 0.f);
-         });
+   if (debugInfo)
+   {
+      debugInfo->rawOdf = odf;
+      debugInfo->movingAverage = movingAverage;
+   }
 
-   odfSampleRate = frameProvider.GetFrameRate();
+   std::transform(
+      odf.begin(), odf.end(), movingAverage.begin(), odf.begin(),
+      [smoothingThreshold](float a, float b) {
+         return std::max<float>(a - b, 0.f);
+      });
+
    return odf;
 }
 
@@ -958,11 +970,23 @@ Experiment1Result Experiment1(
       debugOutput->odfPeakIndices = peakIndices;
 
    if (peakIndices.empty())
-      return { 1., 0. }; // Worst score
+      return {};
 
    const auto peakSum = std::accumulate(
       peakIndices.begin(), peakIndices.end(), 0.,
       [&](double sum, int i) { return sum + odf[i]; });
+
+   const auto peakAvg = peakSum / peakIndices.size();
+   // Counter the one-shot situation where there is e.g. only just one crash
+   // cymbal hit. This will translate has one large peak and maybe a few much
+   // smaller ones. In that case we can expect the average to be between these
+   // two groups. If there only is one peak above this average, then give up.
+   const auto numPeaksAboveAvg =
+      std::count_if(peakIndices.begin(), peakIndices.end(), [&](int i) {
+         return odf[i] > peakAvg;
+      });
+   if (numPeaksAboveAvg <= 1)
+      return {};
 
    // Gather a collection of possible number of divisions based on the
    // assumption that the audio is a loop (hence there must be a round number of

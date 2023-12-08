@@ -4,17 +4,27 @@ from debug_output import *
 import matplotlib.pyplot as plt
 import math
 
-# Plot the ODF
-plt.plot(odf)
+plt.figure(1)
+# Plot the ODF, using odfSr to convert from samples to seconds
+plt.plot([i/odfSr for i in range(len(odf))], odf)
 # Plot the peaks
-plt.plot(odf_peak_indices, [odf[i] for i in odf_peak_indices], 'ro')
+plt.plot([i/odfSr for i in odf_peak_indices], [odf[i] for i in odf_peak_indices], 'ro')
 # Convert tatum rate from tatums per minute to tatums per ODF sample:
-tatumRate = tatumRate / 60.0 / odfSr
+tatumRate = tatumRate / 60.0
 
 # Plot the tatums as vertical lines, offset by `lag` samples
-numTatums = int(math.ceil(len(odf) * tatumRate))
+numTatums = int(math.ceil(len(odf) / odfSr * tatumRate))
 for i in range(numTatums):
-    plt.axvline(x=i/tatumRate + lag, color='g', linestyle='--')
+    plt.axvline(x=i/tatumRate + lag / odfSr, color='g', linestyle='--')
 
+plt.xlim(0, len(odf) / odfSr)
 plt.title(wavFile)
+
+# Plot `rawOdf` and `movingAverage` on the same plot.
+plt.figure(2)
+plt.plot([i/odfSr for i in range(len(odf))], rawOdf)
+plt.plot([i/odfSr for i in range(len(odf))], movingAverage)
+plt.xlim(0, len(odf) / odfSr)
+plt.title(wavFile)
+
 plt.show()

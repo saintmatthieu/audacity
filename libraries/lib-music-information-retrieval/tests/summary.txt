@@ -1,6 +1,6 @@
-AUC: 0.926554
-Threshold: 0.0269202
-Octave error RMS: 0.148912
+AUC: 0.896328
+Threshold: 0.0104445
+Octave error RMS: 0.135127
 Git commit: b9774737507a7390e36ca43e88aacde00e782f20
 Audio file hash: -2491.37
 Audio files:
@@ -63,14 +63,32 @@ C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-1564425-0338146-quiet-
 C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-4881796-0338438-1970-sex-drums 75bpm.wav
 C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-5383014-0346325-roofa-can-we-pretend-i-tory-lanez 78bpm.wav
 C:/Users/saint/Documents/auto-tempo\looperman\looperman-l-5407804-0299820-funk-sp-type-melody-luxo-plvco 90bpm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_120BPM_-_Brushes_-_Fill_5.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_120BPM_-_Brushes_-_Short_Fill_12.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_120BPM_-_Brushes_-_Short_Fill_4.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_120BPM_-_Old_School_-_Fill_14.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_120BPM_-_Old_School_-_Fill_3.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_120BPM_-_Old_School_-_Intro_Flll_1.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_120BPM_-_Old_School_-_Outro_Fill_1.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_120BPM_-_Old_School_-_Shuffle_Backbeat.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_150BPM_-_Brushes_-_Fills_5.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_150BPM_-_Brushes_-_Fills_7.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_150BPM_Sticks_-_150BPM_-_Sticks_-_Fill_14.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_150BPM_Sticks_-_150BPM_-_Sticks_-_Fill_6.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_150BPM_Sticks_-_150BPM_-_Sticks_-_Fill_8.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_210BPM_Sticks_-_Boogie_Fills_15.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_210BPM_Sticks_-_Controlled_Snare_Hi_Hat.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_210BPM_Sticks_-_Krupa_Toms_-_Quiet_with_Crash.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_210BPM_Sticks_-_Let_Loose.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Big_Band_Drums_-_Conga_Snare_-_120BPM_-_Fill_4.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_Baritone_136bpm_Gm.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_BigBassHits_136bpm_Gm.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_BWAAHM_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_GuitarMelody_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_Melody_136bpm_Gm.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_MoogBass_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_SaxMelody_136bpm_Gm.wav
+C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_Screamer_Gm.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Club_SuperHeavyKick_136bpm.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Crash_Hit_Bright.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\Disco_Beat_2_116bpm.wav
@@ -105,21 +123,3 @@ C:/Users/saint/Documents/auto-tempo\Muse Hub\z_animal_horse_passby_gallop_gravel
 C:/Users/saint/Documents/auto-tempo\Muse Hub\z_animal_horse_passby_gallop_wetgrass_passby_pass-by_galloping_canter_windy.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\z_atmosphere_designed_forest_magic_abstract_ambience_environment_woodland_trees_spell_conjure_birds.wav
 C:/Users/saint/Documents/auto-tempo\Muse Hub\z_atmosphere_nautical_harbour__akerbrygge_docks_underbridge_ambience_environment_harbor_dock_harbour_boatlapping.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Brushes_-_Fill_5.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Brushes_-_Short_Fill_12.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Brushes_-_Short_Fill_4.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Old_School_-_Fill_14.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Old_School_-_Fill_3.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Old_School_-_Intro_Flll_1.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_120BPM_-_Old_School_-_Outro_Fill_1.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_150BPM_-_Brushes_-_Fills_5.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_150BPM_-_Brushes_-_Fills_7.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_150BPM_Sticks_-_150BPM_-_Sticks_-_Fill_14.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_210BPM_Sticks_-_Boogie_Fills_15.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_210BPM_Sticks_-_Krupa_Toms_-_Quiet_with_Crash.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_210BPM_Sticks_-_Let_Loose.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Big_Band_Drums_-_Conga_Snare_-_120BPM_-_Fill_4.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Club_GuitarMelody_136bpm_Gm.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Club_Melody_136bpm_Gm.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Club_SaxMelody_136bpm_Gm.wav
-C:/Users/saint/Documents/auto-tempo\Muse Hub\z_Club_Screamer_Gm.wav

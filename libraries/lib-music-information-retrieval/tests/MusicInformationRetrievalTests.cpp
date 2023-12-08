@@ -456,20 +456,19 @@ void PrintPythonVector(
 TEST_CASE("Experiment1")
 {
    // const auto wavFile =
-   //    "C:/Users/saint/Documents/auto-tempo/iroyinspeech/clips/common_voice_yo_36520588.wav";
+   //    "C:/Users/saint/Documents/auto-tempo/iroyinspeech/clips/common_voice_yo_36520711.wav";
    // const auto wavFile =
    // "C:/Users/saint/Downloads/anotherOneBitesTheDust.wav";
-   const auto wavFile =
-      "C:/Users/saint/Downloads/Muse Hub/Crash_Hit_Bright.wav";
    // const auto wavFile =
-   //    "C:/Users/saint/Documents/auto-tempo/looperman/looperman funky drums -
-   //    96bpm.wav";
+   //    "C:/Users/saint/Downloads/Muse Hub/Hipness_Guitar_fonkyLickHigh_89bpm_Em.wav";
+   const auto wavFile =
+      "C:/Users/saint/Documents/auto-tempo/looperman/looperman-l-5383014-0346325-roofa-can-we-pretend-i-tory-lanez 78bpm.wav";
    // const auto wavFile = "C:/Users/saint/Downloads/short_chirp.wav";
    const WavMirAudioSource source { wavFile, timeLimit };
    double odfSr = 0.;
-   std::vector<std::vector<float>> postProcessedStft;
+   OdfDebugInfo odfDebugInfo;
    const auto odf = GetOnsetDetectionFunction(
-      source, odfSr, smoothingThreshold, &postProcessedStft);
+      source, odfSr, smoothingThreshold, &odfDebugInfo);
    Experiment1DebugOutput debugOutput;
    const auto audioFileDuration =
       1. * source.GetNumSamples() / source.GetSampleRate();
@@ -504,6 +503,9 @@ TEST_CASE("Experiment1")
       });
    debug_output_module << "}\n";
    PrintPythonVector(debug_output_module, odf, "odf");
+   PrintPythonVector(debug_output_module, odfDebugInfo.rawOdf, "rawOdf");
+   PrintPythonVector(
+      debug_output_module, odfDebugInfo.movingAverage, "movingAverage");
    PrintPythonVector(
       debug_output_module, debugOutput.odfAutoCorr, "odf_auto_corr");
 
@@ -514,7 +516,8 @@ TEST_CASE("Experiment1")
    stft_log_module << "frameRate = " << odfSr << "\n";
    stft_log_module << "stft = [";
    std::for_each(
-      postProcessedStft.begin(), postProcessedStft.end(), [&](const auto& row) {
+      odfDebugInfo.postProcessedStft.begin(),
+      odfDebugInfo.postProcessedStft.end(), [&](const auto& row) {
          stft_log_module << "[";
          std::for_each(row.begin(), row.end(), [&](float x) {
             stft_log_module << x << ",";
