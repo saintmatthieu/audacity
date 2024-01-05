@@ -25,7 +25,6 @@ enum class FalsePositiveTolerance
 
 enum class TimeSignature
 {
-   TwoTwo,
    FourFour,
    ThreeFour,
    SixEight,

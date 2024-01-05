@@ -82,10 +82,7 @@ auto ToString(const std::optional<TimeSignature>& ts)
    if (ts.has_value())
       switch (*ts)
       {
-      case TimeSignature::TwoTwo:
-         return std::string("2/2");
       case TimeSignature::FourFour:
-
          return std::string("4/4");
       case TimeSignature::ThreeFour:
          return std::string("3/4");

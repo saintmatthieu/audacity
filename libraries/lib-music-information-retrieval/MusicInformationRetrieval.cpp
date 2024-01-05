@@ -37,8 +37,8 @@ auto RemovePathPrefix(const std::string& filename)
 
 // When we get time-signature estimate, we may need a map for that, since 6/8
 // has 1.5 quarter notes per beat.
-constexpr std::array<double, numTimeSignatures> quarternotesPerBeat { 2., 1.,
-                                                                      1., 1.5 };
+constexpr std::array<double, numTimeSignatures> quarternotesPerBeat { 1., 1.,
+                                                                      1.5 };
 
 std::optional<MusicalMeter> FillMetadata(
    const std::string& filename, const MirAudioReader& audio,
@@ -55,13 +55,13 @@ std::optional<MusicalMeter> FillMetadata(
 
 int GetNumerator(TimeSignature ts)
 {
-   constexpr std::array<int, numTimeSignatures> numerators = { 2, 4, 3, 6 };
+   constexpr std::array<int, numTimeSignatures> numerators = { 4, 3, 6 };
    return numerators[static_cast<int>(ts)];
 }
 
 int GetDenominator(TimeSignature ts)
 {
-   constexpr std::array<int, numTimeSignatures> denominators = { 2, 4, 4, 8 };
+   constexpr std::array<int, numTimeSignatures> denominators = { 4, 4, 8 };
    return denominators[static_cast<int>(ts)];
 }
 

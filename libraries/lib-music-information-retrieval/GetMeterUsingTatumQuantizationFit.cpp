@@ -210,8 +210,7 @@ GetTimeSignature(const BarDivision& barDivision, int numTatums)
    switch (barDivision.beatsPerBar)
    {
    case 2:
-      return (tatumsPerBeat == 3) ? TimeSignature::SixEight :
-                                    TimeSignature::TwoTwo;
+      return TimeSignature::SixEight;
    case 3:
       return TimeSignature::ThreeFour;
    case 4:
@@ -235,14 +234,12 @@ GetTimeSignatureLikelihood(const std::optional<TimeSignature>& ts, double bpm)
       return 0.;
 
    static const std::unordered_map<TimeSignature, double> expectedBpms {
-      { TimeSignature::TwoTwo, 115. },
       { TimeSignature::FourFour, 115. },
       { TimeSignature::ThreeFour, 140. },
       { TimeSignature::SixEight, 64. },
    };
 
    static const std::unordered_map<TimeSignature, double> bpmStdDevs {
-      { TimeSignature::TwoTwo, 25. },
       { TimeSignature::FourFour, 25. },
       { TimeSignature::ThreeFour, 25. },
       { TimeSignature::SixEight, 15. },
@@ -250,7 +247,6 @@ GetTimeSignatureLikelihood(const std::optional<TimeSignature>& ts, double bpm)
 
    // Add a slight bias towards 4/4, which is the most common time signature.
    static const std::unordered_map<TimeSignature, double> tsPrior {
-      { TimeSignature::TwoTwo, .1 },
       { TimeSignature::FourFour, .45 },
       { TimeSignature::ThreeFour, .2 },
       { TimeSignature::SixEight, .25 },
