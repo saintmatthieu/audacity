@@ -73,7 +73,7 @@ bool StftFrameProvider::GetNextFrame(std::vector<float>& frame)
    // STFT, but that's a use case we're not interested in. We just need to make
    // sure we don't crash.
    const auto numRemaining = std::min(mFftSize - numToRead, mNumSamples);
-   if (numRemaining >= 0)
+   if (numRemaining > 0)
       mAudio.ReadFloats(frame.data() + numToRead, 0, numRemaining);
    std::transform(
       frame.begin(), frame.end(), mWindow.begin(), frame.begin(),
