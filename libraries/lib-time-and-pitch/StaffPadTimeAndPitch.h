@@ -1,8 +1,9 @@
 #include "AudioContainer.h"
 #include "TimeAndPitchInterface.h"
 
-
 #include "StaffPad/TimeAndPitch.h"
+
+#include <mutex>
 
 class TIME_AND_PITCH_API StaffPadTimeAndPitch final :
     public TimeAndPitchInterface
@@ -21,4 +22,5 @@ private:
    AudioContainer mReadBuffer;
    const size_t mNumChannels;
    const double mTimeRatio;
+   std::mutex mTimeAndPitchMutex;
 };
