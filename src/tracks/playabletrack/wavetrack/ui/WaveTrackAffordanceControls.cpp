@@ -36,6 +36,7 @@
 #include "WaveChannelView.h"//need only ClipParameters
 #include "WaveTrackAffordanceHandle.h"
 
+#include "ProjectAudioIO.h"
 #include "ProjectHistory.h"
 #include "../../../../ProjectSettings.h"
 #include "SelectionState.h"
@@ -612,11 +613,15 @@ void WaveTrackAffordanceControls::StartEditSelectedClipSpeed(
    if (!interval)
       return;
 
-   ChangeClipSpeedDialog dlg(*track, *interval, &GetProjectFrame(project));
+   ChangeClipSpeedDialog dlg(
+      ProjectAudioIO::Get(project).IsAudioActive(), *track, *interval,
+      &GetProjectFrame(project));
 
    if (wxID_OK == dlg.ShowModal())
    {
-      PushClipSpeedChangedUndoState(project, 100.0 / interval->GetStretchRatio());
+      ProjectHistory::Get(project).PushState(
+         XO("Changed Pitch And Speed"), XO("Changed Properties"),
+         UndoPush::CONSOLIDATE);
       SelectInterval(project, *interval);
    }
 }
@@ -646,6 +651,18 @@ void WaveTrackAffordanceControls::OnRenderClipStretching(
       XO("Rendered time-stretched audio"), XO("Render"));
 
    SelectInterval(project, *interval);
+}
+
+void WaveTrackAffordanceControls::OnPitchShift(AudacityProject& project, bool up)
+{
+   const auto [track, it] = SelectedIntervalOfFocusedTrack(project);
+   if (track != FindTrack().get())
+      return;
+   auto interval = *it;
+   interval->SetSemitoneShift(interval->GetSemitoneShift() + (up ? 1 : -1));
+   ProjectHistory::Get(project).PushState(
+         XO("Pitch Shift"), XO("Changed Pitch Shift"),
+         UndoPush::CONSOLIDATE);
 }
 
 std::shared_ptr<TextEditHelper> WaveTrackAffordanceControls::MakeTextEditHelper(const wxString& text)
@@ -684,7 +701,7 @@ void OnEditClipName(const CommandContext &context)
    }
 }
 
-void OnChangeClipSpeed(const CommandContext& context)
+void OnClipProperties(const CommandContext& context)
 {
    auto& project = context.project;
 
@@ -710,6 +727,30 @@ void OnRenderClipStretching(const CommandContext& context)
    }
 }
 
+void OnPitchUp(const CommandContext& context)
+{
+   auto& project = context.project;
+   if (
+      auto pWaveTrack =
+         dynamic_cast<WaveTrack*>(TrackFocus::Get(project).Get()))
+   {
+      if (auto pAffordance = FindAffordance(*pWaveTrack))
+         pAffordance->OnPitchShift(project, true);
+   }
+}
+
+void OnPitchDown(const CommandContext& context)
+{
+   auto& project = context.project;
+   if (
+      auto pWaveTrack =
+         dynamic_cast<WaveTrack*>(TrackFocus::Get(project).Get()))
+   {
+      if (auto pAffordance = FindAffordance(*pWaveTrack))
+         pAffordance->OnPitchShift(project, false);
+   }
+}
+
 using namespace MenuRegistry;
 
 // Register menu items
@@ -721,14 +762,26 @@ AttachedItem sAttachment{
 };
 
 AttachedItem sAttachment2{
-   Command( L"ChangeClipSpeed", XXO("Change &Speed..."),
-      OnChangeClipSpeed, SomeClipIsSelectedFlag() ),
+   Command( L"ChangePitchAndSpeed", XXO("Clip &Properties..."),
+      OnClipProperties, SomeClipIsSelectedFlag(), Options{ wxT("Alt+P") }),
    wxT("Edit/Other/Clip")
 };
 
 AttachedItem sAttachment3{
    Command( L"RenderClipStretching", XXO("Render Clip S&tretching"),
       OnRenderClipStretching, StretchedClipIsSelectedFlag()),
+   wxT("Edit/Other/Clip")
+};
+
+AttachedItem sAttachment4{
+   Command( L"PitchUp", XXO("Pitch &Up"),
+      OnPitchUp, SomeClipIsSelectedFlag(), Options{ wxT("Alt+Up") }),
+   wxT("Edit/Other/Clip")
+};
+
+AttachedItem sAttachment5{
+   Command( L"PitchDown", XXO("Pitch &Down"),
+      OnPitchDown, SomeClipIsSelectedFlag(), Options{ wxT("Alt+Down") }),
    wxT("Edit/Other/Clip")
 };
 }
