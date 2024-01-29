@@ -13,6 +13,7 @@
 #include "ClipInterface.h"
 #include "ClipSegment.h"
 #include "SilenceSegment.h"
+#include "TimeAndPitchInterface.h"
 
 #include <algorithm>
 
@@ -28,15 +29,16 @@ AudioSegmentFactory::AudioSegmentFactory(
 
 std::vector<std::shared_ptr<AudioSegment>>
 AudioSegmentFactory::CreateAudioSegmentSequence(
-   double playbackStartTime, PlaybackDirection direction) const
+   double playbackStartTime, PlaybackDirection direction)
 {
+   mPropagators.clear();
    return direction == PlaybackDirection::forward ?
              CreateAudioSegmentSequenceForward(playbackStartTime) :
              CreateAudioSegmentSequenceBackward(playbackStartTime);
 }
 
 std::vector<std::shared_ptr<AudioSegment>>
-AudioSegmentFactory::CreateAudioSegmentSequenceForward(double t0) const
+AudioSegmentFactory::CreateAudioSegmentSequenceForward(double t0)
 {
    auto sortedClips = mClips;
    std::sort(
@@ -58,15 +60,22 @@ AudioSegmentFactory::CreateAudioSegmentSequenceForward(double t0) const
       }
       else if (clip->GetPlayEndTime() <= t0)
          continue;
+      const auto propagator = std::make_shared<PitchShiftChangePropagator>();
+      clip->SetPitchShiftChangePublisher(propagator);
+      auto subscriber = std::bind(
+         &PitchShiftChangePropagator::Subscribe, propagator,
+         std::placeholders::_1);
       segments.push_back(std::make_shared<ClipSegment>(
-         *clip, t0 - clip->GetPlayStartTime(), PlaybackDirection::forward));
+         *clip, t0 - clip->GetPlayStartTime(), PlaybackDirection::forward,
+         std::move(subscriber)));
+      mPropagators.push_back(std::move(propagator));
       t0 = clip->GetPlayEndTime();
    }
    return segments;
 }
 
 std::vector<std::shared_ptr<AudioSegment>>
-AudioSegmentFactory::CreateAudioSegmentSequenceBackward(double t0) const
+AudioSegmentFactory::CreateAudioSegmentSequenceBackward(double t0)
 {
    auto sortedClips = mClips;
    std::sort(
@@ -89,9 +98,28 @@ AudioSegmentFactory::CreateAudioSegmentSequenceBackward(double t0) const
       }
       else if (clip->GetPlayStartTime() >= t0)
          continue;
+      const auto propagator = std::make_shared<PitchShiftChangePropagator>();
+      clip->SetPitchShiftChangePublisher(propagator);
+      auto subscriber = std::bind(
+         &PitchShiftChangePropagator::Subscribe, propagator,
+         std::placeholders::_1);
       segments.push_back(std::make_shared<ClipSegment>(
-         *clip, clip->GetPlayEndTime() - t0, PlaybackDirection::backward));
+         *clip, clip->GetPlayEndTime() - t0, PlaybackDirection::backward,
+         std::move(subscriber)));
+      mPropagators.push_back(std::move(propagator));
       t0 = clip->GetPlayStartTime();
    }
    return segments;
+}
+
+void AudioSegmentFactory::PitchShiftChangePropagator::Publish(double semitones)
+{
+   if (mCb)
+      mCb(semitones);
+}
+
+void AudioSegmentFactory::PitchShiftChangePropagator::Subscribe(
+   std::function<void(double)> cb)
+{
+   mCb = std::move(cb);
 }

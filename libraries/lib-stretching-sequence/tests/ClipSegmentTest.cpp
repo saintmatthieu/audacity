@@ -36,7 +36,7 @@ TEST_CASE("ClipSegment")
             std::make_shared<FloatVectorClip>(
                sampleRate,
                FloatVectorVector { { 1.f, 2.f, 3.f }, { -1.f, -2.f, -3.f } });
-      ClipSegment sut { *clip, 0., direction };
+      ClipSegment sut { *clip, 0., direction, {} };
       AudioContainer output(sampleRate, numChannels);
       REQUIRE(sut.GetFloats(output.channelPointers.data(), sampleRate) == sampleRate);
       if (numChannels == 1u)
@@ -67,7 +67,7 @@ TEST_CASE("ClipSegment")
       const auto numSamples = clip->GetVisibleSampleCount().as_size_t(); // 5
       // Offset of two samples, in seconds.
       constexpr auto playbackOffset = 2 / static_cast<double>(sampleRate);
-      ClipSegment sut { *clip, playbackOffset, direction };
+      ClipSegment sut { *clip, playbackOffset, direction, {} };
       AudioContainer output(numSamples, 1u);
       REQUIRE(sut.GetFloats(output.channelPointers.data(), numSamples) == 3);
       const auto expected = direction == PlaybackDirection::forward ?

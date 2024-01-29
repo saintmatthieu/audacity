@@ -11,22 +11,26 @@
 #pragma once
 
 #include "AudioSegment.h"
-#include "PlaybackDirection.h"
 #include "ClipTimeAndPitchSource.h"
+#include "PlaybackDirection.h"
 
 #include <memory>
 
 class ClipInterface;
 class TimeAndPitchInterface;
 
+using PitchRatioChangeCbSubscriber =
+   std::function<void(std::function<void(double)>)>;
+
 class STRETCHING_SEQUENCE_API ClipSegment final : public AudioSegment
 {
 public:
    ClipSegment(
-      const ClipInterface&, double durationToDiscard, PlaybackDirection);
+      const ClipInterface&, double durationToDiscard, PlaybackDirection,
+      PitchRatioChangeCbSubscriber pitchRatioChangeCbSubscriber);
 
    // AudioSegment
-   size_t GetFloats(float *const *buffers, size_t numSamples) override;
+   size_t GetFloats(float* const* buffers, size_t numSamples) override;
    bool Empty() const override;
    size_t GetWidth() const override;
 

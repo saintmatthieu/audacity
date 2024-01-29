@@ -14,14 +14,19 @@
 #include "StaffPadTimeAndPitch.h"
 
 #include <cassert>
+#include <cmath>
+#include <functional>
 
 namespace
 {
-TimeAndPitchInterface::Parameters
-GetStretchingParameters(const ClipInterface& clip)
+TimeAndPitchInterface::Parameters GetStretchingParameters(
+   const ClipInterface& clip, std::function<void(std::function<void(double)>)>
+                                 pitchRatioChangeCbSubscriber)
 {
    TimeAndPitchInterface::Parameters params;
    params.timeRatio = clip.GetStretchRatio();
+   params.pitchRatio = std::pow(2., clip.GetSemitoneShift() / 12);
+   params.pitchRatioChangeCbSubscriber = pitchRatioChangeCbSubscriber;
    return params;
 }
 
@@ -36,17 +41,19 @@ GetTotalNumSamplesToProduce(const ClipInterface& clip, double durationToDiscard)
 
 ClipSegment::ClipSegment(
    const ClipInterface& clip, double durationToDiscard,
-   PlaybackDirection direction)
+   PlaybackDirection direction,
+   PitchRatioChangeCbSubscriber pitchRatioChangeCbSubscriber)
     : mTotalNumSamplesToProduce { GetTotalNumSamplesToProduce(
          clip, durationToDiscard) }
     , mSource { clip, durationToDiscard, direction }
     , mStretcher { std::make_unique<StaffPadTimeAndPitch>(
          clip.GetRate(), clip.GetWidth(), mSource,
-         GetStretchingParameters(clip)) }
+         GetStretchingParameters(
+            clip, std::move(pitchRatioChangeCbSubscriber))) }
 {
 }
 
-size_t ClipSegment::GetFloats(float *const *buffers, size_t numSamples)
+size_t ClipSegment::GetFloats(float* const* buffers, size_t numSamples)
 {
    const auto numSamplesToProduce = limitSampleBufferSize(
       numSamples, mTotalNumSamplesToProduce - mTotalNumSamplesProduced);
