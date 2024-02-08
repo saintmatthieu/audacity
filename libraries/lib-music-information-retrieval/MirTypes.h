@@ -148,4 +148,36 @@ struct QuantizationFitDebugOutput
    std::vector<float> odfAutoCorr;
    std::vector<int> odfAutoCorrPeakIndices;
 };
+
+// Some internal constants centralized here, to stress their interdependence.
+
+/*!
+ * Frequency energy compression factor. See section (6.5) in Müller, Meinard.
+ * Fundamentals of music processing: Audio, analysis, algorithms,
+ * applications. Vol. 5. Cham: Springer, 2015.
+ */
+static constexpr auto gamma = 100.f;
+
+/*!
+ * Target hop size in seconds for the onset detection function. Due to the
+ * power-of-two length constraint of the ODF, the actual value will be slightly
+ * different.
+ */
+static constexpr auto targetHopDuration = 0.01f;
+
+/*!
+ * At 44.1kHz, the frame size is 2048, which corresponds to 46ms. This duration
+ * works, and should be (approximately) preserved across other sample rates.
+ */
+static constexpr auto frameSizeExponentAt44_1kHz = 11;
+
+/*!
+ * In our implementation, the ODF of a steady sinusoid isn't exactly zero. This
+ * threshold is here to prevent the onset detection function from triggering on
+ * such noise.
+ * Careful: modifying `gamma` or `targetHopDuration` might require re-tuning
+ * this threshold.
+ */
+static constexpr auto odfNoiseGate = 5e-4f;
+
 } // namespace MIR

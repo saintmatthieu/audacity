@@ -44,11 +44,12 @@ float GetNoveltyMeasure(
    const std::vector<float>& prevPowSpec, const std::vector<float>& powSpec)
 {
    auto k = 0;
-   return std::accumulate(
+   const auto measure = std::accumulate(
       powSpec.begin(), powSpec.end(), 0.f, [&](float a, float mag) {
          // Half-wave-rectified stuff
          return a + std::max(0.f, mag - prevPowSpec[k++]);
       });
+   return measure / powSpec.size() > odfNoiseGate ? measure : 0.f;
 }
 
 std::vector<float> GetMovingAverage(const std::vector<float>& x, double hopRate)

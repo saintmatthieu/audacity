@@ -25,17 +25,18 @@ constexpr auto twoPi = 2 * 3.14159265358979323846;
 
 int GetFrameSize(int sampleRate)
 {
-   // 2048 frame size for sample rate 44.1kHz
-   return 1 << (11 + (int)std::round(std::log2(sampleRate / 44100.)));
+   return 1
+          << (frameSizeExponentAt44_1kHz +
+              (int)std::round(std::log2(sampleRate / 44100.)));
 }
 
 double GetHopSize(int sampleRate, long long numSamples)
 {
-   // Aim for a hop size closest to 10ms, yet dividing `numSamples` to a power
-   // of two. This will spare us the need for resampling when we need to get the
-   // autocorrelation of the ODF using an FFT.
-   const auto idealHopSize = 0.01 * sampleRate;
-   const int exponent = std::round(std::log2(numSamples / idealHopSize));
+   // Aim for a hop size closest to `targetHopDuration`, yet dividing
+   // `numSamples` to a power of two. This will spare us the need for resampling
+   // when we need to get the autocorrelation of the ODF using an FFT.
+   const auto targetHopSize = targetHopDuration * sampleRate;
+   const int exponent = std::round(std::log2(numSamples / targetHopSize));
    if (exponent < 0)
       return 0;
    const auto numFrames = 1 << exponent;
