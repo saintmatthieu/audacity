@@ -42,7 +42,7 @@ constexpr float GetLog2(float x)
 }
 
 float GetNoveltyMeasure(
-   const std::vector<float>& prevPowSpec, const std::vector<float>& powSpec)
+   const PffftFloatVector& prevPowSpec, const PffftFloatVector& powSpec)
 {
    auto k = 0;
    return std::accumulate(
@@ -85,15 +85,17 @@ std::vector<float> GetMovingAverage(const std::vector<float>& x, double hopRate)
 }
 } // namespace
 
-std::vector<float> GetNormalizedCircularAutocorr(std::vector<float> x)
+std::vector<float>
+GetNormalizedCircularAutocorr(const std::vector<float>& xu /*unaligned*/)
 {
-   if (std::all_of(x.begin(), x.end(), [](float x) { return x == 0.f; }))
-      return x;
+   if (std::all_of(xu.begin(), xu.end(), [](float x) { return x == 0.f; }))
+      return xu;
+   PffftFloatVector x { xu.begin(), xu.end(), PffftFloatVectorAllocator() };
    const auto N = x.size();
    assert(IsPowOfTwo(N));
    PFFFT_Setup* setup = pffft_new_setup(N, PFFFT_REAL);
    Finally Do { [&] { pffft_destroy_setup(setup); } };
-   std::vector<float> work(N);
+   PffftFloatVector work(N);
    pffft_transform_ordered(
       setup, x.data(), x.data(), work.data(), PFFFT_FORWARD);
 
@@ -118,7 +120,7 @@ std::vector<float> GetNormalizedCircularAutocorr(std::vector<float> x)
    std::transform(x.begin(), x.end(), x.begin(), [normalizer](float x) {
       return x * normalizer;
    });
-   return x;
+   return { x.begin(), x.end() };
 }
 
 std::vector<float> GetOnsetDetectionFunction(
@@ -130,21 +132,24 @@ std::vector<float> GetOnsetDetectionFunction(
    const auto sampleRate = frameProvider.GetSampleRate();
    const auto numFrames = frameProvider.GetNumFrames();
    const auto frameSize = frameProvider.GetFftSize();
-   std::vector<float> buffer(frameSize);
    std::vector<float> odf;
    odf.reserve(numFrames);
    const auto powSpecSize = frameSize / 2 + 1;
-   std::vector<float> powSpec(powSpecSize);
-   std::vector<float> prevPowSpec(powSpecSize);
-   std::vector<float> firstPowSpec;
+   {
+      PffftFloatVector buffer(3);
+   }
+   PffftFloatVector buffer(frameSize);
+   PffftFloatVector powSpec(powSpecSize);
+   PffftFloatVector prevPowSpec(powSpecSize);
+   PffftFloatVector firstPowSpec;
    std::fill(prevPowSpec.begin(), prevPowSpec.end(), 0.f);
 
    PowerSpectrumGetter getPowerSpectrum { frameSize };
 
    auto frameCounter = 0;
-   while (frameProvider.GetNextFrame(buffer))
+   while (frameProvider.GetNextFrame(buffer.data()))
    {
-      getPowerSpectrum(buffer.data(), powSpec.data());
+      getPowerSpectrum(buffer, powSpec);
 
       // Compress the frame as per section (6.5) in Müller, Meinard.
       // Fundamentals of music processing: Audio, analysis, algorithms,
@@ -160,7 +165,8 @@ std::vector<float> GetOnsetDetectionFunction(
          odf.push_back(GetNoveltyMeasure(prevPowSpec, powSpec));
 
       if (debugOutput)
-         debugOutput->postProcessedStft.push_back(powSpec);
+         debugOutput->postProcessedStft.push_back(
+            { powSpec.begin(), powSpec.end() });
 
       std::swap(prevPowSpec, powSpec);
 

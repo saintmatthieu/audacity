@@ -11,6 +11,7 @@ set( SOURCES
    MirAudioReader.h
    MirDsp.cpp
    MirDsp.h
+   MirTypes.cpp
    MirTypes.h
    MirUtils.cpp
    MirUtils.h

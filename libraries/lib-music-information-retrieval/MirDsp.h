@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "MirTypes.h"
 #include <algorithm>
 #include <functional>
 #include <vector>
@@ -32,7 +33,7 @@ struct QuantizationFitDebugOutput;
  * @pre `x.size()` is a power of two.
  * @post returned vector has size `x.size() / 2 + 1`.
  */
-std::vector<float> GetNormalizedCircularAutocorr(std::vector<float> x);
+std::vector<float> GetNormalizedCircularAutocorr(const std::vector<float>& x);
 
 std::vector<float> GetOnsetDetectionFunction(
    const MirAudioReader& audio,

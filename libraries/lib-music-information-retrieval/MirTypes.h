@@ -61,4 +61,13 @@ struct QuantizationFitDebugOutput
    std::vector<float> odfAutoCorr;
    std::vector<int> odfAutoCorrPeakIndices;
 };
+
+
+struct PffftFloatVectorAllocator : public std::allocator<float>
+{
+   float* allocate(std::size_t n);
+   void deallocate(float* const p, std::size_t n);
+};
+
+using PffftFloatVector = std::vector<float, PffftFloatVectorAllocator>;
 } // namespace MIR

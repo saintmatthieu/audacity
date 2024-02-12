@@ -10,9 +10,10 @@
 **********************************************************************/
 #pragma once
 
-struct PFFFT_Setup;
-
+#include "MirTypes.h"
 #include <vector>
+
+struct PFFFT_Setup;
 
 namespace MIR
 {
@@ -35,11 +36,11 @@ public:
     * it again afterwards.
     * @param output `fftSize / 2 + 1` samples.
     */
-   void operator()(float* buffer, float* output);
+   void operator()(PffftFloatVector& buffer, PffftFloatVector& output);
 
 private:
    const int mFftSize;
    PFFFT_Setup* mSetup;
-   std::vector<float> mWork;
+   PffftFloatVector mWork;
 };
 } // namespace MIR
