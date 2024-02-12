@@ -29,22 +29,17 @@ public:
    ~PowerSpectrumGetter();
 
    /*!
-    * @brief Returns a pointer to the data to be transformed. User must fill it
-    * with `fftSize` samples before calling `Process()`.
-    */
-   float* GetInputPtr();
-
-   /*!
-    * @brief Computes the power spectrum of data pointed at by `GetInputPtr()`
-    * into `output`.
+    * @brief Computes the power spectrum of `buffer` into `output`.
+    * @param buffer Input samples of size `fftSize`. Also gets used as
+    * placeholder and gets overwritten, so copy your data elsewhere if you need
+    * it again afterwards.
     * @param output `fftSize / 2 + 1` samples.
     */
-   void Process(float* output);
+   void operator()(float* buffer, float* output);
 
 private:
    const int mFftSize;
    PFFFT_Setup* mSetup;
-   float* mData;
-   float* mWork;
+   std::vector<float> mWork;
 };
 } // namespace MIR

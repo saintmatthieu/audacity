@@ -28,10 +28,7 @@ class MUSIC_INFORMATION_RETRIEVAL_API StftFrameProvider
 {
 public:
    StftFrameProvider(const MirAudioReader& source);
-   /*!
-    * @param frame A pointer to an array of size `GetFftSize()`.
-    */
-   bool GetNextFrame(float* frame);
+   bool GetNextFrame(std::vector<float>& frame);
    int GetNumFrames() const;
    int GetSampleRate() const;
    double GetFrameRate() const;
