@@ -367,17 +367,21 @@ void TimeAndPitch::_process_hop(int hop_a, int hop_s)
       vo::rotate(d->phase.getPtr(ch), d->phase_accum.getPtr(ch), d->spectrum.getPtr(ch),
                                   d->spectrum.getNumSamples());
 
-    if (_pitchFactor != 1.)
+    auto preserveFormants = false;
     {
-       // Formant preservation:
-       // 1. Evaluate the envelope of the magnitude spectrum by taking cepstrum of the log of the norm.
-       // 2. For each bin, the gain is the ratio of the envelope at the
-       // stretched
-       //    position to the envelope at the original position
-       // 3. Apply the gain to the bins
-
-      // 1. Evaluate the envelope of the magnitude spectrum by taking cepstrum of the log of the norm.
-
+       std::ifstream preserveFormantsFile {
+          "C:/Users/saint/Downloads/preserveFormants.txt"
+       };
+       // This file is only one line with either 1 or 0.
+       if (preserveFormantsFile.is_open())
+       {
+          std::string line;
+          std::getline(preserveFormantsFile, line);
+          preserveFormants = line == "1";
+       }
+    }
+    if (preserveFormants)
+    {
        SamplesReal logNorm;
        logNorm.setSize(1, fftSize);
        auto* logNormPtr = logNorm.getPtr(0);
@@ -395,7 +399,7 @@ void TimeAndPitch::_process_hop(int hop_a, int hop_s)
        cepstrum.setSize(1, _numBins);
        d->fft.forwardReal(logNorm, cepstrum);
        std::complex<float>* cepstrumPtr = cepstrum.getPtr(0);
-       constexpr auto numCepstrumBins = 10;
+       constexpr auto numCepstrumBins = 30;
        std::fill(cepstrumPtr + numCepstrumBins, cepstrumPtr + _numBins, 0.f);
        // The cepstrum is the FFT of `logNorm`, which is symmetrical, hence it
        // should only have real values. Clean up from numerical errors.
@@ -404,10 +408,15 @@ void TimeAndPitch::_process_hop(int hop_a, int hop_s)
        const std::vector<std::complex<float>> cepstrumVec(
           cepstrumPtr, cepstrumPtr + _numBins); // for debugging
        d->fft.inverseReal(cepstrum, logNorm);
+       // PFFFT doesn't scale
+       std::transform(
+          logNormPtr, logNormPtr + fftSize, logNormPtr,
+          [fftSize = fftSize](float x) { return x / fftSize; });
        const auto env = logNorm.getPtr(0);
        const std::vector<float> envVec(env, env + fftSize); // for debugging
 
-       const auto maxBin = (int)std::ceil(_numBins / _pitchFactor);
+       const auto maxBin =
+          std::min<int>(_numBins, std::ceil(_numBins / _pitchFactor));
        auto spectrum = d->spectrum.getPtr(0);
        for (auto b = 0; b < maxBin; ++b)
        {
@@ -417,7 +426,7 @@ void TimeAndPitch::_process_hop(int hop_a, int hop_s)
           const auto frac = b_stretched - b_stretched_floor;
           const auto target = (1 - frac) * env[b_stretched_floor] +
                               frac * env[b_stretched_floor + 1];
-          const auto gain = target / env[b];
+          const auto gain = std::pow(2, target - env[b]);
           spectrum[b] *= gain;
        }
        std::fill(spectrum + maxBin, spectrum + _numBins, 0.f);
