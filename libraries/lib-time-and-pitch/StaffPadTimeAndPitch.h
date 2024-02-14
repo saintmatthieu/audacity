@@ -1,8 +1,7 @@
 #include "AudioContainer.h"
-#include "TimeAndPitchInterface.h"
-
+#include "FormantFilter.h"
 #include "StaffPad/TimeAndPitch.h"
-
+#include "TimeAndPitchInterface.h"
 #include <mutex>
 
 class TIME_AND_PITCH_API StaffPadTimeAndPitch final :
@@ -26,4 +25,5 @@ private:
    const double mTimeRatio;
    double mPitchRatio;
    std::mutex mTimeAndPitchMutex;
+   FormantFilter mFormantFilter;
 };

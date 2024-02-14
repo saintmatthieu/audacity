@@ -49,6 +49,7 @@ StaffPadTimeAndPitch::StaffPadTimeAndPitch(
     , mPitchRatio(parameters.pitchRatio.value_or(1.))
     , mTimeAndPitch(
          MaybeCreateTimeAndPitch(sampleRate, numChannels, parameters))
+    , mFormantFilter(sampleRate, numChannels)
 {
    BootStretcher();
 }
@@ -82,6 +83,7 @@ void StaffPadTimeAndPitch::GetSamples(float* const* output, size_t outputLen)
          {
             const auto numSamplesToFeed = std::min(numRequired, maxBlockSize);
             mAudioSource.Pull(mReadBuffer.Get(), numSamplesToFeed);
+            // mFormantFilter.Whiten(mReadBuffer.Get(), numSamplesToFeed);
             mTimeAndPitch->feedAudio(mReadBuffer.Get(), numSamplesToFeed);
             numRequired -= numSamplesToFeed;
          }
@@ -98,6 +100,7 @@ void StaffPadTimeAndPitch::GetSamples(float* const* output, size_t outputLen)
          float* buffer[2] {};
          GetOffsetBuffer(buffer, output, mNumChannels, numOutputSamples);
          mTimeAndPitch->retrieveAudio(buffer, numSamplesToGet);
+         // mFormantFilter.Color(buffer, numSamplesToGet);
          numOutputSamplesAvailable -= numSamplesToGet;
          numOutputSamples += numSamplesToGet;
       }

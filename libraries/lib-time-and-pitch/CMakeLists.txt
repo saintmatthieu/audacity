@@ -20,6 +20,8 @@ set( SOURCES
    StaffPad/VectorOps.h
    AudioContainer.cpp
    AudioContainer.h
+   FormantFilter.cpp
+   FormantFilter.h
    StaffPadTimeAndPitch.cpp
    StaffPadTimeAndPitch.h
    TimeAndPitchInterface.cpp
@@ -27,7 +29,7 @@ set( SOURCES
 )
 set( LIBRARIES
 PUBLIC
-   pffft
+   lib-music-information-retrieval # needed for GetNormalizedCircularAutocorr ; todo: move to a separate library
 )
 audacity_library( lib-time-and-pitch "${SOURCES}" "${LIBRARIES}"
    "" ""

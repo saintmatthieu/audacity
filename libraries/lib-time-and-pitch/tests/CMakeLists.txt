@@ -5,6 +5,7 @@ add_unit_test(
       lib-time-and-pitch
    WAV_FILE_IO
    SOURCES
+      FormantFilterTests.cpp
       StaffPadTimeAndPitchTest.cpp
       TimeAndPitchFakeSource.h
       TimeAndPitchRealSource.h
