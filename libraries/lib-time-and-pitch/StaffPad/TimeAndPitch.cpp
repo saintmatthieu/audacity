@@ -1,5 +1,6 @@
 #include "TimeAndPitch.h"
 
+#include <fstream>
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -365,6 +366,63 @@ void TimeAndPitch::_process_hop(int hop_a, int hop_s)
     for (int ch = 0; ch < _numChannels; ++ch)
       vo::rotate(d->phase.getPtr(ch), d->phase_accum.getPtr(ch), d->spectrum.getPtr(ch),
                                   d->spectrum.getNumSamples());
+
+    if (_pitchFactor != 1.)
+    {
+       // Formant preservation:
+       // 1. Evaluate the envelope of the magnitude spectrum by taking cepstrum of the log of the norm.
+       // 2. For each bin, the gain is the ratio of the envelope at the
+       // stretched
+       //    position to the envelope at the original position
+       // 3. Apply the gain to the bins
+
+      // 1. Evaluate the envelope of the magnitude spectrum by taking cepstrum of the log of the norm.
+
+       SamplesReal logNorm;
+       logNorm.setSize(1, fftSize);
+       auto* logNormPtr = logNorm.getPtr(0);
+       auto normPtr = d->norm.getPtr(0);
+       std::transform(normPtr, normPtr + _numBins, logNormPtr, [](float x) {
+          // About -90*log2(10)/10, to ensure that the dB value is at least -90.
+          constexpr auto noiseFloor = -30.f;
+          return std::max(noiseFloor, std::log2(x));
+       });
+       std::copy(
+          logNormPtr + 1, logNormPtr + _numBins - 1, logNormPtr + _numBins);
+       std::reverse(logNormPtr + _numBins, logNormPtr + fftSize);
+       const std::vector<float> logNormVec(logNormPtr, logNormPtr + fftSize); // for debugging
+       SamplesComplex cepstrum;
+       cepstrum.setSize(1, _numBins);
+       d->fft.forwardReal(logNorm, cepstrum);
+       std::complex<float>* cepstrumPtr = cepstrum.getPtr(0);
+       constexpr auto numCepstrumBins = 10;
+       std::fill(cepstrumPtr + numCepstrumBins, cepstrumPtr + _numBins, 0.f);
+       // The cepstrum is the FFT of `logNorm`, which is symmetrical, hence it
+       // should only have real values. Clean up from numerical errors.
+       for (auto i = 0; i < numCepstrumBins; ++i)
+          cepstrumPtr[i] = { cepstrumPtr[i].real(), 0.f };
+       const std::vector<std::complex<float>> cepstrumVec(
+          cepstrumPtr, cepstrumPtr + _numBins); // for debugging
+       d->fft.inverseReal(cepstrum, logNorm);
+       const auto env = logNorm.getPtr(0);
+       const std::vector<float> envVec(env, env + fftSize); // for debugging
+
+       const auto maxBin = (int)std::ceil(_numBins / _pitchFactor);
+       auto spectrum = d->spectrum.getPtr(0);
+       for (auto b = 0; b < maxBin; ++b)
+       {
+          const auto b_stretched = b / _pitchFactor;
+          const auto b_stretched_floor = int(b_stretched);
+
+          const auto frac = b_stretched - b_stretched_floor;
+          const auto target = (1 - frac) * env[b_stretched_floor] +
+                              frac * env[b_stretched_floor + 1];
+          const auto gain = target / env[b];
+          spectrum[b] *= gain;
+       }
+       std::fill(spectrum + maxBin, spectrum + _numBins, 0.f);
+    }
+
     d->fft.inverseReal(d->spectrum, d->fft_timeseries);
 
     for (int ch = 0; ch < _numChannels; ++ch)
