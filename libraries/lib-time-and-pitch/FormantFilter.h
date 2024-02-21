@@ -1,12 +1,15 @@
 #pragma once
 
 #include <array>
+#include <complex>
 #include <pffft.h>
 #include <vector>
 
 class TIME_AND_PITCH_API FormantFilter
 {
 public:
+   static constexpr int numFormants = 3;
+
    FormantFilter(int sampleRate, size_t numChannels);
    ~FormantFilter();
 
@@ -25,4 +28,5 @@ private:
    PFFFT_Setup* mSetup;
    float* mWork;
    float* mTmp;
+   std::array<std::complex<double>, numFormants> mLpfStates;
 };
