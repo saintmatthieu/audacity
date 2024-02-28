@@ -211,7 +211,7 @@ void Viewport::SetHorizontalThumb(double scrollto, bool doScroll)
    sbarH = floor(0.5 + unscaled - PixelWidthBeforeTime(0.0));
    sbarH = std::clamp<wxInt64>(sbarH,
       -PixelWidthBeforeTime(0.0),
-      sbarTotal - PixelWidthBeforeTime(0.0) - sbarScreen);
+      std::max<wxInt64>(sbarTotal - PixelWidthBeforeTime(0.0) - sbarScreen, 0));
 
    if (doScroll)
       DoScroll();
