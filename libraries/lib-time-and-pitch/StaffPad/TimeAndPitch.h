@@ -3,17 +3,26 @@
 //
 #pragma once
 
+#include <complex>
+#include <functional>
 #include <memory>
 #include <vector>
+#include <random>
 
 namespace staffpad {
 
 class TimeAndPitch
 {
 public:
-  TimeAndPitch(int sampleRate);
-  ~TimeAndPitch();
+  /**
+   * `magnitude` may be null, in which case the callback should re-compute it.
+   */
+  using ShiftTimbreCb = std::function<void(
+     double factor, std::complex<float>* spectrum, const float* magnitude)>;
 
+  TimeAndPitch(
+     int fftSize, bool reduceImaging = true, ShiftTimbreCb shiftTimbreCb = {});
+  ~TimeAndPitch();
   /**
     Setup at least once before processing.
     \param numChannels  Must be 1 or 2
@@ -87,6 +96,11 @@ private:
 
   struct impl;
   std::shared_ptr<impl> d;
+
+  const bool _reduceImaging;
+  const std::vector<float> _zeros;
+  std::vector<float> _randomPhases;
+  const ShiftTimbreCb _shiftTimbreCb;
 
   int _numChannels = 1;
   int _maxBlockSize = 1024;

@@ -1,7 +1,8 @@
 #include "AudioContainer.h"
-#include "TimeAndPitchInterface.h"
-
+#include "FormantShifter.h"
+#include "FormantShifterLogger.h"
 #include "StaffPad/TimeAndPitch.h"
+#include "TimeAndPitchInterface.h"
 
 #include <mutex>
 
@@ -14,16 +15,20 @@ public:
       const Parameters&);
    void GetSamples(float* const*, size_t) override;
    void OnCentShiftChange(int cents) override;
+   void OnFormantPreservationChange(bool preserve) override;
 
 private:
    void BootStretcher();
    bool IllState() const;
+   void ResetStretcher();
+
+   const int mSampleRate;
+   TimeAndPitchInterface::Parameters mParameters;
+   FormantShifterLogger mFormantShifterLogger;
+   FormantShifter mFormantShifter;
    std::unique_ptr<staffpad::TimeAndPitch> mTimeAndPitch;
    TimeAndPitchSource& mAudioSource;
    AudioContainer mReadBuffer;
-   const int mSampleRate;
    const size_t mNumChannels;
-   const double mTimeRatio;
-   double mPitchRatio;
    std::mutex mTimeAndPitchMutex;
 };

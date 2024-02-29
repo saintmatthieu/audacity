@@ -43,6 +43,7 @@ private:
 
    void OnPitchShiftChange(bool semitonesChanged);
    void SetSemitoneShift();
+   void SetPitchAndSpeedPreset();
    void UpdateDialog();
 
    const bool mPlaybackOngoing;
@@ -57,4 +58,6 @@ private:
    };
    PitchShift mShift;
    PitchShift mOldShift;
+   bool mFormantPreservation;
+   bool mOldFormantPreservation;
 };

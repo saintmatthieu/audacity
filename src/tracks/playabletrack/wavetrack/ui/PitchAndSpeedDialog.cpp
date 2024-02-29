@@ -12,6 +12,7 @@
 #include "TimeAndPitchInterface.h"
 
 #include <wx/button.h>
+#include <wx/checkbox.h>
 #include <wx/layout.h>
 #include <wx/spinctrl.h>
 #include <wx/textctrl.h>
@@ -128,6 +129,9 @@ PitchAndSpeedDialog::PitchAndSpeedDialog(
     , mTrackInterval { interval }
     , mClipSpeed { 100.0 / interval.GetStretchRatio() }
     , mOldClipSpeed { mClipSpeed }
+    , mFormantPreservation { mTrackInterval.GetPitchAndSpeedPreset() ==
+                             PitchAndSpeedPreset::OptimizeForVoice }
+    , mOldFormantPreservation { mFormantPreservation }
 {
    const auto totalShift = mTrackInterval.GetCentShift();
    mShift.cents = totalShift % 100;
@@ -247,6 +251,22 @@ void PitchAndSpeedDialog::PopulateOrExchange(
             s.AddFixedText(Verbatim("%"));
          }
       }
+
+      s.AddSpace(0, 12);
+      s.SetBorder(0);
+
+      {
+         ScopedStatic scopedStatic { s, XO("General") };
+         {
+            ScopedHorizontalLay h { s, wxLeft };
+            s.SetBorder(2);
+            s.TieCheckBox(XO("Optimize for Voice"), mFormantPreservation)
+               ->Bind(wxEVT_CHECKBOX, [this](auto&) {
+                  mFormantPreservation = !mFormantPreservation;
+                  SetPitchAndSpeedPreset();
+               });
+         }
+      }
    }
 
    ScopedHorizontalLay h { s, wxEXPAND, 0 };
@@ -276,7 +296,9 @@ void PitchAndSpeedDialog::OnOk()
 void PitchAndSpeedDialog::OnCancel()
 {
    mShift = mOldShift;
+   mFormantPreservation = mOldFormantPreservation;
    SetSemitoneShift();
+   SetPitchAndSpeedPreset();
    EndModal(wxID_CANCEL);
 }
 
@@ -290,8 +312,8 @@ bool PitchAndSpeedDialog::SetClipSpeedFromDialog()
    if (mClipSpeed <= 0.0)
    {
       BasicUI::ShowErrorDialog(
-         /* i18n-hint: Title of an error message shown, when invalid clip speed
-            is set */
+         /* i18n-hint: Title of an error message shown, when invalid clip
+            speed is set */
          wxWidgetsWindowPlacement { this }, XO("Invalid clip speed"),
          XO("Clip speed must be a positive value"), {});
 
@@ -371,4 +393,11 @@ void PitchAndSpeedDialog::SetSemitoneShift()
    const auto success =
       mTrackInterval.SetCentShift(mShift.semis * 100 + mShift.cents);
    assert(success);
+}
+
+void PitchAndSpeedDialog::SetPitchAndSpeedPreset()
+{
+   mTrackInterval.SetPitchAndSpeedPreset(
+      mFormantPreservation ? PitchAndSpeedPreset::OptimizeForVoice :
+                             PitchAndSpeedPreset::Default);
 }

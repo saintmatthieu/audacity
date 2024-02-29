@@ -57,6 +57,7 @@ WaveClip::WaveClip(
    const WaveClip& orig, const SampleBlockFactoryPtr& factory,
    bool copyCutlines)
     : mCentShift { orig.mCentShift }
+    , mPitchAndSpeedPreset { orig.mPitchAndSpeedPreset }
     , mClipStretchRatio { orig.mClipStretchRatio }
     , mRawAudioTempo { orig.mRawAudioTempo }
     , mProjectTempo { orig.mProjectTempo }
@@ -362,7 +363,17 @@ int WaveClip::GetCentShift() const
 Observer::Subscription
 WaveClip::SubscribeToCentShiftChange(std::function<void(int)> cb)
 {
-   return Subscribe([cb](const CentShiftChange& cents) { cb(cents.newValue); });
+   return Observer::Publisher<CentShiftChange>::Subscribe(
+      [cb](const CentShiftChange& cents) { cb(cents.newValue); });
+}
+
+Observer::Subscription WaveClip::SubscribeToPitchAndSpeedPresetChange(
+   std::function<void(PitchAndSpeedPreset)> cb)
+{
+   return Observer::Publisher<PitchAndSpeedPresetChange>::Subscribe(
+      [cb](const PitchAndSpeedPresetChange& formant) {
+         cb(formant.newValue);
+      });
 }
 
 bool WaveClip::HasEqualPitchAndSpeed(const WaveClip& other) const
@@ -594,6 +605,12 @@ bool WaveClip::HandleXMLTag(const std::string_view& tag, const AttributesList &a
                return false;
             mCentShift = dblValue;
          }
+         else if (attr == "pitchAndSpeedPreset")
+         {
+            if (!value.TryGet(longValue))
+               return false;
+            mPitchAndSpeedPreset = static_cast<PitchAndSpeedPreset>(longValue);
+         }
          else if (attr == "rawAudioTempo")
          {
             if (!value.TryGet(dblValue))
@@ -683,6 +700,8 @@ void WaveClip::WriteXML(XMLWriter &xmlFile) const
    xmlFile.WriteAttr(wxT("trimLeft"), mTrimLeft, 8);
    xmlFile.WriteAttr(wxT("trimRight"), mTrimRight, 8);
    xmlFile.WriteAttr(wxT("centShift"), mCentShift);
+   xmlFile.WriteAttr(
+      wxT("pitchAndSpeedPreset"), static_cast<long>(mPitchAndSpeedPreset));
    xmlFile.WriteAttr(wxT("rawAudioTempo"), mRawAudioTempo.value_or(0.), 8);
    xmlFile.WriteAttr(wxT("clipStretchRatio"), mClipStretchRatio, 8);
    xmlFile.WriteAttr(wxT("name"), mName);
@@ -1145,8 +1164,20 @@ bool WaveClip::SetCentShift(int cents)
       cents > TimeAndPitchInterface::MaxCents)
       return false;
    mCentShift = cents;
-   Publish(CentShiftChange { cents });
+   Observer::Publisher<CentShiftChange>::Publish(CentShiftChange { cents });
    return true;
+}
+
+void WaveClip::SetPitchAndSpeedPreset(PitchAndSpeedPreset preset)
+{
+   mPitchAndSpeedPreset = preset;
+   Observer::Publisher<PitchAndSpeedPresetChange>::Publish(
+      PitchAndSpeedPresetChange { mPitchAndSpeedPreset });
+}
+
+PitchAndSpeedPreset WaveClip::GetPitchAndSpeedPreset() const
+{
+   return mPitchAndSpeedPreset;
 }
 
 /*! @excsafety{Strong} */

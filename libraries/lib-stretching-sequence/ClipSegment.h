@@ -45,4 +45,5 @@ private:
    // todo(mhodgkinson) make this safe.
    std::unique_ptr<TimeAndPitchInterface> mStretcher;
    Observer::Subscription mOnSemitoneShiftChangeSubscription;
+   Observer::Subscription mOnFormantPreservationChangeSubscription;
 };

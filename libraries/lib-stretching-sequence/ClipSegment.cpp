@@ -25,6 +25,8 @@ GetStretchingParameters(const ClipInterface& clip)
    TimeAndPitchInterface::Parameters params;
    params.timeRatio = clip.GetStretchRatio();
    params.pitchRatio = std::pow(2., clip.GetCentShift() / 1200.);
+   params.preserveFormants =
+      clip.GetPitchAndSpeedPreset() == PitchAndSpeedPreset::OptimizeForVoice;
    return params;
 }
 
@@ -47,6 +49,13 @@ ClipSegment::ClipSegment(
          GetStretchingParameters(clip)) }
     , mOnSemitoneShiftChangeSubscription { clip.SubscribeToCentShiftChange(
          [this](int cents) { mStretcher->OnCentShiftChange(cents); }) }
+    , mOnFormantPreservationChangeSubscription {
+       clip.SubscribeToPitchAndSpeedPresetChange(
+          [this](PitchAndSpeedPreset preset) {
+             mStretcher->OnFormantPreservationChange(
+                preset == PitchAndSpeedPreset::OptimizeForVoice);
+          })
+    }
 {
 }
 

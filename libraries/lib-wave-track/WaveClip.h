@@ -105,11 +105,21 @@ struct CentShiftChange
    const int newValue;
 };
 
+struct PitchAndSpeedPresetChange
+{
+   explicit PitchAndSpeedPresetChange(PitchAndSpeedPreset newValue)
+       : newValue(newValue)
+   {
+   }
+   const PitchAndSpeedPreset newValue;
+};
+
 class WAVE_TRACK_API WaveClip final :
     public ClipInterface,
     public XMLTagHandler,
     public ClientData::Site<WaveClip, WaveClipListener>,
-    public Observer::Publisher<CentShiftChange>
+    public Observer::Publisher<CentShiftChange>,
+    public Observer::Publisher<PitchAndSpeedPresetChange>
 {
 private:
    // It is an error to copy a WaveClip without specifying the
@@ -194,6 +204,11 @@ public:
    int GetCentShift() const override;
    [[nodiscard]] Observer::Subscription
    SubscribeToCentShiftChange(std::function<void(int)> cb) override;
+
+   void SetPitchAndSpeedPreset(PitchAndSpeedPreset preset);
+   PitchAndSpeedPreset GetPitchAndSpeedPreset() const override;
+   [[nodiscard]] Observer::Subscription SubscribeToPitchAndSpeedPresetChange(
+      std::function<void(PitchAndSpeedPreset)> cb) override;
 
    // Resample clip. This also will set the rate, but without changing
    // the length of the clip
@@ -630,6 +645,7 @@ private:
    double mTrimRight { 0 };
    //! @}
 
+   PitchAndSpeedPreset mPitchAndSpeedPreset { PitchAndSpeedPreset::Default };
    int mCentShift { 0 };
 
    // Used in GetStretchRatio which computes the factor, by which the sample
