@@ -7,6 +7,7 @@ add_unit_test(
       lib-music-information-retrieval
    WAV_FILE_IO
    SOURCES
+      MirDspTests.cpp
       MirFakes.h
       MirTestUtils.cpp
       MirTestUtils.h

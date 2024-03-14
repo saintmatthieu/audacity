@@ -20,6 +20,8 @@
 
 namespace MIR
 {
+using Cluster = std::vector<size_t>;
+
 enum class FalsePositiveTolerance
 {
    Strict,
@@ -140,13 +142,15 @@ struct QuantizationFitDebugOutput
    double score = 0.;
    std::vector<std::vector<float>> postProcessedStft;
    std::vector<float> rawOdf;
-   std::vector<float> movingAverage;
+   std::vector<int> rawOdfPeakIndices;
    std::vector<float> odf;
    double odfSr = 0.;
    double audioFileDuration = 0.;
    std::vector<int> odfPeakIndices;
    std::vector<float> odfAutoCorr;
    std::vector<int> odfAutoCorrPeakIndices;
+   std::vector<Cluster> clusters;
+   std::vector<size_t> suppressedClusters;
 };
 
 // Some internal constants centralized here, to stress their interdependence.

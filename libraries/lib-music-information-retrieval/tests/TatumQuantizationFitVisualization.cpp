@@ -19,9 +19,10 @@ TEST_CASE("TatumQuantizationFitVisualization")
    if (!runLocally)
       return;
 
-   const auto wavFile =
-      std::string { CMAKE_CURRENT_SOURCE_DIR } +
-      "/benchmarking-dataset/loops/Acoustic Loop Lucaz Collab 116BPM.wav.mp3";
+   const auto wavFile = std::string { CMAKE_CURRENT_SOURCE_DIR } +
+                        "/benchmarking-dataset/loops/100 BPM Dm Chords.wav.mp3";
+   // "/benchmarking-dataset\\non-loops/Cat 1.mp3";
+   // "C:/Users/saint/Downloads/sine.wav";
    const WavMirAudioReader audio { wavFile };
    QuantizationFitDebugOutput debugOutput;
    const auto result = GetMusicalMeterFromSignal(
@@ -43,20 +44,23 @@ TEST_CASE("TatumQuantizationFitVisualization")
    debug_output_module << "bpm = " << (result.has_value() ? result->bpm : 0.)
                        << "\n";
    debug_output_module << "lag = " << debugOutput.tatumQuantization.lag << "\n";
-   debug_output_module << "odf_peak_indices = [";
-   std::for_each(
-      debugOutput.odfPeakIndices.begin(), debugOutput.odfPeakIndices.end(),
-      [&](int i) { debug_output_module << i << ","; });
-   debug_output_module << "]\n";
+   PrintPythonVector(
+      debug_output_module, debugOutput.odfPeakIndices, "odf_peak_indices");
    PrintPythonVector(debug_output_module, debugOutput.odf, "odf");
    PrintPythonVector(debug_output_module, debugOutput.rawOdf, "rawOdf");
    PrintPythonVector(
-      debug_output_module, debugOutput.movingAverage, "movingAverage");
+      debug_output_module, debugOutput.rawOdfPeakIndices, "rawOdfPeakIndices");
    PrintPythonVector(
       debug_output_module, debugOutput.odfAutoCorr, "odfAutoCorr");
    PrintPythonVector(
       debug_output_module, debugOutput.odfAutoCorrPeakIndices,
       "odfAutoCorrPeakIndices");
+   PrintPythonVector(debug_output_module, debugOutput.clusters[0], "cluster1");
+   PrintPythonVector(debug_output_module, debugOutput.clusters[1], "cluster2");
+   PrintPythonVector(debug_output_module, debugOutput.clusters[2], "cluster3");
+   PrintPythonVector(
+      debug_output_module, debugOutput.suppressedClusters,
+      "suppressedClusters");
 
    std::ofstream stft_log_module {
       std::string { CMAKE_CURRENT_SOURCE_DIR } +

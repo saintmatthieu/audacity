@@ -14,8 +14,9 @@
 
 #pragma once
 
-#include <algorithm>
+#include "MirTypes.h"
 #include <functional>
+#include <optional>
 #include <vector>
 
 namespace MIR
@@ -38,4 +39,7 @@ std::vector<float> GetOnsetDetectionFunction(
    const MirAudioReader& audio,
    const std::function<void(double)>& progressCallback,
    QuantizationFitDebugOutput* debugInfo);
+
+MUSIC_INFORMATION_RETRIEVAL_API
+std::vector<Cluster> GetClusters(const std::vector<float>& x);
 } // namespace MIR

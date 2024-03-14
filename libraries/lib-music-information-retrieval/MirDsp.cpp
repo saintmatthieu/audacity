@@ -16,10 +16,12 @@
 #include "PowerSpectrumGetter.h"
 #include "StftFrameProvider.h"
 
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <numeric>
 #include <pffft.h>
+#include <unordered_set>
 
 namespace MIR
 {
@@ -52,6 +54,222 @@ float GetNoveltyMeasure(
    return measure / powSpec.size() > odfNoiseGate ? measure : 0.f;
 }
 
+// Function to assign each point to the closest centroid
+void AssignToClusters(
+   const std::vector<float>& data, const std::vector<float>& centroids,
+   std::vector<size_t>& clusters)
+{
+   const auto K = centroids.size();
+   for (auto i = 0; i < data.size(); ++i)
+   {
+      float minDist = std::numeric_limits<float>::max();
+      int clusterIdx = 0;
+      for (auto k = 0; k < K; ++k)
+      {
+         const auto dist = std::abs(data[i] - centroids[k]);
+         if (dist < minDist)
+         {
+            minDist = dist;
+            clusterIdx = k;
+         }
+      }
+      clusters[i] = clusterIdx;
+   }
+}
+
+// Function to update centroids based on current cluster assignments
+void UpdateCentroids(
+   const std::vector<float>& data, const std::vector<size_t>& clusters,
+   std::vector<float>& centroids)
+{
+   const auto K = centroids.size();
+   std::vector<int> counts(K, 0);
+   std::vector<float> sums(K, 0.f);
+
+   for (auto i = 0; i < data.size(); ++i)
+   {
+      int clusterIdx = clusters[i];
+      sums[clusterIdx] += data[i];
+      counts[clusterIdx]++;
+   }
+
+   for (auto k = 0; k < K; ++k)
+      if (counts[k] > 0)
+         centroids[k] = sums[k] / counts[k];
+}
+
+constexpr auto GetSquaredError(float a, float b)
+{
+   return (a - b) * (a - b);
+}
+
+void RemoveNoisePeaksByLevel(
+   std::vector<float>& odf, QuantizationFitDebugOutput* debugOutput)
+{
+   const auto peakIndices = GetPeakIndices(odf);
+   const auto peakValues = [&] {
+      std::vector<float> peakValues;
+      peakValues.reserve(peakIndices.size());
+      for (auto i : peakIndices)
+         peakValues.push_back(odf[i]);
+      return peakValues;
+   }();
+
+   const auto clusters = GetClusters(peakValues);
+   assert(clusters.size() == 3); // TODO use array<Cluster, 3> instead of vector
+   if (debugOutput)
+      debugOutput->clusters = clusters;
+
+   const auto peaksToRemove = [&] {
+      // Remove clusters with too high peak rates ; these are likely to be
+      // noise.
+      const auto centroids = [&] {
+         std::vector<float> centroids;
+         centroids.reserve(3);
+         for (const auto& cluster : clusters)
+         {
+            const auto sum = std::accumulate(
+               cluster.begin(), cluster.end(), 0.f,
+               [&](float sum, size_t i) { return sum + peakValues[i]; });
+            centroids.push_back(sum / cluster.size());
+         }
+         return centroids;
+      }();
+      const auto d1 = centroids[1] - centroids[0];
+      const auto d2 = centroids[2] - centroids[1];
+      std::vector<size_t> peaksToRemove = clusters[0];
+      if (debugOutput)
+         debugOutput->suppressedClusters.push_back(0);
+      if (d2 > 4 * d1)
+      {
+         peaksToRemove.insert(
+            peaksToRemove.end(), clusters[1].begin(), clusters[1].end());
+         if (debugOutput)
+            debugOutput->suppressedClusters.push_back(1);
+      }
+      return peaksToRemove;
+   }();
+
+   const auto troughIndices = [&] {
+      std::unordered_set<int> troughIndexSet;
+      const auto N = odf.size();
+      std::for_each(peakIndices.begin(), peakIndices.end(), [&](int peakIndex) {
+         int i = peakIndex - 1;
+         // Decrement i until we find a trough. We wrap around readout, but not
+         // the index just yet.
+         while (odf[(i + N - 1) % N] <= odf[(i + N) % N])
+            --i;
+         troughIndexSet.insert(i);
+         // Do the same in the positive direction:
+         i = peakIndex + 1;
+         while (odf[(i + 1) % N] <= odf[(i) % N])
+            ++i;
+         troughIndexSet.insert(i);
+      });
+      std::vector<int> troughIndices(
+         troughIndexSet.begin(), troughIndexSet.end());
+      std::sort(troughIndices.begin(), troughIndices.end());
+      return troughIndices;
+   }();
+
+   auto rightTroughIndicesIndex = 1;
+   std::for_each(
+      peaksToRemove.begin(), peaksToRemove.end(), [&](size_t peakIndicesIndex) {
+         const auto indexOfPeakToRemove = peakIndices[peakIndicesIndex];
+         while (indexOfPeakToRemove > troughIndices[rightTroughIndicesIndex])
+            ++rightTroughIndicesIndex;
+         const auto leftTroughIndicesIndex = rightTroughIndicesIndex - 1;
+
+         // Now we wrap around.
+         const auto leftTroughIndex =
+            (troughIndices[leftTroughIndicesIndex] + odf.size()) % odf.size();
+         const auto rightTroughIndex =
+            troughIndices[rightTroughIndicesIndex] % odf.size();
+
+         if (leftTroughIndex > rightTroughIndex)
+         {
+            std::fill(odf.begin() + leftTroughIndex, odf.end(), 0.f);
+            std::fill(odf.begin(), odf.begin() + rightTroughIndex, 0.f);
+         }
+         else
+            std::fill(
+               odf.begin() + leftTroughIndex, odf.begin() + rightTroughIndex,
+               0.f);
+      });
+}
+
+void SimulateTemporalMasking(std::vector<float>& odf, double odfSr)
+{
+   const auto peakIndices = GetPeakIndices(odf);
+   if (peakIndices.size() < 2)
+      return;
+   // Simulate auditory temporal masking, whereby large onsets mask smaller
+   // subsequent onsets for a short time. We also do this in the reverse
+   // direction.
+   constexpr auto timeWindow = 0.1;
+   const auto windowSize =
+      std::min<size_t>(timeWindow * odfSr + .5, odf.size());
+   std::unordered_set<size_t> shadowedIndexSet;
+   for (int ii = 0; ii < peakIndices.size(); ++ii)
+   {
+      const auto peakIndex = peakIndices[ii];
+      const auto peakValue = odf[peakIndex];
+      for (auto j = 1; j < windowSize; ++j)
+      {
+         const auto scalar = 1 - j / windowSize;
+         const auto i = (peakIndex - j + odf.size()) % odf.size();
+         if (odf[i] < peakValue * scalar)
+            shadowedIndexSet.insert(i);
+         const auto k = (peakIndex + j + 1) % odf.size();
+         if (odf[k] < peakValue * scalar)
+            shadowedIndexSet.insert(k);
+      }
+   }
+   // To help debugging.
+   std::vector<size_t> shadowedIndices(
+      shadowedIndexSet.begin(), shadowedIndexSet.end());
+   std::sort(shadowedIndices.begin(), shadowedIndices.end());
+   std::for_each(shadowedIndices.begin(), shadowedIndices.end(), [&](size_t i) {
+      odf[i] = 0.f;
+   });
+}
+} // namespace
+
+std::vector<Cluster> GetClusters(const std::vector<float>& x)
+{
+   const auto avg = std::accumulate(x.begin(), x.end(), 0.f) / x.size();
+   constexpr auto K = 3;
+
+   std::vector<float> centroids(K);
+   // Initialize the centroids around avg:
+   for (auto k = 0; k < K; ++k)
+      centroids[k] = avg + (k - K / 2) * 0.1f;
+
+   std::vector<size_t> assignments(x.size());
+   std::vector<size_t> oldAssignments(x.size(), -1);
+   for (auto iter = 0; iter < 100; ++iter)
+   {
+      AssignToClusters(x, centroids, assignments);
+      if (oldAssignments == assignments)
+         break;
+      UpdateCentroids(x, assignments, centroids);
+      std::swap(oldAssignments, assignments);
+   }
+   std::swap(assignments, oldAssignments);
+
+   std::vector<Cluster> clusters;
+   for (auto k = 0; k < K; ++k)
+   {
+      std::vector<size_t> cluster;
+      for (auto i = 0; i < x.size(); ++i)
+         if (assignments[i] == k)
+            cluster.push_back(i);
+      clusters.push_back(cluster);
+   }
+
+   return clusters;
+}
+
 std::vector<float> GetMovingAverage(const std::vector<float>& x, double hopRate)
 {
    constexpr auto smoothingWindowDuration = 0.2;
@@ -72,18 +290,10 @@ std::vector<float> GetMovingAverage(const std::vector<float>& x, double hopRate)
             return y + x[k] * window[i + M];
          });
       ++n;
-      // The moving average of the raw ODF will be subtracted from it to yield
-      // the final ODF, negative results being set to 0. (This is to remove
-      // noise of small ODF peaks before the method's quantization step.) The
-      // larger this multiplier, the less peaks will remain. This value was
-      // found by trial and error, using the benchmarking framework
-      // (see TatumQuantizationFitBenchmarking.cpp)
-      constexpr auto thresholdRaiser = 1.5f;
-      return y * thresholdRaiser;
+      return y;
    });
    return movingAverage;
 }
-} // namespace
 
 std::vector<float> GetNormalizedCircularAutocorr(std::vector<float> x)
 {
@@ -149,7 +359,7 @@ std::vector<float> GetOnsetDetectionFunction(
       // Compress the frame as per section (6.5) in Müller, Meinard.
       // Fundamentals of music processing: Audio, analysis, algorithms,
       // applications. Vol. 5. Cham: Springer, 2015.
-      constexpr auto gamma = 100.f;
+      constexpr auto gamma = 1000.f;
       std::transform(
          powSpec.begin(), powSpec.end(), powSpec.begin(),
          [gamma](float x) { return GetLog2(1 + gamma * std::sqrt(x)); });
@@ -175,16 +385,19 @@ std::vector<float> GetOnsetDetectionFunction(
    const auto movingAverage =
       GetMovingAverage(odf, frameProvider.GetFrameRate());
 
-   if (debugOutput)
-   {
-      debugOutput->rawOdf = odf;
-      debugOutput->movingAverage = movingAverage;
-   }
-
    // Subtract moving average from ODF.
    std::transform(
       odf.begin(), odf.end(), movingAverage.begin(), odf.begin(),
       [](float a, float b) { return std::max<float>(a - b, 0.f); });
+
+   if (debugOutput)
+   {
+      debugOutput->rawOdf = odf;
+      debugOutput->rawOdfPeakIndices = GetPeakIndices(odf);
+   }
+
+   RemoveNoisePeaksByLevel(odf, debugOutput);
+   SimulateTemporalMasking(odf, frameProvider.GetFrameRate());
 
    return odf;
 }

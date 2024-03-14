@@ -371,22 +371,6 @@ MusicalMeter GetMostLikelyMeterFromQuantizationExperiment(
 
    return { bpm, signature };
 }
-
-bool IsSingleEvent(
-   const std::vector<int>& peakIndices, const std::vector<float>& peakValues)
-{
-   // Detect single-event recordings, e.g. only just one crash cymbal hit. This
-   // will translate as one large peak and maybe a few much smaller ones. In
-   // that case we can expect the average to be between these two groups.
-   const auto peakAvg =
-      std::accumulate(peakValues.begin(), peakValues.end(), 0.) /
-      peakIndices.size();
-   const auto numPeaksAboveAvg =
-      std::count_if(peakValues.begin(), peakValues.end(), [&](float v) {
-         return v > peakAvg;
-      });
-   return numPeaksAboveAvg <= 1;
-}
 } // namespace
 
 std::optional<MusicalMeter> GetMeterUsingTatumQuantizationFit(
@@ -400,14 +384,19 @@ std::optional<MusicalMeter> GetMeterUsingTatumQuantizationFit(
       1. * audio.GetSampleRate() * odf.size() / audio.GetNumSamples();
    const auto audioFileDuration =
       1. * audio.GetNumSamples() / audio.GetSampleRate();
-
    const auto peakIndices = GetPeakIndices(odf);
+
    if (debugOutput)
    {
+      debugOutput->odf = odf;
       debugOutput->audioFileDuration = audioFileDuration;
       debugOutput->odfSr = odfSr;
       debugOutput->odfPeakIndices = peakIndices;
    }
+
+   if (peakIndices.size() < 2)
+      // One-shot or steady-state audio is not a loop.
+      return {};
 
    const auto peakValues = ([&]() {
       std::vector<float> peakValues(peakIndices.size());
@@ -416,9 +405,6 @@ std::optional<MusicalMeter> GetMeterUsingTatumQuantizationFit(
          [&](int i) { return odf[i]; });
       return peakValues;
    })();
-
-   if (IsSingleEvent(peakIndices, peakValues))
-      return {};
 
    const auto possibleDivs = GetPossibleDivHierarchies(audioFileDuration);
    if (possibleDivs.empty())
@@ -447,9 +433,6 @@ std::optional<MusicalMeter> GetMeterUsingTatumQuantizationFit(
       debugOutput->tatumQuantization = experiment;
       debugOutput->bpm = winnerMeter.bpm;
       debugOutput->timeSignature = winnerMeter.timeSignature;
-      debugOutput->odf = odf;
-      debugOutput->odfSr = odfSr;
-      debugOutput->audioFileDuration = audioFileDuration;
       debugOutput->score = score;
    }
 
