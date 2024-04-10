@@ -17,6 +17,8 @@
 #include <atomic>
 #include <wx/time.h>
 
+const ChannelGroup* RealtimeEffectManager::MasterGroup = nullptr;
+
 static const AttachedProjectObjects::RegisteredFactory manager
 {
    [](AudacityProject &project)
@@ -51,7 +53,9 @@ bool RealtimeEffectManager::IsActive() const noexcept
 }
 
 void RealtimeEffectManager::Initialize(
-   RealtimeEffects::InitializationScope &scope, double sampleRate)
+   RealtimeEffects::InitializationScope &scope,
+   unsigned numPlaybackChannels,
+   double sampleRate)
 {
    // (Re)Set processor parameters
    mRates.clear();
@@ -68,6 +72,14 @@ void RealtimeEffectManager::Initialize(
 
    // Leave suspended state
    SetSuspended(false);
+
+   //Register the master channel group
+   //mGroups.push_back(MasterGroup);
+   //mRates.insert({MasterGroup, sampleRate});
+
+   VisitGroup(MasterGroup, [&](RealtimeEffectState& state, bool) {
+      scope.mInstances.push_back(state.AddGroup(nullptr, numPlaybackChannels, sampleRate));
+   });
 }
 
 void RealtimeEffectManager::AddGroup(
@@ -77,9 +89,9 @@ void RealtimeEffectManager::AddGroup(
    mGroups.push_back(&group);
    mRates.insert({&group, rate});
 
-   VisitGroup(group,
+   VisitGroup(&group,
       [&](RealtimeEffectState & state, bool) {
-         scope.mInstances.push_back(state.AddGroup(group, chans, rate));
+         scope.mInstances.push_back(state.AddGroup(&group, chans, rate));
       }
    );
 }
@@ -90,7 +102,7 @@ void RealtimeEffectManager::Finalize() noexcept
    SetSuspended(true);
 
    // Assume it is now safe to clean up
-   mLatency = std::chrono::microseconds(0);
+   //mLatency = std::chrono::microseconds(0);
 
    VisitAll([](RealtimeEffectState &state, bool){ state.Finalize(); });
 
@@ -114,12 +126,10 @@ void RealtimeEffectManager::ProcessStart(bool suspended)
    });
 }
 
-//
-
 // This will be called in a thread other than the main GUI thread.
 //
 size_t RealtimeEffectManager::Process(bool suspended,
-   const ChannelGroup &group,
+   const ChannelGroup *group,
    float *const *buffers, float *const *scratch, float *const dummy,
    unsigned nBuffers, size_t numSamples)
 {
@@ -171,7 +181,7 @@ size_t RealtimeEffectManager::Process(bool suspended,
 
    // Remember the latency
    auto end = std::chrono::steady_clock::now();
-   mLatency = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+   //mLatency = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
    //
    // This is wrong...needs to handle tails
@@ -246,17 +256,26 @@ RealtimeEffectManager::MakeNewState(
       // Adding a state while playback is in-flight
       auto pInstance = state.Initialize(pScope->mSampleRate);
       pScope->mInstances.push_back(pInstance);
-      for (const auto group : mGroups) {
-         // Add all groups to a per-project state, but add only the same
-         // group to a state in the per-group list
-         if (pGroup && pGroup != group)
-            continue;
-         auto rate = mRates[group];
-         auto pInstance2 =
-            state.AddGroup(*group, pScope->mNumPlaybackChannels, rate);
-         if (pInstance2 != pInstance)
+
+      if(pGroup == nullptr)
+      {
+         auto pInstance2 = state.AddGroup(MasterGroup, pScope->mNumPlaybackChannels, pScope->mSampleRate);
+         if(pInstance2 != pInstance)
             pScope->mInstances.push_back(pInstance2);
       }
+      else
+      {
+         for (const auto group : mGroups) {
+            if (pGroup != group)
+               continue;
+            auto pInstance2 =
+               state.AddGroup(group, pScope->mNumPlaybackChannels, mRates[group]);
+            if (pInstance2 != pInstance)
+               pScope->mInstances.push_back(pInstance2);
+         }
+      }
+
+      
    }
    return pNewState;
 }
