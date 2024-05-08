@@ -148,7 +148,6 @@ struct AudioIoCallback::TransportState {
                assert(false);
                continue;
             }
-            //TODO: initialize with sequence own channels count and sampleRate
             mpRealtimeInitialization
                ->AddGroup(*pGroup, numPlaybackChannels, sampleRate);
          }
@@ -1226,42 +1225,47 @@ bool AudioIO::AllocateBuffers(
             // Adjust mPlaybackRingBufferSecs correspondingly
             mPlaybackRingBufferSecs = PlaybackPolicy::Duration { playbackBufferSize / mRate };
 
-            // mPlaybackBuffers buffers correspond many-to-one with
-            // mPlaybackSequences
-            // Except, always make at least one playback buffer, in case of
-            // MIDI playback without any audio
             mPlaybackBuffers.resize(0);
-            mPlaybackBuffers.resize(mNumPlaybackChannels);
+            mProcessingBuffers.resize(0);
+            mMasterBuffers.resize(0);
+
+            // Always make at least one playback buffer, in case of
+            // MIDI playback without any audio
+            if(mPlaybackSequences.empty())
+               mPlaybackBuffers.resize(1);
+            else
+            {
+               mPlaybackBuffers.resize(mNumPlaybackChannels);
+               mProcessingBuffers.resize(std::accumulate(
+                  mPlaybackSequences.begin(),
+                  mPlaybackSequences.end(),
+                  0, [](int n, auto& seq) { return n + seq->NChannels(); }
+               ));
+               for(auto& buffer : mProcessingBuffers)
+                  buffer.reserve(playbackBufferSize);
+               
+               mMasterBuffers.resize(mNumPlaybackChannels);
+               for(auto& buffer : mMasterBuffers)
+                  buffer.reserve(playbackBufferSize);
+
+               // Number of scratch buffers depends on device playback channels
+               if (mNumPlaybackChannels > 0) {
+                  mScratchBuffers.resize(mNumPlaybackChannels * 2 + 1);
+                  mScratchPointers.clear();
+                  for (auto &buffer : mScratchBuffers) {
+                     buffer.Allocate(playbackBufferSize, floatSample);
+                     mScratchPointers.push_back(
+                        reinterpret_cast<float*>(buffer.ptr()));
+                  }
+               }
+            }
+
             std::generate(
                mPlaybackBuffers.begin(),
                mPlaybackBuffers.end(),
                [=]{ return std::make_unique<RingBuffer>(floatSample, playbackBufferSize); }
             );
 
-            mProcessingBuffers.resize(0);
-            mProcessingBuffers.resize(std::accumulate(
-               mPlaybackSequences.begin(),
-               mPlaybackSequences.end(),
-               0, [](int n, auto& seq) { return n + seq->NChannels(); }
-            ));
-            for(auto& buffer : mProcessingBuffers)
-               buffer.reserve(playbackBufferSize);
-
-            mMasterBuffers.resize(0);
-            mMasterBuffers.resize(mNumPlaybackChannels);
-            for(auto& buffer : mMasterBuffers)
-               buffer.resize(playbackBufferSize);
-
-            // Number of scratch buffers depends on device playback channels
-            if (mNumPlaybackChannels > 0) {
-               mScratchBuffers.resize(mNumPlaybackChannels * 2 + 1);
-               mScratchPointers.clear();
-               for (auto &buffer : mScratchBuffers) {
-                  buffer.Allocate(playbackBufferSize, floatSample);
-                  mScratchPointers.push_back(
-                     reinterpret_cast<float*>(buffer.ptr()));
-               }
-            }
             mPlaybackMixers.clear();
 
             const auto &warpOptions =
@@ -1280,8 +1284,6 @@ bool AudioIO::AllocateBuffers(
                ((mPlaybackQueueMinimum + mPlaybackSamplesToCopy - 1) / mPlaybackSamplesToCopy);
 
             // Bug 1763 - We must fade in from zero to avoid a click on starting.
-            //mOldPlaybackGain = 0.0f;
-            //TODO: fade in smoothly
             mOldPlaybackGain = 0.0f;
             for (unsigned int i = 0; i < mPlaybackSequences.size(); i++) {
                const auto &pSequence = mPlaybackSequences[i];
@@ -2034,6 +2036,7 @@ bool AudioIO::ProcessPlaybackSlices(
 
                auto& buffer = mProcessingBuffers[iBuffer++];
                const auto offset = buffer.size();
+               //there could be leftovers from the previous pass, don't discard them
                buffer.resize(buffer.size() + frames, 0);
 
                if(!discardable)
@@ -2059,13 +2062,21 @@ bool AudioIO::ProcessPlaybackSlices(
 
       available -= frames;
       // wxASSERT(available >= 0); // don't assert on this thread
+      if(mPlaybackSequences.empty())
+         // Produce silence in the single ring buffer
+         mPlaybackBuffers[0]->Put(nullptr, floatSample, 0, frames);
 
       done = policy.RepositionPlayback( mPlaybackSchedule, mPlaybackMixers,
          frames, available );
    } while (available && !done);
 
-   // Do any realtime effect processing, after all the little
-   // slices have been written.
+   //stop here if there are no sample sources to process...
+   if(mPlaybackSequences.empty())
+      return progress;
+
+   // Do any realtime effect processing for each individual sample source,
+   // after all the little slices have been written.
+   if (pScope) 
    {
       const auto pointers = stackAllocate(float*, mNumPlaybackChannels);
 
@@ -2095,63 +2106,86 @@ bool AudioIO::ProcessPlaybackSlices(
             std::fill_n(pointers[i], mProcessingBuffers[bufferIndex].size(), .0f);
          }
 
-         if (pScope) {
-            const auto discardable = pScope->Process(channelGroup, &pointers[0],
-               mScratchPointers.data(),
-               // The single dummy output buffer:
-               mScratchPointers[mNumPlaybackChannels],
-               mNumPlaybackChannels, len);
-            for(int i = 0; i < seq->NChannels(); ++i)
-            {
-               auto& buffer = mProcessingBuffers[bufferIndex + i];
-               buffer.erase(buffer.begin(), buffer.begin() + discardable);
-            }
+         const auto discardable = pScope->Process(channelGroup, &pointers[0],
+            mScratchPointers.data(),
+            // The single dummy output buffer:
+            mScratchPointers[mNumPlaybackChannels],
+            mNumPlaybackChannels, len);
+         for(int i = 0; i < seq->NChannels(); ++i)
+         {
+            auto& buffer = mProcessingBuffers[bufferIndex + i];
+            buffer.erase(buffer.begin(), buffer.begin() + discardable);
          }
+
          bufferIndex += seq->NChannels();
       }
    }
 
+   //samples at the beginning of could have been discarded
+   //in the previous step, proceed with the number of samples
+   //equal to the shortest buffer size available
    auto samplesAvailable = std::min_element(
       mProcessingBuffers.begin(),
       mProcessingBuffers.end(),
       [](auto& first, auto& second) { return first.size() < second.size(); }
    )->size();
 
-   for(auto& buffer : mMasterBuffers)
-      std::fill_n(buffer.begin(), samplesAvailable, 0);
+   //introduced latency may be too high...
+   //but we don't discard what already was written
+   if(samplesAvailable == 0)
+      return progress;
+
+   //Prepare master buffers.
+   //These buffers may also contain leftovers from the previous pass
+   //Remember initial offset for each of them
+   const auto masterOffsets = stackAllocate(int, mMasterBuffers.size());
+   {
+      unsigned bufferIndex = 0;
+      for(auto& buffer : mMasterBuffers)
+      {
+         masterOffsets[bufferIndex++] = buffer.size();
+         buffer.resize(buffer.size() + samplesAvailable, 0);
+      }
+   }
 
    {
       unsigned bufferIndex = 0;
       for(const auto& seq : mPlaybackSequences)
       {
+         //TODO: apply micro-fades
          const auto numChannels = seq->NChannels();
          if(numChannels > 1)
          {
             for(unsigned n = 0; n < seq->NChannels(); ++n)
             {
+               const auto dstOffset = masterOffsets[n];
                const auto gain = seq->GetChannelGain(n);
                for(unsigned i = 0; i < samplesAvailable; ++i)
-                  mMasterBuffers[n][i] += mProcessingBuffers[bufferIndex + n][i] * gain;
+                  mMasterBuffers[n][i + dstOffset] += mProcessingBuffers[bufferIndex + n][i] * gain;
             }
          }
          else if(numChannels == 1)
          {
+            //mono source is duplicated into every output channel
             for(unsigned n = 0; n < mNumPlaybackChannels; ++n)
             {
+               const auto dstOffset = masterOffsets[n];
                const auto gain = seq->GetChannelGain(n);
                for(unsigned i = 0; i < samplesAvailable; ++i)
-                  mMasterBuffers[n][i] += mProcessingBuffers[bufferIndex][i] * gain;
+                  mMasterBuffers[n][i + dstOffset] += mProcessingBuffers[bufferIndex][i] * gain;
             }
          }
          bufferIndex += seq->NChannels();
       }
    }
 
+   //remove only samples that were processed in previous step
    for(auto& buffer : mProcessingBuffers)
       buffer.erase(buffer.begin(), buffer.begin() + samplesAvailable);
 
    // Do any realtime effect processing, after all the little
-   // slices have been written.
+   // slices have been written. This time we use mixed source created in
+   // previous step
    if(pScope)
    {
       const auto pointers = stackAllocate(float*, mNumPlaybackChannels);
@@ -2166,9 +2200,12 @@ bool AudioIO::ProcessPlaybackSlices(
          mScratchPointers[mNumPlaybackChannels],
          mNumPlaybackChannels, samplesAvailable);
 
-      assert(samplesAvailable >= discardable);
+      // wxASSERT(samplesAvailable >= discardable); // don't assert on this thread
       samplesAvailable -= discardable;
    }
+
+   if(samplesAvailable == 0)
+      return progress;
 
    {
       unsigned bufferIndex = 0;
@@ -2182,11 +2219,11 @@ bool AudioIO::ProcessPlaybackSlices(
          );
       }
    }
-   //TODO: microfades
 
-   // Do any realtime effect processing, more efficiently in at most
-   // two buffers per sequence, after all the little slices have been written.
-   //TransformPlayBuffers(pScope, producedSamples);
+   //remove only samples that were processed in previous step
+   for(auto& buffer : mMasterBuffers)
+      buffer.erase(buffer.begin(), buffer.begin() + samplesAvailable);
+   
    return progress;
 }
 
@@ -2682,18 +2719,20 @@ bool AudioIoCallback::FillOutputBuffers(
       return true;
    }
 
-   // ------ MEMORY ALLOCATION ----------------------
-   // These are small structures.
-   const auto tempBufs = stackAllocate(float *, numPlaybackChannels);
-
-   // And these are larger structures....
-   for (unsigned int c = 0; c < numPlaybackChannels; c++)
-      tempBufs[c] = stackAllocate(float, framesPerBuffer);
-   // ------ End of MEMORY ALLOCATION ---------------
-
    // Choose a common size to take from all ring buffers
    const auto toGet =
       std::min<size_t>(framesPerBuffer, GetCommonlyReadyPlayback());
+
+   // Poke: If there are no playback sequences, then the earlier check
+   // about the time indicator being past the end won't happen;
+   // do it here instead (but not if looping or scrubbing)
+   // PRL:  Also consume from the single playback ring buffer
+   if (numPlaybackSequences == 0) {
+      mMaxFramesOutput = mPlaybackBuffers[0]->Discard(toGet);
+      CallbackCheckCompletion(mCallbackReturn, 0);
+      mLastPlaybackTimeMillis = ::wxGetUTCTimeMillis();
+      return false;
+   }
 
    // The drop and dropQuickly booleans are so named for historical reasons.
    // JKC: The original code attempted to be faster by doing nothing on silenced audio.
@@ -2708,11 +2747,20 @@ bool AudioIoCallback::FillOutputBuffers(
    // I would expect us not to need the fast paths, since linearly interpolated gain
    // is very cheap to process.
 
+   // ------ MEMORY ALLOCATION ----------------------
+   // These are small structures.
+   const auto tempBufs = stackAllocate(float *, numPlaybackChannels);
+
+   // And these are larger structures....
+   for (unsigned int c = 0; c < numPlaybackChannels; c++)
+      tempBufs[c] = stackAllocate(float, framesPerBuffer);
+   // ------ End of MEMORY ALLOCATION ---------------
    
    auto gain = ExpGain(GetMixerOutputVol());
    if (mForceFadeOut.load(std::memory_order_relaxed) || IsPaused())
       gain = 0.0;
 
+   
    for(unsigned n = 0; n < numPlaybackChannels; ++n)
    {
       decltype(framesPerBuffer) len = mPlaybackBuffers[n]->Get(
@@ -2783,15 +2831,6 @@ bool AudioIoCallback::FillOutputBuffers(
    }
 
    mOldPlaybackGain = gain;
-
-   // Poke: If there are no playback sequences, then the earlier check
-   // about the time indicator being past the end won't happen;
-   // do it here instead (but not if looping or scrubbing)
-   // PRL:  Also consume from the single playback ring buffer
-   if (numPlaybackSequences == 0) {
-      mMaxFramesOutput = mPlaybackBuffers[0]->Discard(toGet);
-      CallbackCheckCompletion(mCallbackReturn, 0);
-   }
 
    // wxASSERT( maxLen == toGet );
 

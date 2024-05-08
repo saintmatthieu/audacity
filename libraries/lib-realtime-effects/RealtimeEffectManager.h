@@ -50,7 +50,9 @@ class REALTIME_EFFECTS_API RealtimeEffectManager final :
    public Observer::Publisher<RealtimeEffectManagerMessage>
 {
 public:
-   static const ChannelGroup* MasterGroup;
+   //!Special value used to identify special effects stack applied
+   //!to every playable track
+   static constexpr ChannelGroup* MasterGroup = nullptr;
 
    using Latency = std::chrono::microseconds;
 
@@ -153,7 +155,7 @@ private:
    };
 
    void ProcessStart(bool suspended);
-   
+
    /*! @copydoc ProcessScope::Process */
    size_t Process(bool suspended,
       const ChannelGroup *group,

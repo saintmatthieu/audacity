@@ -17,8 +17,6 @@
 #include <atomic>
 #include <wx/time.h>
 
-const ChannelGroup* RealtimeEffectManager::MasterGroup = nullptr;
-
 static const AttachedProjectObjects::RegisteredFactory manager
 {
    [](AudacityProject &project)
@@ -73,12 +71,8 @@ void RealtimeEffectManager::Initialize(
    // Leave suspended state
    SetSuspended(false);
 
-   //Register the master channel group
-   //mGroups.push_back(MasterGroup);
-   //mRates.insert({MasterGroup, sampleRate});
-
    VisitGroup(MasterGroup, [&](RealtimeEffectState& state, bool) {
-      scope.mInstances.push_back(state.AddGroup(nullptr, numPlaybackChannels, sampleRate));
+      scope.mInstances.push_back(state.AddGroup(MasterGroup, numPlaybackChannels, sampleRate));
    });
 }
 
@@ -100,9 +94,6 @@ void RealtimeEffectManager::Finalize() noexcept
 {
    // Reenter suspended state
    SetSuspended(true);
-
-   // Assume it is now safe to clean up
-   //mLatency = std::chrono::microseconds(0);
 
    VisitAll([](RealtimeEffectState &state, bool){ state.Finalize(); });
 
@@ -137,10 +128,6 @@ size_t RealtimeEffectManager::Process(bool suspended,
    // effects have been suspended, so allow the samples to pass as-is.
    if (suspended)
       return 0;
-
-   // Remember when we started so we can calculate the amount of latency we
-   // are introducing
-   auto start = std::chrono::steady_clock::now();
 
    // Allocate the in and out buffer arrays
    const auto ibuf =
@@ -178,10 +165,6 @@ size_t RealtimeEffectManager::Process(bool suspended,
    if (called & 1)
       for (unsigned int i = 0; i < nBuffers; i++)
          memcpy(buffers[i], ibuf[i], numSamples * sizeof(float));
-
-   // Remember the latency
-   auto end = std::chrono::steady_clock::now();
-   //mLatency = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
    //
    // This is wrong...needs to handle tails
@@ -257,7 +240,7 @@ RealtimeEffectManager::MakeNewState(
       auto pInstance = state.Initialize(pScope->mSampleRate);
       pScope->mInstances.push_back(pInstance);
 
-      if(pGroup == nullptr)
+      if(pGroup == MasterGroup)
       {
          auto pInstance2 = state.AddGroup(MasterGroup, pScope->mNumPlaybackChannels, pScope->mSampleRate);
          if(pInstance2 != pInstance)
@@ -303,7 +286,7 @@ std::shared_ptr<RealtimeEffectState> RealtimeEffectManager::AddState(
       return nullptr;
    Publish({
       RealtimeEffectManagerMessage::Type::EffectAdded,
-      pGroup ? pGroup : nullptr
+      pGroup ? pGroup : MasterGroup
    });
    return pState;
 }
@@ -344,7 +327,7 @@ void RealtimeEffectManager::RemoveState(
       pState->Finalize();
    Publish({
       RealtimeEffectManagerMessage::Type::EffectRemoved,
-      pGroup ? pGroup : nullptr
+      pGroup ? pGroup : MasterGroup
    });
 }
 
@@ -355,11 +338,3 @@ std::optional<size_t> RealtimeEffectManager::FindState(
    auto &states = FindStates(mProject, pGroup);
    return states.FindState(pState);
 }
-
-// Where is this used?
-#if 0
-auto RealtimeEffectManager::GetLatency() const -> Latency
-{
-   return mLatency; // should this be atomic?
-}
-#endif

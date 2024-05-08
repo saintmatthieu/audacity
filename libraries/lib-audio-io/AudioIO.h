@@ -255,7 +255,11 @@ public:
    using RingBuffers = std::vector<std::unique_ptr<RingBuffer>>;
    RingBuffers mCaptureBuffers;
    RecordableSequences mCaptureSequences;
+   //!Buffers that hold outcome of transformations applied to each individual sample source.
+   //!Number of buffers equals to the sum of number all source channels.
    std::vector<std::vector<float>> mProcessingBuffers;
+   //!These buffers are used to mix and process the result of processed source channels.
+   //!Number of buffers equals to number of output channels.
    std::vector<std::vector<float>> mMasterBuffers;
    /*! Read by worker threads but unchanging during playback */
    RingBuffers mPlaybackBuffers;
@@ -605,8 +609,7 @@ private:
 
    //! First part of SequenceBufferExchange
    void FillPlayBuffers();
-   //void TransformPlayBuffers(
-   //   std::optional<RealtimeEffects::ProcessingScope> &scope, const std::vector<std::vector<float>>& buffers);
+
    bool ProcessPlaybackSlices(
       std::optional<RealtimeEffects::ProcessingScope> &pScope,
       size_t available);
