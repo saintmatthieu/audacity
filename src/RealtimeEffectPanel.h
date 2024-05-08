@@ -87,8 +87,8 @@ public:
    
 private:
 
-   void MakeTrackEffectsPane();
-   void MakeMasterEffectsPane();
+   void MakeTrackEffectPane();
+   void MakeMasterEffectPane();
 
    void OnCharHook(wxKeyEvent& evt);
 };

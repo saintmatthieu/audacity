@@ -1162,8 +1162,8 @@ RealtimeEffectPanel::RealtimeEffectPanel(
       , mPrefsListenerHelper(std::make_unique<PrefsListenerHelper>(project))
 {
    SetSashGravity(0.5);
-   MakeTrackEffectsPane();
-   MakeMasterEffectsPane();
+   MakeTrackEffectPane();
+   MakeMasterEffectPane();
 
    {
       RealtimeEffectList::Get(project).IsActive()
@@ -1379,7 +1379,7 @@ void RealtimeEffectPanel::SetFocus()
    mTrackEffectsHeader->SetFocus();
 }
 
-void RealtimeEffectPanel::MakeTrackEffectsPane()
+void RealtimeEffectPanel::MakeTrackEffectPane()
 {
    mTrackEffectsPanel = safenew wxPanel(this);
 
@@ -1496,7 +1496,7 @@ void RealtimeEffectPanel::MakeTrackEffectsPane()
    mTrackEffectsPanel->SetSizer(vSizer.release());
 }
 
-void RealtimeEffectPanel::MakeMasterEffectsPane()
+void RealtimeEffectPanel::MakeMasterEffectPane()
 {
    mProjectEffectsPanel = safenew wxPanel(this);
 
