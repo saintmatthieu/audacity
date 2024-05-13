@@ -2024,6 +2024,7 @@ bool AudioIO::ProcessPlaybackSlices(
          if (frames > 0) {
             size_t produced = 0;
             // Check for asynchronous user changes in mute, solo status
+            // mPlaybackBuffers correspond many-to-one with mPlaybackSequences
             const auto discardable = SequenceShouldBeSilent(*mPlaybackSequences[iSequence]);
             if (toProduce)
                produced = mixer->Process(toProduce);
@@ -2036,8 +2037,15 @@ bool AudioIO::ProcessPlaybackSlices(
 
                auto& buffer = mProcessingBuffers[iBuffer++];
                const auto offset = buffer.size();
+               const auto toConsume = std::min(
+                  frames,
+                  buffer.capacity() - buffer.size()
+               );
+               produced = std::min(produced, toConsume);
+               //assert(toWrite == frames); //Sufficient size should have been reserved in AllocateBuffers
+
                //there could be leftovers from the previous pass, don't discard them
-               buffer.resize(buffer.size() + frames, 0);
+               buffer.resize(buffer.size() + toConsume, 0);
 
                if(!discardable)
                {
@@ -2048,13 +2056,13 @@ bool AudioIO::ProcessPlaybackSlices(
                      buffer.data() + offset);
                   std::fill_n(
                      buffer.data() + offset + produced,
-                     frames - produced,
+                     toConsume - produced,
                      .0f);
                }
                else
                   //TODO: mixer->Process() may be wasting CPU cycles
                   //TODO: fade out smoothly
-                  std::fill_n(buffer.data() + offset, frames, 0);
+                  std::fill_n(buffer.data() + offset, toConsume, 0);
             }
             ++iSequence;
          }
@@ -2121,7 +2129,7 @@ bool AudioIO::ProcessPlaybackSlices(
       }
    }
 
-   //samples at the beginning of could have been discarded
+   //samples at the beginning could have been discarded
    //in the previous step, proceed with the number of samples
    //equal to the shortest buffer size available
    auto samplesAvailable = std::min_element(
@@ -2136,15 +2144,12 @@ bool AudioIO::ProcessPlaybackSlices(
       return progress;
 
    //Prepare master buffers.
-   //These buffers may also contain leftovers from the previous pass
-   //Remember initial offset for each of them
-   const auto masterOffsets = stackAllocate(int, mMasterBuffers.size());
    {
-      unsigned bufferIndex = 0;
       for(auto& buffer : mMasterBuffers)
       {
-         masterOffsets[bufferIndex++] = buffer.size();
-         buffer.resize(buffer.size() + samplesAvailable, 0);
+         //assert(buffer.size() == 0);
+         //assert(buffer.capacity() >= samplesAvailable);
+         buffer.resize(samplesAvailable, 0);
       }
    }
 
@@ -2158,10 +2163,9 @@ bool AudioIO::ProcessPlaybackSlices(
          {
             for(unsigned n = 0; n < seq->NChannels(); ++n)
             {
-               const auto dstOffset = masterOffsets[n];
                const auto gain = seq->GetChannelGain(n);
                for(unsigned i = 0; i < samplesAvailable; ++i)
-                  mMasterBuffers[n][i + dstOffset] += mProcessingBuffers[bufferIndex + n][i] * gain;
+                  mMasterBuffers[n][i] += mProcessingBuffers[bufferIndex + n][i] * gain;
             }
          }
          else if(numChannels == 1)
@@ -2169,10 +2173,9 @@ bool AudioIO::ProcessPlaybackSlices(
             //mono source is duplicated into every output channel
             for(unsigned n = 0; n < mNumPlaybackChannels; ++n)
             {
-               const auto dstOffset = masterOffsets[n];
                const auto gain = seq->GetChannelGain(n);
                for(unsigned i = 0; i < samplesAvailable; ++i)
-                  mMasterBuffers[n][i + dstOffset] += mProcessingBuffers[bufferIndex][i] * gain;
+                  mMasterBuffers[n][i] += mProcessingBuffers[bufferIndex][i] * gain;
             }
          }
          bufferIndex += seq->NChannels();
@@ -2186,13 +2189,14 @@ bool AudioIO::ProcessPlaybackSlices(
    // Do any realtime effect processing, after all the little
    // slices have been written. This time we use mixed source created in
    // previous step
+   size_t masterBufferOffset = 0;//The amount of samples to be discarded
    if(pScope)
    {
       const auto pointers = stackAllocate(float*, mNumPlaybackChannels);
       for(unsigned i = 0; i < mNumPlaybackChannels; ++i)
          pointers[i] = mMasterBuffers[i].data();
 
-      const auto discardable = pScope->Process(
+      masterBufferOffset = pScope->Process(
          RealtimeEffectManager::MasterGroup,
          &pointers[0],
          mScratchPointers.data(),
@@ -2200,8 +2204,8 @@ bool AudioIO::ProcessPlaybackSlices(
          mScratchPointers[mNumPlaybackChannels],
          mNumPlaybackChannels, samplesAvailable);
 
-      // wxASSERT(samplesAvailable >= discardable); // don't assert on this thread
-      samplesAvailable -= discardable;
+      // wxASSERT(samplesAvailable >= masterOffset); // don't assert on this thread
+      samplesAvailable -= masterBufferOffset;
    }
 
    if(samplesAvailable == 0)
@@ -2212,7 +2216,7 @@ bool AudioIO::ProcessPlaybackSlices(
       for(auto& buffer : mMasterBuffers)
       {
          mPlaybackBuffers[bufferIndex++]->Put(
-            reinterpret_cast<constSamplePtr>(buffer.data()),
+            reinterpret_cast<constSamplePtr>(buffer.data()) + masterBufferOffset,
             floatSample,
             samplesAvailable,
             0
@@ -2222,7 +2226,7 @@ bool AudioIO::ProcessPlaybackSlices(
 
    //remove only samples that were processed in previous step
    for(auto& buffer : mMasterBuffers)
-      buffer.erase(buffer.begin(), buffer.begin() + samplesAvailable);
+      buffer.clear();
    
    return progress;
 }
@@ -2689,7 +2693,7 @@ void ClampBuffer(float * pBuffer, unsigned long len){
 // from our intermediate playback buffers
 //
 bool AudioIoCallback::FillOutputBuffers(
-   float *outputBuffer,
+   float *outputFloats,
    unsigned long framesPerBuffer,
    float *outputMeterFloats
 )
@@ -2701,15 +2705,13 @@ bool AudioIoCallback::FillOutputBuffers(
 
    // Quick returns if next to nothing to do.
    if (mStreamToken <= 0 ||
-       !outputBuffer ||
+       !outputFloats ||
        numPlaybackChannels <= 0) {
       // So that UpdateTimePosition() will be correct, in case of MIDI play with
       // no audio output channels
       mMaxFramesOutput = framesPerBuffer;
       return false;
    }
-
-   float *outputFloats = outputBuffer;
 
    if (mSeek && !mPlaybackSchedule.GetPolicy().AllowSeek(mPlaybackSchedule))
       mSeek = 0.0;
@@ -2723,10 +2725,9 @@ bool AudioIoCallback::FillOutputBuffers(
    const auto toGet =
       std::min<size_t>(framesPerBuffer, GetCommonlyReadyPlayback());
 
-   // Poke: If there are no playback sequences, then the earlier check
-   // about the time indicator being past the end won't happen;
-   // do it here instead (but not if looping or scrubbing)
-   // PRL:  Also consume from the single playback ring buffer
+   // Poke: If there are no playback sequences, then check playback
+   // completion condition and do early return
+   // PRL:  Also consume frbom the single playback ring buffer
    if (numPlaybackSequences == 0) {
       mMaxFramesOutput = mPlaybackBuffers[0]->Discard(toGet);
       CallbackCheckCompletion(mCallbackReturn, 0);
@@ -2734,7 +2735,6 @@ bool AudioIoCallback::FillOutputBuffers(
       return false;
    }
 
-   // The drop and dropQuickly booleans are so named for historical reasons.
    // JKC: The original code attempted to be faster by doing nothing on silenced audio.
    // This, IMHO, is 'premature optimisation'.  Instead clearer and cleaner code would
    // simply use a gain of 0.0 for silent audio and go on through to the stage of
@@ -2760,7 +2760,6 @@ bool AudioIoCallback::FillOutputBuffers(
    if (mForceFadeOut.load(std::memory_order_relaxed) || IsPaused())
       gain = 0.0;
 
-   
    for(unsigned n = 0; n < numPlaybackChannels; ++n)
    {
       decltype(framesPerBuffer) len = mPlaybackBuffers[n]->Get(

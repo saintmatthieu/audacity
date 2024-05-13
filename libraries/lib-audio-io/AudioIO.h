@@ -190,7 +190,7 @@ public:
    );
 
    bool FillOutputBuffers(
-      float *outputBuffer,
+      float *outputFloats,
       unsigned long framesPerBuffer,
       float *outputMeterFloats
    );
@@ -272,7 +272,6 @@ public:
    std::vector<float *> mScratchPointers; //!< pointing into mScratchBuffers
 
    std::vector<std::unique_ptr<Mixer>> mPlaybackMixers;
-   std::unique_ptr<Mixer> mMasterMixer;
 
    std::atomic<float>  mMixerOutputVol{ 1.0 };
    static int          mNextStreamToken;

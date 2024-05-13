@@ -171,7 +171,7 @@ private:
    // using StateVisitor =
       // std::function<void(RealtimeEffectState &state, bool listIsActive)> ;
 
-   //! Visit states for group
+   //! Visit states for group or for the master when group is null
    template<typename StateVisitor>
    void VisitGroup(ChannelGroup *group, const StateVisitor &func)
    {
