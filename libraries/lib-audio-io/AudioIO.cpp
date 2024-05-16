@@ -2000,6 +2000,10 @@ bool AudioIO::ProcessPlaybackSlices(
    bool done = false;
    bool progress = false;
 
+   // remember initial processing buffer offsets
+   // they may be different depending on latencies
+   const auto processingBufferOffsets = stackAllocate(size_t, mProcessingBuffers.size());
+
    do {
       const auto slice =
          policy.GetPlaybackSlice(mPlaybackSchedule, available);
@@ -2033,10 +2037,12 @@ bool AudioIO::ProcessPlaybackSlices(
             // Copy (non-interleaved) mixer outputs to one or more ring buffers
             const auto nChannels = mPlaybackSequences[iSequence]->NChannels();
             
-            for (size_t j = 0; j < nChannels; ++j) {
-
-               auto& buffer = mProcessingBuffers[iBuffer++];
+            for (size_t j = 0; j < nChannels; ++j)
+            {
+               auto& buffer = mProcessingBuffers[iBuffer];
                const auto offset = buffer.size();
+               processingBufferOffsets[iBuffer] = offset;
+
                const auto toConsume = std::min(
                   frames,
                   buffer.capacity() - buffer.size()
@@ -2063,6 +2069,8 @@ bool AudioIO::ProcessPlaybackSlices(
                   //TODO: mixer->Process() may be wasting CPU cycles
                   //TODO: fade out smoothly
                   std::fill_n(buffer.data() + offset, toConsume, 0);
+
+               ++iBuffer;
             }
             ++iSequence;
          }
@@ -2104,25 +2112,32 @@ bool AudioIO::ProcessPlaybackSlices(
          // But it would be good to find the fixes to make this unnecessary.
          auto scratch = &mScratchPointers[mNumPlaybackChannels + 1];
 
+         //skip samples that are already processed
+         const auto offset = processingBufferOffsets[bufferIndex];
+         //number of newly written samples
          const auto len = mProcessingBuffers[bufferIndex].size();
-         for(unsigned i = 0; i < seq->NChannels(); ++i)
-            pointers[i] = mProcessingBuffers[bufferIndex + i].data();
-         
-         for(unsigned i = seq->NChannels(); i < mNumPlaybackChannels; ++i)
-         {
-            pointers[i] = *scratch++;
-            std::fill_n(pointers[i], mProcessingBuffers[bufferIndex].size(), .0f);
-         }
 
-         const auto discardable = pScope->Process(channelGroup, &pointers[0],
-            mScratchPointers.data(),
-            // The single dummy output buffer:
-            mScratchPointers[mNumPlaybackChannels],
-            mNumPlaybackChannels, len);
-         for(int i = 0; i < seq->NChannels(); ++i)
+         if(len > 0)
          {
-            auto& buffer = mProcessingBuffers[bufferIndex + i];
-            buffer.erase(buffer.begin(), buffer.begin() + discardable);
+            for(unsigned i = 0; i < seq->NChannels(); ++i)
+               pointers[i] = mProcessingBuffers[bufferIndex + i].data();
+            
+            for(unsigned i = seq->NChannels(); i < mNumPlaybackChannels; ++i)
+            {
+               pointers[i] = *scratch++;
+               std::fill_n(pointers[i], mProcessingBuffers[bufferIndex].size(), .0f);
+            }
+
+            const auto discardable = pScope->Process(channelGroup, &pointers[0],
+               mScratchPointers.data(),
+               // The single dummy output buffer:
+               mScratchPointers[mNumPlaybackChannels],
+               mNumPlaybackChannels, len);
+            for(int i = 0; i < seq->NChannels(); ++i)
+            {
+               auto& buffer = mProcessingBuffers[bufferIndex + i];
+               buffer.erase(buffer.begin() + offset, buffer.begin() + offset + discardable);
+            }
          }
 
          bufferIndex += seq->NChannels();
@@ -2224,7 +2239,6 @@ bool AudioIO::ProcessPlaybackSlices(
       }
    }
 
-   //remove only samples that were processed in previous step
    for(auto& buffer : mMasterBuffers)
       buffer.clear();
    
