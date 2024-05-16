@@ -2027,9 +2027,7 @@ bool AudioIO::ProcessPlaybackSlices(
          // warping
          if (frames > 0) {
             size_t produced = 0;
-            // Check for asynchronous user changes in mute, solo status
-            // mPlaybackBuffers correspond many-to-one with mPlaybackSequences
-            const auto discardable = SequenceShouldBeSilent(*mPlaybackSequences[iSequence]);
+            
             if (toProduce)
                produced = mixer->Process(toProduce);
 
@@ -2039,6 +2037,7 @@ bool AudioIO::ProcessPlaybackSlices(
             
             for (size_t j = 0; j < nChannels; ++j)
             {
+               // mPlaybackBuffers correspond many-to-one with mPlaybackSequences
                auto& buffer = mProcessingBuffers[iBuffer];
                const auto offset = buffer.size();
                processingBufferOffsets[iBuffer] = offset;
@@ -2053,22 +2052,15 @@ bool AudioIO::ProcessPlaybackSlices(
                //there could be leftovers from the previous pass, don't discard them
                buffer.resize(buffer.size() + toConsume, 0);
 
-               if(!discardable)
-               {
-                  auto warpedSamples = mixer->GetBuffer(j);
-                  std::copy_n(
-                     reinterpret_cast<const float*>(warpedSamples),
-                     produced,
-                     buffer.data() + offset);
-                  std::fill_n(
-                     buffer.data() + offset + produced,
-                     toConsume - produced,
-                     .0f);
-               }
-               else
-                  //TODO: mixer->Process() may be wasting CPU cycles
-                  //TODO: fade out smoothly
-                  std::fill_n(buffer.data() + offset, toConsume, 0);
+               auto warpedSamples = mixer->GetBuffer(j);
+               std::copy_n(
+                  reinterpret_cast<const float*>(warpedSamples),
+                  produced,
+                  buffer.data() + offset);
+               std::fill_n(
+                  buffer.data() + offset + produced,
+                  toConsume - produced,
+                  .0f);
 
                ++iBuffer;
             }
@@ -2133,10 +2125,17 @@ bool AudioIO::ProcessPlaybackSlices(
                // The single dummy output buffer:
                mScratchPointers[mNumPlaybackChannels],
                mNumPlaybackChannels, len);
+            // Check for asynchronous user changes in mute, solo status
+            const auto silenced = SequenceShouldBeSilent(*seq);
             for(int i = 0; i < seq->NChannels(); ++i)
             {
                auto& buffer = mProcessingBuffers[bufferIndex + i];
                buffer.erase(buffer.begin() + offset, buffer.begin() + offset + discardable);
+               if(silenced)
+               {
+                  //TODO: fade out smoothly
+                  std::fill_n(buffer.data() + offset, len - discardable, 0);
+               }
             }
          }
 
