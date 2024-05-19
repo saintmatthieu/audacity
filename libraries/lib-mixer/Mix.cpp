@@ -43,9 +43,25 @@ initVector(size_t dim1, size_t dim2)
 }
 }
 
-namespace {
+namespace
+{
+void ConsiderStages(const Mixer::Stages& stages, size_t& blockSize)
+{
+   for (const auto& stage : stages)
+   {
+      // Need an instance to query acceptable block size
+      const auto pInstance = stage.factory();
+      if (pInstance)
+         blockSize = std::min(blockSize, pInstance->SetBlockSize(blockSize));
+      // Cache the first factory call
+      stage.mpFirstInstance = move(pInstance);
+   }
+}
+
 // Find a block size acceptable to all stages; side-effects on instances
-size_t FindBufferSize(const Mixer::Inputs &inputs, size_t bufferSize)
+size_t FindBufferSize(
+   const Mixer::Inputs& inputs,
+   const std::optional<Mixer::Stages>& masterEffects, size_t bufferSize)
 {
    size_t blockSize = bufferSize;
    for (const auto &input : inputs) {
@@ -55,56 +71,49 @@ size_t FindBufferSize(const Mixer::Inputs &inputs, size_t bufferSize)
          assert(false);
          break;
       }
-      for (const auto &stage : input.stages) {
-         // Need an instance to query acceptable block size
-         const auto pInstance = stage.factory();
-         if (pInstance)
-            blockSize = std::min(blockSize, pInstance->SetBlockSize(blockSize));
-         // Cache the first factory call
-         stage.mpFirstInstance = move(pInstance);
-      }
+      ConsiderStages(input.stages, blockSize);
    }
+   if (masterEffects)
+      ConsiderStages(*masterEffects, blockSize);
+
    return blockSize;
 }
-}
+} // namespace
 
-Mixer::Mixer(Inputs inputs,
-   const bool mayThrow,
-   const WarpOptions &warpOptions,
-   const double startTime, const double stopTime,
-   const unsigned numOutChannels,
-   const size_t outBufferSize, const bool outInterleaved,
-   double outRate, sampleFormat outFormat,
-   const bool highQuality, MixerSpec *const mixerSpec,
-   ApplyGain applyGain
-)  : mNumChannels{ numOutChannels }
-   , mInputs{ move(inputs) }
-   , mBufferSize{ FindBufferSize(mInputs, outBufferSize) }
-   , mApplyGain{ applyGain }
-   , mHighQuality{ highQuality }
-   , mFormat{ outFormat }
-   , mInterleaved{ outInterleaved }
+Mixer::Mixer(
+   Inputs inputs, std::optional<Stages> masterEffects, const bool mayThrow,
+   const WarpOptions& warpOptions, const double startTime,
+   const double stopTime, const unsigned numOutChannels,
+   const size_t outBufferSize, const bool outInterleaved, double outRate,
+   sampleFormat outFormat, const bool highQuality, MixerSpec* const mixerSpec,
+   ApplyGain applyGain)
+    : mNumChannels { numOutChannels }
+    , mInputs { move(inputs) }
+    , mMasterEffects { move(masterEffects) }
+    , mBufferSize { FindBufferSize(mInputs, masterEffects, outBufferSize) }
+    , mApplyGain { applyGain }
+    , mHighQuality { highQuality }
+    , mFormat { outFormat }
+    , mInterleaved { outInterleaved }
+    , mTimesAndSpeed { std::make_shared<TimesAndSpeed>(TimesAndSpeed {
+         startTime, stopTime, warpOptions.initialSpeed, startTime }) }
 
-   , mTimesAndSpeed{ std::make_shared<TimesAndSpeed>( TimesAndSpeed{
-      startTime, stopTime, warpOptions.initialSpeed, startTime
-   } ) }
+    // PRL:  Bug2536: see other comments below for the last, padding argument
+    // TODO: more-than-two-channels
+    // Issue 3565 workaround:  allocate one extra buffer when applying a
+    // GVerb effect stage.  It is simply discarded
+    // See also issue 3854, when the number of out channels expected by the
+    // plug-in is yet larger
+    , mFloatBuffers { 3, mBufferSize, 1, 1 }
 
-   // PRL:  Bug2536: see other comments below for the last, padding argument
-   // TODO: more-than-two-channels
-   // Issue 3565 workaround:  allocate one extra buffer when applying a
-   // GVerb effect stage.  It is simply discarded
-   // See also issue 3854, when the number of out channels expected by the
-   // plug-in is yet larger
-   , mFloatBuffers{ 3, mBufferSize, 1, 1 }
-
-   // non-interleaved
-   , mTemp{ initVector<float>(mNumChannels, mBufferSize) }
-   , mBuffer{ initVector<SampleBuffer>(mInterleaved ? 1 : mNumChannels,
-      [format = mFormat,
-         size = mBufferSize * (mInterleaved ? mNumChannels : 1)
-      ](auto &buffer){ buffer.Allocate(size, format); }
-   )}
-   , mEffectiveFormat{ floatSample }
+    // non-interleaved
+    , mTemp { initVector<float>(mNumChannels, mBufferSize) }
+    , mBuffer { initVector<SampleBuffer>(
+         mInterleaved ? 1 : mNumChannels,
+         [format = mFormat,
+          size = mBufferSize * (mInterleaved ? mNumChannels : 1)](
+            auto& buffer) { buffer.Allocate(size, format); }) }
+    , mEffectiveFormat { floatSample }
 {
    assert(BufferSize() <= outBufferSize);
    const auto nChannelsIn =
@@ -120,6 +129,12 @@ Mixer::Mixer(Inputs inputs,
             [](const MixerOptions::StageSpecification &spec){
                return spec.mpFirstInstance &&
                   spec.mpFirstInstance->NeedsDither(); } ); } );
+   if (mMasterEffects)
+      needsDither |= std::any_of(
+         mMasterEffects->begin(), mMasterEffects->end(),
+         [](const MixerOptions::StageSpecification& spec) {
+            return spec.mpFirstInstance && spec.mpFirstInstance->NeedsDither();
+         });
 
    auto pMixerSpec = ( mixerSpec &&
       mixerSpec->GetNumChannels() == mNumChannels &&
@@ -148,35 +163,26 @@ Mixer::Mixer(Inputs inputs,
          warpOptions, highQuality, mayThrow, mTimesAndSpeed,
          (pMixerSpec ? &pMixerSpec->mMap[i] : nullptr));
       AudioGraph::Source *pDownstream = &source;
-      for (const auto &stage : input.stages) {
-         // Make a mutable copy of stage.settings
-         auto &settings = mSettings.emplace_back(stage.settings);
-         // TODO: more-than-two-channels
-         // Like mFloatBuffers but padding not needed for soxr
-         // Allocate one extra buffer to hold dummy zero inputs
-         // (Issue 3854)
-         auto &stageInput = mStageBuffers.emplace_back(3, mBufferSize, 1);
-         const auto &factory = [&stage]{
-            // Avoid unnecessary repeated calls to the factory
-            return stage.mpFirstInstance
-               ? move(stage.mpFirstInstance)
-               : stage.factory();
-         };
-         auto &pNewDownstream =
-         mStages.emplace_back(EffectStage::Create(-1,
-            *pDownstream, stageInput,
-            factory, settings, outRate, std::nullopt, *sequence
-         ));
-         if (pNewDownstream)
+      for (const auto &stage : input.stages)
+         if (
+            auto& pNewDownstream =
+               RegisterEffectStage(*pDownstream, stage, outRate))
+         {
             pDownstream = pNewDownstream.get();
-         else {
-            // Just omit the failed stage from rendering
-            // TODO propagate the error?
-            mStageBuffers.pop_back();
-            mSettings.pop_back();
          }
-      }
       mDecoratedSources.emplace_back(Source{ source, *pDownstream });
+   }
+
+   if (mMasterEffects)
+   {
+      AudioGraph::Source* pDownstream = this;
+      for (const auto& stage : *mMasterEffects)
+         if (
+            auto& pNewDownstream =
+               RegisterEffectStage(*pDownstream, stage, outRate))
+         {
+            mMasterStages.emplace_back(pDownstream = pNewDownstream.get());
+         }
    }
 
    // Decide once at construction time
@@ -202,7 +208,7 @@ Mixer::NeedsDither(bool needsDither, double rate) const
 
    for (const auto &input : mSources) {
       auto &sequence = input.GetSequence();
-      
+
       if (sequence.GetRate() != rate)
          // Also leads to MixVariableRates(), needs nontrivial resampling
          needsDither = true;
@@ -339,13 +345,31 @@ size_t Mixer::Process(const size_t maxToProcess)
             if(mApplyGain == ApplyGain::Mixdown && !mHasMixerSpec && mNumChannels == 1)
                gains[0] /= static_cast<float>(limit);
          }
-         
+
          const auto flags =
             findChannelFlags(upstream.MixerSpec(j), sequence, j);
          MixBuffers(mNumChannels, flags, gains, *pFloat, mTemp, result);
       }
 
       downstream.Release();
+      mFloatBuffers.Advance(result);
+      mFloatBuffers.Rotate();
+   }
+
+   for (auto& stage : mMasterStages)
+   {
+      auto oResult = stage->Acquire(mFloatBuffers, maxOut);
+      if (!oResult)
+         return 0;
+      auto result = *oResult;
+      const auto limit = std::min<size_t>(mNumChannels, maxChannels);
+      for (size_t j = 0; j < limit; ++j)
+      {
+         const auto pFloat =
+            reinterpret_cast<const float*>(mFloatBuffers.GetReadPosition(j));
+         std::copy(pFloat, pFloat + result, mTemp[j].data());
+      }
+      stage->Release();
       mFloatBuffers.Advance(result);
       mFloatBuffers.Rotate();
    }
@@ -443,4 +467,79 @@ void Mixer::SetSpeedForKeyboardScrubbing(double speed, double startTime)
    }
 
    mSpeed = fabs(speed);
+}
+
+bool Mixer::AcceptsBuffers(const Buffers& buffers) const
+{
+   return buffers.BlockSize() <= mBufferSize;
+}
+
+bool Mixer::AcceptsBlockSize(size_t blockSize) const
+{
+   return blockSize <= mBufferSize;
+}
+
+sampleCount Mixer::Remaining() const
+{
+   // The Mixer is the source for the master effect stack. The amount of samples
+   // available is that of the track effect stack with most samples available.
+   return std::accumulate(
+      mDecoratedSources.begin(), mDecoratedSources.end(), sampleCount { 0 },
+      [](auto maxSoFar, const auto& source) {
+         return std::max(maxSoFar, source.downstream.Remaining());
+      });
+}
+
+bool Mixer::Release()
+{
+   // TODO: what should be done here ?
+   return true;
+}
+
+std::optional<size_t> Mixer::Acquire(Buffers& data, size_t bound)
+{
+   assert(bound <= mBufferSize);
+   if (bound > mBufferSize)
+      return {};
+
+   // Copy mTmp to the buffer
+   const auto nChannels = mNumChannels;
+   for (size_t c = 0; c < nChannels; ++c)
+   {
+      const float* input = mTemp[c].data();
+      auto output = &data.GetWritePosition(c);
+      std::copy(input, input + bound, output);
+   }
+   // TODO anything else that should be done to `data`, like advancing it?
+   return bound;
+}
+
+std::unique_ptr<EffectStage>& Mixer::RegisterEffectStage(
+   AudioGraph::Source& upstream, const MixerOptions::StageSpecification& stage,
+   double outRate)
+{
+   // Make a mutable copy of stage.settings
+   auto& settings = mSettings.emplace_back(stage.settings);
+   // TODO: more-than-two-channels
+   // Like mFloatBuffers but padding not needed for soxr
+   // Allocate one extra buffer to hold dummy zero inputs
+   // (Issue 3854)
+   auto& stageInput = mStageBuffers.emplace_back(3, mBufferSize, 1);
+   const auto& factory = [&stage] {
+      // Avoid unnecessary repeated calls to the factory
+      return stage.mpFirstInstance ? move(stage.mpFirstInstance) :
+                                     stage.factory();
+   };
+   constexpr auto sequenceNchannels = 2; // TODO
+   auto& pNewDownstream = mStages.emplace_back(EffectStage::Create(
+      -1, sequenceNchannels, upstream, stageInput, factory, settings, outRate,
+      std::nullopt));
+   if (!pNewDownstream)
+   {
+      // Just omit the failed stage from rendering
+      // TODO propagate the error?
+      mStageBuffers.pop_back();
+      mSettings.pop_back();
+   }
+   return pNewDownstream;
 }
