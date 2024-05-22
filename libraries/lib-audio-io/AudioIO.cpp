@@ -2035,24 +2035,24 @@ bool AudioIO::ProcessPlaybackSlices(
             // Copy (non-interleaved) mixer outputs to one or more ring buffers
             const auto nChannels = mPlaybackSequences[iSequence]->NChannels();
 
-            const auto toConsume = std::min(
-               frames,
-               mProcessingBuffers[0].capacity() - mProcessingBuffers[0].size()
-            );
-            //assert(toConsume == frames); //Sufficient size should have been reserved in AllocateBuffers
-            produced = std::min(produced, toConsume);
-
-            const auto offset = mProcessingBuffers[iBuffer].size();
             for (size_t j = 0; j < nChannels; ++j)
             {
                // mPlaybackBuffers correspond many-to-one with mPlaybackSequences
-               auto& buffer = mProcessingBuffers[iBuffer + j];
-               processingBufferOffsets[iBuffer + j] = offset;
+               auto& buffer = mProcessingBuffers[iBuffer];
+               const auto offset = buffer.size();
+               processingBufferOffsets[iBuffer] = offset;
+
+               const auto toConsume = std::min(
+                  frames,
+                  buffer.capacity() - buffer.size()
+               );
+               produced = std::min(produced, toConsume);
+               //assert(toWrite == frames); //Sufficient size should have been reserved in AllocateBuffers
 
                //there could be leftovers from the previous pass, don't discard them
                buffer.resize(buffer.size() + toConsume, 0);
 
-               const auto warpedSamples = mixer->GetBuffer(j);
+               auto warpedSamples = mixer->GetBuffer(j);
                std::copy_n(
                   reinterpret_cast<const float*>(warpedSamples),
                   produced,
@@ -2061,9 +2061,9 @@ bool AudioIO::ProcessPlaybackSlices(
                   buffer.data() + offset + produced,
                   toConsume - produced,
                   .0f);
-            }
 
-            iBuffer += nChannels;
+               ++iBuffer;
+            }
             ++iSequence;
          }
       }
@@ -2107,12 +2107,12 @@ bool AudioIO::ProcessPlaybackSlices(
          //skip samples that are already processed
          const auto offset = processingBufferOffsets[bufferIndex];
          //number of newly written samples
-         const auto len = mProcessingBuffers[bufferIndex].size() - offset;
+         const auto len = mProcessingBuffers[bufferIndex].size();
 
          if(len > 0)
          {
             for(unsigned i = 0; i < seq->NChannels(); ++i)
-               pointers[i] = mProcessingBuffers[bufferIndex + i].data() + offset;
+               pointers[i] = mProcessingBuffers[bufferIndex + i].data();
 
             for(unsigned i = seq->NChannels(); i < mNumPlaybackChannels; ++i)
             {
@@ -2158,16 +2158,13 @@ bool AudioIO::ProcessPlaybackSlices(
       return progress;
 
    //Prepare master buffers.
-   auto cleanup = finally([=] {
-      for(auto& buffer : mMasterBuffers)
-         buffer.clear();
-   });
-
-   for(auto& buffer : mMasterBuffers)
    {
-      //assert(buffer.size() == 0);
-      //assert(buffer.capacity() >= samplesAvailable);
-      buffer.resize(samplesAvailable, 0);
+      for(auto& buffer : mMasterBuffers)
+      {
+         //assert(buffer.size() == 0);
+         //assert(buffer.capacity() >= samplesAvailable);
+         buffer.resize(samplesAvailable, 0);
+      }
    }
 
    {
@@ -2175,13 +2172,27 @@ bool AudioIO::ProcessPlaybackSlices(
       for(const auto& seq : mPlaybackSequences)
       {
          //TODO: apply micro-fades
-         for(unsigned n = 0; n < mNumPlaybackChannels; ++n)
+         const auto numChannels = seq->NChannels();
+         if(numChannels > 1)
          {
-            const auto gain = seq->GetChannelGain(n);
-            for(unsigned i = 0; i < samplesAvailable; ++i)
-               mMasterBuffers[n][i] += mProcessingBuffers[bufferIndex + n][i] * gain;
+            for(unsigned n = 0; n < seq->NChannels(); ++n)
+            {
+               const auto gain = seq->GetChannelGain(n);
+               for(unsigned i = 0; i < samplesAvailable; ++i)
+                  mMasterBuffers[n][i] += mProcessingBuffers[bufferIndex + n][i] * gain;
+            }
          }
-         bufferIndex += mNumPlaybackChannels;
+         else if(numChannels == 1)
+         {
+            //mono source is duplicated into every output channel
+            for(unsigned n = 0; n < mNumPlaybackChannels; ++n)
+            {
+               const auto gain = seq->GetChannelGain(n);
+               for(unsigned i = 0; i < samplesAvailable; ++i)
+                  mMasterBuffers[n][i] += mProcessingBuffers[bufferIndex][i] * gain;
+            }
+         }
+         bufferIndex += seq->NChannels();
       }
    }
 
@@ -2207,7 +2218,7 @@ bool AudioIO::ProcessPlaybackSlices(
          mScratchPointers[mNumPlaybackChannels],
          mNumPlaybackChannels, samplesAvailable);
 
-      // wxASSERT(samplesAvailable >= masterBufferOffset); // don't assert on this thread
+      // wxASSERT(samplesAvailable >= masterOffset); // don't assert on this thread
       samplesAvailable -= masterBufferOffset;
    }
 
@@ -2219,7 +2230,7 @@ bool AudioIO::ProcessPlaybackSlices(
       for(auto& buffer : mMasterBuffers)
       {
          mPlaybackBuffers[bufferIndex++]->Put(
-            reinterpret_cast<constSamplePtr>(buffer.data()) + masterBufferOffset * sizeof(float),
+            reinterpret_cast<constSamplePtr>(buffer.data()) + masterBufferOffset,
             floatSample,
             samplesAvailable,
             0
