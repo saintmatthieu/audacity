@@ -90,7 +90,7 @@ Mixer::Mixer(
     : mNumChannels { numOutChannels }
     , mInputs { move(inputs) }
     , mMasterEffects { move(masterEffects) }
-    , mBufferSize { FindBufferSize(mInputs, masterEffects, outBufferSize) }
+    , mBufferSize { FindBufferSize(mInputs, mMasterEffects, outBufferSize) }
     , mApplyGain { applyGain }
     , mHighQuality { highQuality }
     , mFormat { outFormat }
@@ -364,6 +364,8 @@ size_t Mixer::Process(const size_t maxToProcess)
 
    if (!mMasterStages.empty())
    {
+      mTempProgress = 0;
+      mNumSamplesInTemp = maxOut;
       // Pull once from the tail of the graph and update `mTemp`.
       auto& stage = mMasterStages.back();
       const auto numAcquired = stage->Acquire(mFloatBuffers, maxOut);
@@ -479,28 +481,23 @@ void Mixer::SetSpeedForKeyboardScrubbing(double speed, double startTime)
 
 bool Mixer::AcceptsBuffers(const Buffers& buffers) const
 {
-   return buffers.BlockSize() <= mBufferSize;
+   assert(!mTemp.empty());
+   return !mTemp.empty() && buffers.BlockSize() <= mTemp[0].size();
 }
 
 bool Mixer::AcceptsBlockSize(size_t blockSize) const
 {
-   return blockSize <= mBufferSize;
+   assert(!mTemp.empty());
+   return !mTemp.empty() && blockSize <= mTemp[0].size();
 }
 
 sampleCount Mixer::Remaining() const
 {
-   // The Mixer is the source for the master effect stack. The amount of samples
-   // available is that of the track effect stack with most samples available.
-   return std::accumulate(
-      mDecoratedSources.begin(), mDecoratedSources.end(), sampleCount { 0 },
-      [](auto maxSoFar, const auto& source) {
-         return std::max(maxSoFar, source.downstream.Remaining());
-      });
+   return mNumSamplesInTemp - mTempProgress;
 }
 
 bool Mixer::Release()
 {
-   // TODO: what should be done here ?
    return true;
 }
 
@@ -510,15 +507,17 @@ std::optional<size_t> Mixer::Acquire(Buffers& data, size_t bound)
    if (bound > mBufferSize)
       return {};
 
+   bound = limitSampleBufferSize(bound, Remaining());
+
    // Copy mTmp to the buffer
    const auto nChannels = mNumChannels;
    for (size_t c = 0; c < nChannels; ++c)
    {
-      const float* input = mTemp[c].data();
+      const float* input = mTemp[c].data() + mTempProgress;
       auto output = &data.GetWritePosition(c);
       std::copy(input, input + bound, output);
    }
-   // TODO anything else that should be done to `data`, like advancing it?
+   mTempProgress += bound;
    return bound;
 }
 
