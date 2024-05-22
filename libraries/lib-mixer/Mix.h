@@ -170,9 +170,7 @@ private:
    // Each channel's data is transformed, including application of
    // gains and pans, and then (maybe many-to-one) mixer specifications
    // determine where in mTemp it is accumulated
-   std::vector<std::vector<float>> mTemp;
-   int mTempProgress = 0;
-   int mNumSamplesInTemp = 0;
+   AudioGraph::Buffers mTemp;
 
    // Final result applies dithering and interleaving
    const std::vector<SampleBuffer> mBuffer;

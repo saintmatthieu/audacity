@@ -107,7 +107,7 @@ Mixer::Mixer(
     , mFloatBuffers { 3, mBufferSize, 1, 1 }
 
     // non-interleaved
-    , mTemp { initVector<float>(mNumChannels, mBufferSize) }
+    , mTemp { 3, mBufferSize, 1, 1 }
     , mBuffer { initVector<SampleBuffer>(
          mInterleaved ? 1 : mNumChannels,
          [format = mFormat,
@@ -261,20 +261,21 @@ Mixer::NeedsDither(bool needsDither, double rate) const
 
 void Mixer::Clear()
 {
-   for (auto &buffer: mTemp)
-      std::fill(buffer.begin(), buffer.end(), 0);
+   for (auto c = 0; c < mTemp.Channels(); ++c)
+      mTemp.ClearBuffer(c, mBufferSize);
 }
 
 static void MixBuffers(unsigned numChannels,
    const unsigned char *channelFlags, const float *gains,
-   const float &src, std::vector<std::vector<float>> &dests, int len)
+   const float &src, AudioGraph::Buffers &dests, int len)
 {
    const auto pSrc = &src;
    for (unsigned int c = 0; c < numChannels; c++) {
       if (!channelFlags[c])
          continue;
+      auto dest = &dests.GetWritePosition(c);
       for (int j = 0; j < len; ++j)
-         dests[c][j] += pSrc[j] * gains[c];   // the actual mixing process
+         dest[j] += pSrc[j] * gains[c];   // the actual mixing process
    }
 }
 
@@ -289,100 +290,24 @@ size_t Mixer::Process(const size_t maxToProcess)
    //if (mT >= mT1)
    //   return 0;
 
-   size_t maxOut = 0;
-   const auto channelFlags = stackAllocate(unsigned char, mNumChannels);
-   const auto gains = stackAllocate(float, mNumChannels);
-   if (mApplyGain == ApplyGain::Discard)
-      std::fill(gains, gains + mNumChannels, 1.0f);
-
-   // Decides which output buffers an input channel accumulates into
-   auto findChannelFlags = [&channelFlags, numChannels = mNumChannels]
-   (const bool *map, const WideSampleSequence &sequence, size_t iChannel){
-      const auto end = channelFlags + numChannels;
-      std::fill(channelFlags, end, 0);
-      if (map)
-         // ignore left and right when downmixing is customized
-         std::copy(map, map + numChannels, channelFlags);
-      else if (IsMono(sequence))
-         std::fill(channelFlags, end, 1);
-      else if (iChannel == 0)
-         channelFlags[0] = 1;
-      else if (iChannel == 1) {
-         if (numChannels >= 2)
-            channelFlags[1] = 1;
-         else
-            channelFlags[0] = 1;
-      }
-      return channelFlags;
-   };
-
    auto &[mT0, mT1, _, mTime] = *mTimesAndSpeed;
    auto oldTime = mTime;
    // backwards (as possibly in scrubbing)
    const auto backwards = (mT0 > mT1);
 
    Clear();
-   // TODO: more-than-two-channels
-   auto maxChannels = std::max(2u, mFloatBuffers.Channels());
 
-   for (auto &[ upstream, downstream ] : mDecoratedSources) {
-      auto oResult = downstream.Acquire(mFloatBuffers, maxToProcess);
-      // One of MixVariableRates or MixSameRate assigns into mTemp[*][*] which
-      // are the sources for the CopySamples calls, and they copy into
-      // mBuffer[*][*]
-      if (!oResult)
-         return 0;
-      const auto result = *oResult;
-      maxOut = std::max(maxOut, result);
-
-      // Insert effect stages here!  Passing them all channels of the track
-
-      const auto limit = std::min<size_t>(upstream.Channels(), maxChannels);
-      for (size_t j = 0; j < limit; ++j) {
-         const auto pFloat = (const float *)mFloatBuffers.GetReadPosition(j);
-         auto &sequence = upstream.GetSequence();
-         if (mApplyGain != ApplyGain::Discard) {
-            for (size_t c = 0; c < mNumChannels; ++c) {
-               if (mNumChannels > 1)
-                  gains[c] = sequence.GetChannelGain(c);
-               else
-                  gains[c] = sequence.GetChannelGain(j);
-            }
-            if(mApplyGain == ApplyGain::Mixdown && !mHasMixerSpec && mNumChannels == 1)
-               gains[0] /= static_cast<float>(limit);
-         }
-
-         const auto flags =
-            findChannelFlags(upstream.MixerSpec(j), sequence, j);
-         MixBuffers(mNumChannels, flags, gains, *pFloat, mTemp, result);
-      }
-
-      downstream.Release();
-      mFloatBuffers.Advance(result);
-      mFloatBuffers.Rotate();
-   }
-
-   if (!mMasterStages.empty())
+   std::optional<size_t> maxOut;
+   if (mMasterStages.empty())
+      maxOut = Acquire(mTemp, maxToProcess);
+   else
    {
-      mTempProgress = 0;
-      mNumSamplesInTemp = maxOut;
-      // Pull once from the tail of the graph and update `mTemp`.
-      auto& stage = mMasterStages.back();
-      const auto numAcquired = stage->Acquire(mFloatBuffers, maxOut);
-      if (!numAcquired)
-         return 0;
-      maxOut = *numAcquired;
-      const auto limit = std::min<size_t>(mNumChannels, maxChannels);
-      for (size_t j = 0; j < limit; ++j)
-      {
-         const auto pFloat =
-            reinterpret_cast<const float*>(mFloatBuffers.GetReadPosition(j));
-         std::copy(pFloat, pFloat + maxOut, mTemp[j].data());
-      }
+      const auto stage = mMasterStages.back();
+      maxOut = stage->Acquire(mTemp, maxToProcess);
       stage->Release();
-      mFloatBuffers.Advance(maxOut);
-      mFloatBuffers.Rotate();
    }
+   if (!maxOut)
+      return 0;
 
    if (backwards)
       mTime = std::clamp(mTime, mT1, oldTime);
@@ -394,19 +319,19 @@ size_t Mixer::Process(const size_t maxToProcess)
       ? (mHighQuality ? gHighQualityDither : gLowQualityDither)
       : DitherType::none;
    for (size_t c = 0; c < mNumChannels; ++c)
-      CopySamples((constSamplePtr)mTemp[c].data(), floatSample,
+      CopySamples(mTemp.GetReadPosition(c), floatSample,
          (mInterleaved
             ? mBuffer[0].ptr() + (c * SAMPLE_SIZE(mFormat))
             : mBuffer[c].ptr()
          ),
-         mFormat, maxOut, ditherType,
+         mFormat, *maxOut, ditherType,
          1, dstStride);
 
    // MB: this doesn't take warping into account, replaced with code based on mSamplePos
    //mT += (maxOut / mRate);
 
-   assert(maxOut <= maxToProcess);
-   return maxOut;
+   assert(*maxOut <= maxToProcess);
+   return *maxOut;
 }
 
 constSamplePtr Mixer::GetBuffer()
@@ -481,19 +406,22 @@ void Mixer::SetSpeedForKeyboardScrubbing(double speed, double startTime)
 
 bool Mixer::AcceptsBuffers(const Buffers& buffers) const
 {
-   assert(!mTemp.empty());
-   return !mTemp.empty() && buffers.BlockSize() <= mTemp[0].size();
+   return buffers.Channels() == mNumChannels &&
+          AcceptsBlockSize(buffers.BlockSize());
 }
 
 bool Mixer::AcceptsBlockSize(size_t blockSize) const
 {
-   assert(!mTemp.empty());
-   return !mTemp.empty() && blockSize <= mTemp[0].size();
+   return blockSize <= BufferSize();
 }
 
 sampleCount Mixer::Remaining() const
 {
-   return mNumSamplesInTemp - mTempProgress;
+   return std::accumulate(
+      mDecoratedSources.begin(), mDecoratedSources.end(), sampleCount { 0 },
+      [](sampleCount sum, const Source& source) {
+         return std::max(sum, source.downstream.Remaining());
+      });
 }
 
 bool Mixer::Release()
@@ -501,24 +429,88 @@ bool Mixer::Release()
    return true;
 }
 
-std::optional<size_t> Mixer::Acquire(Buffers& data, size_t bound)
+std::optional<size_t> Mixer::Acquire(Buffers& data, size_t maxToProcess)
 {
-   assert(bound <= mBufferSize);
-   if (bound > mBufferSize)
-      return {};
+   // TODO: more-than-two-channels
+   auto maxChannels = std::max(2u, mFloatBuffers.Channels());
+   const auto channelFlags = stackAllocate(unsigned char, mNumChannels);
+   const auto gains = stackAllocate(float, mNumChannels);
+   if (mApplyGain == ApplyGain::Discard)
+      std::fill(gains, gains + mNumChannels, 1.0f);
 
-   bound = limitSampleBufferSize(bound, Remaining());
+   // Decides which output buffers an input channel accumulates into
+   auto findChannelFlags = [&channelFlags, numChannels = mNumChannels]
+   (const bool *map, const WideSampleSequence &sequence, size_t iChannel){
+      const auto end = channelFlags + numChannels;
+      std::fill(channelFlags, end, 0);
+      if (map)
+         // ignore left and right when downmixing is customized
+         std::copy(map, map + numChannels, channelFlags);
+      else if (IsMono(sequence))
+         std::fill(channelFlags, end, 1);
+      else if (iChannel == 0)
+         channelFlags[0] = 1;
+      else if (iChannel == 1) {
+         if (numChannels >= 2)
+            channelFlags[1] = 1;
+         else
+            channelFlags[0] = 1;
+      }
+      return channelFlags;
+   };
 
-   // Copy mTmp to the buffer
-   const auto nChannels = mNumChannels;
-   for (size_t c = 0; c < nChannels; ++c)
+   size_t maxOut = 0;
+   for (auto c = 0;c < data.Channels(); ++c)
+      data.ClearBuffer(c, maxToProcess);
+
+   for (auto& [upstream, downstream] : mDecoratedSources)
    {
-      const float* input = mTemp[c].data() + mTempProgress;
-      auto output = &data.GetWritePosition(c);
-      std::copy(input, input + bound, output);
+      auto oResult = downstream.Acquire(mFloatBuffers, maxToProcess);
+      // One of MixVariableRates or MixSameRate assigns into mTemp[*][*]
+      // which are the sources for the CopySamples calls, and they copy into
+      // mBuffer[*][*]
+      if (!oResult)
+         return 0;
+      const auto result = *oResult;
+      maxOut = std::max(maxOut, result);
+
+      // Insert effect stages here!  Passing them all channels of the track
+
+      const auto limit = std::min<size_t>(upstream.Channels(), maxChannels);
+      for (size_t j = 0; j < limit; ++j)
+      {
+         const auto pFloat = (const float*)mFloatBuffers.GetReadPosition(j);
+         auto& sequence = upstream.GetSequence();
+         if (mApplyGain != ApplyGain::Discard)
+         {
+            for (size_t c = 0; c < mNumChannels; ++c)
+            {
+               if (mNumChannels > 1)
+                  gains[c] = sequence.GetChannelGain(c);
+               else
+                  gains[c] = sequence.GetChannelGain(j);
+            }
+            if (
+               mApplyGain == ApplyGain::Mixdown && !mHasMixerSpec &&
+               mNumChannels == 1)
+               gains[0] /= static_cast<float>(limit);
+         }
+
+         const auto flags =
+            findChannelFlags(upstream.MixerSpec(j), sequence, j);
+         MixBuffers(mNumChannels, flags, gains, *pFloat, data, result);
+      }
+
+      downstream.Release();
+      mFloatBuffers.Advance(result);
+      mFloatBuffers.Rotate();
    }
-   mTempProgress += bound;
-   return bound;
+
+   // MB: this doesn't take warping into account, replaced with code based on mSamplePos
+   //mT += (maxOut / mRate);
+
+   assert(maxOut <= maxToProcess);
+   return maxOut;
 }
 
 std::unique_ptr<EffectStage>& Mixer::RegisterEffectStage(
