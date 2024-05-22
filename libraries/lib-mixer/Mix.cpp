@@ -144,9 +144,15 @@ Mixer::Mixer(
 
    // Reserve vectors first so we can take safe references to pushed elements
    mSources.reserve(nChannelsIn);
-   const auto nStages = std::accumulate(mInputs.begin(), mInputs.end(), 0,
-      [](auto sum, const auto &input){
-         return sum + input.stages.size() * input.pSequence->NChannels(); });
+   // One stereo-capable stage per effect.
+   const auto nMasterStages = mMasterEffects ? mMasterEffects->size() : 0;
+   const auto nStages =
+      std::accumulate(
+         mInputs.begin(), mInputs.end(), 0,
+         [](auto sum, const auto& input) {
+            return sum + input.stages.size() * input.pSequence->NChannels();
+         }) +
+      nMasterStages;
    mSettings.reserve(nStages);
    mStageBuffers.reserve(nStages);
 
@@ -326,7 +332,7 @@ size_t Mixer::Process(const size_t maxToProcess)
       // mBuffer[*][*]
       if (!oResult)
          return 0;
-      auto result = *oResult;
+      const auto result = *oResult;
       maxOut = std::max(maxOut, result);
 
       // Insert effect stages here!  Passing them all channels of the track
@@ -356,21 +362,23 @@ size_t Mixer::Process(const size_t maxToProcess)
       mFloatBuffers.Rotate();
    }
 
-   for (auto& stage : mMasterStages)
+   if (!mMasterStages.empty())
    {
-      auto oResult = stage->Acquire(mFloatBuffers, maxOut);
-      if (!oResult)
+      // Pull once from the tail of the graph and update `mTemp`.
+      auto& stage = mMasterStages.back();
+      const auto numAcquired = stage->Acquire(mFloatBuffers, maxOut);
+      if (!numAcquired)
          return 0;
-      auto result = *oResult;
+      maxOut = *numAcquired;
       const auto limit = std::min<size_t>(mNumChannels, maxChannels);
       for (size_t j = 0; j < limit; ++j)
       {
          const auto pFloat =
             reinterpret_cast<const float*>(mFloatBuffers.GetReadPosition(j));
-         std::copy(pFloat, pFloat + result, mTemp[j].data());
+         std::copy(pFloat, pFloat + maxOut, mTemp[j].data());
       }
       stage->Release();
-      mFloatBuffers.Advance(result);
+      mFloatBuffers.Advance(maxOut);
       mFloatBuffers.Rotate();
    }
 
