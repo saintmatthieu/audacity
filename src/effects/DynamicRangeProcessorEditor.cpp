@@ -25,6 +25,10 @@ constexpr auto historyPanelId = wxID_HIGHEST + 1;
 constexpr auto historyRulerPanelId = wxID_HIGHEST + 2;
 constexpr auto transferFunctionPanelId = wxID_HIGHEST + 3;
 constexpr auto checkboxId = wxID_HIGHEST + 4;
+constexpr auto showInputId = wxID_HIGHEST + 5;
+constexpr auto showOutputId = wxID_HIGHEST + 6;
+constexpr auto showOvershootId = wxID_HIGHEST + 7;
+constexpr auto showTailId = wxID_HIGHEST + 8;
 constexpr auto rulerWidth = 30;
 constexpr auto borderSize = 5;
 
@@ -257,6 +261,26 @@ void DynamicRangeProcessorEditor::PopulateOrExchange(ShuttleGui& S)
          ->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
             OnCheckbox(evt.IsChecked());
          });
+      S.Id(showInputId)
+         .AddCheckBox(XO("Show input"), true)
+         ->Bind(wxEVT_CHECKBOX, [histPanel](wxCommandEvent& evt) {
+            dynamic_cast<HistPanel*>(histPanel)->ShowInput(evt.IsChecked());
+         });
+      S.Id(showOutputId)
+         .AddCheckBox(XO("Show output"), true)
+         ->Bind(wxEVT_CHECKBOX, [histPanel](wxCommandEvent& evt) {
+            dynamic_cast<HistPanel*>(histPanel)->ShowOutput(evt.IsChecked());
+         });
+      S.Id(showOvershootId)
+         .AddCheckBox(XO("Show overshoot"), true)
+         ->Bind(wxEVT_CHECKBOX, [histPanel](wxCommandEvent& evt) {
+            dynamic_cast<HistPanel*>(histPanel)->ShowOvershoot(evt.IsChecked());
+         });
+      S.Id(showTailId)
+         .AddCheckBox(XO("Show tail"), true)
+         ->Bind(wxEVT_CHECKBOX, [histPanel](wxCommandEvent& evt) {
+            dynamic_cast<HistPanel*>(histPanel)->ShowTail(evt.IsChecked());
+         });
    }
    S.EndHorizontalLay();
 
@@ -357,6 +381,12 @@ void DynamicRangeProcessorEditor::OnCheckbox(bool checked)
                         GetCompressorSettings()->showGraph :
                         GetLimiterSettings()->showGraph;
    showGraph = checked;
+
+   for (auto id : { showInputId, showOutputId, showOvershootId, showTailId })
+      if (
+         auto checkbox =
+            dynamic_cast<wxCheckBox*>(wxWindow::FindWindowById(id, mUIParent)))
+         checkbox->Show(checked);
 
    if (mFullHeight == 0)
       // First time, calculate the total height
