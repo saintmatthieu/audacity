@@ -10,7 +10,7 @@
 ********************************************************************//*!
 
 \class MacroCommands
-\brief Maintains the list of commands for batch/macro 
+\brief Maintains the list of commands for batch/macro
 processing.  See also MacrosWindow and ApplyMacroDialog.
 
 *//*******************************************************************/
@@ -25,6 +25,7 @@ processing.  See also MacrosWindow and ApplyMacroDialog.
 #include <wx/textfile.h>
 #include <wx/time.h>
 
+#include "effects/EffectUtils.h"
 #include "Project.h"
 #include "ProjectHistory.h"
 #include "ProjectSettings.h"
@@ -338,7 +339,7 @@ MacroCommandsCatalog::MacroCommandsCatalog( const AudacityProject *project )
          else {
             // We'll disambiguate if the squashed name is short and shorter than the internal name.
             // Otherwise not.
-            // This means we won't have repetitive items like "Cut (Cut)" 
+            // This means we won't have repetitive items like "Cut (Cut)"
             // But we will show important disambiguation like "All (SelectAll)" and "By Date (SortByDate)"
             // Disambiguation is no longer essential as the details box will show it.
             // PRL:  I think this reasoning applies only when locale is English.
@@ -532,11 +533,11 @@ bool MacroCommands::ApplyEffectCommand(
             EffectManager::kDontRepeatLast);
       else
          // and apply the effect...
-         res = EffectUI::DoEffect(ID,
-            Context,
-            EffectManager::kConfigured |
-            EffectManager::kSkipState |
-            EffectManager::kDontRepeatLast);
+         res = EffectUI::DoEffect(
+            ID, Context,
+            EffectManager::kConfigured | EffectManager::kSkipState |
+               EffectManager::kDontRepeatLast,
+            EffectUtils::MakeStuffFn(Context.project));
    }
 
    return res;

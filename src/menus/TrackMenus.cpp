@@ -25,6 +25,7 @@
 #include "CommandContext.h"
 #include "../effects/EffectManager.h"
 #include "../effects/EffectUI.h"
+#include "../effects/EffectUtils.h"
 #include "QualitySettings.h"
 #include "../tracks/playabletrack/wavetrack/ui/WaveTrackControls.h"
 #include "../toolbars/ToolManager.h"
@@ -551,9 +552,8 @@ namespace {
 void OnStereoToMono(const CommandContext &context)
 {
    EffectUI::DoEffect(
-      EffectManager::Get().GetEffectByIdentifier(wxT("StereoToMono")),
-      context,
-      EffectManager::kConfigured);
+      EffectManager::Get().GetEffectByIdentifier(wxT("StereoToMono")), context,
+      EffectManager::kConfigured, EffectUtils::MakeStuffFn(context.project));
 }
 
 void OnMixAndRender(const CommandContext &context)

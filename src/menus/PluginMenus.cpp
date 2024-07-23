@@ -29,6 +29,7 @@
 #include "TrackFocus.h"
 #include "UndoManager.h"
 #include "Viewport.h"
+#include "effects/EffectUtils.h"
 #include "prefs/EffectsPrefs.h"
 
 // private helper classes and functions
@@ -126,8 +127,9 @@ void OnManageGenerators(const CommandContext &context)
 
 void OnEffect(const CommandContext &context)
 {
-   // using GET to interpret parameter as a PluginID
-   EffectUI::DoEffect(context.parameter.GET(), context, 0);
+   EffectUI::DoEffect(
+      context.parameter.GET(), context, 0,
+      EffectUtils::MakeStuffFn(context.project));
 }
 
 void OnManageEffects(const CommandContext &context)
@@ -151,7 +153,9 @@ void OnRepeatLastGenerator(const CommandContext &context)
    if (!lastEffect.empty())
    {
       EffectUI::DoEffect(
-         lastEffect, context, commandManager.mRepeatGeneratorFlags | EffectManager::kRepeatGen);
+         lastEffect, context,
+         commandManager.mRepeatGeneratorFlags | EffectManager::kRepeatGen,
+         EffectUtils::MakeStuffFn(context.project));
    }
 }
 
@@ -162,7 +166,8 @@ void OnRepeatLastEffect(const CommandContext &context)
    if (!lastEffect.empty())
    {
       EffectUI::DoEffect(
-         lastEffect, context, commandManager.mRepeatEffectFlags);
+         lastEffect, context, commandManager.mRepeatEffectFlags,
+         EffectUtils::MakeStuffFn(context.project));
    }
 }
 
@@ -175,8 +180,9 @@ void OnRepeatLastAnalyzer(const CommandContext& context)
        auto lastEffect = commandManager.mLastAnalyzer;
        if (!lastEffect.empty())
        {
-         EffectUI::DoEffect(
-            lastEffect, context, commandManager.mRepeatAnalyzerFlags);
+          EffectUI::DoEffect(
+             lastEffect, context, commandManager.mRepeatAnalyzerFlags,
+             EffectUtils::MakeStuffFn(context.project));
        }
      }
       break;

@@ -160,6 +160,9 @@ private:
 };
 
 class CommandContext;
+class Effect;
+class EffectInstance;
+class SimpleEffectSettingsAccess;
 
 namespace  EffectUI {
 
@@ -172,8 +175,11 @@ namespace  EffectUI {
    // have the "selected" flag set to true, which is consistent with
    // Audacity's standard UI.
    AUDACITY_DLL_API bool DoEffect(
-      const PluginID & ID, const CommandContext &context, unsigned flags );
-
+      const PluginID& ID, const CommandContext& context, unsigned flags,
+      std::function<bool(
+         Effect&, std::shared_ptr<EffectInstance>&,
+         SimpleEffectSettingsAccess&)>
+         settingGetter);
 }
 
 class ShuttleGui;

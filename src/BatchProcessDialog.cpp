@@ -34,8 +34,11 @@
 #include <wx/imaglist.h>
 #include <wx/settings.h>
 
+#include "../images/Arrow.xpm"
+#include "../images/Empty9x16.xpm"
 #include "Clipboard.h"
-#include "ShuttleGui.h"
+#include "CommandManager.h"
+#include "Effect.h"
 #include "MenuCreator.h"
 #include "Prefs.h"
 #include "Project.h"
@@ -44,15 +47,13 @@
 #include "ProjectManager.h"
 #include "ProjectWindows.h"
 #include "SelectUtilities.h"
+#include "ShuttleGui.h"
 #include "Track.h"
-#include "CommandManager.h"
-#include "Effect.h"
-#include "effects/EffectManager.h"
-#include "effects/EffectUI.h"
-#include "../images/Arrow.xpm"
-#include "../images/Empty9x16.xpm"
 #include "UndoManager.h"
 #include "Viewport.h"
+#include "effects/EffectManager.h"
+#include "effects/EffectUI.h"
+#include "effects/EffectUtils.h"
 
 #include "AllThemeResources.h"
 
@@ -1423,7 +1424,8 @@ void OnRepeatLastTool(const CommandContext& context)
         if (!lastEffect.empty())
         {
            EffectUI::DoEffect(
-              lastEffect, context, commandManager.mRepeatToolFlags);
+              lastEffect, context, commandManager.mRepeatToolFlags,
+              EffectUtils::MakeStuffFn(context.project));
         }
      }
        break;

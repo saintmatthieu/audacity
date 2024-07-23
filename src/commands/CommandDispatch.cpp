@@ -12,16 +12,17 @@
 
 #include "CommandDispatch.h"
 
+#include "../effects/EffectManager.h"
+#include "../effects/EffectUI.h"
+#include "../effects/EffectUtils.h"
 #include "CommandContext.h"
 #include "CommandManager.h"
 #include "PluginManager.h"
 #include "ProjectAudioManager.h"
 #include "ProjectWindows.h"
 #include "Viewport.h"
-#include "../effects/EffectManager.h"
-#include "../effects/EffectUI.h"
-#include <wx/log.h>
 #include <wx/frame.h>
+#include <wx/log.h>
 
 bool CommandDispatch::HandleTextualCommand(
    const CommandID & Str,
@@ -46,8 +47,8 @@ bool CommandDispatch::HandleTextualCommand(
    for (auto &plug : PluginManager::Get().PluginsOfType(PluginTypeEffect))
       if (em.GetCommandIdentifier(plug.GetID()) == Str)
          return EffectUI::DoEffect(
-            plug.GetID(), context,
-            EffectManager::kConfigured);
+            plug.GetID(), context, EffectManager::kConfigured,
+            EffectUtils::MakeStuffFn(context.project));
 
    return false;
 }

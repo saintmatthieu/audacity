@@ -367,6 +367,8 @@ set( SOURCES
       effects/EffectUI.cpp
       $<$<BOOL:${wxIS_MAC}>:effects/EffectUI.mm>
       effects/EffectUI.h
+      effects/EffectUtils.cpp
+      effects/EffectUtils.h
       effects/EffectUIServices.cpp
       effects/EffectUIServices.h
       effects/Equalization.cpp

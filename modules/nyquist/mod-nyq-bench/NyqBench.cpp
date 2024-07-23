@@ -23,8 +23,11 @@
 #include <wx/textctrl.h>
 #include <wx/toolbar.h>
 
+#include "../images/AudacityLogo.xpm"
 #include "ActiveProject.h"
+#include "AudacityMessageBox.h"
 #include "AudioIOBase.h"
+#include "CommandContext.h"
 #include "CommonCommandFlags.h"
 #include "ModuleConstants.h"
 #include "Prefs.h"
@@ -32,10 +35,8 @@
 #include "ShuttleGui.h"
 #include "effects/EffectManager.h"
 #include "effects/EffectUI.h"
+#include "effects/EffectUtils.h"
 #include "effects/nyquist/Nyquist.h"
-#include "../images/AudacityLogo.xpm"
-#include "CommandContext.h"
-#include "AudacityMessageBox.h"
 
 #include "NyqBench.h"
 
@@ -226,7 +227,7 @@ void NyqTextCtrl::OnKeyDown(wxKeyEvent & e)
       if (e.GetKeyCode() == WXK_UP && e.GetModifiers() == 0) {
          long x;
          long y;
-   
+
          PositionToXY(GetInsertionPoint(), &x, &y);
          if (x == 0 && y > 1) {
             y--;
@@ -267,7 +268,7 @@ void NyqTextCtrl::OnUpdate(wxUpdateUIEvent & e)
 
    if (pos != mLastCaretPos) {
       int lpos = wxMax(0, pos - 1);
-   
+
       wxString text = GetRange(lpos, pos);
       if (text.Length() > 0) {
          if (text[0] == wxT('(')) {
@@ -459,7 +460,7 @@ void NyqTextCtrl::FindParens()
                   // Shamelessly stolen from xlread.c/pcomment()
                   wxChar lastch = -1;
                   int n = 1;
-              
+
                   /* look for the matching delimiter (and handle nesting) */
                   while (n > 0 && ++pos < len) {
                      wxChar ch = text[(int)pos];
@@ -852,7 +853,7 @@ void NyqBench::PopulateOrExchange(ShuttleGui & S)
                                        wxSP_LIVE_UPDATE |
                                        wxSP_3DSASH |
                                        wxSP_NOBORDER);
-      
+
       scriptp = new wxPanel(mSplitter,
                             wxID_ANY,
                             wxDefaultPosition,
@@ -904,7 +905,7 @@ void NyqBench::PopulateOrExchange(ShuttleGui & S)
                                 wxDefaultSize,
                                 wxTE_READONLY |
 #if !defined(__WXMAC__)
-// I could not get the bloody horizontal scroll bar to appear on 
+// I could not get the bloody horizontal scroll bar to appear on
 // wxMac, so we can't use wxTE_DONTWRAP as you can't easily scroll
 // left and right.
                                 wxTE_DONTWRAP |
@@ -1005,7 +1006,7 @@ void NyqBench::OnOpen(wxCommandEvent & e)
                      wxEmptyString,
                      _("Nyquist scripts (*.ny)|*.ny|Lisp scripts (*.lsp)|*.lsp|All files|*"),
                      wxFD_OPEN | wxRESIZE_BORDER);
- 
+
    if (dlog.ShowModal() != wxID_OK) {
       return;
    }
@@ -1023,7 +1024,7 @@ void NyqBench::OnSave(wxCommandEvent & e)
    if (mScript->GetLastPosition() == 0) {
       return;
    }
- 
+
    if (mPath.GetFullPath().IsEmpty()) {
       OnSaveAs(e);
       return;
@@ -1044,14 +1045,14 @@ void NyqBench::OnSaveAs(wxCommandEvent & e)
    if (mScript->GetLastPosition() == 0) {
       return;
    }
- 
+
    wxFileDialog dlog(this,
                      _("Save Nyquist script"),
                      mPath.GetFullPath(),
                      wxEmptyString,
                      _("Nyquist scripts (*.ny)|*.ny|Lisp scripts (*.lsp)|*.lsp|All files|*"),
                      wxFD_SAVE | wxFD_OVERWRITE_PROMPT | wxRESIZE_BORDER);
- 
+
    if (dlog.ShowModal() != wxID_OK) {
       return;
    }
@@ -1345,7 +1346,7 @@ void NyqBench::OnGo(wxCommandEvent & e)
       mRunning = true;
       UpdateWindowUI();
 
-      EffectUI::DoEffect(ID, CommandContext(*p), 0);
+      EffectUI::DoEffect(ID, CommandContext(*p), 0, EffectUtils::MakeStuffFn(*p));
 
       mRunning = false;
       UpdateWindowUI();
@@ -1684,7 +1685,7 @@ void NyqBench::RecreateToolbar(bool large)
    tb->AddSeparator();
    tb->AddTool(ID_GO, _("Start"), mPics[18], _("Start script"));
    tb->AddTool(ID_STOP, _("Stop"), mPics[19], _("Stop script"));
-   
+
    tb->Realize();
 
    Layout();
