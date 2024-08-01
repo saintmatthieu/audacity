@@ -134,6 +134,8 @@ set( SOURCES
       LangChoice.h
       Legacy.cpp
       Legacy.h
+      LibAudacityHelpers.cpp
+      LibAudacityHelpers.h
       ListNavigationEnabled.cpp
       ListNavigationEnabled.h
       ListNavigationPanel.cpp
@@ -360,10 +362,10 @@ set( SOURCES
       effects/Echo.h
       effects/EffectEditor.cpp
       effects/EffectEditor.h
-      effects/EffectManager.cpp
-      effects/EffectManager.h
       effects/EffectPreview.cpp
       effects/EffectPreview.h
+      effects/EffectPresetDialog.cpp
+      effects/EffectPresetDialog.h
       effects/EffectUI.cpp
       $<$<BOOL:${wxIS_MAC}>:effects/EffectUI.mm>
       effects/EffectUI.h
@@ -1323,21 +1325,16 @@ set( AUDACITY_LIBRARIES
    lib-theme-resources-interface
    lib-graphics-interface
    lib-tags-interface
-   lib-project-file-io-interface
-   lib-effects-interface
    lib-wx-init-interface
    lib-time-track-interface
-   lib-audio-io-interface
    lib-stretching-sequence-interface
    lib-import-export-interface
    lib-export-ui-interface
-   lib-menus-interface
    lib-note-track-interface
-   lib-viewport-interface
    lib-wave-track-paint-interface
    lib-music-information-retrieval-interface
    lib-preference-pages-interface
-   lib-dynamic-range-processor-interface
+   lib-audacity-interface
 )
 
 if (USE_VST)

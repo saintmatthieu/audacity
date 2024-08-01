@@ -72,6 +72,7 @@ set( LIBRARIES
    lib-sqlite-helpers
    lib-preference-pages
    lib-dynamic-range-processor
+   lib-audacity
 )
 
 if ( ${_OPT}use_lv2 )
