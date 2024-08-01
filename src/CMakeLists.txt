@@ -419,8 +419,6 @@ set( SOURCES
       effects/Compressor.h
       effects/CompressorEditor.cpp
       effects/CompressorEditor.h
-      effects/CompressorInstance.cpp
-      effects/CompressorInstance.h
       effects/RealtimeEffectStateUI.cpp
       effects/RealtimeEffectStateUI.h
       effects/Repair.cpp

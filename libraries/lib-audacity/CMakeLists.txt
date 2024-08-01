@@ -3,6 +3,8 @@ A UI-agnostic, high-level library implementing the behavior of Audacity.
 ]]
 
 set( SOURCES
+   CompressorInstance.cpp
+   CompressorInstance.h
    EffectManager.cpp
    EffectManager.h
    GetMessageBoxCb.h
