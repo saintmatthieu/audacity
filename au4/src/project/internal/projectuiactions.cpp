@@ -622,7 +622,11 @@ const UiActionList ProjectUiActions::m_actions = {
              TranslatableString("action", "(Plugins omitted)"),
              TranslatableString("action", "(Plugins omitted)")
              ),
-
+    UiAction("offline-effect-compressor",
+             au::context::UiCtxAny,
+             au::context::CTX_ANY,
+             TranslatableString("action", "Compressor"),
+             TranslatableString("action", "Compressor")),
     // analyze menu
     UiAction("analyze-plugin-manager",
              au::context::UiCtxAny,

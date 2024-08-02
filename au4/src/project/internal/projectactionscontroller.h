@@ -50,7 +50,9 @@ public:
 
     bool isProjectOpened(const muse::io::path_t& projectPath) const;
 
-private:
+    void offlineEffectCompressor();
+
+ private:
     project::IAudacityProjectPtr currentProject() const;
 
     void newProject();

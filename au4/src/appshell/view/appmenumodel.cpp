@@ -604,7 +604,7 @@ MenuItemList AppMenuModel::makeSortItems()
 MenuItemList AppMenuModel::makeVolumeAndCompressionItems()
 {
     MenuItemList items {
-        makeMenuItem("sort-by-time")
+        makeMenuItem("offline-effect-compressor")
     };
 
     return items;
