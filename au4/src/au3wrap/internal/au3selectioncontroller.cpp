@@ -4,6 +4,7 @@
 #include "au3selectioncontroller.h"
 
 #include "libraries/lib-track/Track.h"
+#include "libraries/lib-time-frequency-selection/ViewInfo.h"
 
 #include "log.h"
 
@@ -99,6 +100,16 @@ void Au3SelectionController::setDataSelectedOnTracks(
     bool complete)
 {
     MYLOG() << "trackIds: " << trackIds << ", complete: " << complete;
+    if (complete) {
+      auto& trackList = TrackList::Get(projectRef());
+      for (Track* au3Track : trackList)
+         au3Track->SetSelected(
+            std::find_if(trackIds.begin(), trackIds.end(), [&](const auto& trackId)
+               {
+                  return au3Track->GetId() == TrackId { trackId };
+               }) !=
+            trackIds.end());
+    }
     m_selectedTrackIds.set(trackIds, complete);
 }
 
@@ -122,6 +133,8 @@ au::processing::secs_t Au3SelectionController::dataSelectedStartTime() const
 void Au3SelectionController::setDataSelectedStartTime(au::processing::secs_t time, bool complete)
 {
     MYLOG() << "start time: " << time << ", complete: " << complete;
+    if (complete)
+       ViewInfo::Get(projectRef()).selectedRegion.setT0(time);
     m_selectedStartTime.set(time, complete);
 }
 
@@ -143,6 +156,8 @@ au::processing::secs_t Au3SelectionController::dataSelectedEndTime() const
 void Au3SelectionController::setDataSelectedEndTime(au::processing::secs_t time, bool complete)
 {
     MYLOG() << "end time: " << time << ", complete: " << complete;
+   if (complete)
+      ViewInfo::Get(projectRef()).selectedRegion.setT1(time);
     m_selectedEndTime.set(time, complete);
 }
 
