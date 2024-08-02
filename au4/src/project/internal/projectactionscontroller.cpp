@@ -3,6 +3,8 @@
 #include "async/async.h"
 #include "global/defer.h"
 #include "global/translation.h"
+#include "libraries/lib-audacity-application-logic/AudacityApplicationLogic.h"
+#include "PluginManager.h"
 
 #include "audacityproject.h"
 #include "projecterrors.h"
@@ -47,6 +49,10 @@ void ProjectActionsController::init()
 
     dispatcher()->reg(this, "undo", this, &ProjectActionsController::undo);
     dispatcher()->reg(this, "redo", this, &ProjectActionsController::redo);
+
+    dispatcher()->reg(
+       this, "offline-effect-compressor", this,
+       &ProjectActionsController::offlineEffectCompressor);
 }
 
 bool ProjectActionsController::canReceiveAction(const muse::actions::ActionCode& code) const
@@ -600,4 +606,26 @@ muse::Ret ProjectActionsController::openPageIfNeed(muse::Uri pageUri)
     }
 
     return interactive()->open(pageUri).ret;
+}
+
+void ProjectActionsController::offlineEffectCompressor()
+{
+   auto& project = *reinterpret_cast<AudacityProject*>(
+      globalContext()->currentProject()->au3ProjectPtr());
+   auto showEffectHostInterfaceCb =
+      [](Effect&, std::shared_ptr<EffectInstance>&,
+         SimpleEffectSettingsAccess&) { return true; };
+   auto stopPlaybackCb = [] {};
+   auto selectAllIfNoneCb = [] {};
+
+   const auto pluginRange =
+      PluginManager::Get().EffectsOfType(EffectTypeProcess);
+   if (pluginRange.begin() != pluginRange.end())
+   {
+      const auto id = (*pluginRange.begin()).GetID();
+      AudacityApplicationLogic::DoEffect(
+         id, project, 0,
+         std::move(showEffectHostInterfaceCb), std::move(stopPlaybackCb),
+         std::move(selectAllIfNoneCb));
+   }
 }
