@@ -24,6 +24,7 @@ declare_module(au3wrap)
 set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/au3wrapmodule.cpp
     ${CMAKE_CURRENT_LIST_DIR}/au3wrapmodule.h
+    ${CMAKE_CURRENT_LIST_DIR}/GetMessageBoxCb.cpp
     ${CMAKE_CURRENT_LIST_DIR}/iau3project.h
     ${CMAKE_CURRENT_LIST_DIR}/iau3wavepainter.h
     ${CMAKE_CURRENT_LIST_DIR}/iau3record.h
@@ -33,6 +34,9 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/mocks/qtBasicUI.h
     ${CMAKE_CURRENT_LIST_DIR}/mocks/progressdialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mocks/progressdialog.h
+
+    ${CMAKE_CURRENT_LIST_DIR}/internal/effects/au3compressor.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/effects/au3compressor.h
 
     ${CMAKE_CURRENT_LIST_DIR}/internal/wxtypes_convert.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/wxlogwrap.cpp
@@ -67,6 +71,8 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au3selectioncontroller.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au3commonsettings.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au3commonsettings.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au3pluginsettings.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au3pluginsettings.h
     )
 
 # ==================================
@@ -120,6 +126,11 @@ set(AU3_DEF
     -DVIEWPORT_API=
     -DSNAPPING_API=
     -DNUMERIC_FORMATS_API=
+    -DMENUS_API=
+    -DAUDACITY_APPLICATION_LOGIC_API=
+    -DEFFECTS_API=
+    -DCOMMAND_PARAMETERS_API=
+    -DDYNAMIC_RANGE_PROCESSOR_API=
 
     -DTIME_FREQUENCY_SELECTION_API=
     -DSCREEN_GEOMETRY_API=
@@ -190,10 +201,25 @@ set(AU3_INCLUDE
     ${AU3_LIBRARIES}/lib-time-frequency-selection
     ${AU3_LIBRARIES}/lib-graphics
     ${AU3_LIBRARIES}/lib-wave-track-paint
+
+    ${AU3_LIBRARIES}/lib-audacity-application-logic
+    ${AU3_LIBRARIES}/lib-command-parameters
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor
+    ${AU3_LIBRARIES}/lib-effects
+    ${AU3_LIBRARIES}/lib-menus
 )
 
 set(AU3_ADD_AS_SRC ON)
 if (AU3_ADD_AS_SRC)
+
+   if(WIN32)
+      set( PlatformCompatibilityOsSpecific PlatformCompatibilityWindows )
+   elseif(APPLE)
+      set( PlatformCompatibilityOsSpecific PlatformCompatibilityMacOS )
+   else()
+      set( PlatformCompatibilityOsSpecific PlatformCompatibilityLinux )
+   endif()
+
     set(AU3_SRC
     # Create project
     ${AU3_LIBRARIES}/lib-project/Project.cpp
@@ -259,6 +285,8 @@ if (AU3_ADD_AS_SRC)
     # dependencies of project-file-io:
     ${AU3_LIBRARIES}/lib-strings/TranslatableString.cpp
     ${AU3_LIBRARIES}/lib-strings/TranslatableString.h
+    ${AU3_LIBRARIES}/lib-strings/Identifier.cpp
+    ${AU3_LIBRARIES}/lib-strings/Identifier.h
     ${AU3_LIBRARIES}/lib-strings/Internat.cpp
     ${AU3_LIBRARIES}/lib-strings/Internat.h
     ${AU3_LIBRARIES}/lib-strings/Base64.cpp
@@ -300,6 +328,7 @@ if (AU3_ADD_AS_SRC)
     ${AU3_LIBRARIES}/lib-files/FileNames.h
     ${AU3_LIBRARIES}/lib-files/PathList.cpp
     ${AU3_LIBRARIES}/lib-files/PathList.h
+    ${AU3_LIBRARIES}/lib-files/${PlatformCompatibilityOsSpecific}.cpp
     ${AU3_LIBRARIES}/lib-files/PlatformCompatibility.cpp
     ${AU3_LIBRARIES}/lib-files/PlatformCompatibility.h
     ${AU3_LIBRARIES}/lib-files/TempDirectory.cpp
@@ -319,14 +348,22 @@ if (AU3_ADD_AS_SRC)
     ${AU3_LIBRARIES}/lib-track/ChannelAttachments.cpp
     ${AU3_LIBRARIES}/lib-track/ChannelAttachments.h
 
-    ${AU3_LIBRARIES}/lib-wave-track/WaveTrack.cpp
-    ${AU3_LIBRARIES}/lib-wave-track/WaveTrack.h
-    ${AU3_LIBRARIES}/lib-wave-track/Sequence.cpp
-    ${AU3_LIBRARIES}/lib-wave-track/Sequence.h
-    ${AU3_LIBRARIES}/lib-wave-track/WaveClip.cpp
-    ${AU3_LIBRARIES}/lib-wave-track/WaveClip.h
     ${AU3_LIBRARIES}/lib-wave-track/SampleBlock.cpp
     ${AU3_LIBRARIES}/lib-wave-track/SampleBlock.h
+    ${AU3_LIBRARIES}/lib-wave-track/Sequence.cpp
+    ${AU3_LIBRARIES}/lib-wave-track/Sequence.h
+    ${AU3_LIBRARIES}/lib-wave-track/TimeStretching.cpp
+    ${AU3_LIBRARIES}/lib-wave-track/TimeStretching.h
+    ${AU3_LIBRARIES}/lib-wave-track/WaveChannelUtilities.cpp
+    ${AU3_LIBRARIES}/lib-wave-track/WaveChannelUtilities.h
+    ${AU3_LIBRARIES}/lib-wave-track/WaveClip.cpp
+    ${AU3_LIBRARIES}/lib-wave-track/WaveClip.h
+    ${AU3_LIBRARIES}/lib-wave-track/WaveClipUtilities.cpp
+    ${AU3_LIBRARIES}/lib-wave-track/WaveClipUtilities.h
+    ${AU3_LIBRARIES}/lib-wave-track/WaveTrack.cpp
+    ${AU3_LIBRARIES}/lib-wave-track/WaveTrack.h
+    ${AU3_LIBRARIES}/lib-wave-track/WaveTrackSink.cpp
+    ${AU3_LIBRARIES}/lib-wave-track/WaveTrackSink.h
     ${AU3_LIBRARIES}/lib-wave-track/WaveTrackUtilities.cpp
     ${AU3_LIBRARIES}/lib-wave-track/WaveTrackUtilities.h
 
@@ -346,6 +383,8 @@ if (AU3_ADD_AS_SRC)
 
     ${AU3_LIBRARIES}/lib-mixer/WideSampleSequence.cpp
     ${AU3_LIBRARIES}/lib-mixer/WideSampleSequence.h
+    ${AU3_LIBRARIES}/lib-mixer/WideSampleSource.cpp
+    ${AU3_LIBRARIES}/lib-mixer/WideSampleSource.h
     ${AU3_LIBRARIES}/lib-mixer/Envelope.cpp
     ${AU3_LIBRARIES}/lib-mixer/Envelope.h
     ${AU3_LIBRARIES}/lib-mixer/AudioIOSequences.cpp
@@ -392,12 +431,16 @@ if (AU3_ADD_AS_SRC)
     ${AU3_LIBRARIES}/lib-audio-devices/Meter.cpp
     ${AU3_LIBRARIES}/lib-audio-devices/Meter.h
 
-    ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphChannel.cpp
-    ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphChannel.h
     ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphBuffers.cpp
     ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphBuffers.h
+    ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphChannel.cpp
+    ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphChannel.h
+    ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphSink.cpp
+    ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphSink.h
     ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphSource.cpp
     ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphSource.h
+    ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphTask.cpp
+    ${AU3_LIBRARIES}/lib-audio-graph/AudioGraphTask.h
 
     ${AU3_LIBRARIES}/lib-math/SampleFormat.cpp
     ${AU3_LIBRARIES}/lib-math/SampleFormat.h
@@ -462,14 +505,16 @@ if (AU3_ADD_AS_SRC)
     ${AU3_LIBRARIES}/lib-mixer/MixerOptions.cpp
     ${AU3_LIBRARIES}/lib-mixer/MixerOptions.h
 
-    ${AU3_LIBRARIES}/lib-module-manager/PluginManager.cpp
-    ${AU3_LIBRARIES}/lib-module-manager/PluginManager.h
+    ${AU3_LIBRARIES}/lib-module-manager/ConfigInterface.cpp
+    ${AU3_LIBRARIES}/lib-module-manager/ConfigInterface.h
     ${AU3_LIBRARIES}/lib-module-manager/ModuleManager.cpp
     ${AU3_LIBRARIES}/lib-module-manager/ModuleManager.h
     ${AU3_LIBRARIES}/lib-module-manager/PluginDescriptor.cpp
     ${AU3_LIBRARIES}/lib-module-manager/PluginDescriptor.cpp
     ${AU3_LIBRARIES}/lib-module-manager/PluginInterface.cpp
     ${AU3_LIBRARIES}/lib-module-manager/PluginInterface.h
+    ${AU3_LIBRARIES}/lib-module-manager/PluginManager.cpp
+    ${AU3_LIBRARIES}/lib-module-manager/PluginManager.h
     ${AU3_LIBRARIES}/lib-module-manager/ModuleSettings.cpp
     ${AU3_LIBRARIES}/lib-module-manager/ModuleSettings.h
 
@@ -479,6 +524,10 @@ if (AU3_ADD_AS_SRC)
     ${AU3_LIBRARIES}/lib-components/EffectInterface.h
     ${AU3_LIBRARIES}/lib-components/ComponentInterface.cpp
     ${AU3_LIBRARIES}/lib-components/ComponentInterface.h
+    ${AU3_LIBRARIES}/lib-components/PluginProvider.cpp
+    ${AU3_LIBRARIES}/lib-components/PluginProvider.h
+    ${AU3_LIBRARIES}/lib-components/SettingsVisitor.cpp
+    ${AU3_LIBRARIES}/lib-components/SettingsVisitor.h
     ${AU3_LIBRARIES}/lib-components/ComponentInterfaceSymbol.h
 
     ${AU3_LIBRARIES}/lib-time-frequency-selection/SelectedRegion.cpp
@@ -516,10 +565,106 @@ if (AU3_ADD_AS_SRC)
     ${AU3_LIBRARIES}/lib-snapping/SnapUtils.cpp
     ${AU3_LIBRARIES}/lib-snapping/SnapUtils.h
 
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterFormats.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterFormats.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterRegistry.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterRegistry.h
     ${AU3_LIBRARIES}/lib-numeric-formats/ProjectTimeSignature.cpp
     ${AU3_LIBRARIES}/lib-numeric-formats/ProjectTimeSignature.h
     ${AU3_LIBRARIES}/lib-numeric-formats/Beats.cpp
     ${AU3_LIBRARIES}/lib-numeric-formats/Beats.h
+
+    ${AU3_LIBRARIES}/lib-menus/CommandContext.cpp
+    ${AU3_LIBRARIES}/lib-menus/CommandContext.h
+    ${AU3_LIBRARIES}/lib-menus/CommandFlag.cpp
+    ${AU3_LIBRARIES}/lib-menus/CommandFlag.h
+    ${AU3_LIBRARIES}/lib-menus/CommandFunctors.h
+    ${AU3_LIBRARIES}/lib-menus/CommandManager.cpp
+    ${AU3_LIBRARIES}/lib-menus/CommandManager.h
+    ${AU3_LIBRARIES}/lib-menus/CommandTargets.cpp
+    ${AU3_LIBRARIES}/lib-menus/CommandTargets.h
+    ${AU3_LIBRARIES}/lib-menus/Keyboard.cpp
+    ${AU3_LIBRARIES}/lib-menus/Keyboard.h
+    ${AU3_LIBRARIES}/lib-menus/MenuRegistry.cpp
+    ${AU3_LIBRARIES}/lib-menus/MenuRegistry.h
+
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/CompressorInstance.cpp
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/CompressorInstance.h
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/EffectManager.cpp
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/EffectManager.h
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/IAudacityCommand.h
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/AudacityApplicationLogic.cpp
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/AudacityApplicationLogic.h
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/AudacityApplicationLogicTypes.h
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/ShuttleGetDefinition.cpp
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/ShuttleGetDefinition.h
+
+    ${AU3_LIBRARIES}/lib-effects/EffectBase.cpp
+    ${AU3_LIBRARIES}/lib-effects/EffectBase.h
+    ${AU3_LIBRARIES}/lib-effects/Effect.cpp
+    ${AU3_LIBRARIES}/lib-effects/Effect.h
+    ${AU3_LIBRARIES}/lib-effects/EffectOutputTracks.cpp
+    ${AU3_LIBRARIES}/lib-effects/EffectOutputTracks.h
+    ${AU3_LIBRARIES}/lib-effects/EffectPlugin.cpp
+    ${AU3_LIBRARIES}/lib-effects/EffectPlugin.h
+    ${AU3_LIBRARIES}/lib-effects/LoadEffects.cpp
+    ${AU3_LIBRARIES}/lib-effects/LoadEffects.h
+    ${AU3_LIBRARIES}/lib-effects/MixAndRender.cpp
+    ${AU3_LIBRARIES}/lib-effects/MixAndRender.h
+    ${AU3_LIBRARIES}/lib-effects/PerTrackEffect.cpp
+    ${AU3_LIBRARIES}/lib-effects/PerTrackEffect.h
+    ${AU3_LIBRARIES}/lib-effects/StatefulEffectBase.cpp
+    ${AU3_LIBRARIES}/lib-effects/StatefulEffectBase.h
+
+    ${AU3_LIBRARIES}/lib-command-parameters/ShuttleAutomation.cpp
+    ${AU3_LIBRARIES}/lib-command-parameters/ShuttleAutomation.h
+    ${AU3_LIBRARIES}/lib-command-parameters/ShuttlePrefs.cpp
+    ${AU3_LIBRARIES}/lib-command-parameters/ShuttlePrefs.h
+    ${AU3_LIBRARIES}/lib-command-parameters/WrappedType.cpp
+    ${AU3_LIBRARIES}/lib-command-parameters/WrappedType.h
+
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/CompressorProcessor.cpp
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/CompressorProcessor.h
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/DownwardMeterValueProvider.cpp
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/DownwardMeterValueProvider.h
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/DynamicRangeProcessorClock.cpp
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/DynamicRangeProcessorClock.h
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/DynamicRangeProcessorHistory.cpp
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/DynamicRangeProcessorHistory.h
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/DynamicRangeProcessorTypes.h
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/DynamicRangeProcessorUtils.cpp
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/DynamicRangeProcessorUtils.h
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/MeterValueProvider.cpp
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/MeterValueProvider.h
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/UpwardMeterValueProvider.cpp
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/UpwardMeterValueProvider.h
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/SimpleCompressor/GainReductionComputer.cpp
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/SimpleCompressor/GainReductionComputer.h
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/SimpleCompressor/LookAheadGainReduction.cpp
+    ${AU3_LIBRARIES}/lib-dynamic-range-processor/SimpleCompressor/LookAheadGainReduction.h
+
+    ${AU3_LIBRARIES}/lib-numeric-formats/Beats.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/Beats.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverter.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverter.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterFormats.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterFormats.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterFormatter.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterFormatter.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterFormatterContext.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterFormatterContext.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterRegistry.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterRegistry.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterType.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/NumericConverterType.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/ProjectNumericFormats.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/ProjectNumericFormats.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/ProjectTimeSignature.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/ProjectTimeSignature.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/formatters/BeatsNumericConverterFormatter.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/formatters/BeatsNumericConverterFormatter.h
+    ${AU3_LIBRARIES}/lib-numeric-formats/formatters/ParsedNumericConverterFormatter.cpp
+    ${AU3_LIBRARIES}/lib-numeric-formats/formatters/ParsedNumericConverterFormatter.h
 
     # Requires wxApp, so we won't use it
     # ${AU3_LIBRARIES}/lib-wx-init/SettingsWX.cpp

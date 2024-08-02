@@ -7,6 +7,8 @@
 
 #include "libraries/lib-preferences/Prefs.h"
 #include "libraries/lib-audio-io/AudioIO.h"
+#include "libraries/lib-files/FileNames.h"
+#include "libraries/lib-module-manager/PluginManager.h"
 #include "libraries/lib-project-file-io/ProjectFileIO.h"
 
 #include "mocks/qtBasicUI.h"
@@ -22,6 +24,8 @@
 #include "internal/au3audiodevicesprovider.h"
 #include "internal/au3selectioncontroller.h"
 #include "internal/au3commonsettings.h"
+#include "internal/au3pluginsettings.h"
+#include "internal/effects/au3compressor.h"
 
 #include "log.h"
 
@@ -57,6 +61,10 @@ void Au3WrapModule::onInit(const muse::IApplication::RunMode&)
     std::unique_ptr<Au3CommonSettings> auset = std::make_unique<Au3CommonSettings>();
     InitPreferences(std::move(auset));
 
+    PluginManager::Get().Initialize([](const FilePath& localFileName) {
+       return std::make_unique<Au3PluginSettings>(localFileName.ToStdString());
+    });
+
     AudioIO::Init();
 
     bool ok = ProjectFileIO::InitializeSQL();
@@ -70,6 +78,7 @@ void Au3WrapModule::onInit(const muse::IApplication::RunMode&)
 
     static QtBasicUI uiServices;
     (void)BasicUI::Install(&uiServices);
+    Au3Compressor::ForceLinkage();
 }
 
 void Au3WrapModule::onDeinit()
