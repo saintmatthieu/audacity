@@ -3,6 +3,8 @@ A UI-agnostic, high-level library implementing the behavior of Audacity.
 ]]
 
 set( SOURCES
+   AmplifyBase.cpp
+   AmplifyBase.h
    CompressorInstance.cpp
    CompressorInstance.h
    EffectManager.cpp
@@ -10,6 +12,8 @@ set( SOURCES
    AudacityApplicationLogic.cpp
    AudacityApplicationLogic.h
    AudacityApplicationLogicTypes.h
+   StatefulPerTrackEffect.cpp
+   StatefulPerTrackEffect.h
 )
 set( LIBRARIES
    lib-audio-io-interface

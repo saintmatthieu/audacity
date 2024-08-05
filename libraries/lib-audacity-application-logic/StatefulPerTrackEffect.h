@@ -16,19 +16,18 @@
 
 #include "PerTrackEffect.h" // to inherit
 #include "StatefulEffectBase.h" // to inherit
-#include "StatefulEffectUIServices.h" // to inherit
 
 //! Subclass of PerTrackEffect, to be eliminated after all of its subclasses
 //! are rewritten to be stateless
-class StatefulPerTrackEffect
-   : public StatefulEffectBase
-   , public PerTrackEffect
+class AUDACITY_APPLICATION_LOGIC_API StatefulPerTrackEffect :
+    public StatefulEffectBase,
+    public PerTrackEffect
 {
 public:
 
    //! Implemented with call-throughs to the
    //! StatefulPerTrackEffect virtual functions
-   class AUDACITY_DLL_API Instance
+   class AUDACITY_APPLICATION_LOGIC_API Instance
       : public StatefulEffectBase::Instance
       , public PerTrackEffect::Instance
    {

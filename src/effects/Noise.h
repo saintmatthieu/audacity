@@ -13,6 +13,7 @@
 #ifndef __AUDACITY_EFFECT_NOISE__
 #define __AUDACITY_EFFECT_NOISE__
 
+#include "StatefulEffectUIServices.h"
 #include "StatefulPerTrackEffect.h"
 #include "ShuttleAutomation.h"
 #include <wx/weakref.h>

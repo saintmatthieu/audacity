@@ -17,6 +17,7 @@ Vaughan Johnson (Preview)
 
 #include "Biquad.h"
 
+#include "StatefulEffectUIServices.h"
 #include "StatefulPerTrackEffect.h"
 #include "ShuttleAutomation.h"
 #include "wxPanelWrapper.h"

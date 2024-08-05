@@ -50,173 +50,36 @@ enum
    ID_Clip
 };
 
-const EffectParameterMethods& EffectAmplify::Parameters() const
-{
-   static CapturedParameters<EffectAmplify,
-      // Interactive case
-      Ratio, Clipping
-   > parameters;
+namespace{ BuiltinEffectsModule::Registration< EffectAmplify > reg; }
 
-   static CapturedParameters<EffectAmplify,
-      Ratio
-   > batchParameters{
-      // If invoking Amplify from a macro, mCanClip is not a parameter
-      // but is always true
-      [](EffectAmplify &, EffectSettings &, EffectAmplify &e, bool) {
-         e.mCanClip = true;
-         return true;
-      },
-   };
-
-   // Parameters differ depending on batch mode.  Option to disable clipping
-   // is interactive only.
-   if (IsBatchProcessing())
-      return batchParameters;
-   else
-      return parameters;
-}
-
-//
-// EffectAmplify
-//
-
-const ComponentInterfaceSymbol EffectAmplify::Symbol
-{ XO("Amplify") };
-
-namespace{ BuiltinEffectsModule::Registration< EffectAmplify2 > reg; }
-
-BEGIN_EVENT_TABLE(EffectAmplify2, wxEvtHandler)
-   EVT_SLIDER(ID_Amp, EffectAmplify2::OnAmpSlider)
-   EVT_TEXT(ID_Amp, EffectAmplify2::OnAmpText)
-   EVT_TEXT(ID_Peak, EffectAmplify2::OnPeakText)
-   EVT_CHECKBOX(ID_Clip, EffectAmplify2::OnClipCheckBox)
+BEGIN_EVENT_TABLE(EffectAmplify, wxEvtHandler)
+   EVT_SLIDER(ID_Amp, EffectAmplify::OnAmpSlider)
+   EVT_TEXT(ID_Amp, EffectAmplify::OnAmpText)
+   EVT_TEXT(ID_Peak, EffectAmplify::OnPeakText)
+   EVT_CHECKBOX(ID_Clip, EffectAmplify::OnClipCheckBox)
 END_EVENT_TABLE()
-
-EffectAmplify::Instance::~Instance()
-{
-   // In case the dialog is cancelled before effect processing
-   static_cast<EffectAmplify&>(GetEffect()).DestroyOutputTracks();
-}
-
-EffectAmplify::EffectAmplify()
-{
-   mAmp = Amp.def;
-   // Ratio.def == DB_TO_LINEAR(Amp.def)
-   Parameters().Reset(*this);
-   mRatioClip = 0.0;
-   mPeak = 0.0;
-
-   SetLinearEffectFlag(true);
-}
-
-EffectAmplify::~EffectAmplify()
-{
-}
 
 // ComponentInterface implementation
 
-ComponentInterfaceSymbol EffectAmplify2::GetSymbol() const
+ComponentInterfaceSymbol EffectAmplify::GetSymbol() const
 {
    return Symbol;
 }
 
-TranslatableString EffectAmplify2::GetDescription() const
+TranslatableString EffectAmplify::GetDescription() const
 {
    // Note: This is useful only after ratio has been set.
    return XO("Increases or decreases the volume of the audio you have selected");
 }
 
-ManualPageID EffectAmplify2::ManualPage() const
+ManualPageID EffectAmplify::ManualPage() const
 {
    return L"Amplify";
 }
 
 // EffectDefinitionInterface implementation
 
-EffectType EffectAmplify::GetType() const
-{
-   return EffectTypeProcess;
-}
-
-unsigned EffectAmplify::GetAudioInCount() const
-{
-   return 1;
-}
-
-unsigned EffectAmplify::GetAudioOutCount() const
-{
-   return 1;
-}
-
-size_t EffectAmplify::ProcessBlock(EffectSettings &,
-   const float *const *inBlock, float *const *outBlock, size_t blockLen)
-{
-   for (decltype(blockLen) i = 0; i < blockLen; i++)
-   {
-      outBlock[0][i] = inBlock[0][i] * mRatio;
-   }
-
-   return blockLen;
-}
-
-OptionalMessage
-EffectAmplify::LoadFactoryDefaults(EffectSettings &settings) const
-{
-   // To do: externalize state so const_cast isn't needed
-   return const_cast<EffectAmplify&>(*this).DoLoadFactoryDefaults(settings);
-}
-
-OptionalMessage EffectAmplify::DoLoadFactoryDefaults(EffectSettings &settings)
-{
-   Init();
-
-   mRatioClip = 0.0;
-   if (mPeak > 0.0)
-   {
-      mRatio = 1.0 / mPeak;
-      mRatioClip = mRatio;
-   }
-   else
-   {
-      mRatio = 1.0;
-   }
-   mCanClip = false;
-
-   ClampRatio();
-   return { nullptr };
-}
-
-// Effect implementation
-
-bool EffectAmplify::Init()
-{
-   auto range = inputTracks()->Selected<const WaveTrack>();
-   bool hasPitchOrSpeed = any_of(begin(range), end(range), [this](auto* pTrack) {
-      return TimeStretching::HasPitchOrSpeed(*pTrack, mT0, mT1);
-   });
-   if (hasPitchOrSpeed)
-      range = MakeOutputTracks()->Get().Selected<const WaveTrack>();
-   mPeak = 0.0;
-   for (auto t : range) {
-      for (const auto pChannel : t->Channels()) {
-         auto pair =
-            WaveChannelUtilities::GetMinMax(*pChannel, mT0, mT1); // may throw
-         const float min = pair.first, max = pair.second;
-         const float newpeak = std::max(fabs(min), fabs(max));
-         mPeak = std::max<double>(mPeak, newpeak);
-      }
-   }
-   return true;
-}
-
-std::any EffectAmplify::BeginPreview(const EffectSettings &settings)
-{
-   return { std::pair{
-      CopyableValueRestorer(mRatio), CopyableValueRestorer(mPeak)
-   } };
-}
-
-std::unique_ptr<EffectEditor> EffectAmplify2::PopulateOrExchange(
+std::unique_ptr<EffectEditor> EffectAmplify::PopulateOrExchange(
    ShuttleGui & S, EffectInstance &, EffectSettingsAccess &,
    const EffectOutputs *)
 {
@@ -300,19 +163,7 @@ std::unique_ptr<EffectEditor> EffectAmplify2::PopulateOrExchange(
    return nullptr;
 }
 
-void EffectAmplify::ClampRatio()
-{
-   // limit range of gain
-   double dBInit = LINEAR_TO_DB(mRatio);
-   double dB = std::clamp<double>(dBInit, Amp.min, Amp.max);
-   if (dB != dBInit)
-      mRatio = DB_TO_LINEAR(dB);
-
-   mAmp = LINEAR_TO_DB(mRatio);
-   mNewPeak = LINEAR_TO_DB(mRatio * mPeak);
-}
-
-bool EffectAmplify2::TransferDataToWindow(const EffectSettings &)
+bool EffectAmplify::TransferDataToWindow(const EffectSettings &)
 {
    mAmpT->GetValidator()->TransferToWindow();
 
@@ -327,7 +178,7 @@ bool EffectAmplify2::TransferDataToWindow(const EffectSettings &)
    return true;
 }
 
-bool EffectAmplify2::TransferDataFromWindow(EffectSettings &)
+bool EffectAmplify::TransferDataFromWindow(EffectSettings &)
 {
    if (!mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
    {
@@ -348,22 +199,22 @@ bool EffectAmplify2::TransferDataFromWindow(EffectSettings &)
    return true;
 }
 
-std::shared_ptr<EffectInstance> EffectAmplify2::MakeInstance() const
+std::shared_ptr<EffectInstance> EffectAmplify::MakeInstance() const
 {
    // Cheat with const_cast to return an object that calls through to
    // non-const methods of a stateful effect.
-   return std::make_shared<Instance>(const_cast<EffectAmplify2&>(*this));
+   return std::make_shared<Instance>(const_cast<EffectAmplify&>(*this));
 }
 
 // EffectAmplify implementation
 
-void EffectAmplify2::CheckClip()
+void EffectAmplify::CheckClip()
 {
    EffectEditor::EnableApply(mUIParent,
       mClip->GetValue() || (mPeak > 0.0 && mRatio <= mRatioClip));
 }
 
-void EffectAmplify2::OnAmpText(wxCommandEvent & WXUNUSED(evt))
+void EffectAmplify::OnAmpText(wxCommandEvent & WXUNUSED(evt))
 {
    if (!mAmpT->GetValidator()->TransferFromWindow())
    {
@@ -381,7 +232,7 @@ void EffectAmplify2::OnAmpText(wxCommandEvent & WXUNUSED(evt))
    CheckClip();
 }
 
-void EffectAmplify2::OnPeakText(wxCommandEvent & WXUNUSED(evt))
+void EffectAmplify::OnPeakText(wxCommandEvent & WXUNUSED(evt))
 {
    if (!mNewPeakT->GetValidator()->TransferFromWindow())
    {
@@ -406,7 +257,7 @@ void EffectAmplify2::OnPeakText(wxCommandEvent & WXUNUSED(evt))
    CheckClip();
 }
 
-void EffectAmplify2::OnAmpSlider(wxCommandEvent & evt)
+void EffectAmplify::OnAmpSlider(wxCommandEvent & evt)
 {
    double dB = evt.GetInt() / Amp.scale;
    mRatio = DB_TO_LINEAR(std::clamp<double>(dB, Amp.min, Amp.max));
@@ -428,7 +279,7 @@ void EffectAmplify2::OnAmpSlider(wxCommandEvent & evt)
    CheckClip();
 }
 
-void EffectAmplify2::OnClipCheckBox(wxCommandEvent & WXUNUSED(evt))
+void EffectAmplify::OnClipCheckBox(wxCommandEvent & WXUNUSED(evt))
 {
    CheckClip();
 }
