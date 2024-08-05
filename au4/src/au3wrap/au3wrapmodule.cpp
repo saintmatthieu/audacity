@@ -25,6 +25,7 @@
 #include "internal/au3selectioncontroller.h"
 #include "internal/au3commonsettings.h"
 #include "internal/au3pluginsettings.h"
+#include "internal/effects/au3amplify.h"
 #include "internal/effects/au3compressor.h"
 
 #include "log.h"
@@ -79,6 +80,7 @@ void Au3WrapModule::onInit(const muse::IApplication::RunMode&)
     static QtBasicUI uiServices;
     (void)BasicUI::Install(&uiServices);
     Au3Compressor::ForceLinkage();
+    Au3Amplify::ForceLinkage();
 }
 
 void Au3WrapModule::onDeinit()

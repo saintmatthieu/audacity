@@ -35,6 +35,8 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/mocks/progressdialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mocks/progressdialog.h
 
+    ${CMAKE_CURRENT_LIST_DIR}/internal/effects/au3amplify.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/effects/au3amplify.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/effects/au3compressor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/effects/au3compressor.h
 
@@ -588,6 +590,8 @@ if (AU3_ADD_AS_SRC)
     ${AU3_LIBRARIES}/lib-menus/MenuRegistry.cpp
     ${AU3_LIBRARIES}/lib-menus/MenuRegistry.h
 
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/AmplifyBase.cpp
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/AmplifyBase.h
     ${AU3_LIBRARIES}/lib-audacity-application-logic/CompressorInstance.cpp
     ${AU3_LIBRARIES}/lib-audacity-application-logic/CompressorInstance.h
     ${AU3_LIBRARIES}/lib-audacity-application-logic/EffectManager.cpp
@@ -598,6 +602,8 @@ if (AU3_ADD_AS_SRC)
     ${AU3_LIBRARIES}/lib-audacity-application-logic/AudacityApplicationLogicTypes.h
     ${AU3_LIBRARIES}/lib-audacity-application-logic/ShuttleGetDefinition.cpp
     ${AU3_LIBRARIES}/lib-audacity-application-logic/ShuttleGetDefinition.h
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/StatefulPerTrackEffect.cpp
+    ${AU3_LIBRARIES}/lib-audacity-application-logic/StatefulPerTrackEffect.h
 
     ${AU3_LIBRARIES}/lib-effects/EffectBase.cpp
     ${AU3_LIBRARIES}/lib-effects/EffectBase.h

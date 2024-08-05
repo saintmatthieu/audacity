@@ -620,9 +620,9 @@ void ProjectActionsController::offlineEffectCompressor()
 
    const auto pluginRange =
       PluginManager::Get().EffectsOfType(EffectTypeProcess);
-   if (pluginRange.begin() != pluginRange.end())
+   for (auto it = pluginRange.begin(); it != pluginRange.end();++it)
    {
-      const auto id = (*pluginRange.begin()).GetID();
+      const auto id = (*it).GetID();
       AudacityApplicationLogic::DoEffect(
          id, project, 0,
          std::move(showEffectHostInterfaceCb), std::move(stopPlaybackCb),
