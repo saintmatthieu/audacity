@@ -49,9 +49,9 @@ void ProjectPropertiesModel::init()
     //     m_projectMetaInfo = project->metaInfo();
     // }
 
-    m_project->captureThumbnailRequested().onNotify(this, [this]() {
-        captureThumbnail();
-    });
+    // m_project->captureThumbnailRequested().onNotify(this, [this]() {
+    //     captureThumbnail();
+    // });
 
     load();
 }
