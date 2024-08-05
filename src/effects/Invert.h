@@ -15,7 +15,7 @@
 
 #include "StatefulPerTrackEffect.h"
 
-class EffectInvert final : public StatefulPerTrackEffect
+class EffectInvert final : public StatefulPerTrackEffect, public StatefulEffectUIServices
 {
 public:
    static const ComponentInterfaceSymbol Symbol;

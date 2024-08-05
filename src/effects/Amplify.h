@@ -24,7 +24,7 @@ class wxCheckBox;
 class wxTextCtrl;
 class ShuttleGui;
 
-class EffectAmplify final : public StatefulPerTrackEffect
+class EffectAmplify : public StatefulPerTrackEffect
 {
 public:
    static inline EffectAmplify *
@@ -33,12 +33,6 @@ public:
 
    EffectAmplify();
    virtual ~EffectAmplify();
-
-   // ComponentInterface implementation
-
-   ComponentInterfaceSymbol GetSymbol() const override;
-   TranslatableString GetDescription() const override;
-   ManualPageID ManualPage() const override;
 
    // EffectDefinitionInterface implementation
 
@@ -57,33 +51,18 @@ public:
 
    bool Init() override;
    std::any BeginPreview(const EffectSettings &settings) override;
-   std::unique_ptr<EffectEditor> PopulateOrExchange(
-      ShuttleGui & S, EffectInstance &instance,
-      EffectSettingsAccess &access, const EffectOutputs *pOutputs) override;
-   bool TransferDataToWindow(const EffectSettings &settings) override;
-   bool TransferDataFromWindow(EffectSettings &settings) override;
 
-   std::shared_ptr<EffectInstance> MakeInstance() const override;
-
-private:
+protected:
    struct Instance : StatefulPerTrackEffect::Instance {
       using StatefulPerTrackEffect::Instance::Instance;
       ~Instance() override;
    };
 
+protected:
    void ClampRatio();
 
    // EffectAmplify implementation
-
-   void OnAmpText(wxCommandEvent & evt);
-   void OnPeakText(wxCommandEvent & evt);
-   void OnAmpSlider(wxCommandEvent & evt);
-   void OnClipCheckBox(wxCommandEvent & evt);
-   void CheckClip();
-
-private:
-   wxWeakRef<wxWindow> mUIParent{};
-
+protected:
    double mPeak      = 1.0;
 
    double mRatio     = 1.0;
@@ -92,15 +71,11 @@ private:
    double mNewPeak   = 1.0;
    bool   mCanClip   = true;
 
-   wxSlider *mAmpS;
-   wxTextCtrl *mAmpT;
-   wxTextCtrl *mNewPeakT;
-   wxCheckBox *mClip;
+private:
 
    const EffectParameterMethods& Parameters() const override;
 
-   DECLARE_EVENT_TABLE()
-
+protected:
 static constexpr EffectParameter Ratio{ &EffectAmplify::mRatio,
    L"Ratio",            0.9f,       0.003162f,  316.227766f,   1.0f  };
 // Amp is not saved in settings!
@@ -108,6 +83,41 @@ static constexpr EffectParameter Amp{ &EffectAmplify::mAmp,
    L"",                -0.91515f,  -50.0f,     50.0f,         10.0f };
 static constexpr EffectParameter Clipping{ &EffectAmplify::mCanClip,
    L"AllowClipping",    false,    false,  true,    1  };
+};
+
+class EffectAmplify2 : public EffectAmplify, public StatefulEffectUIServices
+{
+public:
+   std::shared_ptr<EffectInstance> MakeInstance() const override;
+
+   // ComponentInterface implementation
+
+   ComponentInterfaceSymbol GetSymbol() const override;
+   TranslatableString GetDescription() const override;
+   ManualPageID ManualPage() const override;
+
+   std::unique_ptr<EffectEditor> PopulateOrExchange(
+      ShuttleGui& S, EffectInstance& instance, EffectSettingsAccess& access,
+      const EffectOutputs* pOutputs) override;
+   bool TransferDataToWindow(const EffectSettings& settings) override;
+   bool TransferDataFromWindow(EffectSettings& settings) override;
+
+DECLARE_EVENT_TABLE()
+
+   void OnAmpText(wxCommandEvent& evt);
+   void OnPeakText(wxCommandEvent & evt);
+   void OnAmpSlider(wxCommandEvent & evt);
+   void OnClipCheckBox(wxCommandEvent & evt);
+
+   void CheckClip();
+
+private:
+   wxWeakRef<wxWindow> mUIParent {};
+
+   wxSlider *mAmpS;
+   wxTextCtrl *mAmpT;
+   wxTextCtrl *mNewPeakT;
+   wxCheckBox *mClip;
 };
 
 #endif // __AUDACITY_EFFECT_AMPLIFY__

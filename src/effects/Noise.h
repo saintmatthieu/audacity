@@ -20,7 +20,7 @@
 class NumericTextCtrl;
 class ShuttleGui;
 
-class EffectNoise final : public StatefulPerTrackEffect
+class EffectNoise final : public StatefulPerTrackEffect, public StatefulEffectUIServices
 {
 public:
    static inline EffectNoise *

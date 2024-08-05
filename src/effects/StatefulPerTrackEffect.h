@@ -23,7 +23,6 @@
 class StatefulPerTrackEffect
    : public StatefulEffectBase
    , public PerTrackEffect
-   , public StatefulEffectUIServices
 {
 public:
 

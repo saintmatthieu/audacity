@@ -83,13 +83,13 @@ const EffectParameterMethods& EffectAmplify::Parameters() const
 const ComponentInterfaceSymbol EffectAmplify::Symbol
 { XO("Amplify") };
 
-namespace{ BuiltinEffectsModule::Registration< EffectAmplify > reg; }
+namespace{ BuiltinEffectsModule::Registration< EffectAmplify2 > reg; }
 
-BEGIN_EVENT_TABLE(EffectAmplify, wxEvtHandler)
-   EVT_SLIDER(ID_Amp, EffectAmplify::OnAmpSlider)
-   EVT_TEXT(ID_Amp, EffectAmplify::OnAmpText)
-   EVT_TEXT(ID_Peak, EffectAmplify::OnPeakText)
-   EVT_CHECKBOX(ID_Clip, EffectAmplify::OnClipCheckBox)
+BEGIN_EVENT_TABLE(EffectAmplify2, wxEvtHandler)
+   EVT_SLIDER(ID_Amp, EffectAmplify2::OnAmpSlider)
+   EVT_TEXT(ID_Amp, EffectAmplify2::OnAmpText)
+   EVT_TEXT(ID_Peak, EffectAmplify2::OnPeakText)
+   EVT_CHECKBOX(ID_Clip, EffectAmplify2::OnClipCheckBox)
 END_EVENT_TABLE()
 
 EffectAmplify::Instance::~Instance()
@@ -115,18 +115,18 @@ EffectAmplify::~EffectAmplify()
 
 // ComponentInterface implementation
 
-ComponentInterfaceSymbol EffectAmplify::GetSymbol() const
+ComponentInterfaceSymbol EffectAmplify2::GetSymbol() const
 {
    return Symbol;
 }
 
-TranslatableString EffectAmplify::GetDescription() const
+TranslatableString EffectAmplify2::GetDescription() const
 {
    // Note: This is useful only after ratio has been set.
    return XO("Increases or decreases the volume of the audio you have selected");
 }
 
-ManualPageID EffectAmplify::ManualPage() const
+ManualPageID EffectAmplify2::ManualPage() const
 {
    return L"Amplify";
 }
@@ -216,7 +216,7 @@ std::any EffectAmplify::BeginPreview(const EffectSettings &settings)
    } };
 }
 
-std::unique_ptr<EffectEditor> EffectAmplify::PopulateOrExchange(
+std::unique_ptr<EffectEditor> EffectAmplify2::PopulateOrExchange(
    ShuttleGui & S, EffectInstance &, EffectSettingsAccess &,
    const EffectOutputs *)
 {
@@ -312,7 +312,7 @@ void EffectAmplify::ClampRatio()
    mNewPeak = LINEAR_TO_DB(mRatio * mPeak);
 }
 
-bool EffectAmplify::TransferDataToWindow(const EffectSettings &)
+bool EffectAmplify2::TransferDataToWindow(const EffectSettings &)
 {
    mAmpT->GetValidator()->TransferToWindow();
 
@@ -327,7 +327,7 @@ bool EffectAmplify::TransferDataToWindow(const EffectSettings &)
    return true;
 }
 
-bool EffectAmplify::TransferDataFromWindow(EffectSettings &)
+bool EffectAmplify2::TransferDataFromWindow(EffectSettings &)
 {
    if (!mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
    {
@@ -348,22 +348,22 @@ bool EffectAmplify::TransferDataFromWindow(EffectSettings &)
    return true;
 }
 
-std::shared_ptr<EffectInstance> EffectAmplify::MakeInstance() const
+std::shared_ptr<EffectInstance> EffectAmplify2::MakeInstance() const
 {
    // Cheat with const_cast to return an object that calls through to
    // non-const methods of a stateful effect.
-   return std::make_shared<Instance>(const_cast<EffectAmplify&>(*this));
+   return std::make_shared<Instance>(const_cast<EffectAmplify2&>(*this));
 }
 
 // EffectAmplify implementation
 
-void EffectAmplify::CheckClip()
+void EffectAmplify2::CheckClip()
 {
    EffectEditor::EnableApply(mUIParent,
       mClip->GetValue() || (mPeak > 0.0 && mRatio <= mRatioClip));
 }
 
-void EffectAmplify::OnAmpText(wxCommandEvent & WXUNUSED(evt))
+void EffectAmplify2::OnAmpText(wxCommandEvent & WXUNUSED(evt))
 {
    if (!mAmpT->GetValidator()->TransferFromWindow())
    {
@@ -381,7 +381,7 @@ void EffectAmplify::OnAmpText(wxCommandEvent & WXUNUSED(evt))
    CheckClip();
 }
 
-void EffectAmplify::OnPeakText(wxCommandEvent & WXUNUSED(evt))
+void EffectAmplify2::OnPeakText(wxCommandEvent & WXUNUSED(evt))
 {
    if (!mNewPeakT->GetValidator()->TransferFromWindow())
    {
@@ -406,7 +406,7 @@ void EffectAmplify::OnPeakText(wxCommandEvent & WXUNUSED(evt))
    CheckClip();
 }
 
-void EffectAmplify::OnAmpSlider(wxCommandEvent & evt)
+void EffectAmplify2::OnAmpSlider(wxCommandEvent & evt)
 {
    double dB = evt.GetInt() / Amp.scale;
    mRatio = DB_TO_LINEAR(std::clamp<double>(dB, Amp.min, Amp.max));
@@ -428,7 +428,7 @@ void EffectAmplify::OnAmpSlider(wxCommandEvent & evt)
    CheckClip();
 }
 
-void EffectAmplify::OnClipCheckBox(wxCommandEvent & WXUNUSED(evt))
+void EffectAmplify2::OnClipCheckBox(wxCommandEvent & WXUNUSED(evt))
 {
    CheckClip();
 }
