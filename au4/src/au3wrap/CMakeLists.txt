@@ -39,6 +39,7 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/effects/au3amplify.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/effects/au3compressor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/effects/au3compressor.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/effects/ieffectdialog.h
 
     ${CMAKE_CURRENT_LIST_DIR}/internal/wxtypes_convert.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/wxlogwrap.cpp

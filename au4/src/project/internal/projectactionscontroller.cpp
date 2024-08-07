@@ -3,8 +3,12 @@
 #include "async/async.h"
 #include "global/defer.h"
 #include "global/translation.h"
-#include "libraries/lib-audacity-application-logic/AudacityApplicationLogic.h"
+#include "AudacityApplicationLogic.h"
+#include "Effect.h"
 #include "PluginManager.h"
+#include "ConfigInterface.h"
+#include "ShuttleAutomation.h"
+#include "../au3wrap/internal/effects/ieffectdialog.h" // This of course isn't finalized code ...
 
 #include "audacityproject.h"
 #include "projecterrors.h"
@@ -612,9 +616,34 @@ void ProjectActionsController::offlineEffectCompressor()
 {
    auto& project = *reinterpret_cast<AudacityProject*>(
       globalContext()->currentProject()->au3ProjectPtr());
+
    auto showEffectHostInterfaceCb =
-      [](Effect&, std::shared_ptr<EffectInstance>&,
-         SimpleEffectSettingsAccess&) { return true; };
+      [](Effect& effect, std::shared_ptr<EffectInstance>& instance,
+         SimpleEffectSettingsAccess& settings)
+         {
+            const std::optional<EffectPlugin::InstancePointer> result =
+               EffectBase::FindInstance(effect);
+            if (!result.has_value())
+               return false;
+            instance = *result;
+            if (!instance)
+               return false;
+            // Here show the interface and adjust the parameters
+            // Not sure how use `settings`, but in some (all?) cases,
+            // the file settings are automagically bound to the instance via the
+            // definition of `EffectParameter`s. (E.g. see AmplifyBase).
+            // The `au::au3::IEffectDialog` implementation can therefore proceed
+            // with no further arguments.
+            auto dialog =
+               dynamic_cast<au::au3::IEffectDialog*>(&effect);
+            if (!dialog)
+               return false;
+            if (!dialog->Show())
+               return false;
+            effect.SaveUserPreset(CurrentSettingsGroup(), settings.Get());
+            return true;
+         };
+
    auto stopPlaybackCb = [] {};
    auto selectAllIfNoneCb = [] {};
 

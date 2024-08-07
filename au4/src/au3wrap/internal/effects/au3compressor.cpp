@@ -7,8 +7,7 @@
 
 using namespace au::au3;
 
-const ComponentInterfaceSymbol Au3Compressor::Symbol { XO(
-                                                             "Dummy Compressor") };
+const ComponentInterfaceSymbol Au3Compressor::Symbol { XO("Dummy Compressor") };
 
 namespace {
 BuiltinEffectsModule::Registration<Au3Compressor> reg;
@@ -25,7 +24,7 @@ ComponentInterfaceSymbol Au3Compressor::GetSymbol() const
 
 bool Au3Compressor::IsInteractive() const
 {
-    return false;
+    return true;
 }
 
 std::shared_ptr<EffectInstance> Au3Compressor::MakeInstance() const
@@ -36,4 +35,10 @@ std::shared_ptr<EffectInstance> Au3Compressor::MakeInstance() const
 EffectType Au3Compressor::GetType() const
 {
     return EffectTypeProcess;
+}
+
+bool Au3Compressor::Show()
+{
+    // For now : I want to see Au3Amplify alone.
+    return false;
 }
