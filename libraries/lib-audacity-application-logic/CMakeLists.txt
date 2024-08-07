@@ -9,9 +9,9 @@ set( SOURCES
    EffectManager.h
    GetMessageBoxCb.h
    IAudacityCommand.h
-   LibAudacityApi.cpp
-   LibAudacityApi.h
-   LibAudacityTypes.h
+   AudacityApplicationLogic.cpp
+   AudacityApplicationLogic.h
+   AudacityApplicationLogicTypes.h
    ShuttleGetDefinition.cpp
    ShuttleGetDefinition.h
 )
@@ -23,6 +23,6 @@ set( LIBRARIES
    lib-project-file-io-interface
    lib-viewport-interface
 )
-audacity_library( lib-audacity "${SOURCES}" "${LIBRARIES}"
+audacity_library( lib-audacity-application-logic "${SOURCES}" "${LIBRARIES}"
    "" ""
 )

@@ -3,7 +3,7 @@
 #include "AudacityMessageBox.h"
 #include "Effect.h"
 #include "GetMessageBoxCb.h"
-#include "LibAudacityApi.h"
+#include "AudacityApplicationLogic.h"
 #include "ProjectAudioManager.h"
 #include "ProjectWindows.h"
 #include "SelectUtilities.h"
@@ -11,9 +11,9 @@
 #include "effects/EffectUIServices.h"
 #include <wx/frame.h>
 
-// Definition of LibAudacity::GetMessageBoxCb(), declared in lib-audacity. This
+// Definition of AudacityApplicationLogic::GetMessageBoxCb(), declared in lib-audacity-application-logic. This
 // implementation uses our wxWidgets-based AudacityMessageBox.
-LibAudacity::MessageBoxCb LibAudacity::GetMessageBoxCb()
+AudacityApplicationLogic::MessageBoxCb AudacityApplicationLogic::GetMessageBoxCb()
 {
    return
       [](const TranslatableString& message, const TranslatableString& caption) {
@@ -23,7 +23,7 @@ LibAudacity::MessageBoxCb LibAudacity::GetMessageBoxCb()
 
 namespace
 {
-LibAudacity::StopPlaybackCb StopPlaybackCb(AudacityProject& project)
+AudacityApplicationLogic::StopPlaybackCb StopPlaybackCb(AudacityProject& project)
 {
    return [&]() { ProjectAudioManager::Get(project).Stop(); };
 }
@@ -44,7 +44,7 @@ bool EffectUI::DoEffect(
    auto selectAllIfNoneCb = [&]() {
       SelectUtilities::SelectAllIfNone(project);
    };
-   return LibAudacity::DoEffect(
+   return AudacityApplicationLogic::DoEffect(
       ID, project, flags, std::move(getShowEffectHostInterfaceCb),
       StopPlaybackCb(project), std::move(selectAllIfNoneCb));
 }

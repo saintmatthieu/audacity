@@ -23,7 +23,7 @@ using InitializeProcessingSettingsPublisher =
    Observer::Publisher<std::optional<InitializeProcessingSettings>>;
 using RealtimeResumePublisher = Observer::Publisher<Unbypassed>;
 
-class AUDACITY_API CompressorInstance final :
+class AUDACITY_APPLICATION_LOGIC_API CompressorInstance final :
     public PerTrackEffect::Instance,
     public EffectInstanceWithBlockSize,
     public InitializeProcessingSettingsPublisher,

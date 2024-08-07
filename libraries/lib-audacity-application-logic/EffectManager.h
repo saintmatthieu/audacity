@@ -14,7 +14,7 @@
 
 #include "EffectInterface.h"
 #include "Identifier.h"
-#include "LibAudacityTypes.h"
+#include "AudacityApplicationLogicTypes.h"
 
 #include <functional>
 #include <memory>
@@ -44,16 +44,16 @@ using EffectOwnerMap = std::unordered_map< wxString, std::shared_ptr<EffectPlugi
 
 class IAudacityCommand;
 
-AUDACITY_API
+AUDACITY_APPLICATION_LOGIC_API
 RegistryPaths GetUserPresets(EffectPlugin& host);
 
-AUDACITY_API
+AUDACITY_APPLICATION_LOGIC_API
 bool HasCurrentSettings(EffectPlugin& host);
 
-AUDACITY_API
+AUDACITY_APPLICATION_LOGIC_API
 bool HasFactoryDefaults(EffectPlugin& host);
 
-class AUDACITY_API EffectManager
+class AUDACITY_APPLICATION_LOGIC_API EffectManager
 {
 public:
 
@@ -181,7 +181,7 @@ private:
 
    IAudacityCommand* GetAudacityCommand(const PluginID& ID);
 
-   LibAudacity::MessageBoxCb mMessageBoxCb;
+   AudacityApplicationLogic::MessageBoxCb mMessageBoxCb;
    EffectMap mEffects;
    AudacityCommandMap mCommands;
    EffectOwnerMap mHostEffects;

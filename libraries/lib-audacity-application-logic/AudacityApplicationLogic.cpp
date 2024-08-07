@@ -1,4 +1,4 @@
-#include "LibAudacityApi.h"
+#include "AudacityApplicationLogic.h"
 #include "BasicUI.h"
 #include "CommandManager.h"
 #include "Effect.h"
@@ -19,7 +19,7 @@
 //  parameters, whether to save the state to history and whether to allow
 /// 'Repeat Last Effect'.
 
-bool LibAudacity::DoEffect(
+bool AudacityApplicationLogic::DoEffect(
    const PluginID& ID, AudacityProject& project, unsigned flags,
    ShowEffectHostInterfaceCb showEffectHostInterfaceCb,
    StopPlaybackCb stopPlaybackCb, SelectAllIfNoneCb selectAllIfNoneCb)

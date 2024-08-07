@@ -9,7 +9,7 @@ class Effect;
 class EffectInstance;
 class SimpleEffectSettingsAccess;
 
-namespace LibAudacity
+namespace AudacityApplicationLogic
 {
 using MessageBoxCb = std::function<void(
    const TranslatableString& message, const TranslatableString& caption)>;
@@ -20,4 +20,4 @@ using ShowEffectHostInterfaceCb = std::function<bool(
 using StopPlaybackCb = std::function<void()>;
 
 using SelectAllIfNoneCb = std::function<void()>;
-} // namespace LibAudacity
+} // namespace AudacityApplicationLogic

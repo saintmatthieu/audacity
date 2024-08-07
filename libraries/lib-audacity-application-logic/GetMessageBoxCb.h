@@ -1,9 +1,9 @@
 // TODO header
 #pragma once
 
-#include "LibAudacityTypes.h"
+#include "AudacityApplicationLogicTypes.h"
 
-namespace LibAudacity
+namespace AudacityApplicationLogic
 {
 // To be implemented by the application.
 MessageBoxCb GetMessageBoxCb();

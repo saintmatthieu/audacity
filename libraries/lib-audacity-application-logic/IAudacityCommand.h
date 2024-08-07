@@ -8,7 +8,7 @@
 class AudacityProject;
 class CommandContext;
 
-class AUDACITY_API IAudacityCommand : public ComponentInterface
+class AUDACITY_APPLICATION_LOGIC_API IAudacityCommand : public ComponentInterface
 {
 public:
    virtual ~IAudacityCommand() = default;

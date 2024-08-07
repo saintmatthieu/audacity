@@ -1332,7 +1332,7 @@ set( AUDACITY_LIBRARIES
    lib-wave-track-paint-interface
    lib-music-information-retrieval-interface
    lib-preference-pages-interface
-   lib-audacity-interface
+   lib-audacity-application-logic-interface
 )
 
 if (USE_VST)
