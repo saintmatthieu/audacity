@@ -134,8 +134,8 @@ set( SOURCES
       LangChoice.h
       Legacy.cpp
       Legacy.h
-      LibAudacityHelpers.cpp
-      LibAudacityHelpers.h
+      DoEffect.cpp
+      DoEffect.h
       ListNavigationEnabled.cpp
       ListNavigationEnabled.h
       ListNavigationPanel.cpp

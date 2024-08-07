@@ -31,7 +31,7 @@
 #include "../widgets/ASlider.h"
 #include "AudacityMessageBox.h"
 #include "ProgressDialog.h"
-#include "LibAudacityHelpers.h"
+#include "DoEffect.h"
 
 #include <wx/combobox.h>
 

@@ -12,7 +12,7 @@
 
 #include "CommandDispatch.h"
 
-#include "LibAudacityHelpers.h"
+#include "DoEffect.h"
 #include "CommandContext.h"
 #include "CommandManager.h"
 #include "PluginManager.h"

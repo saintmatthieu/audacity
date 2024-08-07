@@ -22,7 +22,7 @@
 #include "CommandManager.h"
 #include "ConfigInterface.h"
 #include "EffectManager.h"
-#include "LibAudacityHelpers.h"
+#include "DoEffect.h"
 #include "PluginManager.h"
 #include "ProjectAudioIO.h"
 #include "ProjectHistory.h"
@@ -252,7 +252,7 @@ EffectUIHost::EffectUIHost(wxWindow *parent,
 #if defined(__WXMAC__)
    MacMakeWindowFloating(GetHandle());
 #endif
-   
+
    SetName( effect.GetDefinition().GetName() );
 
    // This style causes Validate() and TransferDataFromWindow() to visit
@@ -297,7 +297,7 @@ bool EffectUIHost::TransferDataFromWindow()
    //! Do other custom validation and transfer actions
    if (!mpEditor->ValidateUI())
       return false;
-   
+
    // Transfer-from takes non-const reference to settings
    bool result = true;
    mpAccess->ModifySettings([&](EffectSettings &settings){
@@ -378,7 +378,7 @@ void EffectUIHost::BuildTopBar(ShuttleGui &S)
 
          S.AddSpace(1, 0, 1);
 
-         
+
 
          if (mEffectUIHost.GetDefinition().EnablesDebug())
          {
@@ -451,7 +451,7 @@ bool EffectUIHost::Initialize()
                S.AddSpace(1, 1, 1);
                S.Id(wxID_CANCEL)
                   .AddButton(XXO("&Cancel"));
-               
+
                mApplyBtn = S.Id(wxID_APPLY)
                   .AddButton( XXO("&Apply"));
                mApplyBtn->SetDefault();
@@ -495,11 +495,11 @@ void EffectUIHost::OnInitDialog(wxInitDialogEvent & evt)
 {
    // Do default handling
    wxDialogWrapper::OnInitDialog(evt);
-   
+
 #if wxCHECK_VERSION(3, 0, 0)
    //#warning "check to see if this still needed in wx3"
 #endif
-   
+
    // Pure hackage coming down the pike...
    //
    // I have no idea why, but if a wxTextCtrl is the first control in the
@@ -522,7 +522,7 @@ void EffectUIHost::OnErase(wxEraseEvent & WXUNUSED(evt))
 void EffectUIHost::OnPaint(wxPaintEvent & WXUNUSED(evt))
 {
    wxPaintDC dc(this);
-   
+
    dc.Clear();
 }
 
@@ -533,10 +533,10 @@ void EffectUIHost::OnClose(wxCloseEvent & WXUNUSED(evt))
 
    if (mpEditor)
       mpEditor->OnClose();
-   
+
    Hide();
    Destroy();
-   
+
 #if wxDEBUG_LEVEL
    mClosed = true;
 #endif
@@ -571,7 +571,7 @@ void EffectUIHost::OnApply(wxCommandEvent & evt)
       if (!allowed)
          return;
    }
-   
+
    if (!TransferDataFromWindow() ||
        // This is the main place where there is a side-effect on the config
        // file to remember the last-used settings of an effect, just before
@@ -583,14 +583,14 @@ void EffectUIHost::OnApply(wxCommandEvent & evt)
    if (IsModal())
    {
       mDismissed = true;
-      
+
       EndModal(evt.GetId());
-      
+
       Close();
-      
+
       return;
    }
-   
+
    // Progress dialog no longer yields, so this "shouldn't" be necessary (yet to be proven
    // for sure), but it is a nice visual cue that something is going on.
    mApplyBtn->Disable();
@@ -620,7 +620,7 @@ void EffectUIHost::DoCancel()
          EndModal(0);
       else
          Hide();
-      
+
       mDismissed = true;
    }
 }
@@ -653,7 +653,7 @@ void EffectUIHost::OnMenu(wxCommandEvent & WXUNUSED(evt))
    menu.Bind(wxEVT_MENU, [](auto&){}, kUserPresetsDummyID);
    menu.Bind(wxEVT_MENU, [](auto&){}, kDeletePresetDummyID);
    LoadUserPresets();
-   
+
    if (mUserPresets.size() == 0)
    {
       menu.Append(kUserPresetsDummyID, _("User Presets"))->Enable(false);
@@ -667,9 +667,9 @@ void EffectUIHost::OnMenu(wxCommandEvent & WXUNUSED(evt))
       }
       menu.Append(0, _("User Presets"), sub.release());
    }
-   
+
    menu.Append(kSaveAsID, _("Save Preset..."));
-   
+
    if (mUserPresets.size() == 0)
    {
       menu.Append(kDeletePresetDummyID, _("Delete Preset"))->Enable(false);
@@ -683,11 +683,11 @@ void EffectUIHost::OnMenu(wxCommandEvent & WXUNUSED(evt))
       }
       menu.Append(0, _("Delete Preset"), sub.release());
    }
-   
+
    menu.AppendSeparator();
-   
+
    auto factory = mEffectUIHost.GetDefinition().GetFactoryPresets();
-   
+
    {
       auto sub = std::make_unique<wxMenu>();
       sub->Append(kDefaultsID, _("Defaults"));
@@ -701,13 +701,13 @@ void EffectUIHost::OnMenu(wxCommandEvent & WXUNUSED(evt))
             {
                label = _("None");
             }
-            
+
             sub->Append(kFactoryPresetsID + i, label);
          }
       }
       menu.Append(0, _("Factory Presets"), sub.release());
    }
-   
+
    menu.AppendSeparator();
    menu.Append(kImportID, _("Import..."))
       ->Enable(mEffectUIHost.CanExportPresets());
@@ -717,10 +717,10 @@ void EffectUIHost::OnMenu(wxCommandEvent & WXUNUSED(evt))
    menu.Append(kOptionsID, _("Options..."))
       ->Enable(mEffectUIHost.HasOptions());
    menu.AppendSeparator();
-   
+
    {
       auto sub = std::make_unique<wxMenu>();
-      
+
       auto &definition = mEffectUIHost.GetDefinition();
       sub->Append(kDummyID, wxString::Format(_("Type: %s"),
          ::wxGetTranslation( definition.GetFamily().Translation() )));
@@ -733,7 +733,7 @@ void EffectUIHost::OnMenu(wxCommandEvent & WXUNUSED(evt))
 
       menu.Append(0, _("About"), sub.release());
    }
-   
+
    wxWindow *btn = FindWindow(kMenuID);
    wxRect r = btn->GetRect();
    BasicMenu::Handle{ &menu }.Popup(
@@ -759,7 +759,7 @@ void EffectUIHost::OnPlay(wxCommandEvent & WXUNUSED(evt))
 {
    if (!TransferDataFromWindow())
       return;
-   
+
    auto updater = [this]{ TransferDataToWindow(); };
    EffectPreview(mEffectUIHost, *mpAccess, updater, false);
    // After restoration of settings and effect state:
@@ -784,7 +784,7 @@ void EffectUIHost::OnCapture(AudioIOEvent evt)
 void EffectUIHost::OnUserPreset(wxCommandEvent & evt)
 {
    int preset = evt.GetId() - kUserPresetsID;
-   
+
    mpAccess->ModifySettings([&](EffectSettings &settings){
       // ignore failure
       return mEffectUIHost.GetDefinition().LoadUserPreset(
@@ -808,7 +808,7 @@ void EffectUIHost::OnFactoryPreset(wxCommandEvent & evt)
 void EffectUIHost::OnDeletePreset(wxCommandEvent & evt)
 {
    auto preset = mUserPresets[evt.GetId() - kDeletePresetID];
-   
+
    int res = AudacityMessageBox(
                                 XO("Are you sure you want to delete \"%s\"?").Format( preset ),
                                 XO("Delete Preset"),
@@ -818,9 +818,9 @@ void EffectUIHost::OnDeletePreset(wxCommandEvent & evt)
       RemoveConfigSubgroup(mEffectUIHost.GetDefinition(),
          PluginSettings::Private, UserPresetsGroup(preset));
    }
-   
+
    LoadUserPresets();
-   
+
    return;
 }
 
@@ -829,9 +829,9 @@ void EffectUIHost::OnSaveAs(wxCommandEvent & WXUNUSED(evt))
    wxTextCtrl *text;
    wxString name;
    wxDialogWrapper dlg(this, wxID_ANY, XO("Save Preset"));
-   
+
    ShuttleGui S(&dlg, eIsCreating);
-   
+
    S.StartPanel();
    {
       S.StartVerticalLay(1);
@@ -847,20 +847,20 @@ void EffectUIHost::OnSaveAs(wxCommandEvent & WXUNUSED(evt))
       S.EndVerticalLay();
    }
    S.EndPanel();
-   
+
    dlg.SetSize(dlg.GetSizer()->GetMinSize());
    dlg.Center();
    dlg.Fit();
-   
+
    while (true)
    {
       int rc = dlg.ShowModal();
-      
+
       if (rc != wxID_OK)
       {
          break;
       }
-      
+
       name = text->GetValue();
       if (name.empty())
       {
@@ -872,7 +872,7 @@ void EffectUIHost::OnSaveAs(wxCommandEvent & WXUNUSED(evt))
          md.ShowModal();
          continue;
       }
-      
+
       if ( make_iterator_range( mUserPresets ).contains( name ) )
       {
          AudacityMessageDialog md(
@@ -886,21 +886,21 @@ void EffectUIHost::OnSaveAs(wxCommandEvent & WXUNUSED(evt))
          {
             break;
          }
-         
+
          if (choice == wxID_NO)
          {
             continue;
          }
       }
-      
+
       if (TransferDataFromWindow())
          mEffectUIHost.GetDefinition()
             .SaveUserPreset(UserPresetsGroup(name), mpAccess->Get());
       LoadUserPresets();
-      
+
       break;
    }
-   
+
    return;
 }
 
@@ -922,14 +922,14 @@ void EffectUIHost::OnExport(wxCommandEvent & WXUNUSED(evt))
    // exceptions are handled in AudacityApp::OnExceptionInMainLoop
    if (TransferDataFromWindow())
      mClient.ExportPresets(mEffectUIHost, mpAccess->Get());
-   
+
    return;
 }
 
 void EffectUIHost::OnOptions(wxCommandEvent & WXUNUSED(evt))
 {
    mClient.ShowOptions(mEffectUIHost);
-   
+
    return;
 }
 
@@ -958,7 +958,7 @@ void EffectUIHost::OnCharHook(wxKeyEvent& evt)
       evt.Skip();
       return;
    }
-   
+
    if (IsOpenedFromEffectPanel())
       Close();
    else
@@ -978,19 +978,19 @@ wxBitmap EffectUIHost::CreateBitmap(const char * const xpm[], bool up, bool push
 {
    wxMemoryDC dc;
    wxBitmap pic(xpm);
-   
+
    wxBitmap mod(pic.GetWidth() + 6, pic.GetHeight() + 6, 24);
    dc.SelectObject(mod);
-   
+
 #if defined(__WXGTK__)
    wxColour newColour = wxSystemSettings::GetColour(wxSYS_COLOUR_BACKGROUND);
 #else
    wxColour newColour = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
 #endif
-   
+
    dc.SetBackground(wxBrush(newColour));
    dc.Clear();
-   
+
    int offset = 3;
    if (pusher)
    {
@@ -999,11 +999,11 @@ wxBitmap EffectUIHost::CreateBitmap(const char * const xpm[], bool up, bool push
          offset += 1;
       }
    }
-   
+
    dc.DrawBitmap(pic, offset, offset, true);
-   
+
    dc.SelectObject(wxNullBitmap);
-   
+
    return mod;
 }
 
@@ -1026,12 +1026,12 @@ void EffectUIHost::UpdateControls()
 void EffectUIHost::LoadUserPresets()
 {
    mUserPresets.clear();
-   
+
    GetConfigSubgroups(mEffectUIHost.GetDefinition(),
       PluginSettings::Private, UserPresetsGroup(wxEmptyString), mUserPresets);
-   
+
    std::sort( mUserPresets.begin(), mUserPresets.end() );
-   
+
    return;
 }
 
@@ -1041,7 +1041,7 @@ std::shared_ptr<EffectInstance> EffectUIHost::InitializeInstance()
    std::shared_ptr<EffectInstance> result;
 
    auto mpState = mwState.lock();
- 
+
    bool priorState = (mpState != nullptr);
    if (!priorState) {
       auto gAudioIO = AudioIO::Get();
@@ -1079,7 +1079,7 @@ std::shared_ptr<EffectInstance> EffectUIHost::InitializeInstance()
             }
          });
       }
-      
+
       mInitialized = true;
    }
    else

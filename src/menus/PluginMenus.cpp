@@ -30,7 +30,7 @@
 #include "UndoManager.h"
 #include "Viewport.h"
 #include "prefs/EffectsPrefs.h"
-#include "LibAudacityHelpers.h"
+#include "DoEffect.h"
 
 // private helper classes and functions
 namespace {

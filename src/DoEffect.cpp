@@ -1,5 +1,14 @@
-// TODO header
-#include "LibAudacityHelpers.h"
+/*  SPDX-License-Identifier: GPL-2.0-or-later */
+/*!********************************************************************
+
+  Audacity: A Digital Audio Editor
+
+  DoEffect.cpp
+
+  Matthieu Hodgkinson
+
+**********************************************************************/
+#include "DoEffect.h"
 #include "AudacityMessageBox.h"
 #include "Effect.h"
 #include "GetMessageBoxCb.h"

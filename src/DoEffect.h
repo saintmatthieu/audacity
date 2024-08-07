@@ -3,17 +3,19 @@
 
   Audacity: A Digital Audio Editor
 
-  GetMessageBoxCb.h
+  DoEffect.h
 
   Matthieu Hodgkinson
 
 **********************************************************************/
 #pragma once
 
-#include "AudacityApplicationLogicTypes.h"
+#include <wx/string.h>
 
-namespace AudacityApplicationLogic
+class AudacityProject;
+using PluginID = wxString;
+
+namespace EffectUI
 {
-// To be implemented by the application.
-MessageBoxCb GetMessageBoxCb();
-} // namespace AudacityApplicationLogic
+bool DoEffect(const PluginID& ID, AudacityProject& project, unsigned flags);
+}

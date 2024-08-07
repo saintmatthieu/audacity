@@ -37,7 +37,7 @@ selected command.
 
 #include "EffectManager.h"
 #include "HelpSystem.h"
-#include "LibAudacityHelpers.h"
+#include "DoEffect.h"
 #include "Project.h"
 #include "ShuttleGui.h"
 
