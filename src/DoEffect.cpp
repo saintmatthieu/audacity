@@ -11,7 +11,6 @@
 #include "DoEffect.h"
 #include "AudacityMessageBox.h"
 #include "Effect.h"
-#include "GetMessageBoxCb.h"
 #include "AudacityApplicationLogic.h"
 #include "ProjectAudioManager.h"
 #include "ProjectWindows.h"
@@ -19,16 +18,6 @@
 #include "effects/EffectUI.h"
 #include "effects/EffectUIServices.h"
 #include <wx/frame.h>
-
-// Definition of AudacityApplicationLogic::GetMessageBoxCb(), declared in lib-audacity-application-logic. This
-// implementation uses our wxWidgets-based AudacityMessageBox.
-AudacityApplicationLogic::MessageBoxCb AudacityApplicationLogic::GetMessageBoxCb()
-{
-   return
-      [](const TranslatableString& message, const TranslatableString& caption) {
-         AudacityMessageBox(message, caption);
-      };
-}
 
 namespace
 {

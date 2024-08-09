@@ -7,7 +7,6 @@ set( SOURCES
    CompressorInstance.h
    EffectManager.cpp
    EffectManager.h
-   GetMessageBoxCb.h
    IAudacityCommand.h
    AudacityApplicationLogic.cpp
    AudacityApplicationLogic.h
