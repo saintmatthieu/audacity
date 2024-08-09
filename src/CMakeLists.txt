@@ -184,8 +184,6 @@ set( SOURCES
       ScrubState.h
       SelectUtilities.cpp
       SelectUtilities.h
-      ShuttleGetDefinition.cpp
-      ShuttleGetDefinition.h
       SoundActivatedRecord.cpp
       SoundActivatedRecord.h
       SpectralDataDialog.cpp

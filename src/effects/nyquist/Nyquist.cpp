@@ -53,7 +53,7 @@ effects from this one class.
 
 #include "../../LabelTrack.h"
 #include "NoteTrack.h"
-#include "../../ShuttleGetDefinition.h"
+#include "ShuttleGetDefinition.h"
 #include "../../prefs/GUIPrefs.h"
 #include "../../prefs/SpectrogramSettings.h"
 #include "../../tracks/playabletrack/wavetrack/ui/WaveChannelView.h"
