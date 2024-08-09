@@ -181,7 +181,6 @@ private:
 
    IAudacityCommand* GetAudacityCommand(const PluginID& ID);
 
-   AudacityApplicationLogic::MessageBoxCb mMessageBoxCb;
    EffectMap mEffects;
    AudacityCommandMap mCommands;
    EffectOwnerMap mHostEffects;

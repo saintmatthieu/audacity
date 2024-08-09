@@ -19,6 +19,7 @@ effects.
 *//*******************************************************************/
 
 
+#include "BasicUI.h"
 #include "EffectManager.h"
 #include "Effect.h"
 #include "IAudacityCommand.h"
@@ -568,8 +569,8 @@ EffectAndDefaultSettings &EffectManager::DoGetEffect(const PluginID & ID)
          return (mEffects[ID] = { effect, std::move(settings) });
       else
       {
-         if (!dynamic_cast<IAudacityCommand*>(component) && mMessageBoxCb)
-            mMessageBoxCb(
+         if (!dynamic_cast<IAudacityCommand*>(component))
+            BasicUI::ShowMessageBox(
                XO("Attempting to initialize the following effect failed:\n\n%s\n\nMore information may be available in 'Help > Diagnostics > Show Log'")
                   .Format(GetCommandName(ID)),
                XO("Effect failed to initialize"));
@@ -598,11 +599,10 @@ IAudacityCommand* EffectManager::GetAudacityCommand(const PluginID& ID)
          return command;
       }
 
-      if (mMessageBoxCb)
-         mMessageBoxCb(
-            XO("Attempting to initialize the following command failed:\n\n%s\n\nMore information may be available in 'Help > Diagnostics > Show Log'")
-               .Format(GetCommandName(ID)),
-            XO("Command failed to initialize"));
+      BasicUI::ShowMessageBox(
+         XO("Attempting to initialize the following command failed:\n\n%s\n\nMore information may be available in 'Help > Diagnostics > Show Log'")
+            .Format(GetCommandName(ID)),
+         XO("Command failed to initialize"));
 
       return NULL;
    }

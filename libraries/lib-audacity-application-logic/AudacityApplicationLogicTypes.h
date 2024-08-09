@@ -20,9 +20,6 @@ class SimpleEffectSettingsAccess;
 
 namespace AudacityApplicationLogic
 {
-using MessageBoxCb = std::function<void(
-   const TranslatableString& message, const TranslatableString& caption)>;
-
 using ShowEffectHostInterfaceCb = std::function<bool(
    Effect&, std::shared_ptr<EffectInstance>&, SimpleEffectSettingsAccess&)>;
 
