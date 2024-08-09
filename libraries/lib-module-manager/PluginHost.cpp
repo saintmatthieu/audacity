@@ -140,7 +140,7 @@ bool PluginHost::Serve()
       mRequest.swap(request);
 
       lck.unlock();
-
+      
       wxString providerId;
       wxString pluginPath;
       detail::PluginValidationResult result;
@@ -232,7 +232,7 @@ public:
       //do nothing if current process isn't a host process
       return true;
    }
-
+   
    void OnExit() override
    {
 
