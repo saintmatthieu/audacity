@@ -573,7 +573,8 @@ EffectAndDefaultSettings &EffectManager::DoGetEffect(const PluginID & ID)
             BasicUI::ShowMessageBox(
                XO("Attempting to initialize the following effect failed:\n\n%s\n\nMore information may be available in 'Help > Diagnostics > Show Log'")
                   .Format(GetCommandName(ID)),
-               XO("Effect failed to initialize"));
+               BasicUI::MessageBoxOptions {}.Caption(
+                  XO("Effect failed to initialize")));
 
          return empty;
       }
@@ -602,7 +603,8 @@ IAudacityCommand* EffectManager::GetAudacityCommand(const PluginID& ID)
       BasicUI::ShowMessageBox(
          XO("Attempting to initialize the following command failed:\n\n%s\n\nMore information may be available in 'Help > Diagnostics > Show Log'")
             .Format(GetCommandName(ID)),
-         XO("Command failed to initialize"));
+         BasicUI::MessageBoxOptions {}.Caption(
+            XO("Command failed to initialize")));
 
       return NULL;
    }
