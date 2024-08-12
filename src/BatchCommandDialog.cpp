@@ -35,9 +35,10 @@ selected command.
 #include <wx/listctrl.h>
 #include <wx/button.h>
 
+#include "DoEffect.h"
 #include "EffectManager.h"
 #include "HelpSystem.h"
-#include "DoEffect.h"
+#include "PluginManager.h"
 #include "Project.h"
 #include "ShuttleGui.h"
 
@@ -177,7 +178,8 @@ void MacroCommandDialog::OnItemSelected(wxListEvent &event)
    const auto &command = mCatalog[ event.GetIndex() ];
 
    EffectManager & em = EffectManager::Get();
-   PluginID ID = em.GetEffectByIdentifier( command.name.Internal() );
+   PluginID ID =
+      PluginManager::Get().GetByCommandIdentifier(command.name.Internal());
 
    // If ID is empty, then the effect wasn't found, in which case, the user must have
    // selected one of the "special" commands.
@@ -251,12 +253,11 @@ void MacroCommandDialog::SetCommandAndParams(const CommandID &Command, const wxS
       mChoices->SetItemState(iter - mCatalog.begin(),
                              wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
 
-      EffectManager & em = EffectManager::Get();
-      PluginID ID = em.GetEffectByIdentifier(Command);
+      PluginID ID = PluginManager::Get().GetByCommandIdentifier(Command);
 
       // If ID is empty, then the effect wasn't found, in which case, the user must have
       // selected one of the "special" commands.
       mEditParams->Enable(!ID.empty());
-      mUsePreset->Enable(em.HasPresets(ID));
+      mUsePreset->Enable(EffectManager::Get().HasPresets(ID));
    }
 }

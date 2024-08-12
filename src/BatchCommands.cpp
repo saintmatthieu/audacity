@@ -313,7 +313,7 @@ MacroCommandsCatalog::MacroCommandsCatalog( const AudacityProject *project )
    {
       for (auto &plug
            : pm.PluginsOfType(PluginTypeEffect|PluginTypeAudacityCommand)) {
-         auto command = em.GetCommandIdentifier(plug.GetID());
+         auto command = pm.GetCommandIdentifier(plug.GetID());
          if (!command.empty())
             commands.push_back( {
                { command, plug.GetSymbol().Msgid() },
@@ -444,7 +444,7 @@ auto MacroCommandsCatalog::ByTranslation(const wxString &translation) const
 
 wxString MacroCommands::GetCurrentParamsFor(const CommandID & command)
 {
-   const PluginID& ID = EffectManager::Get().GetEffectByIdentifier(command);
+   const PluginID& ID = PluginManager::Get().GetByCommandIdentifier(command);
    if (ID.empty())
    {
       return wxEmptyString;   // effect not found.
@@ -456,7 +456,7 @@ wxString MacroCommands::GetCurrentParamsFor(const CommandID & command)
 wxString MacroCommands::PromptForParamsFor(
    const CommandID& command, const wxString& params, AudacityProject& project)
 {
-   const PluginID& ID = EffectManager::Get().GetEffectByIdentifier(command);
+   const PluginID& ID = PluginManager::Get().GetByCommandIdentifier(command);
    if (ID.empty())
       return wxEmptyString;   // effect not found
 
@@ -484,7 +484,7 @@ wxString MacroCommands::PromptForParamsFor(
 
 wxString MacroCommands::PromptForPresetFor(const CommandID & command, const wxString & params, wxWindow *parent)
 {
-   const PluginID& ID = EffectManager::Get().GetEffectByIdentifier(command);
+   const PluginID& ID = PluginManager::Get().GetByCommandIdentifier(command);
    if (ID.empty())
    {
       return wxEmptyString;   // effect not found.
@@ -580,7 +580,7 @@ bool MacroCommands::ApplyCommand( const TranslatableString &friendlyCommand,
    CommandContext const *const pContext)
 {
    // Test for an effect.
-   const PluginID& ID = EffectManager::Get().GetEffectByIdentifier(command);
+   const PluginID& ID = PluginManager::Get().GetByCommandIdentifier(command);
    if (!ID.empty())
    {
       if( pContext )

@@ -111,12 +111,7 @@ public:
       const PluginID& ID, const CommandContext&,bool shouldPrompt = true);
 
    // Renamed from 'Effect' to 'Command' prior to moving out of this class.
-   ComponentInterfaceSymbol GetCommandSymbol(const PluginID & ID);
-   TranslatableString GetCommandName(const PluginID & ID);
-   CommandID GetCommandIdentifier(const PluginID & ID);
    TranslatableString GetCommandDescription(const PluginID & ID);
-   ManualPageID GetCommandUrl(const PluginID & ID);
-   TranslatableString GetCommandTip(const PluginID & ID);
    // flags control which commands are included.
    void GetCommandDefinition(const PluginID& ID, const CommandContext & context, int flags);
    bool IsHidden(const PluginID & ID);

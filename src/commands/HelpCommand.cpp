@@ -17,15 +17,16 @@
 
 #include "HelpCommand.h"
 
-#include "CommandDispatch.h"
-#include "MenuRegistry.h"
 #include "../CommonCommandFlags.h"
-#include "SettingsVisitor.h"
-#include "LoadCommands.h"
-#include "ShuttleGui.h"
-#include "CommandTargets.h"
 #include "CommandContext.h"
+#include "CommandDispatch.h"
+#include "CommandTargets.h"
 #include "EffectManager.h"
+#include "LoadCommands.h"
+#include "MenuRegistry.h"
+#include "PluginManager.h"
+#include "SettingsVisitor.h"
+#include "ShuttleGui.h"
 
 const ComponentInterfaceSymbol HelpCommand::Symbol
 { XO("Help") };
@@ -106,12 +107,11 @@ bool HelpCommand::Apply(const CommandContext &context)
 }
 
 bool HelpCommand::ApplyInner(const CommandContext & context){
-   EffectManager & em = EffectManager::Get();
-   PluginID ID = em.GetEffectByIdentifier( mCommandName );
+   PluginID ID = PluginManager::Get().GetByCommandIdentifier(mCommandName);
    if( ID.empty() )
       context.Status( "Command not found" );
    else
-      em.GetCommandDefinition( ID, context, 1);
+      EffectManager::Get().GetCommandDefinition( ID, context, 1);
    return true;
 }
 

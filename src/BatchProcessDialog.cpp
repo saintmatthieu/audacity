@@ -36,6 +36,7 @@
 #include <wx/settings.h>
 
 #include "Clipboard.h"
+#include "PluginManager.h"
 #include "ShuttleGui.h"
 #include "MenuCreator.h"
 #include "Prefs.h"
@@ -46,9 +47,9 @@
 #include "ProjectWindows.h"
 #include "SelectUtilities.h"
 #include "Track.h"
+
 #include "CommandManager.h"
 #include "Effect.h"
-#include "EffectManager.h"
 #include "effects/EffectUI.h"
 #include "../images/Arrow.xpm"
 #include "../images/Empty9x16.xpm"
@@ -896,8 +897,8 @@ void MacrosWindow::OnListSelected(wxListEvent &event)
 
    if (command != mCatalog.end())
    {
-      EffectManager &em = EffectManager::Get();
-      PluginID ID = em.GetEffectByIdentifier(command->name.Internal());
+      PluginID ID =
+         PluginManager::Get().GetByCommandIdentifier(command->name.Internal());
 
       mEdit->Enable(!ID.empty());
    }
@@ -1491,8 +1492,7 @@ void OnApplyMacroDirectlyByName(const CommandContext& context, const MacroID& Na
    CommandManager::Get(project).ModifyUndoMenuItems();
 
    TranslatableString desc;
-   EffectManager& em = EffectManager::Get();
-   auto shortDesc = em.GetCommandName(Name);
+   auto shortDesc = PluginManager::Get().GetName(Name);
    auto& undoManager = UndoManager::Get(project);
    auto& commandManager = CommandManager::Get(project);
    int cur = undoManager.GetCurrentState();
@@ -1549,8 +1549,9 @@ auto PluginMenuItems()
             const auto &lastTool = CommandManager::Get(project).mLastTool;
             TranslatableString buildMenuLabel;
             if (!lastTool.empty())
-               buildMenuLabel = XO("Repeat %s")
-                  .Format( EffectManager::Get().GetCommandName(lastTool) );
+               buildMenuLabel =
+                  XO("Repeat %s")
+                     .Format(PluginManager::Get().GetName(lastTool));
             else
                buildMenuLabel = XO("Repeat Last Tool");
 

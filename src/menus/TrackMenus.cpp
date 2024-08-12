@@ -552,7 +552,7 @@ namespace {
 void OnStereoToMono(const CommandContext &context)
 {
    EffectUI::DoEffect(
-      EffectManager::Get().GetEffectByIdentifier(wxT("StereoToMono")),
+      PluginManager::Get().GetByCommandIdentifier(wxT("StereoToMono")),
       context.project, EffectManager::kConfigured);
 }
 
@@ -1138,7 +1138,7 @@ auto TracksMenu()
             // hide it.
             [](AudacityProject&) -> std::unique_ptr<CommandItem> {
                const PluginID ID =
-                  EffectManager::Get().GetEffectByIdentifier(wxT("StereoToMono"));
+                  PluginManager::Get().GetByCommandIdentifier(wxT("StereoToMono"));
                const PluginDescriptor *plug = PluginManager::Get().GetPlugin(ID);
                if (plug && plug->IsEnabled())
                   return Command( wxT("Stereo to Mono"),

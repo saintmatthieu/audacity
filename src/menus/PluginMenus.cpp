@@ -280,8 +280,9 @@ auto GenerateMenu()
                CommandManager::Get(project).mLastGenerator;
             TranslatableString buildMenuLabel;
             if (!lastGenerator.empty())
-               buildMenuLabel = XO("Repeat %s")
-                  .Format(EffectManager::Get().GetCommandName(lastGenerator));
+               buildMenuLabel =
+                  XO("Repeat %s")
+                     .Format(PluginManager::Get().GetName(lastGenerator));
             else
                buildMenuLabel = XO("Repeat Last Generator");
 
@@ -377,8 +378,9 @@ auto EffectMenu()
             const auto &lastEffect = CommandManager::Get(project).mLastEffect;
             TranslatableString buildMenuLabel;
             if (!lastEffect.empty())
-               buildMenuLabel = XO("Repeat %s")
-                  .Format( EffectManager::Get().GetCommandName(lastEffect) );
+               buildMenuLabel =
+                  XO("Repeat %s")
+                     .Format(PluginManager::Get().GetName(lastEffect));
             else
                buildMenuLabel = XO("Repeat Last Effect");
 
@@ -438,8 +440,9 @@ auto AnalyzeMenu()
                CommandManager::Get(project).mLastAnalyzer;
             TranslatableString buildMenuLabel;
             if (!lastAnalyzer.empty())
-               buildMenuLabel = XO("Repeat %s")
-                  .Format(EffectManager::Get().GetCommandName(lastAnalyzer));
+               buildMenuLabel =
+                  XO("Repeat %s")
+                     .Format(PluginManager::Get().GetName(lastAnalyzer));
             else
                buildMenuLabel = XO("Repeat Last Analyzer");
 

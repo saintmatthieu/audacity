@@ -140,7 +140,7 @@ bool AudacityApplicationLogic::DoEffect(
 
    if (!(flags & EffectManager::kSkipState))
    {
-      auto shortDesc = em.GetCommandName(ID);
+      auto shortDesc = PluginManager::Get().GetName(ID);
       auto longDesc = em.GetCommandDescription(ID);
       ProjectHistory::Get(project).PushState(longDesc, shortDesc);
    }
@@ -148,7 +148,7 @@ bool AudacityApplicationLogic::DoEffect(
    if (!(flags & EffectManager::kDontRepeatLast))
    {
       // Remember a successful generator, effect, analyzer, or tool Process
-      auto shortDesc = em.GetCommandName(ID);
+      auto shortDesc = PluginManager::Get().GetName(ID);
       /* i18n-hint: %s will be the name of the effect which will be
        * repeated if this menu item is chosen */
       auto lastEffectDesc = XO("Repeat %s").Format(shortDesc);

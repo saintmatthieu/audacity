@@ -92,16 +92,6 @@ bool EffectManager::DoAudacityCommand(
    return res;
 }
 
-ComponentInterfaceSymbol EffectManager::GetCommandSymbol(const PluginID & ID)
-{
-   return PluginManager::Get().GetSymbol(ID);
-}
-
-TranslatableString EffectManager::GetCommandName(const PluginID & ID)
-{
-   return GetCommandSymbol(ID).Msgid();
-}
-
 TranslatableString EffectManager::GetEffectFamilyName(const PluginID & ID)
 {
    if(auto description = PluginManager::Get().GetPlugin(ID))
@@ -124,18 +114,13 @@ TranslatableString EffectManager::GetVendorName(const PluginID & ID)
    return {};
 }
 
-CommandID EffectManager::GetCommandIdentifier(const PluginID & ID)
-{
-   auto name = PluginManager::Get().GetSymbol(ID).Internal();
-   return EffectDefinitionInterface::GetSquashedName(name);
-}
-
 TranslatableString EffectManager::GetCommandDescription(const PluginID & ID)
 {
+   const auto name = PluginManager::Get().GetName(ID);
    if (GetEffect(ID))
-      return XO("Applied effect: %s").Format( GetCommandName(ID) );
+      return XO("Applied effect: %s").Format(name);
    if (GetAudacityCommand(ID))
-      return XO("Applied command: %s").Format( GetCommandName(ID) );
+      return XO("Applied command: %s").Format(name);
 
    return {};
 }
@@ -194,8 +179,9 @@ void EffectManager::GetCommandDefinition(
    // using GET to expose a CommandID to the user!
    // Macro command details are one place that we do expose Identifier
    // to (more sophisticated) users
-   S.AddItem( GetCommandIdentifier( ID ).GET(), "id" );
-   S.AddItem( GetCommandName( ID ).Translation(), "name" );
+   const auto& pm = PluginManager::Get();
+   S.AddItem( pm.GetCommandIdentifier( ID ).GET(), "id" );
+   S.AddItem( pm.GetName( ID ).Translation(), "name" );
    if ( bHasParams ) {
       S.StartField( "params" );
       S.StartArray();
@@ -229,17 +215,6 @@ void EffectManager::SetSkipStateFlag(bool flag)
 bool EffectManager::GetSkipStateFlag()
 {
    return mSkipStateFlag;
-}
-
-bool EffectManager::SupportsAutomation(const PluginID & ID)
-{
-   const PluginDescriptor *plug =  PluginManager::Get().GetPlugin(ID);
-   if (plug)
-   {
-      return plug->IsEffectAutomatable();
-   }
-
-   return false;
 }
 
 // This function is used only in the macro programming user interface
@@ -572,7 +547,7 @@ EffectAndDefaultSettings &EffectManager::DoGetEffect(const PluginID & ID)
          if (!dynamic_cast<IAudacityCommand*>(component))
             BasicUI::ShowMessageBox(
                XO("Attempting to initialize the following effect failed:\n\n%s\n\nMore information may be available in 'Help > Diagnostics > Show Log'")
-                  .Format(GetCommandName(ID)),
+                  .Format(PluginManager::Get().GetName(ID)),
                BasicUI::MessageBoxOptions {}.Caption(
                   XO("Effect failed to initialize")));
 
@@ -602,7 +577,7 @@ IAudacityCommand* EffectManager::GetAudacityCommand(const PluginID& ID)
 
       BasicUI::ShowMessageBox(
          XO("Attempting to initialize the following command failed:\n\n%s\n\nMore information may be available in 'Help > Diagnostics > Show Log'")
-            .Format(GetCommandName(ID)),
+            .Format(PluginManager::Get().GetName(ID)),
          BasicUI::MessageBoxOptions {}.Caption(
             XO("Command failed to initialize")));
 
@@ -610,25 +585,6 @@ IAudacityCommand* EffectManager::GetAudacityCommand(const PluginID& ID)
    }
 
    return mCommands[ID];
-}
-
-const PluginID & EffectManager::GetEffectByIdentifier(const CommandID & strTarget)
-{
-   static PluginID empty;
-   if (strTarget.empty()) // set GetCommandIdentifier to wxT("") to not show an effect in Batch mode
-   {
-      return empty;
-   }
-
-   PluginManager & pm = PluginManager::Get();
-   // Effects OR Generic commands...
-   for (auto &plug
-        : pm.PluginsOfType(PluginTypeEffect | PluginTypeAudacityCommand)) {
-      auto &ID = plug.GetID();
-      if (GetCommandIdentifier(ID) == strTarget)
-         return ID;
-   }
-   return empty;
 }
 
 const EffectInstanceFactory*

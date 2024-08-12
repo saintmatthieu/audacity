@@ -434,7 +434,7 @@ bool GetInfoCommand::SendCommands(const CommandContext &context, int flags )
    {
       for (auto &plug
            : pm.PluginsOfType(PluginTypeEffect | PluginTypeAudacityCommand)) {
-         auto command = em.GetCommandIdentifier(plug.GetID());
+         auto command = pm.GetCommandIdentifier(plug.GetID());
          if (!command.empty()){
             em.GetCommandDefinition( plug.GetID(), context, flags );
          }

@@ -43,9 +43,9 @@ bool CommandDispatch::HandleTextualCommand(
    // Not one of the singleton commands.
    // We could/should try all the list-style commands.
    // instead we only try the effects.
-   EffectManager & em = EffectManager::Get();
+   auto& pm = PluginManager::Get();
    for (auto &plug : PluginManager::Get().PluginsOfType(PluginTypeEffect))
-      if (em.GetCommandIdentifier(plug.GetID()) == Str)
+      if (pm.GetCommandIdentifier(plug.GetID()) == Str)
          return EffectUI::DoEffect(
             plug.GetID(), context.project, EffectManager::kConfigured);
 
@@ -99,6 +99,6 @@ void CommandDispatch::OnAudacityCommand(const CommandContext & ctx)
    wxLogDebug( "Command was: %s", ctx.parameter.GET());
    // Not configured, so prompt user.
    CommandDispatch::DoAudacityCommand(
-      EffectManager::Get().GetEffectByIdentifier(ctx.parameter),
-      ctx, EffectManager::kNone);
+      PluginManager::Get().GetByCommandIdentifier(ctx.parameter), ctx,
+      EffectManager::kNone);
 }
