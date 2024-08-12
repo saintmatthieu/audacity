@@ -10,7 +10,7 @@ class EffectSettings;
 class EffectInstance;
 class AudacityProject;
 class CommandContext;
-class IAudacityCommand;
+class AudacityCommand;
 
 using PluginID = wxString;
 
@@ -68,12 +68,12 @@ public:
    }
 
 private:
-   using AudacityCommandMap = std::unordered_map<wxString, IAudacityCommand*>;
+   using AudacityCommandMap = std::unordered_map<wxString, AudacityCommand*>;
 
    // Used by GetCommandDefinition
    ManualPageID GetCommandUrl(const PluginID& ID);
    TranslatableString GetCommandTip(const PluginID& ID);
 
-   IAudacityCommand* GetAudacityCommand(const PluginID& ID);
+   AudacityCommand* GetAudacityCommand(const PluginID& ID);
    AudacityCommandMap mCommands;
 };

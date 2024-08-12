@@ -3,10 +3,10 @@
 #include "CommandContext.h"
 #include "Effect.h"
 #include "EffectManager.h"
-#include "IAudacityCommand.h"
 #include "PluginManager.h"
 #include "ShuttleGetDefinition.h"
 #include "Track.h"
+#include "commands/AudacityCommand.h"
 
 EffectAndCommandPluginManager& EffectAndCommandPluginManager::Get()
 {
@@ -20,7 +20,7 @@ bool EffectAndCommandPluginManager::DoAudacityCommand(
 
 {
    EffectManager::Get().SetSkipStateFlag(false);
-   IAudacityCommand* command = GetAudacityCommand(ID);
+   AudacityCommand* command = GetAudacityCommand(ID);
 
    if (!command)
    {
@@ -32,7 +32,7 @@ bool EffectAndCommandPluginManager::DoAudacityCommand(
    return res;
 }
 
-IAudacityCommand*
+AudacityCommand*
 EffectAndCommandPluginManager::GetAudacityCommand(const PluginID& ID)
 {
    // Must have a "valid" ID
@@ -45,7 +45,7 @@ EffectAndCommandPluginManager::GetAudacityCommand(const PluginID& ID)
    {
       // This will instantiate the command if it hasn't already been done
       auto command =
-         dynamic_cast<IAudacityCommand*>(PluginManager::Get().Load(ID));
+         dynamic_cast<AudacityCommand*>(PluginManager::Get().Load(ID));
       if (command)
       {
          command->Init();
@@ -69,7 +69,7 @@ ManualPageID EffectAndCommandPluginManager::GetCommandUrl(const PluginID& ID)
 {
    if (auto pEff = EffectManager::Get().GetEffect(ID))
       return pEff->GetDefinition().ManualPage();
-   IAudacityCommand* pCom = GetAudacityCommand(ID);
+   AudacityCommand* pCom = GetAudacityCommand(ID);
    if (pCom)
       return pCom->ManualPage();
 
@@ -81,7 +81,7 @@ EffectAndCommandPluginManager::GetCommandTip(const PluginID& ID)
 {
    if (auto pEff = EffectManager::Get().GetEffect(ID))
       return pEff->GetDefinition().GetDescription();
-   IAudacityCommand* pCom = GetAudacityCommand(ID);
+   AudacityCommand* pCom = GetAudacityCommand(ID);
    if (pCom)
       return pCom->GetDescription();
 
@@ -93,7 +93,7 @@ void EffectAndCommandPluginManager::GetCommandDefinition(
 {
    const EffectSettingsManager* effect = nullptr;
    const EffectSettings* settings;
-   IAudacityCommand* command = nullptr;
+   AudacityCommand* command = nullptr;
 
    if (auto [edi, pSettings] =
           EffectManager::Get().GetEffectAndDefaultSettings(ID);
@@ -177,7 +177,7 @@ wxString EffectAndCommandPluginManager::GetEffectParameters(const PluginID& ID)
       return parms;
    }
 
-   IAudacityCommand* command = GetAudacityCommand(ID);
+   AudacityCommand* command = GetAudacityCommand(ID);
 
    if (command)
    {
@@ -218,7 +218,7 @@ bool EffectAndCommandPluginManager::SetEffectParameters(
 
       return effect->LoadSettingsFromString(params, settings).has_value();
    }
-   IAudacityCommand* command = GetAudacityCommand(ID);
+   AudacityCommand* command = GetAudacityCommand(ID);
 
    if (command)
    {
@@ -266,7 +266,7 @@ bool EffectAndCommandPluginManager::PromptUser(
       return result;
    }
 
-   IAudacityCommand* command = GetAudacityCommand(ID);
+   AudacityCommand* command = GetAudacityCommand(ID);
 
    if (command)
    {

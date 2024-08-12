@@ -39,8 +39,6 @@ struct EffectAndDefaultSettings{
 using EffectMap = std::unordered_map<wxString, EffectAndDefaultSettings>;
 using EffectOwnerMap = std::unordered_map< wxString, std::shared_ptr<EffectPlugin> >;
 
-class IAudacityCommand;
-
 AUDACITY_APPLICATION_LOGIC_API
 RegistryPaths GetUserPresets(EffectPlugin& host);
 

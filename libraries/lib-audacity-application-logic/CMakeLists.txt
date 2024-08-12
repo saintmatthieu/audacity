@@ -7,7 +7,6 @@ set( SOURCES
    CompressorInstance.h
    EffectManager.cpp
    EffectManager.h
-   IAudacityCommand.h
    AudacityApplicationLogic.cpp
    AudacityApplicationLogic.h
    AudacityApplicationLogicTypes.h
