@@ -450,7 +450,7 @@ wxString MacroCommands::GetCurrentParamsFor(const CommandID & command)
       return wxEmptyString;   // effect not found.
    }
 
-   return EffectManager::Get().GetEffectParameters(ID);
+   return EffectCommandManager::Get().GetEffectParameters(ID);
 }
 
 wxString MacroCommands::PromptForParamsFor(
@@ -461,8 +461,8 @@ wxString MacroCommands::PromptForParamsFor(
       return wxEmptyString;   // effect not found
 
    wxString res = params;
-   auto cleanup = EffectManager::Get().SetBatchProcessing(ID);
-   if (EffectManager::Get().SetEffectParameters(ID, params))
+   auto cleanup = EffectCommandManager::Get().SetBatchProcessing(ID);
+   if (EffectCommandManager::Get().SetEffectParameters(ID, params))
    {
       auto dialogInvoker =
          [&](
@@ -475,9 +475,9 @@ wxString MacroCommands::PromptForParamsFor(
             *std::make_shared<SimpleEffectSettingsAccess>(settings),
             effect.IsBatchProcessing() ) != 0;
       };
-      if (EffectManager::Get().PromptUser(
+      if (EffectCommandManager::Get().PromptUser(
              ID, project, std::move(dialogInvoker)))
-         res = EffectManager::Get().GetEffectParameters(ID);
+         res = EffectCommandManager::Get().GetEffectParameters(ID);
    }
    return res;
 }
@@ -552,10 +552,10 @@ bool MacroCommands::ApplyEffectCommand(
 
    bool res = false;
 
-   auto cleanup = EffectManager::Get().SetBatchProcessing(ID);
+   auto cleanup = EffectCommandManager::Get().SetBatchProcessing(ID);
 
    // transfer the parameters to the effect...
-   if (EffectManager::Get().SetEffectParameters(ID, params))
+   if (EffectCommandManager::Get().SetEffectParameters(ID, params))
    {
       if( plug->GetPluginType() == PluginTypeAudacityCommand )
          // and apply the effect...

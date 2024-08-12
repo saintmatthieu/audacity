@@ -103,7 +103,7 @@ enum {
 static const EnumValueSymbol kFormats[nFormats] =
 {
    // These are acceptable dual purpose internal/visible names
-   
+
    /* i18n-hint JavaScript Object Notation */
    { XO("JSON") },
    /* i18n-hint name of a computer programming language */
@@ -145,7 +145,7 @@ bool GetInfoCommand::Apply(const CommandContext &context)
 
    if( mFormat == kLisp )
    {
-      CommandContext LispyContext( 
+      CommandContext LispyContext(
          context.project,
          std::make_unique<LispifiedCommandOutputTargets>( *context.pOutput.get() )
          );
@@ -154,7 +154,7 @@ bool GetInfoCommand::Apply(const CommandContext &context)
 
    if( mFormat == kBrief )
    {
-      CommandContext BriefContext( 
+      CommandContext BriefContext(
          context.project,
          std::make_unique<BriefCommandOutputTargets>( *context.pOutput.get() )
          );
@@ -382,7 +382,7 @@ wxSlider * ShuttleGuiGetDefinition::TieSlider(
    const TranslatableString & Prompt,
    const IntSetting &Setting,
    const int max,
-   const int min) 
+   const int min)
 {
    StartStruct();
    AddItem( Setting.GetPath(), "id" );
@@ -397,7 +397,7 @@ wxSpinCtrl * ShuttleGuiGetDefinition::TieSpinCtrl(
    const TranslatableString &Prompt,
    const IntSetting &Setting,
    const int max,
-   const int min) 
+   const int min)
 {
    StartStruct();
    AddItem( Setting.GetPath(), "id" );
@@ -430,13 +430,13 @@ bool GetInfoCommand::SendCommands(const CommandContext &context, int flags )
 {
    context.StartArray();
    PluginManager & pm = PluginManager::Get();
-   EffectManager & em = EffectManager::Get();
    {
       for (auto &plug
            : pm.PluginsOfType(PluginTypeEffect | PluginTypeAudacityCommand)) {
          auto command = pm.GetCommandIdentifier(plug.GetID());
          if (!command.empty()){
-            em.GetCommandDefinition( plug.GetID(), context, flags );
+            EffectCommandManager::Get().GetCommandDefinition(
+               plug.GetID(), context, flags);
          }
       }
    }
@@ -453,11 +453,11 @@ bool GetInfoCommand::SendBoxes(const CommandContext &context)
    wxRect R = pWin->GetScreenRect();
 
    //R.SetPosition( wxPoint(0,0) );
-   
+
    //wxString Name = pWin->GetName();
    context.StartStruct();
    context.AddItem( 0, "depth" );
-   context.AddItem( "Audacity Window", "name" ); 
+   context.AddItem( "Audacity Window", "name" );
    context.StartField( "box" );
    context.StartArray( );
    context.AddItem( R.GetLeft() );
@@ -714,7 +714,7 @@ void GetInfoCommand::ExploreAdornments( const CommandContext &context,
 
    context.StartStruct();
    context.AddItem( depth, "depth" );
-   context.AddItem( "MenuBar", "label" ); 
+   context.AddItem( "MenuBar", "label" );
    context.StartField( "box" );
    context.StartArray();
    context.AddItem( R.GetLeft() );

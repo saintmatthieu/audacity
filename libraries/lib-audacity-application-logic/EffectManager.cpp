@@ -43,15 +43,6 @@ EffectManager & EffectManager::Get()
    return em;
 }
 
-EffectManager::EffectManager()
-{
-   mSkipStateFlag = false;
-}
-
-EffectManager::~EffectManager()
-{
-}
-
 // Here solely for the purpose of Nyquist Workbench until
 // a better solution is devised.
 const PluginID & EffectManager::RegisterEffect(
@@ -73,12 +64,12 @@ void EffectManager::UnregisterEffect(const PluginID & ID)
    mEffects.erase(id);
 }
 
-bool EffectManager::DoAudacityCommand(
+bool EffectAndCommandPluginManager::DoAudacityCommand(
    const PluginID& ID, const CommandContext& context,
    bool shouldPrompt /* = true */)
 
 {
-   this->SetSkipStateFlag(false);
+   EffectManager::Get().SetSkipStateFlag(false);
    IAudacityCommand* command = GetAudacityCommand(ID);
 
    if (!command)
@@ -114,20 +105,9 @@ TranslatableString EffectManager::GetVendorName(const PluginID & ID)
    return {};
 }
 
-TranslatableString EffectManager::GetCommandDescription(const PluginID & ID)
+ManualPageID EffectAndCommandPluginManager::GetCommandUrl(const PluginID & ID)
 {
-   const auto name = PluginManager::Get().GetName(ID);
-   if (GetEffect(ID))
-      return XO("Applied effect: %s").Format(name);
-   if (GetAudacityCommand(ID))
-      return XO("Applied command: %s").Format(name);
-
-   return {};
-}
-
-ManualPageID EffectManager::GetCommandUrl(const PluginID & ID)
-{
-   if (auto pEff = GetEffect(ID))
+   if (auto pEff = EffectManager::Get().GetEffect(ID))
       return pEff->GetDefinition().ManualPage();
    IAudacityCommand* pCom = GetAudacityCommand(ID);
    if( pCom )
@@ -136,9 +116,9 @@ ManualPageID EffectManager::GetCommandUrl(const PluginID & ID)
    return wxEmptyString;
 }
 
-TranslatableString EffectManager::GetCommandTip(const PluginID & ID)
+TranslatableString EffectAndCommandPluginManager::GetCommandTip(const PluginID & ID)
 {
-   if (auto pEff = GetEffect(ID))
+   if (auto pEff = EffectManager::Get().GetEffect(ID))
       return pEff->GetDefinition().GetDescription();
    IAudacityCommand* pCom = GetAudacityCommand(ID);
    if( pCom )
@@ -147,14 +127,17 @@ TranslatableString EffectManager::GetCommandTip(const PluginID & ID)
    return {};
 }
 
-void EffectManager::GetCommandDefinition(
+void EffectAndCommandPluginManager::GetCommandDefinition(
    const PluginID& ID, const CommandContext& context, int flags)
 {
    const EffectSettingsManager *effect = nullptr;
    const EffectSettings *settings;
    IAudacityCommand* command = nullptr;
 
-   if (auto [edi, pSettings] = GetEffectAndDefaultSettings(ID); edi) {
+   if (auto [edi, pSettings] =
+          EffectManager::Get().GetEffectAndDefaultSettings(ID);
+       edi)
+   {
       effect = &edi->GetDefinition();
       assert(pSettings); // postcondition
       settings = pSettings;
@@ -218,9 +201,9 @@ bool EffectManager::GetSkipStateFlag()
 }
 
 // This function is used only in the macro programming user interface
-wxString EffectManager::GetEffectParameters(const PluginID & ID)
+wxString EffectAndCommandPluginManager::GetEffectParameters(const PluginID & ID)
 {
-   auto pair = GetEffectAndDefaultSettings(ID);
+   auto pair = EffectManager::Get().GetEffectAndDefaultSettings(ID);
    if (auto effect = pair.first) {
       assert(pair.second); // postcondition
       wxString parms;
@@ -231,7 +214,7 @@ wxString EffectManager::GetEffectParameters(const PluginID & ID)
       // anything, so try to get the active preset (current or factory).
       if (parms.empty())
       {
-         parms = GetDefaultPreset(ID);
+         parms = EffectManager::Get().GetDefaultPreset(ID);
       }
 
       return parms;
@@ -249,7 +232,7 @@ wxString EffectManager::GetEffectParameters(const PluginID & ID)
       // anything, so try to get the active preset (current or factory).
       if (parms.empty())
       {
-         parms = GetDefaultPreset(ID);
+         parms = EffectManager::Get().GetDefaultPreset(ID);
       }
 
       return parms;
@@ -258,10 +241,10 @@ wxString EffectManager::GetEffectParameters(const PluginID & ID)
 }
 
 // This function is used only in the macro programming user interface
-bool EffectManager::SetEffectParameters(
+bool EffectAndCommandPluginManager::SetEffectParameters(
    const PluginID & ID, const wxString & params)
 {
-   auto pair = GetEffectAndDefaultSettings(ID);
+   auto pair = EffectManager::Get().GetEffectAndDefaultSettings(ID);
    if (auto effect = pair.first) {
       assert(pair.second); // postcondition
       auto &settings = *pair.second;
@@ -300,12 +283,12 @@ bool EffectManager::SetEffectParameters(
 /*!
  It is used when defining a macro.  It does not invoke the effect or command.
  */
-bool EffectManager::PromptUser(
+bool EffectAndCommandPluginManager::PromptUser(
    const PluginID& ID, AudacityProject& project, DialogInvoker dialogInvoker)
 {
    bool result = false;
-   if (auto effect = dynamic_cast<Effect*>(GetEffect(ID))) {
-
+   if (auto effect = dynamic_cast<Effect*>(EffectManager::Get().GetEffect(ID)))
+   {
       auto empty = TrackList::Create(nullptr);
       auto pEffectBase = dynamic_cast<EffectBase*>(effect);
       if (pEffectBase)
@@ -320,7 +303,7 @@ bool EffectManager::PromptUser(
       std::shared_ptr<EffectInstance> pInstance;
       //! Show the effect dialog, only so that the user can choose settings,
       //! for instance to define a macro.
-      if (const auto pSettings = GetDefaultSettings(ID))
+      if (const auto pSettings = EffectManager::Get().GetDefaultSettings(ID))
          result = dialogInvoker(*effect, *pSettings, pInstance);
       return result;
    }
@@ -441,17 +424,17 @@ wxString EffectManager::GetDefaultPreset(const PluginID & ID)
    return preset;
 }
 
-void EffectManager::BatchProcessingOn(const PluginID & ID)
+void EffectAndCommandPluginManager::BatchProcessingOn(const PluginID & ID)
 {
-   if (auto effect = GetEffect(ID))
+   if (auto effect = EffectManager::Get().GetEffect(ID))
       effect->SetBatchProcessing();
    else if (auto command = GetAudacityCommand(ID))
       command->SetBatchProcessing(true);
 }
 
-void EffectManager::BatchProcessingOff(const PluginID & ID)
+void EffectAndCommandPluginManager::BatchProcessingOff(const PluginID & ID)
 {
-   if (auto effect = GetEffect(ID))
+   if (auto effect = EffectManager::Get().GetEffect(ID))
       effect->UnsetBatchProcessing();
    else if (auto command = GetAudacityCommand(ID))
       command->SetBatchProcessing(false);
@@ -528,10 +511,6 @@ EffectAndDefaultSettings &EffectManager::DoGetEffect(const PluginID & ID)
    if (ID.empty())
       return empty;
 
-   // If it is actually a command then refuse it (as an effect).
-   if( mCommands.find( ID ) != mCommands.end() )
-      return empty;
-
    if (auto iter = mEffects.find(ID); iter != mEffects.end())
       return iter->second;
    else {
@@ -543,20 +522,11 @@ EffectAndDefaultSettings &EffectManager::DoGetEffect(const PluginID & ID)
       if (auto effect = dynamic_cast<EffectPlugin*>(component))
          return (mEffects[ID] = { effect, std::move(settings) });
       else
-      {
-         if (!dynamic_cast<IAudacityCommand*>(component))
-            BasicUI::ShowMessageBox(
-               XO("Attempting to initialize the following effect failed:\n\n%s\n\nMore information may be available in 'Help > Diagnostics > Show Log'")
-                  .Format(PluginManager::Get().GetName(ID)),
-               BasicUI::MessageBoxOptions {}.Caption(
-                  XO("Effect failed to initialize")));
-
          return empty;
-      }
    }
 }
 
-IAudacityCommand* EffectManager::GetAudacityCommand(const PluginID& ID)
+IAudacityCommand* EffectAndCommandPluginManager::GetAudacityCommand(const PluginID& ID)
 {
    // Must have a "valid" ID
    if (ID.empty())
@@ -591,4 +561,10 @@ const EffectInstanceFactory*
 EffectManager::GetInstanceFactory(const PluginID& ID)
 {
    return Get().GetEffect(ID);
+}
+
+EffectAndCommandPluginManager& EffectAndCommandPluginManager::Get()
+{
+   static EffectAndCommandPluginManager ecm;
+   return ecm;
 }

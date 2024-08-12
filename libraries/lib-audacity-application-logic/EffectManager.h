@@ -87,11 +87,6 @@ public:
    // them by index number, usually when the user selects one from a menu.
    //
 public:
-   EffectManager();
-   virtual ~EffectManager();
-
-   using DialogInvoker = std::function<bool(
-      Effect&, EffectSettings&, std::shared_ptr<EffectInstance>&)>;
    using EffectPresetDialog = std::function<std::optional<wxString>(
       EffectPlugin&, const wxString& preset)>;
 
@@ -105,57 +100,16 @@ public:
    TranslatableString GetEffectFamilyName(const PluginID & ID);
    TranslatableString GetVendorName(const PluginID & ID);
 
-   /** Run a command given the plugin ID */
-   // Returns true on success.
-   bool DoAudacityCommand(
-      const PluginID& ID, const CommandContext&,bool shouldPrompt = true);
-
-   // Renamed from 'Effect' to 'Command' prior to moving out of this class.
-   TranslatableString GetCommandDescription(const PluginID & ID);
-   // flags control which commands are included.
-   void GetCommandDefinition(const PluginID& ID, const CommandContext & context, int flags);
    bool IsHidden(const PluginID & ID);
 
-   /** Support for batch commands */
-   bool SupportsAutomation(const PluginID & ID);
-   wxString GetEffectParameters(const PluginID & ID);
-   bool SetEffectParameters(const PluginID & ID, const wxString & params);
-   bool PromptUser(
-      const PluginID& ID, AudacityProject& project,
-      DialogInvoker dialogInvoker);
    bool HasPresets(const PluginID & ID);
    wxString
    GetPreset(const PluginID& ID, const wxString& params, EffectPresetDialog);
    wxString GetDefaultPreset(const PluginID & ID);
 
-private:
-   void BatchProcessingOn(const PluginID & ID);
-   void BatchProcessingOff(const PluginID & ID);
-   //! A custom deleter for std::unique_ptr
-   struct UnsetBatchProcessing {
-      PluginID mID;
-      void operator () (EffectManager *p) const
-         { if(p) p->BatchProcessingOff(mID); }
-   };
-   using BatchProcessingScope =
-      std::unique_ptr< EffectManager, UnsetBatchProcessing >;
-public:
-   //! Begin a scope that ends when the returned object is destroyed
-   /*!
-    Within this scope, "batch" (i.e. macro) processing happens, and
-    Effects that are not yet stateless may change their state temporarily,
-    but it is restored afterward
-    */
-   BatchProcessingScope SetBatchProcessing(const PluginID &ID)
-   {
-      BatchProcessingOn(ID); return BatchProcessingScope{ this, {ID} };
-   }
-
    /** Allow effects to disable saving the state at run time */
    void SetSkipStateFlag(bool flag);
    bool GetSkipStateFlag();
-
-   const PluginID & GetEffectByIdentifier(const CommandID & strTarget);
 
    /*! Return an effect by its ID. */
    EffectPlugin* GetEffect(const PluginID& ID);
@@ -174,10 +128,7 @@ public:
 private:
    EffectAndDefaultSettings& DoGetEffect(const PluginID& ID);
 
-   IAudacityCommand* GetAudacityCommand(const PluginID& ID);
-
    EffectMap mEffects;
-   AudacityCommandMap mCommands;
    EffectOwnerMap mHostEffects;
 
    int mNumEffects;
@@ -185,6 +136,62 @@ private:
    // Set true if we want to skip pushing state
    // after processing at effect run time.
    bool mSkipStateFlag;
+};
+
+class AUDACITY_APPLICATION_LOGIC_API EffectAndCommandPluginManager
+{
+public:
+   static EffectAndCommandPluginManager& Get();
+
+   using DialogInvoker = std::function<bool(
+      Effect&, EffectSettings&, std::shared_ptr<EffectInstance>&)>;
+
+   /** Run a command given the plugin ID */
+   // Returns true on success.
+   bool DoAudacityCommand(
+      const PluginID& ID, const CommandContext&,bool shouldPrompt = true);
+
+   // flags control which commands are included.
+   void GetCommandDefinition(const PluginID& ID, const CommandContext & context, int flags);
+
+      /** Support for batch commands */
+   wxString GetEffectParameters(const PluginID & ID);
+   bool SetEffectParameters(const PluginID & ID, const wxString & params);
+   bool PromptUser(
+      const PluginID& ID, AudacityProject& project,
+      DialogInvoker dialogInvoker);
+
+private:
+   void BatchProcessingOn(const PluginID & ID);
+   void BatchProcessingOff(const PluginID & ID);
+   //! A custom deleter for std::unique_ptr
+   struct UnsetBatchProcessing {
+      PluginID mID;
+      void operator () (EffectAndCommandPluginManager *p) const
+         { if(p) p->BatchProcessingOff(mID); }
+   };
+   using BatchProcessingScope =
+      std::unique_ptr<EffectAndCommandPluginManager, UnsetBatchProcessing>;
+
+public:
+   //! Begin a scope that ends when the returned object is destroyed
+   /*!
+    Within this scope, "batch" (i.e. macro) processing happens, and
+    Effects that are not yet stateless may change their state temporarily,
+    but it is restored afterward
+    */
+   BatchProcessingScope SetBatchProcessing(const PluginID &ID)
+   {
+      BatchProcessingOn(ID); return BatchProcessingScope{ this, {ID} };
+   }
+
+private:
+   // Used by GetCommandDefinition
+   ManualPageID GetCommandUrl(const PluginID & ID);
+   TranslatableString GetCommandTip(const PluginID & ID);
+
+   IAudacityCommand* GetAudacityCommand(const PluginID& ID);
+   AudacityCommandMap mCommands;
 };
 
 #endif

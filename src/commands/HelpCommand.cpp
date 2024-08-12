@@ -47,7 +47,7 @@ enum {
 static const EnumValueSymbol kFormats[nFormats] =
 {
    // These are acceptable dual purpose internal/visible names
-   
+
    /* i18n-hint JavaScript Object Notation */
    { XO("JSON") },
    /* i18n-hint name of a computer programming language */
@@ -87,7 +87,7 @@ bool HelpCommand::Apply(const CommandContext &context)
 
    if( mFormat == kLisp )
    {
-      CommandContext LispyContext( 
+      CommandContext LispyContext(
          context.project,
          std::make_unique<LispifiedCommandOutputTargets>( *context.pOutput.get() )
          );
@@ -96,7 +96,7 @@ bool HelpCommand::Apply(const CommandContext &context)
 
    if( mFormat == kBrief )
    {
-      CommandContext BriefContext( 
+      CommandContext BriefContext(
          context.project,
          std::make_unique<BriefCommandOutputTargets>( *context.pOutput.get() )
          );
@@ -111,7 +111,7 @@ bool HelpCommand::ApplyInner(const CommandContext & context){
    if( ID.empty() )
       context.Status( "Command not found" );
    else
-      EffectManager::Get().GetCommandDefinition( ID, context, 1);
+      EffectCommandManager::Get().GetCommandDefinition( ID, context, 1);
    return true;
 }
 

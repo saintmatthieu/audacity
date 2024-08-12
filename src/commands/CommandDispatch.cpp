@@ -70,8 +70,7 @@ bool CommandDispatch::DoAudacityCommand(
 //    SelectAllIfNone();
    }
 
-   EffectManager & em = EffectManager::Get();
-   bool success = em.DoAudacityCommand(ID,
+   bool success = EffectCommandManager::Get().DoAudacityCommand(ID,
       context,
       (flags & EffectManager::kConfigured) == 0);
 

@@ -141,7 +141,7 @@ bool AudacityApplicationLogic::DoEffect(
    if (!(flags & EffectManager::kSkipState))
    {
       auto shortDesc = PluginManager::Get().GetName(ID);
-      auto longDesc = em.GetCommandDescription(ID);
+      const auto longDesc = XO("Applied effect: %s").Format(shortDesc);
       ProjectHistory::Get(project).PushState(longDesc, shortDesc);
    }
 
