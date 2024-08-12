@@ -10,8 +10,6 @@ set( SOURCES
    AudacityApplicationLogic.cpp
    AudacityApplicationLogic.h
    AudacityApplicationLogicTypes.h
-   ShuttleGetDefinition.cpp
-   ShuttleGetDefinition.h
 )
 set( LIBRARIES
    lib-audio-io-interface
