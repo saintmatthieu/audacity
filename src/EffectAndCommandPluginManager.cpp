@@ -1,3 +1,12 @@
+/**********************************************************************
+
+   Audacity: A Digital Audio Editor
+
+   EffectAndCommandManager.cpp
+
+   Split from EffectManager.cpp
+
+**********************************************************************/
 #include "EffectAndCommandPluginManager.h"
 #include "BasicUI.h"
 #include "CommandContext.h"

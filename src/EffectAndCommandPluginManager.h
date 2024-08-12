@@ -1,8 +1,26 @@
+/**********************************************************************
+
+   Audacity: A Digital Audio Editor
+
+   EffectAndCommandManager.h
+
+   Split from EffectManager.h
+
+   Yet another "manager".
+   This one extends the functionality of `EffectManager` from plugins of type
+   `PluginTypeEffect` to also include plugins of type
+   `PluginTypeAudacityCommand`.
+
+   Motivation for this split was remove references to audacity commands from
+   `EffectManager` and be able to make `DoEffect` UI-framework-agnostic.
+
+**********************************************************************/
 #pragma once
 
 #include "Identifier.h"
 #include "TranslatableString.h"
 #include <functional>
+#include <memory>
 #include <wx/string.h>
 
 class Effect;
