@@ -19,6 +19,7 @@
 #include "ProjectAudioManager.h"
 #include "ProjectWindows.h"
 #include "Viewport.h"
+#include "EffectAndCommandPluginManager.h"
 #include "EffectManager.h"
 #include "../effects/EffectUI.h"
 #include <wx/log.h>
@@ -70,7 +71,7 @@ bool CommandDispatch::DoAudacityCommand(
 //    SelectAllIfNone();
    }
 
-   bool success = EffectCommandManager::Get().DoAudacityCommand(ID,
+   bool success = EffectAndCommandPluginManager::Get().DoAudacityCommand(ID,
       context,
       (flags & EffectManager::kConfigured) == 0);
 

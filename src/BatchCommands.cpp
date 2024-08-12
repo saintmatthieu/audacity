@@ -18,6 +18,7 @@ processing.  See also MacrosWindow and ApplyMacroDialog.
 
 #include "BatchCommands.h"
 #include "DoEffect.h"
+#include "EffectAndCommandPluginManager.h"
 
 #include <wx/datetime.h>
 #include <wx/defs.h>
@@ -450,7 +451,7 @@ wxString MacroCommands::GetCurrentParamsFor(const CommandID & command)
       return wxEmptyString;   // effect not found.
    }
 
-   return EffectCommandManager::Get().GetEffectParameters(ID);
+   return EffectAndCommandPluginManager::Get().GetEffectParameters(ID);
 }
 
 wxString MacroCommands::PromptForParamsFor(
@@ -461,8 +462,8 @@ wxString MacroCommands::PromptForParamsFor(
       return wxEmptyString;   // effect not found
 
    wxString res = params;
-   auto cleanup = EffectCommandManager::Get().SetBatchProcessing(ID);
-   if (EffectCommandManager::Get().SetEffectParameters(ID, params))
+   auto cleanup = EffectAndCommandPluginManager::Get().SetBatchProcessing(ID);
+   if (EffectAndCommandPluginManager::Get().SetEffectParameters(ID, params))
    {
       auto dialogInvoker =
          [&](
@@ -475,9 +476,9 @@ wxString MacroCommands::PromptForParamsFor(
             *std::make_shared<SimpleEffectSettingsAccess>(settings),
             effect.IsBatchProcessing() ) != 0;
       };
-      if (EffectCommandManager::Get().PromptUser(
+      if (EffectAndCommandPluginManager::Get().PromptUser(
              ID, project, std::move(dialogInvoker)))
-         res = EffectCommandManager::Get().GetEffectParameters(ID);
+         res = EffectAndCommandPluginManager::Get().GetEffectParameters(ID);
    }
    return res;
 }
@@ -552,10 +553,10 @@ bool MacroCommands::ApplyEffectCommand(
 
    bool res = false;
 
-   auto cleanup = EffectCommandManager::Get().SetBatchProcessing(ID);
+   auto cleanup = EffectAndCommandPluginManager::Get().SetBatchProcessing(ID);
 
    // transfer the parameters to the effect...
-   if (EffectCommandManager::Get().SetEffectParameters(ID, params))
+   if (EffectAndCommandPluginManager::Get().SetEffectParameters(ID, params))
    {
       if( plug->GetPluginType() == PluginTypeAudacityCommand )
          // and apply the effect...

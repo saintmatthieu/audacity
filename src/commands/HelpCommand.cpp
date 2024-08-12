@@ -21,7 +21,7 @@
 #include "CommandContext.h"
 #include "CommandDispatch.h"
 #include "CommandTargets.h"
-#include "EffectManager.h"
+#include "EffectAndCommandPluginManager.h"
 #include "LoadCommands.h"
 #include "MenuRegistry.h"
 #include "PluginManager.h"
@@ -111,7 +111,7 @@ bool HelpCommand::ApplyInner(const CommandContext & context){
    if( ID.empty() )
       context.Status( "Command not found" );
    else
-      EffectCommandManager::Get().GetCommandDefinition( ID, context, 1);
+      EffectAndCommandPluginManager::Get().GetCommandDefinition(ID, context, 1);
    return true;
 }
 
