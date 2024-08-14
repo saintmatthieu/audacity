@@ -302,6 +302,8 @@ int App::run(int argc, char** argv)
                     // Setup modules: onDelayedInit
                     // ====================================================
 
+                    qApp->setQuitLockEnabled(false);
+
                     globalModule.onDelayedInit();
                     for (modularity::IModuleSetup* m : m_modules) {
                         m->onDelayedInit();
@@ -313,6 +315,8 @@ int App::run(int argc, char** argv)
                     }
 
                     startupScenario()->run();
+
+                    qApp->setQuitLockEnabled(true);
                 }
             }, Qt::QueuedConnection);
 
