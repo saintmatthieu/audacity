@@ -34,6 +34,9 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au3/vst3pluginsmetareader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au3/vst3pluginsmetareader.h
 
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au3/au3pluginssettings.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au3/au3pluginssettings.h
+
     ${CMAKE_CURRENT_LIST_DIR}/view/effectbuilder.cpp
     ${CMAKE_CURRENT_LIST_DIR}/view/effectbuilder.h
 

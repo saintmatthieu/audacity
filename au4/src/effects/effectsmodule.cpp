@@ -6,6 +6,9 @@
 #include "ui/iuiactionsregister.h"
 #include "ui/iinteractiveuriregister.h"
 
+#include "libraries/lib-module-manager/ModuleManager.h"
+#include "libraries/lib-module-manager/PluginManager.h"
+
 #include "audioplugins/iaudiopluginsscannerregister.h"
 #include "audioplugins/iaudiopluginmetareaderregister.h"
 
@@ -82,6 +85,13 @@ void EffectsModule::onInit(const muse::IApplication::RunMode& mode)
     if (mode != muse::IApplication::RunMode::GuiApp) {
         return;
     }
+
+    ModuleManager::Get().Initialize();
+
+    // Initialize the PluginManager
+    PluginManager::Get().Initialize([](const FilePath& localFileName){
+        return std::make_unique<au3::Au3PluginsSettings>();
+    });
 
     m_actionsController->init();
 }
