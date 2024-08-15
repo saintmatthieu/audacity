@@ -18,6 +18,8 @@
 #include "internal/effectsuiengine.h"
 #include "internal/effectsuiactions.h"
 
+#include "view/builtineffects/amplify.h"
+
 #include "internal/au3/vst3pluginsscanner.h"
 #include "internal/au3/vst3pluginsmetareader.h"
 
@@ -84,6 +86,8 @@ void EffectsModule::onInit(const muse::IApplication::RunMode& mode)
     });
 
     m_actionsController->init();
+
+    Amplify::ForceLinkage();
 }
 
 void EffectsModule::onDelayedInit()

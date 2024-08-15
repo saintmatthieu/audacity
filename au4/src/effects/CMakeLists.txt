@@ -39,6 +39,9 @@ set(MODULE_SRC
 
     ${CMAKE_CURRENT_LIST_DIR}/view/abstracteffectmodel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/view/abstracteffectmodel.h
+
+    ${CMAKE_CURRENT_LIST_DIR}/view/builtineffects/amplify.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/builtineffects/amplify.h
     )
 
 # AU3
