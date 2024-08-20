@@ -529,6 +529,8 @@ void ProjectAudioManager::Stop(bool stopStream /* = true*/)
 
    if(stopStream)
       gAudioIO->StopStream();
+   else
+      gAudioIO->SetLetRing(true);
 
    projectAudioManager.SetLooping( false );
    projectAudioManager.SetCutting( false );
