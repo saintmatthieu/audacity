@@ -18,6 +18,7 @@
 #include "internal/au3project.h"
 #include "internal/au3audiodevicesprovider.h"
 #include "internal/au3commonsettings.h"
+#include "internal/effects/au3amplify.h"
 
 #include "log.h"
 
@@ -56,6 +57,7 @@ void Au3WrapModule::onInit(const muse::IApplication::RunMode&)
 
     static QtBasicUI uiServices;
     (void)BasicUI::Install(&uiServices);
+    Au3Amplify::ForceLinkage();
 }
 
 void Au3WrapModule::onDeinit()
