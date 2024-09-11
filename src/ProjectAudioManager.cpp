@@ -1036,7 +1036,6 @@ void ProjectAudioManager::OnPause()
       !scrubber.IsKeyboardScrubbing();
 
    if (bStopInstead) {
-      Stop();
       return;
    }
 
@@ -1336,6 +1335,27 @@ static RegisteredMenuItemEnabler stopIfPaused{{
          ProjectAudioManager::Get( project ).StopIfPaused();
    }
 }};
+
+const ReservedCommandFlag& InLetRingStateFlag()
+{
+   static ReservedCommandFlag flag { [](const AudacityProject&) {
+                                       return AudioIO::Get() &&
+                                              AudioIO::Get()->GetLetRing();
+                                    },
+                                     CommandFlagOptions {}.QuickTest() };
+   return flag;
+}
+
+static RegisteredMenuItemEnabler stopIfInLetRingState {
+   { [] { return InLetRingStateFlag(); }, [] { return AudioIONotBusyFlag(); },
+     [](const AudacityProject&) {
+        return true; // review
+     },
+     [](AudacityProject& project, CommandFlag) {
+        if (AudioIO::Get() && AudioIO::Get()->GetLetRing())
+           ProjectAudioManager::Get(project).Stop();
+     } }
+};
 
 // GetSelectedProperties collects information about
 // currently selected audio tracks

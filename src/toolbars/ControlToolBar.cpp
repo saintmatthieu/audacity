@@ -493,6 +493,7 @@ void ControlToolBar::EnableDisableButtons()
    bool recording = mRecord->IsDown();
    auto gAudioIO = AudioIO::Get();
    bool busy = gAudioIO->IsBusy();
+   const auto sustaining = gAudioIO->GetLetRing();
 
    // Only interested in audio type tracks
    bool tracks = p && TrackList::Get(*p).Any<AudioTrack>(); // PRL:  PlayableTrack ?
@@ -500,10 +501,10 @@ void ControlToolBar::EnableDisableButtons()
    mPlay->SetEnabled( canStop && tracks && !recording );
    mRecord->SetEnabled(
       canStop &&
-      !(busy && !recording && !paused) &&
+      !((busy && !sustaining) && !recording && !paused) &&
       !(playing && !paused)
    );
-   mStop->SetEnabled(canStop && (playing || recording));
+   mStop->SetEnabled(canStop && (playing || recording || sustaining));
    mRewind->SetEnabled(paused || (!playing && !recording));
    mFF->SetEnabled(tracks && (paused || (!playing && !recording)));
 
@@ -584,7 +585,8 @@ void ControlToolBar::OnStop(wxCommandEvent & WXUNUSED(evt))
    bool canStop = projectAudioManager.CanStopAudioStream();
 
    if ( canStop ) {
-      projectAudioManager.Stop();
+      const auto stopStream = AudioIO::Get()->GetLetRing() || mRecord->IsDown();
+      projectAudioManager.Stop(stopStream);
    }
 }
 
@@ -687,7 +689,7 @@ void ControlToolBar::OnIdle(wxIdleEvent & event)
       mLoop->PushDown();
    else
       mLoop->PopUp();
-   
+
    UpdateStatusBar();
    EnableDisableButtons();
 }

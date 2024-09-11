@@ -997,7 +997,7 @@ int AudioIO::StartStream(const TransportSequences &sequences,
       if (pListener && numCaptureChannels > 0)
          pListener->OnAudioIOStopRecording();
       mStreamToken = 0;
-
+      SetLetRing(false);
       return 0;
    }
 
@@ -1095,7 +1095,7 @@ int AudioIO::StartStream(const TransportSequences &sequences,
       if( err != paNoError )
       {
          mStreamToken = 0;
-
+         SetLetRing(false);
          StopAudioThread();
 
          if (pListener && mNumCaptureChannels > 0)
@@ -1409,6 +1409,7 @@ void AudioIO::StartStreamCleanup(bool bOnlyBuffers)
       Pa_CloseStream( mPortStreamV19 );
       mPortStreamV19 = NULL;
       mStreamToken = 0;
+      SetLetRing(false);
    }
 
    mPlaybackSchedule.GetPolicy().Finalize( mPlaybackSchedule );
@@ -1659,6 +1660,7 @@ void AudioIO::StopStream()
    //
    bool wasMonitoring = mStreamToken == 0;
    mStreamToken = 0;
+   SetLetRing(false);
 
    {
       auto pOwningProject = mOwningProject.lock();
@@ -1698,6 +1700,11 @@ bool AudioIO::IsPlayheadMoving(std::optional<int> token) /* const */
           !mPlaybackSchedule.GetPolicy().Done(mPlaybackSchedule, 0);
 }
 
+bool AudioIO::GetLetRing() const
+{
+   return mLetRing;
+}
+
 void AudioIO::SetLetRing(bool value)
 {
    mLetRing = value;
@@ -1711,6 +1718,7 @@ void AudioIO::SetPaused(bool state, bool publish)
          // The realtime effects manager may remain "active" but becomes
          // "suspended" or "resumed".
          auto &em = RealtimeEffectManager::Get(*pOwningProject);
+         SetLetRing(false);
          em.SetSuspended(state);
       }
    }
