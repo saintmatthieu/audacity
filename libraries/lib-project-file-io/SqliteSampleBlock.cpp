@@ -28,6 +28,8 @@ Paul Licameli -- split from SampleBlock.cpp and SampleBlock.h
 #include <wx/log.h>
 
 #include <mutex>
+#include <fstream>
+#include "PlatformCompatibility.h"
 
 class SqliteSampleBlockFactory;
 
@@ -369,7 +371,17 @@ SqliteSampleBlock::~SqliteSampleBlock()
          // is presented to the user.
          // The failure in this case may be a less harmful waste of space in the
          // database, which should not cause aborting of the attempted edit.
+
+         static std::ofstream logFile {
+            PlatformCompatibility::GetDocumentsDir() + "/DeleteDur.log"
+         };
+         const auto now = std::chrono::system_clock::now();
          Delete();
+         const auto elapsed =
+            std::chrono::duration_cast<std::chrono::microseconds>(
+               std::chrono::system_clock::now() - now)
+               .count();
+         logFile << elapsed << std::endl;
       }
    } );
 }
@@ -1110,10 +1122,15 @@ void SqliteSampleBlockFactory::OnBeginPurge(size_t begin, size_t end)
    const auto nToDelete = EstimateRemovedBlocks(mProject, begin, end);
    if(nToDelete == 0)
        return;
+
+   const auto log = std::make_shared<std::ofstream>(
+      PlatformCompatibility::GetDocumentsDir() + "/DeleteCount.log");
+
    auto purgeStartTime = std::chrono::system_clock::now();
    std::shared_ptr<ProgressDialog> progressDialog;
    mSampleBlockDeletionCallback = [=, nDeleted = 0] (void) mutable {
       ++nDeleted;
+      *log << nDeleted << std::endl;
       if(!progressDialog)
       {
          auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
