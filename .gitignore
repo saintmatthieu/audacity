@@ -167,13 +167,13 @@ win/xaudacity.ico
 *.dll
 
 .idea/
-.vscode/
 
 # AppImage
 linuxdeploy/*
 appimagetool/*
 
 .build.*/
+.cache/
 .conan/
 .debug/
 build-*

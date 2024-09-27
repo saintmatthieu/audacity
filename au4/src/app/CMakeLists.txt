@@ -274,6 +274,13 @@ if (OS_IS_WIN)
               USE_SOURCE_PERMISSIONS
           )
 
+    add_custom_command(
+      TARGET ${EXECUTABLE_NAME}
+      # Copy executable to install dir
+      COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${EXECUTABLE_NAME}> ${CMAKE_INSTALL_PREFIX}/bin
+      POST_BUILD
+      )
+
 ###########################################
 # Linux
 ###########################################

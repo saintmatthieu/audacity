@@ -1,0 +1,8 @@
+{
+  "cmake.sourceDirectory": "${workspaceFolder}/au4",
+  "cmake.generator": "Ninja",
+   "cmake.configureSettings": {
+      "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+   },
+   "cmake.buildDirectory": "${workspaceFolder}/build"
+}
