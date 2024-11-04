@@ -34,6 +34,13 @@ static const char16_t* VIEWER_URI = u"audacity://effects/viewer?type=%1&instance
 
 static const int UNDEFINED_FREQUENCY = -1;
 
+void EffectsProvider::init()
+{
+    builtinEffectsRepository()->effectMetaListUpdated().onNotify(this, [this] {
+        reloadEffects();
+    });
+}
+
 bool EffectsProvider::isVstSupported() const
 {
     return vstEffectsRepository() ? true : false;
