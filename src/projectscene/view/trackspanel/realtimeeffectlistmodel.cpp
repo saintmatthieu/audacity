@@ -1,7 +1,7 @@
 /*
  * Audacity: A Digital Audio Editor
  */
-#include "rteffectlistmodel.h"
+#include "realtimeeffectlistmodel.h"
 #include "log.h"
 
 using namespace muse;
@@ -18,14 +18,14 @@ QString ModelEffectItem::effectName() const
     return QString::fromStdString(m_effectName);
 }
 
-RtEffectListModel::RtEffectListModel(QObject* parent)
-    : RtEffectMenuModelBase(parent)
+RealtimeEffectListModel::RealtimeEffectListModel(QObject* parent)
+    : RealtimeEffectMenuModelBase(parent)
 {
 }
 
-void RtEffectListModel::load()
+void RealtimeEffectListModel::load()
 {
-    RtEffectMenuModelBase::load();
+    RealtimeEffectMenuModelBase::load();
 
     // TODO: listener on effectProvider when the plugins have changed should call `populateMenu()`
     populateMenu();
@@ -36,7 +36,7 @@ void RtEffectListModel::load()
     setListenerOnCurrentTrackeditProject();
 }
 
-void RtEffectListModel::handleMenuItemWithState(const QString& itemId, const ModelEffectItem* item)
+void RealtimeEffectListModel::handleMenuItemWithState(const QString& itemId, const ModelEffectItem* item)
 {
     TRACEFUNC;
 
@@ -58,7 +58,7 @@ void RtEffectListModel::handleMenuItemWithState(const QString& itemId, const Mod
     AbstractMenuModel::handleMenuItem(itemId);
 }
 
-void RtEffectListModel::populateMenu()
+void RealtimeEffectListModel::populateMenu()
 {
     MenuItemList items;
 
@@ -92,7 +92,7 @@ void RtEffectListModel::populateMenu()
     emit availableEffectsChanged();
 }
 
-void RtEffectListModel::setListenerOnCurrentTrackeditProject()
+void RealtimeEffectListModel::setListenerOnCurrentTrackeditProject()
 {
     audioEngine()->realtimeEffectAdded().onReceive(this, [this](audio::TrackId trackId, EffectChainLinkIndex index, EffectChainLinkPtr item)
     { insertEffect(trackId, index, *item); });
@@ -110,7 +110,7 @@ void RtEffectListModel::setListenerOnCurrentTrackeditProject()
     });
 }
 
-void RtEffectListModel::insertEffect(audio::TrackId trackId, EffectChainLinkIndex index, const EffectChainLink& e)
+void RealtimeEffectListModel::insertEffect(audio::TrackId trackId, EffectChainLinkIndex index, const EffectChainLink& e)
 {
     auto& list = m_trackEffectLists[trackId];
     IF_ASSERT_FAILED(index <= list.size()) {
@@ -126,7 +126,7 @@ void RtEffectListModel::insertEffect(audio::TrackId trackId, EffectChainLinkInde
     }
 }
 
-void RtEffectListModel::removeEffect(audio::TrackId trackId, EffectChainLinkIndex index, const EffectChainLink& e)
+void RealtimeEffectListModel::removeEffect(audio::TrackId trackId, EffectChainLinkIndex index, const EffectChainLink& e)
 {
     auto& list = m_trackEffectLists[trackId];
     IF_ASSERT_FAILED(index < list.size() && list[index]->effectState == e.effectState) {
@@ -142,12 +142,12 @@ void RtEffectListModel::removeEffect(audio::TrackId trackId, EffectChainLinkInde
     }
 }
 
-QVariantList RtEffectListModel::availableEffects()
+QVariantList RealtimeEffectListModel::availableEffects()
 {
     return menuItemListToVariantList(items());
 }
 
-QHash<int, QByteArray> RtEffectListModel::roleNames() const
+QHash<int, QByteArray> RealtimeEffectListModel::roleNames() const
 {
     static const QHash<int, QByteArray> roles = {
         { rItemData, "itemData" }
@@ -156,7 +156,7 @@ QHash<int, QByteArray> RtEffectListModel::roleNames() const
     return roles;
 }
 
-QVariant RtEffectListModel::data(const QModelIndex& index, int role) const
+QVariant RealtimeEffectListModel::data(const QModelIndex& index, int role) const
 {
     if (!index.isValid() || index.row() >= rowCount() || role != rItemData || !m_trackEffectLists.count(m_trackId)) {
         return QVariant();
@@ -166,7 +166,7 @@ QVariant RtEffectListModel::data(const QModelIndex& index, int role) const
     return QVariant::fromValue(*it);
 }
 
-int RtEffectListModel::rowCount(const QModelIndex& parent) const
+int RealtimeEffectListModel::rowCount(const QModelIndex& parent) const
 {
     UNUSED(parent);
     if (!m_trackEffectLists.count(m_trackId)) {

@@ -6,7 +6,7 @@
 #include "modularity/ioc.h"
 #include "context/iglobalcontext.h"
 #include "effects/effects_base/ieffectsprovider.h"
-#include "rteffectmenumodelbase.h"
+#include "realtimeeffectmenumodelbase.h"
 #include "au3audio/iaudioengine.h"
 #include <QObject>
 #include <map>
@@ -25,7 +25,7 @@ private:
     const std::string m_effectName;
 };
 
-class RtEffectListModel : public RtEffectMenuModelBase
+class RealtimeEffectListModel : public RealtimeEffectMenuModelBase
 {
     Q_OBJECT
 
@@ -36,7 +36,7 @@ class RtEffectListModel : public RtEffectMenuModelBase
     muse::Inject<audio::IAudioEngine> audioEngine;
 
 public:
-    explicit RtEffectListModel(QObject* parent = nullptr);
+    explicit RealtimeEffectListModel(QObject* parent = nullptr);
 
     Q_INVOKABLE void handleMenuItemWithState(const QString& menuItemId, const ModelEffectItem*);
     Q_INVOKABLE void load() override;
