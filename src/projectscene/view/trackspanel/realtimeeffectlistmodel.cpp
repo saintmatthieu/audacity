@@ -91,8 +91,15 @@ void RealtimeEffectListModel::populateMenu()
 
 void RealtimeEffectListModel::setListenerOnCurrentTrackeditProject()
 {
-    audioEngine()->realtimeEffectAdded().onReceive(this, [this](audio::TrackId trackId, EffectChainLinkIndex index, EffectChainLinkPtr item)
-    { insertEffect(trackId, index, *item); });
+    if (const auto project = globalContext()->currentTrackeditProject()) {
+        project->realtimeEffectAdded().onReceive(this,
+                                                 [this](audio::TrackId trackId, EffectChainLinkIndex index,
+                                                        EffectChainLinkPtr item)
+        {
+            //
+            insertEffect(trackId, index, *item);
+        });
+    }
 
     audioEngine()->realtimeEffectRemoved().onReceive(this,
                                                      [this](audio::TrackId trackId, EffectChainLinkIndex index, EffectChainLinkPtr item) {

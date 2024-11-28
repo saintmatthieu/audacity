@@ -3,12 +3,18 @@
 */
 #pragma once
 
+#include "modularity/ioc.h"
 #include "../../itrackeditproject.h"
+#include "au3audio/iaudioengine.h"
+#include "async/asyncable.h"
 
 struct TrackListEvent;
 namespace au::trackedit {
-class Au3TrackeditProject : public ITrackeditProject
+class Au3TrackeditProject : public ITrackeditProject, public muse::async::Asyncable,
+    public std::enable_shared_from_this<Au3TrackeditProject>
 {
+    muse::Inject<audio::IAudioEngine> audioEngine;
+
 public:
     Au3TrackeditProject(const std::shared_ptr<au::au3::IAu3Project>& au3project);
     ~Au3TrackeditProject();
@@ -17,6 +23,7 @@ public:
     std::vector<Track> trackList() const override;
     Clip clip(const ClipKey& key) const override;
     muse::async::NotifyList<Clip> clipList(const TrackId& trackId) const override;
+    audio::IAudioSourcePtr trackAsAudioSource(const TrackId& trackId) const override;
     std::string trackName(const TrackId& trackId) const override;
 
     void reload() override;
@@ -41,6 +48,7 @@ public:
     muse::async::Channel<Track> trackRemoved() const override;
     muse::async::Channel<Track, int> trackInserted() const override;
     muse::async::Channel<Track, int> trackMoved() const override;
+    muse::async::Channel<TrackId, audio::EffectChainLinkIndex, audio::EffectChainLinkPtr> realtimeEffectAdded() const override;
 
     secs_t totalTime() const override;
 
@@ -49,7 +57,10 @@ private:
     void onTrackListEvent(const TrackListEvent& e);
     void onTrackDataChanged(const TrackId& trackId);
     void onProjectTempoChange(double newTempo);
+    void eraseExpiredWrappers();
+    void eraseWrapper(const TrackId& id);
 
+    const std::shared_ptr<au::au3::IAu3Project> m_au3project;
     struct Au3Impl;
     std::shared_ptr<Au3Impl> m_impl;
 
@@ -62,6 +73,11 @@ private:
     mutable muse::async::Channel<trackedit::Track> m_trackRemoved;
     mutable muse::async::Channel<trackedit::Track, int> m_trackInserted;
     mutable muse::async::Channel<trackedit::Track, int> m_trackMoved;
+    muse::async::Channel<TrackId, audio::EffectChainLinkIndex, audio::EffectChainLinkPtr> m_realtimeEffectAdded;
+
+    class ChannelGroupWrapper;
+
+    std::vector<std::shared_ptr<ChannelGroupWrapper> > m_wrappers;
 };
 
 class Au3TrackeditProjectCreator : public ITrackeditProjectCreator

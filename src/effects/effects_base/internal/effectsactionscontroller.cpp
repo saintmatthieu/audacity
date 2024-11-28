@@ -57,7 +57,9 @@ void EffectsActionsController::addRealtimeEffect(const muse::actions::ActionData
 
     const auto effectId = args.arg<au::audio::EffectId>(0);
     const auto trackId = args.arg<au::audio::TrackId>(1);
-    audioEngine()->addRealtimeEffect(*project, trackId, effectId);
+    // audioEngine()->addRealtimeEffect(*project, trackId, effectId);
+    const auto source = project->trackeditProject()->trackAsAudioSource(trackId);
+    audioEngine()->appendRealtimeEffect(source.get(), effectId.toStdString());
 }
 
 void EffectsActionsController::removeRealtimeEffect(const muse::actions::ActionData& args)

@@ -12,9 +12,11 @@
 #include "au3wrap/au3types.h"
 #include "au3wrap/internal/domaccessor.h"
 #include "au3wrap/internal/domconverter.h"
+#include "au3wrap/iau3project.h"
 
 #include "defaultplaybackpolicy.h"
 #include "au3audioiolistener.h"
+#include "audiosourcewrapper.h"
 #include "project/iaudacityproject.h"
 
 #include "realfn.h"
@@ -93,7 +95,6 @@ void AudioEngine::onTrackListEvent(const TrackListEvent& e)
 void AudioEngine::onWaveTrackAdded(WaveTrack& track)
 {
     auto& list = RealtimeEffectList::Get(track);
-    m_rtEffectSubscriptions[track.GetId()] = subscribeToRealtimeEffectList(track, list);
 
     // We have subscribed for future realtime-effect events, but we need to send the initial state.
     for (auto i = 0u; i < list.GetStatesCount(); ++i) {
@@ -216,6 +217,48 @@ void AudioEngine::addRealtimeEffect(au::project::IAudacityProject& project, Trac
         const auto trackName =  project.trackeditProject()->trackName(trackId);
         projectHistory()->pushHistoryState("Added " + effectName + " to " + trackName, "Add " + effectName);
     }
+}
+
+void AudioEngine::registerAudioSource(au::au3::IAu3Project& project, IAudioSource* source)
+{
+    auto wrapper = std::make_shared<AudioSourceWrapper>(source, m_realtimeEffectAppended);
+    // auto& list = RealtimeEffectList::Get(*wrapper);
+    // m_rtEffectSubscriptions[track.GetId()] = subscribeToRealtimeEffectList(track, list);
+    m_sources[&project].emplace_back(std::move(wrapper));
+}
+
+void AudioEngine::unregisterAudioSource(const IAudioSource* source)
+{
+    for (auto& [project, sources] : m_sources) {
+        const auto it = std::find_if(sources.begin(), sources.end(), [source](const auto& wrapper) {
+            return wrapper->source() == source;
+        });
+        if (it != sources.end()) {
+            sources.erase(it);
+            if (sources.empty()) {
+                m_sources.erase(project);
+            }
+        }
+    }
+}
+
+void AudioEngine::appendRealtimeEffect(const IAudioSource* source, const std::string& effectId)
+{
+    for (const auto& [project, sources] : m_sources) {
+        const auto it = std::find_if(sources.begin(), sources.end(), [source](const auto& wrapper) {
+            return wrapper->source() == source;
+        });
+        if (it != sources.end()) {
+            auto au3Project = reinterpret_cast<au::au3::Au3Project*>(project->au3ProjectPtr());
+            AudioIO::Get()->AddState(*au3Project, (*it).get(), effectId);
+            break;
+        }
+    }
+}
+
+muse::async::Channel<const IAudioSource*, EffectChainLinkIndex, EffectChainLinkPtr> AudioEngine::realtimeEffectAppended() const
+{
+    return m_realtimeEffectAppended;
 }
 
 void AudioEngine::removeRealtimeEffect(au::project::IAudacityProject& project, TrackId trackId, au::audio::EffectState effectState)

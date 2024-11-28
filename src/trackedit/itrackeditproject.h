@@ -11,6 +11,8 @@
 #include "global/async/channel.h"
 
 #include "trackedittypes.h"
+#include "au3audio/audioenginetypes.h"
+#include "au3audio/iaudiosource.h"
 #include "dom/track.h"
 
 namespace au::au3 {
@@ -28,6 +30,7 @@ public:
     virtual Clip clip(const ClipKey& key) const = 0;
     virtual muse::async::NotifyList<Clip> clipList(const TrackId& trackId) const = 0;
     virtual std::string trackName(const TrackId& trackId) const = 0;
+    virtual audio::IAudioSourcePtr trackAsAudioSource(const TrackId& trackId) const = 0;
 
     virtual void reload() = 0;
 
@@ -45,12 +48,13 @@ public:
     virtual void setTimeSignature(const TimeSignature& timeSignature) = 0;
     virtual muse::async::Channel<TimeSignature> timeSignatureChanged() const = 0;
 
-    virtual muse::async::Channel<std::vector<au::trackedit::Track>> tracksChanged() const = 0;
+    virtual muse::async::Channel<std::vector<au::trackedit::Track> > tracksChanged() const = 0;
     virtual muse::async::Channel<trackedit::Track> trackAdded() const = 0;
     virtual muse::async::Channel<trackedit::Track> trackChanged() const = 0;
     virtual muse::async::Channel<trackedit::Track> trackRemoved() const = 0;
     virtual muse::async::Channel<trackedit::Track, int> trackInserted() const = 0;
     virtual muse::async::Channel<trackedit::Track, int> trackMoved() const = 0;
+    virtual muse::async::Channel<TrackId, audio::EffectChainLinkIndex, audio::EffectChainLinkPtr> realtimeEffectAdded() const = 0;
 
     virtual secs_t totalTime() const = 0;
 };

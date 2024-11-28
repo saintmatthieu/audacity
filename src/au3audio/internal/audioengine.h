@@ -10,6 +10,7 @@
 #include "context/iglobalcontext.h"
 #include "trackedit/iprojecthistory.h"
 #include "libraries/lib-utility/Observer.h"
+#include "libraries/lib-channel/Channel.h"
 #include <unordered_map>
 #include <memory>
 
@@ -25,6 +26,8 @@ using Au3Project = ::AudacityProject;
 }
 
 namespace au::audio {
+class AudioSourceWrapper;
+
 class AudioEngine : public IAudioEngine, muse::async::Asyncable, public std::enable_shared_from_this<AudioEngine>
 {
     muse::Inject<context::IGlobalContext> globalContext;
@@ -44,6 +47,12 @@ public:
     void addRealtimeEffect(project::IAudacityProject&, TrackId, const EffectId&) override;
     void removeRealtimeEffect(project::IAudacityProject&, TrackId, EffectState) override;
     void replaceRealtimeEffect(project::IAudacityProject&, TrackId, int effectListIndex, const EffectId& newEffectId) override;
+
+    void registerAudioSource(au::au3::IAu3Project&, IAudioSource*) override;
+    void unregisterAudioSource(const IAudioSource*) override;
+
+    void appendRealtimeEffect(const IAudioSource*, const std::string& effectId) override;
+    muse::async::Channel<const IAudioSource*, EffectChainLinkIndex, EffectChainLinkPtr> realtimeEffectAppended() const override;
 
     muse::async::Channel<TrackId, EffectChainLinkIndex, EffectChainLinkPtr> realtimeEffectAdded() const override;
     muse::async::Channel<TrackId, EffectChainLinkIndex, EffectChainLinkPtr> realtimeEffectRemoved() const override;
@@ -68,5 +77,7 @@ private:
 
     Observer::Subscription m_tracklistSubscription;
     std::unordered_map<TrackId, Observer::Subscription> m_rtEffectSubscriptions;
+    std::unordered_map<au::au3::IAu3Project*, std::vector<std::shared_ptr<AudioSourceWrapper> > > m_sources;
+    muse::async::Channel<const IAudioSource*, EffectChainLinkIndex, EffectChainLinkPtr> m_realtimeEffectAppended;
 };
 }

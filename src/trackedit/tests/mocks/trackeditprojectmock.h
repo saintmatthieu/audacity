@@ -15,8 +15,10 @@ public:
     MOCK_METHOD(std::vector<Track>, trackList, (), (const, override));
     MOCK_METHOD(Clip, clip, (const ClipKey& key), (const, override));
     MOCK_METHOD(muse::async::NotifyList<Clip>, clipList, (const TrackId& trackId), (const, override));
+    MOCK_METHOD(audio::IAudioSourcePtr, trackAsAudioSource, (const TrackId& trackId), (const, override));
     MOCK_METHOD(std::string, trackName, (const TrackId& trackId), (const, override));
-
+    MOCK_METHOD((muse::async::Channel<trackedit::TrackId, audio::EffectChainLinkIndex, audio::EffectChainLinkPtr>), realtimeEffectAdded, (),
+                (const, override));
     MOCK_METHOD(void, reload, (), (override));
 
     MOCK_METHOD(void, notifyAboutTrackAdded, (const Track& track), (override));

@@ -383,6 +383,7 @@ TransportSequences Au3Player::makeTransportTracks(Au3TrackList& trackList, bool 
                            + (selectedOnly ? &Au3Track::IsSelected : &Au3Track::Any);
         for (auto pTrack : range) {
             result.playbackSequences.push_back(
+                // Here we'd need an additional wrapper around the IAudioSource
                 StretchingSequence::Create(*pTrack, pTrack->GetClipInterfaces()));
         }
     }

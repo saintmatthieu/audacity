@@ -160,12 +160,12 @@ Channel<uint32_t> PlaybackController::midiTickPlayed() const
     return m_tickPlayed;
 }
 
-muse::async::Channel<TrackId> PlaybackController::trackAdded() const
+muse::async::Channel<au::playback::TrackId> PlaybackController::trackAdded() const
 {
     return m_trackAdded;
 }
 
-muse::async::Channel<TrackId> PlaybackController::trackRemoved() const
+muse::async::Channel<au::playback::TrackId> PlaybackController::trackRemoved() const
 {
     return m_trackRemoved;
 }

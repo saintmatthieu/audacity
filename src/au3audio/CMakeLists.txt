@@ -12,10 +12,13 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/audiomodule.h
     ${CMAKE_CURRENT_LIST_DIR}/audiotypes.h
     ${CMAKE_CURRENT_LIST_DIR}/iaudioengine.h
+    ${CMAKE_CURRENT_LIST_DIR}/iaudiosource.h
 
     #internals
     ${CMAKE_CURRENT_LIST_DIR}/internal/audioengine.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/audioengine.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/audiosourcewrapper.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/audiosourcewrapper.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au3audioiolistener.h
 
     # AU3

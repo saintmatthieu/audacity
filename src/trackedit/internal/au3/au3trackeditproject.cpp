@@ -1,10 +1,13 @@
 #include "au3trackeditproject.h"
 
-#include "libraries/lib-track/Track.h"
+#include "libraries/lib-wave-track/WaveTrack.h"
 #include "libraries/lib-numeric-formats/ProjectTimeSignature.h"
 #include "libraries/lib-project-history/ProjectHistory.h"
 #include "libraries/lib-stretching-sequence/TempoChange.h"
+#include "libraries/lib-realtime-effects/RealtimeEffectList.h"
+#include "libraries/lib-realtime-effects/RealtimeEffectState.h"
 
+#include "au3audio/iaudioengine.h"
 #include "au3wrap/iau3project.h"
 #include "au3wrap/internal/domconverter.h"
 #include "au3wrap/internal/domaccessor.h"
@@ -13,9 +16,46 @@
 #include "log.h"
 #include "UndoManager.h"
 
+#include <unordered_map>
+
 using namespace muse;
 using namespace au::trackedit;
 using namespace au::au3;
+
+class Au3TrackeditProject::ChannelGroupWrapper : public au::audio::IAudioSource
+{
+public:
+    ChannelGroupWrapper(std::weak_ptr<ChannelGroup> group, TrackId trackId)
+        : m_group{group}, m_numChannels{group.expired() ? 0 : static_cast<int>(group.lock()->NChannels())},
+        m_trackId{trackId}
+    {
+    }
+
+    int numChannels() const override
+    {
+        return m_numChannels;
+    }
+
+    TrackId trackId() const
+    {
+        return m_trackId;
+    }
+
+    bool expired() const
+    {
+        return m_group.expired();
+    }
+
+    const ChannelGroup* group() const
+    {
+        return m_group.lock().get();
+    }
+
+private:
+    const std::weak_ptr<ChannelGroup> m_group;
+    const int m_numChannels;
+    const TrackId m_trackId;
+};
 
 struct Au3TrackeditProject::Au3Impl
 {
@@ -29,6 +69,7 @@ struct Au3TrackeditProject::Au3Impl
 };
 
 Au3TrackeditProject::Au3TrackeditProject(const std::shared_ptr<IAu3Project>& au3project)
+    : m_au3project{au3project}
 {
     m_impl = std::make_shared<Au3Impl>();
     m_impl->prj = reinterpret_cast<Au3Project*>(au3project->au3ProjectPtr());
@@ -39,6 +80,20 @@ Au3TrackeditProject::Au3TrackeditProject(const std::shared_ptr<IAu3Project>& au3
     m_impl->projectTimeSignatureSubscription = ProjectTimeSignature::Get(*m_impl->prj).Subscribe(
         [this](const TimeSignatureChangedMessage& event) {
         onProjectTempoChange(event.newTempo);
+    });
+
+    audioEngine()->realtimeEffectAppended().onReceive(this,
+                                                      [this](const audio::IAudioSource* source, audio::EffectChainLinkIndex index,
+                                                             audio::EffectChainLinkPtr item)
+    {
+        // find wrapper
+        const auto it = std::find_if(m_wrappers.begin(), m_wrappers.end(), [source](const auto& wrapper) {
+            return wrapper.get() == source;
+        });
+        if (it == m_wrappers.end()) {
+            return;
+        }
+        m_realtimeEffectAdded.send((*it)->trackId(), index, std::move(item));
     });
 }
 
@@ -91,20 +146,44 @@ void Au3TrackeditProject::onTrackListEvent(const TrackListEvent& e)
     }
     LOGD() << "trackId: " << trackId << ", type: " << eventTypeToString(e);
 
+    eraseExpiredWrappers();
+
     switch (e.mType) {
     case TrackListEvent::DELETION: {
         if (e.mExtra == 1) {
             m_impl->trackReplacing = true;
         }
+        eraseWrapper(trackId);
     } break;
     case TrackListEvent::ADDITION: {
         if (m_impl->trackReplacing) {
             onTrackDataChanged(trackId);
             m_impl->trackReplacing = false;
+            eraseWrapper(trackId);
+        }
+        const auto group = std::dynamic_pointer_cast<ChannelGroup>(track);
+        if (group) {
+            m_wrappers.emplace_back(std::make_shared<ChannelGroupWrapper>(group, trackId));
+            audioEngine()->registerAudioSource(*m_au3project, m_wrappers.back().get());
         }
     } break;
     default:
         break;
+    }
+}
+
+void Au3TrackeditProject::eraseWrapper(const TrackId& trackId)
+{
+    const auto source = trackAsAudioSource(trackId);
+    if (!source) {
+        return;
+    }
+    audioEngine()->unregisterAudioSource(source.get());
+    const auto it = std::find_if(m_wrappers.begin(), m_wrappers.end(), [&](const auto& wrapper) {
+        return wrapper.get() == source.get();
+    });
+    if (it != m_wrappers.end()) {
+        m_wrappers.erase(it);
     }
 }
 
@@ -126,6 +205,13 @@ void Au3TrackeditProject::onProjectTempoChange(double newTempo)
     }
 }
 
+void Au3TrackeditProject::eraseExpiredWrappers()
+{
+    m_wrappers.erase(std::remove_if(m_wrappers.begin(), m_wrappers.end(), [](const auto& wrapper) {
+        return wrapper->expired();
+    }), m_wrappers.end());
+}
+
 muse::async::NotifyList<au::trackedit::Clip> Au3TrackeditProject::clipList(const au::trackedit::TrackId& trackId) const
 {
     const Au3WaveTrack* waveTrack = DomAccessor::findWaveTrack(*m_impl->prj, Au3TrackId(trackId));
@@ -143,6 +229,17 @@ muse::async::NotifyList<au::trackedit::Clip> Au3TrackeditProject::clipList(const
     clips.setNotify(notifier.notify());
 
     return clips;
+}
+
+au::audio::IAudioSourcePtr Au3TrackeditProject::trackAsAudioSource(const TrackId& trackId) const
+{
+    for (auto& wrapper : m_wrappers) {
+        auto waveTrack = dynamic_cast<const Au3WaveTrack*>(wrapper->group());
+        if (waveTrack && waveTrack->GetId() == trackId) {
+            return wrapper;
+        }
+    }
+    return nullptr;
 }
 
 std::string Au3TrackeditProject::trackName(const TrackId& trackId) const
@@ -268,6 +365,12 @@ muse::async::Channel<au::trackedit::Track, int> Au3TrackeditProject::trackInsert
 muse::async::Channel<au::trackedit::Track, int> Au3TrackeditProject::trackMoved() const
 {
     return m_trackMoved;
+}
+
+muse::async::Channel<au::trackedit::TrackId, au::audio::EffectChainLinkIndex,
+                     au::audio::EffectChainLinkPtr> Au3TrackeditProject::realtimeEffectAdded() const
+{
+    return m_realtimeEffectAdded;
 }
 
 secs_t Au3TrackeditProject::totalTime() const
