@@ -68,6 +68,14 @@ set(AU3_SRC
     ${AU3_LIBRARIES}/lib-builtin-effects/ToneGenBase.h
     ${AU3_LIBRARIES}/lib-builtin-effects/Generator.cpp
     ${AU3_LIBRARIES}/lib-builtin-effects/Generator.h
+    ${AU3_LIBRARIES}/lib-builtin-effects/Fade.cpp
+    ${AU3_LIBRARIES}/lib-builtin-effects/Fade.h
+    ${AU3_LIBRARIES}/lib-builtin-effects/Invert.cpp
+    ${AU3_LIBRARIES}/lib-builtin-effects/Invert.h
+    ${AU3_LIBRARIES}/lib-builtin-effects/Repair.cpp
+    ${AU3_LIBRARIES}/lib-builtin-effects/Repair.h
+    ${AU3_LIBRARIES}/lib-builtin-effects/Reverse.cpp
+    ${AU3_LIBRARIES}/lib-builtin-effects/Reverse.h
 )
 
 set(AU3_DEF ${AU3_DEF}

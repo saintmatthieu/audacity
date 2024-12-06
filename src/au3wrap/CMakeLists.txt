@@ -296,6 +296,10 @@ set(AU3_SRC
     ${AU3_LIBRARIES}/lib-math/Resample.h
     ${AU3_LIBRARIES}/lib-math/Dither.cpp
     ${AU3_LIBRARIES}/lib-math/Dither.h
+    ${AU3_LIBRARIES}/lib-math/InterpolateAudio.cpp
+    ${AU3_LIBRARIES}/lib-math/InterpolateAudio.h
+    ${AU3_LIBRARIES}/lib-math/Matrix.cpp
+    ${AU3_LIBRARIES}/lib-math/Matrix.h
 
     ${AU3_LIBRARIES}/lib-stretching-sequence/AudioSegmentSampleView.cpp
     ${AU3_LIBRARIES}/lib-stretching-sequence/AudioSegmentSampleView.h
@@ -518,7 +522,8 @@ set(AU3_SRC
     ${AU3_LIBRARIES}/lib-dynamic-range-processor/SimpleCompressor/LookAheadGainReduction.cpp
     ${AU3_LIBRARIES}/lib-dynamic-range-processor/SimpleCompressor/LookAheadGainReduction.h
 
-
+    ${AU3_LIBRARIES}/lib-label-track/LabelTrack.cpp
+    ${AU3_LIBRARIES}/lib-label-track/LabelTrack.h
 )
 
 if(AU_MODULE_EFFECTS_VST)
