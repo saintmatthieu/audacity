@@ -21,8 +21,11 @@
 
 #include "au3wrap/internal/wxtypes_convert.h"
 #include "au3wrap/au3types.h"
+#include "au3wrap/internal/domaccessor.h"
 
 #include "../effecterrors.h"
+
+#include <unordered_map>
 
 using namespace muse;
 using namespace au::effects;
@@ -112,7 +115,7 @@ muse::Ret EffectExecutionScenario::doPerformEffect(au3::Au3Project& project, con
 
         //! NOTE Step 1.3 - check selection
         trackedit::ClipKeyList selectedClips = selectionController()->selectedClips();
-        if (selectedClips.size() == 1) {
+        if (!selectedClips.empty()) {
             t0 = selectionController()->selectedClipStartTime();
             t1 = selectionController()->selectedClipEndTime();
         } else {
@@ -259,7 +262,54 @@ muse::Ret EffectExecutionScenario::doPerformEffect(au3::Au3Project& project, con
     // common things used below
     Ret success;
     {
-        success = effectsProvider()->performEffect(project, effect, pInstanceEx, *settings);
+        if (selectionController()->selectedClips().empty()) {
+            success = effectsProvider()->performEffect(project, effect, pInstanceEx, *settings);
+        } else {
+            std::unordered_map<TrackId, std::shared_ptr<WaveTrack> > selectedTracks;
+
+            // Make sure we copy, in case us provisionally de-selecting tracks changes the selection
+            const auto selectedClips = selectionController()->selectedClips();
+
+            Finally restoreTrackSelection([&] {
+                // Restore the selection
+                for (const auto& clip : selectedClips) {
+                    selectedTracks.at(clip.trackId)->SetSelected(true);
+                }
+                selectionController()->setSelectedClips({});
+            });
+
+            for (const auto& clip : selectedClips) {
+                WaveTrack* waveTrack = au3::DomAccessor::findWaveTrack(project, ::TrackId(clip.trackId));
+                IF_ASSERT_FAILED(waveTrack) {
+                    continue;
+                }
+                selectedTracks[clip.trackId] = std::static_pointer_cast<WaveTrack>(waveTrack->shared_from_this());
+                waveTrack->SetSelected(false);
+            }
+
+            // Perform the effect on each selected clip
+            for (const auto& clip : selectedClips) {
+                const auto& waveTrack = selectedTracks.at(clip.trackId);
+                Finally restoreTrackSelection([&] {
+                    waveTrack->SetSelected(false);
+                });
+                waveTrack->SetSelected(true);
+
+                const std::shared_ptr<WaveClip> waveClip = au3::DomAccessor::findWaveClip(waveTrack.get(), clip.clipId);
+                IF_ASSERT_FAILED(waveClip) {
+                    continue;
+                }
+
+                effect->mT0 = waveClip->GetPlayStartTime();
+                effect->mT1 = waveClip->GetPlayEndTime();
+
+                success = effectsProvider()->performEffect(project, effect, pInstanceEx, *settings);
+                if (!success) {
+                    // We should probably be eager and not stop on the first error.
+                    break;
+                }
+            }
+        }
     }
 
     //! ============================================================================
