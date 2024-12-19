@@ -78,18 +78,13 @@ void RealtimeEffectService::onWaveTrackAdded(WaveTrack& track)
 
 Observer::Subscription RealtimeEffectService::subscribeToRealtimeEffectList(WaveTrack& track, RealtimeEffectList& list)
 {
-    return list.Subscribe([&, weakThis = weak_from_this(), weakTrack = track.weak_from_this()](const RealtimeEffectListMessage& msg)
+    return list.Subscribe([&, weakThis = weak_from_this(), trackId = track.GetId(),
+                           weakTrack = track.weak_from_this()](const RealtimeEffectListMessage& msg)
     {
         const auto lifeguard = weakThis.lock();
         if (!lifeguard) {
             return;
         }
-        const auto waveTrack = std::dynamic_pointer_cast<WaveTrack>(weakTrack.lock());
-        if (!waveTrack) {
-            return;
-        }
-        const auto trackId = waveTrack->GetId();
-        auto& list = RealtimeEffectList::Get(*waveTrack);
         const auto effectStateId = reinterpret_cast<EffectStateId>(msg.affectedState.get());
         switch (msg.type) {
         case RealtimeEffectListMessage::Type::Insert:
@@ -106,6 +101,11 @@ Observer::Subscription RealtimeEffectService::subscribeToRealtimeEffectList(Wave
         break;
         case RealtimeEffectListMessage::Type::DidReplace:
         {
+            const auto waveTrack = std::dynamic_pointer_cast<WaveTrack>(weakTrack.lock());
+            if (!waveTrack) {
+                return;
+            }
+            auto& list = RealtimeEffectList::Get(*waveTrack);
             const std::shared_ptr<RealtimeEffectState> newState = list.GetStateAt(msg.dstIndex);
             IF_ASSERT_FAILED(newState) {
                 return;

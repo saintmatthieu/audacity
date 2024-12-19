@@ -19,6 +19,7 @@ RealtimeEffectList::RealtimeEffectList()
 
 RealtimeEffectList::~RealtimeEffectList()
 {
+   Clear();
 }
 
 std::unique_ptr<ClientData::Cloneable<>> RealtimeEffectList::Clone() const
