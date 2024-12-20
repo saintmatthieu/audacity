@@ -12,6 +12,8 @@
 #include "Channel.h"
 #include "Project.h"
 #include "UndoManager.h"
+#include "WaveTrack.h"
+#include <unordered_map>
 
 RealtimeEffectList::RealtimeEffectList()
 {
@@ -292,30 +294,59 @@ void RealtimeEffectList::SetActive(bool value)
    (LockGuard{ mLock }, mActive.store(value, std::memory_order_relaxed));
 }
 
-struct MasterEffectListRestorer final : UndoStateExtension
+struct EffectListRestorer final
 {
-   MasterEffectListRestorer(AudacityProject &project)
-      : list{ RealtimeEffectList::Get(project).Duplicate() }
+   EffectListRestorer(RealtimeEffectList& currentList)
+       : backupList { currentList.Duplicate() }
    {
+   }
+
+   void RestoreUndoRedoState(RealtimeEffectList& currentList)
+   {
+      // Unlike in `Duplicate`, we don't manipulate the lists directly but use
+      // the API so that the updates are published.
+      currentList.Clear();
+      for (auto i = 0; i < backupList->GetStatesCount(); ++i)
+         currentList.AddState(backupList->GetStateAt(i));
+      currentList.SetActive(backupList->IsActive());
+   }
+
+   const std::unique_ptr<RealtimeEffectList> backupList;
+};
+
+struct EffectListsRestorer final : UndoStateExtension
+{
+   EffectListsRestorer(AudacityProject& project)
+       : restorer { RealtimeEffectList::Get(project) }
+   {
+      const auto range = TrackList::Get(project).Any<WaveTrack>();
+      for (auto waveTrack : range)
+         mTrackRestorers.emplace(
+            waveTrack->GetId().raw(), RealtimeEffectList::Get(*waveTrack));
    }
 
    void RestoreUndoRedoState(AudacityProject& project) override
    {
-      auto& projectList = RealtimeEffectList::Get(project);
-      // Unlike in `Duplicate`, we don't manipulate the lists directly but use
-      // the API so that the updates are published.
-      projectList.Clear();
-      for (auto i = 0; i < list->GetStatesCount(); ++i)
-         projectList.AddState(list->GetStateAt(i));
-      projectList.SetActive(list->IsActive());
+      restorer.RestoreUndoRedoState(RealtimeEffectList::Get(project));
+      const auto range = TrackList::Get(project).Any<WaveTrack>();
+      for (auto waveTrack : range)
+      {
+         const auto id = waveTrack->GetId().raw();
+         if (mTrackRestorers.count(id) == 0)
+            continue;
+         auto& trackRestorer = mTrackRestorers.at(id);
+         trackRestorer.RestoreUndoRedoState(
+            RealtimeEffectList::Get(*waveTrack));
+      }
    }
 
-   const std::unique_ptr<RealtimeEffectList> list;
+   EffectListRestorer restorer;
+   std::unordered_map<int64_t, EffectListRestorer> mTrackRestorers;
 };
 
 static UndoRedoExtensionRegistry::Entry sEntry {
    [](AudacityProject& project) -> std::shared_ptr<UndoStateExtension>
    {
-      return std::make_shared<MasterEffectListRestorer>(project);
+      return std::make_shared<EffectListsRestorer>(project);
    }
 };
