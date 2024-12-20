@@ -11,9 +11,10 @@ import Muse.UiComponents
 import Audacity.ProjectScene
 
 Rectangle {
-    id: effectsPanel
+    id: root
 
     property int selectedTrackIndex: -1
+    property alias trackList: trackList
 
     color: ui.theme.backgroundPrimaryColor
 
@@ -22,12 +23,18 @@ Rectangle {
         trackEffects.trackName = selectedTrackItem.item.title
     }
 
+    TracksListModel {
+        id: trackList
+    }
+
     ColumnLayout {
         id: trackEffects
-        spacing: 0
+
         property alias trackName: trackEffectsHeader.trackName
         readonly property int itemSpacing: 12
-        Layout.fillWidth: true
+
+        spacing: 0
+        width: parent.width
 
         SeparatorLine { }
 
@@ -36,6 +43,7 @@ Rectangle {
             property alias trackName: trackNameLabel.text
             readonly property int headerHeight: 40
 
+            // visible: !root.trackList.isEmpty
             spacing: trackEffects.itemSpacing
 
             Layout.fillWidth: true
@@ -63,7 +71,7 @@ Rectangle {
                 id: trackNameLabel
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.maximumWidth: effectsPanel.width - trackEffectsPowerButton.width - trackEffectsHeader.spacing - trackEffects.itemSpacing
+                Layout.maximumWidth: root.width - trackEffectsPowerButton.width - trackEffectsHeader.spacing - trackEffects.itemSpacing
                 horizontalAlignment: Text.AlignLeft
             }
         }
@@ -71,6 +79,7 @@ Rectangle {
         SeparatorLine {
             id: trackEffectsBottom
             width: effectsSectionWidth
+            // visible: !root.trackList.isEmpty
         }
 
         Rectangle {
@@ -104,11 +113,12 @@ Rectangle {
             Layout.margins: trackEffects.itemSpacing
             Layout.alignment: Qt.AlignHCenter | Qt.AlignVTop
 
+            // enabled: !root.trackList.isEmpty
             text: qsTrc("projectscene", "Add effect")
 
             RealtimeEffectMenuModel {
                 id: menuModel
-                trackId: view.itemAtIndex(effectsPanel.selectedTrackIndex).item.trackId
+                trackId: view.itemAtIndex(root.selectedTrackIndex).item.trackId
             }
 
             onClicked: function() {

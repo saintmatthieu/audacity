@@ -19,6 +19,9 @@ public:
 
     au::trackedit::TrackId trackId() const;
     void setTrackId(au::trackedit::TrackId trackId);
+    void handleMenuItem(const QString& itemId) override {
+       AbstractMenuModel::handleMenuItem(itemId);
+    }
 
     Q_INVOKABLE void load() final override;
 

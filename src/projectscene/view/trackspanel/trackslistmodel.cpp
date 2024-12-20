@@ -576,19 +576,27 @@ void TracksListModel::onTracksChanged(const std::vector<au::trackedit::Track>& t
 
 void TracksListModel::onTrackAdded(const trackedit::Track& track)
 {
+    const auto wasEmpty = isEmpty();
     beginInsertRows(QModelIndex(), m_trackList.size(), m_trackList.size());
     m_trackList.push_back(buildTrackItem(track));
     onTrackChanged(track);
     endInsertRows();
+    if (wasEmpty) {
+        emit isEmptyChanged();
+    }
 }
 
 void TracksListModel::onTrackRemoved(const trackedit::Track& track)
 {
     for (int i = 0; i < m_trackList.size(); ++i) {
         if (m_trackList.at(i)->trackId() == track.id) {
+            const auto wasEmpty = isEmpty();
             beginRemoveRows(QModelIndex(), i, i);
             m_trackList.erase(m_trackList.begin() + i);
             endRemoveRows();
+            if (wasEmpty != isEmpty()) {
+                emit isEmptyChanged();
+            }
             break;
         }
     }

@@ -28,7 +28,7 @@ class RealtimeEffectListModel : public RealtimeEffectMenuModelBase
 {
     Q_OBJECT
 
-    Q_PROPERTY(QVariantList availableEffects READ availableEffects NOTIFY availableEffectsChanged)
+    Q_PROPERTY(QVariantList availableEffects READ availableEffects NOTIFY availableEffectsChanged FINAL)
 
     muse::Inject<context::IGlobalContext> globalContext;
     muse::Inject<effects::IRealtimeEffectService> realtimeEffectService;
@@ -56,7 +56,7 @@ private:
     void doLoad() override;
     void populateMenu() override;
 
-    void setListenerOnCurrentTrackeditProject();
+    void setListenerOnRealtimeEffectService();
     void insertEffect(effects::TrackId trackId, effects::EffectChainLinkIndex index, const effects::EffectChainLink& item);
     void removeEffect(effects::TrackId trackId, effects::EffectChainLinkIndex index, const effects::EffectChainLink& item);
 

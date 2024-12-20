@@ -26,11 +26,7 @@ RealtimeEffectListModel::RealtimeEffectListModel(QObject* parent)
 void RealtimeEffectListModel::doLoad()
 {
     populateMenu();
-
-    globalContext()->currentTrackeditProjectChanged().onNotify(this, [this]
-    { setListenerOnCurrentTrackeditProject(); });
-
-    setListenerOnCurrentTrackeditProject();
+    setListenerOnRealtimeEffectService();
 }
 
 void RealtimeEffectListModel::handleMenuItemWithState(const QString& itemId, const ModelEffectItem* item)
@@ -89,7 +85,7 @@ void RealtimeEffectListModel::populateMenu()
     emit availableEffectsChanged();
 }
 
-void RealtimeEffectListModel::setListenerOnCurrentTrackeditProject()
+void RealtimeEffectListModel::setListenerOnRealtimeEffectService()
 {
     realtimeEffectService()->realtimeEffectAdded().onReceive(this,
                                                              [this](effects::TrackId trackId, EffectChainLinkIndex index,
