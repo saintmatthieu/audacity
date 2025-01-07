@@ -30,8 +30,7 @@ using namespace muse;
 using namespace au::effects;
 
 static const char16_t* VIEWER_URI = u"audacity://effects/viewer?type=%1&instanceId=%2";
-// For now modal is true because otherwise we get a crash when changing track selection with a dialog open. Will fix this in another PR.
-static const char16_t* REALTIME_VIEWER_URI = u"audacity://effects/realtime_viewer?type=%1&instanceId=%2&effectState=%3&modal=true";
+static const char16_t* REALTIME_VIEWER_URI = u"audacity://effects/realtime_viewer?type=%1&instanceId=%2&effectState=%3&modal=false";
 
 void EffectsProvider::init()
 {

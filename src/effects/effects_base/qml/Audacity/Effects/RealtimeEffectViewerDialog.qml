@@ -26,6 +26,7 @@ StyledDialogView {
     RealtimeEffectViewerDialogModel {
         id: viewerModel
         effectState: root.effectState
+        accentButton: powerButton.accentButton
     }
 
     ColumnLayout {

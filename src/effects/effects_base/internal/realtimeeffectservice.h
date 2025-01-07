@@ -48,6 +48,10 @@ public:
     muse::async::Channel<TrackId, EffectChainLinkIndex, EffectStateId> realtimeEffectRemoved() const override;
     muse::async::Channel<TrackId, EffectChainLinkIndex, EffectStateId, EffectStateId> realtimeEffectReplaced() const override;
 
+    void setIsRealtimeEffectActive(EffectStateId stateId, bool active) override;
+    bool isRealtimeEffectActive(EffectStateId stateId) const override;
+    muse::async::Channel<EffectStateId> realtimeEffectActiveChanged() const override;
+
 private:
     void updateSubscriptions(const au::project::IAudacityProjectPtr& project);
     Observer::Subscription subscribeToRealtimeEffectList(WaveTrack&, RealtimeEffectList&);
@@ -57,6 +61,7 @@ private:
     std::string getEffectName(const RealtimeEffectState& state) const;
     std::string getTrackName(const au::au3::Au3Project& project, au::effects::TrackId trackId) const;
 
+    muse::async::Channel<EffectStateId> m_realtimeEffectActiveChanged;
     muse::async::Channel<TrackId, EffectChainLinkIndex, EffectStateId> m_realtimeEffectAdded;
     muse::async::Channel<TrackId, EffectChainLinkIndex, EffectStateId> m_realtimeEffectRemoved;
     muse::async::Channel<TrackId, EffectChainLinkIndex, EffectStateId, EffectStateId> m_realtimeEffectReplaced;

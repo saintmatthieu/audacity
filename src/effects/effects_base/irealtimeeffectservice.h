@@ -32,5 +32,9 @@ public:
     virtual muse::async::Channel<TrackId, EffectChainLinkIndex, EffectStateId> realtimeEffectAdded() const = 0;
     virtual muse::async::Channel<TrackId, EffectChainLinkIndex, EffectStateId> realtimeEffectRemoved() const = 0;
     virtual muse::async::Channel<TrackId, EffectChainLinkIndex, EffectStateId, EffectStateId> realtimeEffectReplaced() const = 0;
+
+    virtual void setIsRealtimeEffectActive(EffectStateId stateId, bool active) = 0;
+    virtual bool isRealtimeEffectActive(EffectStateId stateId) const = 0;
+    virtual muse::async::Channel<EffectStateId> realtimeEffectActiveChanged() const = 0;
 };
 }
