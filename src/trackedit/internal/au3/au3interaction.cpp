@@ -1254,7 +1254,7 @@ bool Au3Interaction::newStereoTrack()
     auto track = *tracks.rbegin();
     prj->notifyAboutTrackAdded(DomConverter::track(track));
 
-    selectionController()->setSelectedTracks(TrackIdList(TrackId(track->GetId())));
+    selectionController()->setSelectedTracks({track->GetId()});
 
     pushProjectHistoryTrackAddedState();
 
