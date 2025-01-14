@@ -12,6 +12,12 @@ ListItemBlank {
     property var availableEffects: null
     property var handleMenuItemWithState: null
 
+    Component.onCompleted: {
+        item.onIsActiveChanged.connect(function() {
+            powerButton.accentButton = item.isActive
+        })
+    }
+
     height: 24
     clip: false // should be true?
     background.color: "transparent"
@@ -58,10 +64,11 @@ ListItemBlank {
             icon: IconCode.BYPASS
             iconFont: ui.theme.toolbarIconsFont
 
-            accentButton: true
+            accentButton: item.isActive
 
             onClicked: {
                 accentButton = !accentButton
+                item.isActive = accentButton
             }
         }
 

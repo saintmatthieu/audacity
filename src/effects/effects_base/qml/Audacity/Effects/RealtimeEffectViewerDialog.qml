@@ -32,6 +32,9 @@ StyledDialogView {
         id: viewerModel
         effectState: root.effectState
         onTrackRemoved: root.close()
+        onIsActiveChanged: {
+            powerButton.accentButton = viewerModel.isActive
+        }
     }
 
     ColumnLayout {
@@ -56,10 +59,11 @@ StyledDialogView {
 
                 icon: IconCode.BYPASS
                 iconFont: ui.theme.toolbarIconsFont
-                accentButton: true
+                accentButton: viewerModel.isActive
 
                 onClicked: {
                     accentButton = !accentButton
+                    viewerModel.isActive = accentButton
                 }
             }
 
