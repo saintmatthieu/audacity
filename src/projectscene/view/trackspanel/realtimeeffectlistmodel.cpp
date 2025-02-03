@@ -124,6 +124,7 @@ void RealtimeEffectListModel::refresh(effects::TrackId trackId)
 
     if (!newStack.has_value()) {
         m_trackEffectLists.erase(trackId);
+        // Track was deleted, apparently.
         emit trackNameChanged();
         emit trackEffectsActiveChanged();
     } else {

@@ -33,16 +33,6 @@ std::optional<au::trackedit::TrackId> RealtimeEffectMenuModelBase::trackId() con
     return m_isMasterTrack ? au::effects::IRealtimeEffectService::masterTrackId : trackSelection()->selectedTrackId();
 }
 
-void RealtimeEffectMenuModelBase::resetModel(Action duringReset, Action afterReset)
-{
-    beginResetModel();
-    duringReset();
-    endResetModel();
-    if (afterReset) {
-        afterReset();
-    }
-}
-
 void RealtimeEffectMenuModelBase::prop_setIsMasterTrack(bool isMasterTrack)
 {
     if (m_isMasterTrack == isMasterTrack) {

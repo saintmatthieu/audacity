@@ -16,14 +16,11 @@
 
 #include "global/types/translatablestring.h"
 
-#include <unordered_map>
-
 namespace au::effects {
 namespace {
 struct RealtimeEffectStackChanged : public ClientData::Base
 {
     static RealtimeEffectStackChanged& Get(AudacityProject& project);
-
     muse::async::Channel<TrackId> channel;
 };
 
@@ -36,25 +33,6 @@ static const AudacityProject::AttachedObjects::RegisteredFactory key{
 RealtimeEffectStackChanged& RealtimeEffectStackChanged::Get(AudacityProject& project)
 {
     return project.AttachedObjects::Get<RealtimeEffectStackChanged>(key);
-}
-
-auto trackEffectMap(au3::Au3Project& project)
-{
-    std::unordered_map<effects::TrackId, std::unique_ptr<RealtimeEffectList> > map;
-    for (WaveTrack* track : TrackList::Get(project).Any<WaveTrack>()) {
-        map.emplace(track->GetId(), RealtimeEffectList::Get(*track).Duplicate());
-    }
-    return map;
-}
-
-auto effectLists(au3::Au3Project& project)
-{
-    std::unordered_map<effects::TrackId, std::unique_ptr<RealtimeEffectList> > map;
-    for (WaveTrack* track : TrackList::Get(project).Any<WaveTrack>()) {
-        map.emplace(track->GetId(), RealtimeEffectList::Get(*track).Duplicate());
-    }
-    map.emplace(IRealtimeEffectService::masterTrackId, RealtimeEffectList::Get(project).Duplicate());
-    return map;
 }
 
 bool operator!=(const RealtimeEffectList& a, const RealtimeEffectList& b)
@@ -70,28 +48,6 @@ bool operator!=(const RealtimeEffectList& a, const RealtimeEffectList& b)
     return false;
 }
 
-auto getStacks(au3::Au3Project& project)
-{
-    std::unordered_map<effects::TrackId, std::vector<RealtimeEffectStatePtr> > stacks;
-    auto& masterList = RealtimeEffectList::Get(project);
-    auto& masterStack = stacks[IRealtimeEffectService::masterTrackId];
-    masterStack.reserve(masterList.GetStatesCount());
-    for (auto i = 0; i < static_cast<int>(masterList.GetStatesCount()); ++i) {
-        masterStack.push_back(masterList.GetStateAt(i));
-    }
-
-    for (WaveTrack* track : TrackList::Get(project).Any<WaveTrack>()) {
-        auto& list = RealtimeEffectList::Get(*track);
-        auto& stack = stacks[track->GetId()];
-        stack.reserve(list.GetStatesCount());
-        for (auto i = 0; i < static_cast<int>(list.GetStatesCount()); ++i) {
-            stack.push_back(list.GetStateAt(i));
-        }
-    }
-
-    return stacks;
-}
-
 /*!
  * \brief The AU3 `Track` objects have a `RealtimeEffectList` attached.
  * The `TrackListRestorer`, when adding a new history state, stores a copy of the track as well as all its attachments.
@@ -102,59 +58,24 @@ class MasterEffectListRestorer final : public UndoStateExtension
 {
 public:
     MasterEffectListRestorer(au3::Au3Project& project)
-        : m_targetState{getStacks(project)}, m_targetLists{effectLists(project)}
+        : m_targetList(RealtimeEffectList::Get(project).Duplicate())
     {
     }
 
     void RestoreUndoRedoState(au3::Au3Project& project) override
     {
         auto& changed = RealtimeEffectStackChanged::Get(project).channel;
-        auto& masterCurrentList = RealtimeEffectList::Get(project);
-        auto& masterTargetList = *m_targetLists.at(IRealtimeEffectService::masterTrackId);
-        if (masterTargetList != masterCurrentList) {
-            masterTargetList.ShallowCopyTo(masterCurrentList);
+        auto& currentList = RealtimeEffectList::Get(project);
+        if (*m_targetList != currentList) {
+            m_targetList->ShallowCopyTo(currentList);
             changed.send(IRealtimeEffectService::masterTrackId);
         }
-
-        // TrackList& trackList = TrackList::Get(project);
-        // for (WaveTrack* track : trackList.Any<WaveTrack>()) {
-        //     auto& trackCurrentList = RealtimeEffectList::Get(*track);
-        //     const auto it = m_targetLists.find(track->GetId());
-        //     if (it == m_targetLists.end()) {
-        //         // Not expected to happen.
-        //         assert(false);
-        //         changed.send(track->GetId());
-        //     } else if (*it->second != trackCurrentList) {
-        //         it->second->ShallowCopyTo(trackCurrentList);
-        //         changed.send(track->GetId());
-        //     }
-        // }
-
-        // const auto currentState = getStacks(project);
-        // if (currentState == m_targetState) {
-        //     return;
-        // }
-
-        // auto& changeChannel = RealtimeEffectStackChanged::Get(project).channel;
-
-        // for (const auto& [trackId, targetStack] : m_targetState) {
-        //     if (!currentState.count(trackId) || currentState.at(trackId) != targetStack) {
-        //         changeChannel.send(trackId);
-        //     }
-        // }
-
-        // for (const auto& [trackId, _] : currentState) {
-        //     if (!m_targetState.count(trackId)) {
-        //         changeChannel.send(trackId);
-        //     }
-        // }
     }
 
     muse::async::Channel<TrackId> realtimeEffectStackChanged;
 
 private:
-    const std::unordered_map<effects::TrackId, std::vector<RealtimeEffectStatePtr> > m_targetState;
-    const std::unordered_map<effects::TrackId, std::unique_ptr<RealtimeEffectList> > m_targetLists;
+    const std::unique_ptr<RealtimeEffectList> m_targetList;
 };
 
 static UndoRedoExtensionRegistry::Entry sEntry {
