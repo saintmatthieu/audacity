@@ -8,7 +8,6 @@
 #include "irealtimeeffectservice.h"
 #include "effects/effects_base/ieffectsprovider.h"
 #include "effectstypes.h"
-#include "irealtimeeffectstackmanager.h"
 #include "context/iglobalcontext.h"
 #include "trackedit/iprojecthistory.h"
 #include "libraries/lib-utility/Observer.h"
@@ -34,7 +33,6 @@ class RealtimeEffectService : public IRealtimeEffectService, muse::async::Asynca
     muse::Inject<context::IGlobalContext> globalContext;
     muse::Inject<trackedit::IProjectHistory> projectHistory;
     muse::Inject<IEffectsProvider> effectsProvider;
-    muse::Inject<IStackManager> stackManager;
 
 public:
     void init();
@@ -69,7 +67,6 @@ private:
     std::optional<std::string> effectTrackName(TrackId trackId) const;
     const RealtimeEffectList* realtimeEffectList(au::effects::TrackId) const;
     RealtimeEffectList* realtimeEffectList(au::effects::TrackId);
-    void initializeTrackOnStackManager(au::effects::TrackId trackId);
 
     struct UtilData
     {
@@ -84,5 +81,6 @@ private:
 
     Observer::Subscription m_tracklistSubscription;
     std::unordered_map<TrackId, Observer::Subscription> m_rtEffectSubscriptions;
+    muse::async::Channel<TrackId> m_realtimeEffectStackChanged;
 };
 }

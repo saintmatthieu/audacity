@@ -20,31 +20,13 @@ void RealtimeEffectListModel::onProjectChanged()
 {
     const trackedit::ITrackeditProjectPtr project = globalContext()->currentTrackeditProject();
     if (!project) {
-        resetModel([this] {
-            m_trackEffectLists.clear();
-        }, [this] {
-            emit trackNameChanged();
-            emit trackEffectsActiveChanged();
-        });
+        beginResetModel();
+        m_trackEffectLists.clear();
+        endResetModel();
+        emit trackNameChanged();
+        emit trackEffectsActiveChanged();
         return;
     }
-
-    project->trackRemoved().onReceive(this, [this](au::trackedit::Track track)
-    {
-        if (trackId() != track.id) {
-            // Not the active track, no need to reset the model.
-            m_trackEffectLists.erase(track.id);
-            return;
-        }
-        resetModel([this, tId = track.id]
-        {
-            m_trackEffectLists.erase(tId);
-        }, [this]
-        {
-            emit trackNameChanged();
-            emit trackEffectsActiveChanged();
-        });
-    });
 
     project->trackChanged().onReceive(this, [this](au::trackedit::Track track)
     {
@@ -57,11 +39,12 @@ void RealtimeEffectListModel::onProjectChanged()
 void RealtimeEffectListModel::doLoad()
 {
     realtimeEffectService()->realtimeEffectStackChanged().onReceive(this, [this](effects::TrackId trackId)
-                                                                    {
+    {
         const auto belongsWithMe = isMasterTrack() == (trackId == IRealtimeEffectService::masterTrackId);
         if (belongsWithMe) {
             refresh(trackId);
-        } });
+        }
+    });
 
     globalContext()->currentTrackeditProjectChanged().onNotify(this, [this]
     {
@@ -136,9 +119,13 @@ void RealtimeEffectListModel::doPopulateMenu()
 void RealtimeEffectListModel::refresh(effects::TrackId trackId)
 {
     const std::optional<std::vector<RealtimeEffectStatePtr> > newStack = realtimeEffectService()->effectStack(trackId);
+
     beginResetModel();
+
     if (!newStack.has_value()) {
         m_trackEffectLists.erase(trackId);
+        emit trackNameChanged();
+        emit trackEffectsActiveChanged();
     } else {
         // Do not brute-force delete and re-create everything: in case the dialog for a RealtimeEffectListItemModel is open,
         // we don't want it to close unless the effect state it refers to was removed.
@@ -157,6 +144,7 @@ void RealtimeEffectListModel::refresh(effects::TrackId trackId)
         }
         m_trackEffectLists[trackId] = std::move(newList);
     }
+
     endResetModel();
 }
 

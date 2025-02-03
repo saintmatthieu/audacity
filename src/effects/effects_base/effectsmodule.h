@@ -12,7 +12,6 @@ class EffectsConfiguration;
 class EffectsActionsController;
 class EffectsUiActions;
 class RealtimeEffectService;
-class StackManagerFacade;
 class EffectsModule : public muse::modularity::IModuleSetup
 {
 public:
@@ -29,6 +28,5 @@ private:
     std::shared_ptr<EffectsConfiguration> m_configuration;
     std::shared_ptr<EffectsActionsController> m_actionsController;
     std::shared_ptr<RealtimeEffectService> m_realtimeEffectService;
-    std::shared_ptr<StackManagerFacade> m_stackManager;
 };
 }
