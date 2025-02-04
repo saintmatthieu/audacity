@@ -161,12 +161,15 @@ void RealtimeEffectListModel::moveRow(int from, int to)
         return;
     }
 
-    if (from == to) {
+    const auto& list = m_trackEffectLists.at(*tId);
+
+    IF_ASSERT_FAILED(from >= 0 && from < list.size()) {
         return;
     }
 
-    const auto& list = m_trackEffectLists.at(*tId);
-    IF_ASSERT_FAILED(from >= 0 && from < list.size() && to >= 0 && to < list.size()) {
+    to = std::clamp<int>(to, 0, list.size() - 1);
+
+    if (from == to) {
         return;
     }
 

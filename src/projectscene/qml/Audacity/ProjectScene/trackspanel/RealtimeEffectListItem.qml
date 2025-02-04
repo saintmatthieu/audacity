@@ -10,24 +10,39 @@ import Audacity.Effects
 ListItemBlank {
     id: root
 
-    property var modelRef
-
     property var item: null
+    property var listView: null
     property var availableEffects: null
     property var handleMenuItemWithState: null
+    property int yOffset: 0
+    property int itemHeight: listView ? height + listView.spacing : 0
+    property alias yOffsetAnimation: yOffsetAnimation
+
+    readonly property int yOffsetAnimationDuration: 200
 
     height: 24
+    y: item ? item.getIndex() * itemHeight + yOffset : 0
     clip: false // should be true?
     background.color: "transparent"
     hoverHitColor: "transparent"
 
+    Behavior on yOffset {
+        NumberAnimation {
+            id: yOffsetAnimation
+            duration: yOffsetAnimationDuration
+            easing.type: Easing.InOutQuad
+        }
+    }
+
     DropArea {
-        id: dragTarget
+        id: dropArea
         anchors.fill: parent
         property alias item: root.item
 
         RowLayout {
             id: content
+
+            property alias item: root.item
 
             width: parent.width
             height: parent.height
@@ -45,14 +60,24 @@ ListItemBlank {
                     name: "DRAGGED"
                     when: gripButton.mouseArea.drag.active
                     AnchorChanges { target: content; anchors.verticalCenter: undefined; anchors.horizontalCenter: undefined }
-                    PropertyChanges { target: root; z: modelRef.count() }
+                    PropertyChanges { target: root; z: listView.model.count() }
                 },
                 State {
                     name: "CONTAINS_DRAG"
-                    when: dragTarget.containsDrag
-                    PropertyChanges { target: root.background; color: "blue" }
+                    when: dropArea.containsDrag
                 }
             ]
+
+            onStateChanged: {
+                if (state !== "CONTAINS_DRAG" || yOffsetAnimation.running) {
+                    return
+                }
+                if (yOffset !== 0) {
+                    yOffset = 0
+                    return
+                }
+                yOffset = dropArea.drag.source.item.getIndex() < root.item.getIndex() ? -itemHeight : itemHeight
+            }
 
             FlatButton {
                 id: gripButton
@@ -75,15 +100,18 @@ ListItemBlank {
                     if (!content.Drag.target) {
                         return
                     }
-                    modelRef.moveRow(root.item.getIndex(), content.Drag.target.item.getIndex())
-                }
-
-                mouseArea.onPositionChanged: {
-                    if (!mouseArea.drag.active) {
-                        return;
+                    const items = listView.contentItem.children
+                    for (var i = 0; i < items.length; i++) {
+                        var item = items[i]
+                        if (item.hasOwnProperty("yOffset")) {
+                            item.yOffsetAnimation.duration = 0
+                            item.yOffset = 0
+                            item.yOffsetAnimation.duration = yOffsetAnimationDuration
+                        }
                     }
-                    var posInListView = content.mapToItem(trackEffectList, 0, 0);
-                    // console.log("Y position relative to listView: " + posInListView.y);
+                    const posInListView = content.mapToItem(listView, 0, 0).y
+                    const targetIndex = Math.round(posInListView / itemHeight)
+                    listView.model.moveRow(root.item.getIndex(), targetIndex)
                 }
 
                 contentItem: StyledIconLabel {

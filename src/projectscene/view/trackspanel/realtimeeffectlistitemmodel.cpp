@@ -24,7 +24,7 @@ RealtimeEffectListItemModel::~RealtimeEffectListItemModel()
 int RealtimeEffectListItemModel::getIndex() const
 {
     const auto index = realtimeEffectService()->effectIndex(effectStateId);
-    IF_ASSERT_FAILED(index.has_value()) {
+    if (!index.has_value()) {
         return 0;
     }
     return *index;

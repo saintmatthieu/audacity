@@ -52,7 +52,7 @@ Rectangle {
 
         delegate: RealtimeEffectListItem {
             item: itemData
-            modelRef: trackEffectList.model
+            listView: trackEffectList
             availableEffects: trackEffectList.model.availableEffects
             handleMenuItemWithState: trackEffectList.model.handleMenuItemWithState
             width: trackEffectList.width - scrollbarContainer.width
