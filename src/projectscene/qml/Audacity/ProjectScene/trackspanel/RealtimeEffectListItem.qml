@@ -91,6 +91,8 @@ ListItemBlank {
                 listView.model.moveRow(root.index, targetIndex)
             }
             mouseArea.onPositionChanged: {
+                if (!mouseArea.drag.active)
+                    return
                 const posInListView = content.mapToItem(listView, 0, height / 2).y
                 const targetIndex = Math.floor(posInListView / itemHeight)
                 const siblings = listView.contentItem.children
@@ -108,12 +110,12 @@ ListItemBlank {
                 }
             }
             mouseArea.drag.minimumY: {
-                const origHotspotY = content.Drag.hotSpot.y + root.index * itemHeight
-                return -origHotspotY
+                const origHotspotY = (root.index + 0.5) * itemHeight
+                return -origHotspotY - 5
             }
             mouseArea.drag.maximumY: {
-                const origHotspotY = content.Drag.hotSpot.y + root.index * itemHeight
-                return listView.contentHeight - origHotspotY - 1
+                const origHotspotY = (root.index + 0.5) * itemHeight
+                return listView.contentHeight - origHotspotY - 5
             }
 
             contentItem: StyledIconLabel {
