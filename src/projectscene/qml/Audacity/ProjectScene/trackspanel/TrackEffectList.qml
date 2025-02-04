@@ -52,6 +52,7 @@ Rectangle {
 
         delegate: RealtimeEffectListItem {
             item: itemData
+            index: model.index
             listView: trackEffectList
             availableEffects: trackEffectList.model.availableEffects
             handleMenuItemWithState: trackEffectList.model.handleMenuItemWithState

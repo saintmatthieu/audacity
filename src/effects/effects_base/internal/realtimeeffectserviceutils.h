@@ -12,7 +12,6 @@
 #include <optional>
 
 namespace au::effects::utils {
-
 struct UtilData
 {
     au3::Au3Project* const au3Project;

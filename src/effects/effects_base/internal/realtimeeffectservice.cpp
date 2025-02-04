@@ -139,11 +139,6 @@ std::optional<std::string> RealtimeEffectService::effectTrackName(const Realtime
     return effectTrackName(*tId);
 }
 
-std::optional<EffectChainLinkIndex> RealtimeEffectService::effectIndex(const RealtimeEffectStatePtr& state) const
-{
-    return utils::effectIndex(globalContext()->currentProject(), state);
-}
-
 std::optional<std::vector<RealtimeEffectStatePtr> > RealtimeEffectService::effectStack(TrackId trackId) const
 {
     const auto data = utils::utilData(globalContext()->currentProject(), trackId);
@@ -163,7 +158,7 @@ void RealtimeEffectService::reorderRealtimeEffect(const RealtimeEffectStatePtr& 
     if (!tId.has_value()) {
         return;
     }
-    const auto oldIndex = effectIndex(state);
+    const auto oldIndex = utils::effectIndex(globalContext()->currentProject(), state);
     IF_ASSERT_FAILED(oldIndex.has_value()) {
         return;
     }

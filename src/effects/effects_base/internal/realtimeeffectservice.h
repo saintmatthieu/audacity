@@ -46,7 +46,6 @@ public:
 
     std::optional<TrackId> trackId(const RealtimeEffectStatePtr&) const override;
     std::optional<std::string> effectTrackName(const RealtimeEffectStatePtr& state) const override;
-    std::optional<EffectChainLinkIndex> effectIndex(const RealtimeEffectStatePtr& state) const override;
     std::optional<std::vector<RealtimeEffectStatePtr> > effectStack(TrackId trackId) const override;
 
     bool isActive(const RealtimeEffectStatePtr&) const override;

@@ -21,15 +21,6 @@ RealtimeEffectListItemModel::~RealtimeEffectListItemModel()
     effectsProvider()->hideEffect(effectStateId);
 }
 
-int RealtimeEffectListItemModel::getIndex() const
-{
-    const auto index = realtimeEffectService()->effectIndex(effectStateId);
-    if (!index.has_value()) {
-        return 0;
-    }
-    return *index;
-}
-
 bool RealtimeEffectListItemModel::prop_isMasterEffect() const
 {
     return realtimeEffectService()->trackId(effectStateId) == effects::IRealtimeEffectService::masterTrackId;
