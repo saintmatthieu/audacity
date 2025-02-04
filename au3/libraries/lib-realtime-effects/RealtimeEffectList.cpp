@@ -17,28 +17,27 @@ RealtimeEffectList::RealtimeEffectList()
 {
 }
 
+RealtimeEffectList::RealtimeEffectList(const RealtimeEffectList &other)
+{
+   *this = other;
+}
+
 RealtimeEffectList::~RealtimeEffectList()
 {
 }
 
 std::unique_ptr<ClientData::Cloneable<>> RealtimeEffectList::Clone() const
 {
-   return Duplicate();
+   return std::make_unique<RealtimeEffectList>(*this);
 }
 
-std::unique_ptr<RealtimeEffectList> RealtimeEffectList::Duplicate() const
+RealtimeEffectList& RealtimeEffectList::operator=(const RealtimeEffectList& other)
 {
-   auto result = std::make_unique<RealtimeEffectList>();
-   ShallowCopyTo(*result);
-   return result;
-}
-
-void RealtimeEffectList::ShallowCopyTo(RealtimeEffectList& dst) const
-{
-   dst.mStates.clear();
-   for (auto &pState : mStates)
-      dst.mStates.push_back(pState);
-   dst.SetActive(this->IsActive());
+   mStates.clear();
+   for (auto &pState : other.mStates)
+      mStates.push_back(pState);
+   SetActive(other.IsActive());
+   return *this;
 }
 
 // Access for per-project effect list

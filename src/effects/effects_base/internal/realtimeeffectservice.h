@@ -57,28 +57,16 @@ public:
     void setTrackEffectsActive(TrackId trackId, bool active) override;
 
 private:
-    void updateSubscriptions(const au::project::IAudacityProjectPtr& project);
-    Observer::Subscription subscribeToRealtimeEffectList(TrackId trackId, RealtimeEffectList&);
+    void onProjectChanged(const au::project::IAudacityProjectPtr& project);
+    void registerRealtimeEffectList(TrackId, RealtimeEffectList&);
+    void unregisterRealtimeEffectList(TrackId);
     void onTrackListEvent(const TrackListEvent&);
-    void onWaveTrackAdded(WaveTrack&);
-    std::string getEffectName(const std::string& effectId) const;
     std::string getEffectName(const RealtimeEffectState& state) const;
-    std::string getTrackName(const au::au3::Au3Project& project, au::effects::TrackId trackId) const;
     std::optional<std::string> effectTrackName(TrackId trackId) const;
     const RealtimeEffectList* realtimeEffectList(au::effects::TrackId) const;
     RealtimeEffectList* realtimeEffectList(au::effects::TrackId);
 
-    struct UtilData
-    {
-        au::au3::Au3Project* const au3Project;
-        au::au3::Au3Track* const au3Track;
-        trackedit::ITrackeditProject* const trackeditProject;
-        RealtimeEffectList* const effectList;
-    };
-
-    std::optional<UtilData> utilData(TrackId) const;
     muse::async::Channel<RealtimeEffectStatePtr> m_isActiveChanged;
-
     Observer::Subscription m_tracklistSubscription;
     std::unordered_map<TrackId, Observer::Subscription> m_rtEffectSubscriptions;
     muse::async::Channel<TrackId> m_realtimeEffectStackChanged;

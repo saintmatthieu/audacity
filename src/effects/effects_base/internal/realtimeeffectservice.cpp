@@ -1,107 +1,48 @@
 #include "realtimeeffectservice.h"
 
+#include "mastereffectundoredo.h"
+#include "realtimeeffectserviceutils.h"
+
 #include "libraries/lib-audio-io/AudioIO.h"
 
 #include "libraries/lib-wave-track/WaveTrack.h"
 #include "libraries/lib-effects/EffectManager.h"
 #include "libraries/lib-realtime-effects/RealtimeEffectState.h"
 #include "libraries/lib-realtime-effects/RealtimeEffectList.h"
-#include "libraries/lib-project-history/UndoManager.h"
-#include "libraries/lib-project/Project.h"
-
-#include "au3wrap/au3types.h"
-#include "au3wrap/internal/domaccessor.h"
 
 #include "project/iaudacityproject.h"
 
 #include "global/types/translatablestring.h"
 
 namespace au::effects {
-namespace {
-struct RealtimeEffectStackChanged : public ClientData::Base
-{
-    static RealtimeEffectStackChanged& Get(AudacityProject& project);
-    muse::async::Channel<TrackId> channel;
-};
-
-static const AudacityProject::AttachedObjects::RegisteredFactory key{
-    [](au3::Au3Project&)
-    {
-        return std::make_shared<RealtimeEffectStackChanged>();
-    } };
-
-RealtimeEffectStackChanged& RealtimeEffectStackChanged::Get(AudacityProject& project)
-{
-    return project.AttachedObjects::Get<RealtimeEffectStackChanged>(key);
-}
-
-bool operator!=(const RealtimeEffectList& a, const RealtimeEffectList& b)
-{
-    if (a.GetStatesCount() != b.GetStatesCount() || a.IsActive() != b.IsActive()) {
-        return true;
-    }
-    for (auto i = 0; i < static_cast<int>(a.GetStatesCount()); ++i) {
-        if (a.GetStateAt(i) != b.GetStateAt(i)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 /*!
- * \brief The AU3 `Track` objects have a `RealtimeEffectList` attached.
- * The `TrackListRestorer`, when adding a new history state, stores a copy of the track as well as all its attachments.
- * This way, when undoing/redoing, the RealtimeEffectService gets the list pointers of the previous/next state.
- * Here we do the same, but for the master track.
+ * Note on realtime effect list updates.
+ *
+ * Synchronization of all realtime effect lists (for regular tracks as well as the master track)
+ * require handling events from several sources.
+ *
+ * - Project-change
+ * - Track added/removed, because user added/removed a track, undo or redo was called, or e.g. a destructive effect was applied
+ * - A realtime effect was added/moved/replaced/removed
+ *
+ * Track realtime effects are attached to WaveTrack objects, so whenever there is an undo/redo,
+ * the track realtime effect lists are updated and we just need to notify that there was a change.
+ * For the master effects, undo and redo are specially handled by the `MasterEffectListRestorer`.
+ *
+ * The RealtimeEffectList assignment operator (RealtimeEffectList::operator=) is on purpose silent ;
+ * only once the assignment is finished do we send a notification.
+ * This allows realtime effect list UI models to not unnecessarily close realtime effect dialogs.
  */
-class MasterEffectListRestorer final : public UndoStateExtension
-{
-public:
-    MasterEffectListRestorer(au3::Au3Project& project)
-        : m_targetList(RealtimeEffectList::Get(project).Duplicate())
-    {
-    }
-
-    void RestoreUndoRedoState(au3::Au3Project& project) override
-    {
-        auto& changed = RealtimeEffectStackChanged::Get(project).channel;
-        auto& currentList = RealtimeEffectList::Get(project);
-        if (*m_targetList != currentList) {
-            m_targetList->ShallowCopyTo(currentList);
-            changed.send(IRealtimeEffectService::masterTrackId);
-        }
-    }
-
-    muse::async::Channel<TrackId> realtimeEffectStackChanged;
-
-private:
-    const std::unique_ptr<RealtimeEffectList> m_targetList;
-};
-
-static UndoRedoExtensionRegistry::Entry sEntry {
-    [](au3::Au3Project& project) -> std::shared_ptr<UndoStateExtension>
-    {
-        return std::make_shared<MasterEffectListRestorer>(project);
-    }
-};
-}
-
-std::string RealtimeEffectService::getEffectName(const RealtimeEffectState& state) const
-{
-    return effectsProvider()->effectName(state.GetID().ToStdString());
-}
 
 void RealtimeEffectService::init()
 {
     globalContext()->currentProjectChanged().onNotify(this, [this]
-    {
-        updateSubscriptions(globalContext()->currentProject());
-    });
+    { onProjectChanged(globalContext()->currentProject()); });
 
-    updateSubscriptions(globalContext()->currentProject());
+    onProjectChanged(globalContext()->currentProject());
 }
 
-void RealtimeEffectService::updateSubscriptions(const au::project::IAudacityProjectPtr& project)
+void RealtimeEffectService::onProjectChanged(const au::project::IAudacityProjectPtr& project)
 {
     m_rtEffectSubscriptions.clear();
 
@@ -111,12 +52,14 @@ void RealtimeEffectService::updateSubscriptions(const au::project::IAudacityProj
 
     auto au3Project = reinterpret_cast<au::au3::Au3Project*>(project->au3ProjectPtr());
 
-    RealtimeEffectStackChanged::Get(*au3Project).channel = m_realtimeEffectStackChanged;
+    setNotificationChannelForMasterEffectUndoRedo(*au3Project, m_realtimeEffectStackChanged);
 
     auto& trackList = TrackList::Get(*au3Project);
+
     for (WaveTrack* track : trackList.Any<WaveTrack>()) {
-        onWaveTrackAdded(*track);
+        registerRealtimeEffectList(track->GetId(), RealtimeEffectList::Get(*track));
     }
+    registerRealtimeEffectList(masterTrackId, RealtimeEffectList::Get(*au3Project));
 
     m_tracklistSubscription = trackList.Subscribe([this, w = weak_from_this()](const TrackListEvent& e)
     {
@@ -125,44 +68,11 @@ void RealtimeEffectService::updateSubscriptions(const au::project::IAudacityProj
             onTrackListEvent(e);
         }
     });
-
-    // Regular tracks get added to the project and we will get the notifications, but we have to do it proactively for the master track.
-    m_rtEffectSubscriptions[masterTrackId] = subscribeToRealtimeEffectList(masterTrackId, RealtimeEffectList::Get(*au3Project));
-    m_realtimeEffectStackChanged.send(masterTrackId);
 }
 
-void RealtimeEffectService::onTrackListEvent(const TrackListEvent& e)
+void RealtimeEffectService::registerRealtimeEffectList(TrackId trackId, RealtimeEffectList& list)
 {
-    switch (e.mType) {
-    case TrackListEvent::ADDITION: {
-        if (const auto waveTrack = std::dynamic_pointer_cast<WaveTrack>(e.mpTrack.lock())) {
-            onWaveTrackAdded(*waveTrack);
-        }
-    }
-    break;
-    case TrackListEvent::DELETION:
-    {
-        IF_ASSERT_FAILED(e.mId.has_value()) {
-            return;
-        }
-        m_rtEffectSubscriptions.erase(*e.mId);
-        m_realtimeEffectStackChanged.send(*e.mId);
-    }
-    break;
-    }
-}
-
-void RealtimeEffectService::onWaveTrackAdded(WaveTrack& track)
-{
-    // Renew the subscription: `track` may have a registered ID, it may yet be a new object.
-    auto& list = RealtimeEffectList::Get(track);
-    m_rtEffectSubscriptions[track.GetId()] = subscribeToRealtimeEffectList(track.GetId(), list);
-    m_realtimeEffectStackChanged.send(track.GetId());
-}
-
-Observer::Subscription RealtimeEffectService::subscribeToRealtimeEffectList(TrackId trackId, RealtimeEffectList& list)
-{
-    return list.Subscribe([this, trackId, weakThis = weak_from_this()](const RealtimeEffectListMessage& msg)
+    m_rtEffectSubscriptions[trackId] = list.Subscribe([this, trackId, weakThis = weak_from_this()](const RealtimeEffectListMessage& msg)
     {
         const auto lifeguard = weakThis.lock();
         if (!lifeguard) {
@@ -177,6 +87,37 @@ Observer::Subscription RealtimeEffectService::subscribeToRealtimeEffectList(Trac
             break;
         }
     });
+
+    m_realtimeEffectStackChanged.send(trackId);
+}
+
+void RealtimeEffectService::unregisterRealtimeEffectList(TrackId trackId)
+{
+    m_rtEffectSubscriptions.erase(trackId);
+    m_realtimeEffectStackChanged.send(trackId);
+}
+
+void RealtimeEffectService::onTrackListEvent(const TrackListEvent& e)
+{
+    switch (e.mType) {
+    case TrackListEvent::ADDITION: {
+        const auto waveTrack = std::dynamic_pointer_cast<WaveTrack>(e.mpTrack.lock());
+        if (!waveTrack) {
+            // TODO @saintmatthieu I've seen these transitory events but haven't looked for the cause.
+            return;
+        }
+        registerRealtimeEffectList(waveTrack->GetId(), RealtimeEffectList::Get(*waveTrack));
+    }
+    break;
+    case TrackListEvent::DELETION:
+    {
+        IF_ASSERT_FAILED(e.mId.has_value()) {
+            return;
+        }
+        unregisterRealtimeEffectList(*e.mId);
+    }
+    break;
+    }
 }
 
 muse::async::Channel<TrackId> RealtimeEffectService::realtimeEffectStackChanged() const
@@ -186,22 +127,7 @@ muse::async::Channel<TrackId> RealtimeEffectService::realtimeEffectStackChanged(
 
 std::optional<TrackId> RealtimeEffectService::trackId(const RealtimeEffectStatePtr& state) const
 {
-    const project::IAudacityProjectPtr project = globalContext()->currentProject();
-    if (!project) {
-        return {};
-    }
-    const auto au3Project = reinterpret_cast<au3::Au3Project*>(project->au3ProjectPtr());
-    auto& trackList = TrackList::Get(*au3Project);
-    for (WaveTrack* track : trackList.Any<WaveTrack>()) {
-        if (RealtimeEffectList::Get(*track).FindState(state)) {
-            return track->GetId();
-        }
-    }
-    auto& masterList = RealtimeEffectList::Get(*au3Project);
-    if (masterList.FindState(state)) {
-        return masterTrackId;
-    }
-    return {};
+    return utils::trackId(globalContext()->currentProject(), state);
 }
 
 std::optional<std::string> RealtimeEffectService::effectTrackName(const RealtimeEffectStatePtr& state) const
@@ -215,27 +141,12 @@ std::optional<std::string> RealtimeEffectService::effectTrackName(const Realtime
 
 std::optional<EffectChainLinkIndex> RealtimeEffectService::effectIndex(const RealtimeEffectStatePtr& state) const
 {
-    const project::IAudacityProjectPtr project = globalContext()->currentProject();
-    IF_ASSERT_FAILED(project) {
-        return {};
-    }
-    const auto au3Project = reinterpret_cast<au3::Au3Project*>(project->au3ProjectPtr());
-    auto& trackList = TrackList::Get(*au3Project);
-    for (WaveTrack* track : trackList.Any<WaveTrack>()) {
-        if (const std::optional<size_t> index = RealtimeEffectList::Get(*track).FindState(state)) {
-            return static_cast<EffectChainLinkIndex>(*index);
-        }
-    }
-    auto& masterList = RealtimeEffectList::Get(*au3Project);
-    if (const std::optional<size_t> index = masterList.FindState(state)) {
-        return static_cast<EffectChainLinkIndex>(*index);
-    }
-    return {};
+    return utils::effectIndex(globalContext()->currentProject(), state);
 }
 
 std::optional<std::vector<RealtimeEffectStatePtr> > RealtimeEffectService::effectStack(TrackId trackId) const
 {
-    const auto data = utilData(trackId);
+    const auto data = utils::utilData(globalContext()->currentProject(), trackId);
     if (!data) {
         return {};
     }
@@ -271,38 +182,17 @@ std::optional<std::string> RealtimeEffectService::effectTrackName(TrackId trackI
     if (trackId == masterTrackId) {
         return muse::TranslatableString("effects", "Master").translated().toStdString();
     }
-    const auto data = utilData(trackId);
-    if (data) {
-        return data->trackeditProject->trackName(trackId);
+    const auto trackeditProject = globalContext()->currentTrackeditProject();
+    if (trackeditProject) {
+        return trackeditProject->trackName(trackId);
     } else {
         return {};
     }
 }
 
-std::optional<RealtimeEffectService::UtilData> RealtimeEffectService::utilData(TrackId trackId) const
-{
-    const project::IAudacityProjectPtr project = globalContext()->currentProject();
-    if (!project) {
-        return {};
-    }
-
-    const auto au3Project = reinterpret_cast<au3::Au3Project*>(project->au3ProjectPtr());
-    const auto isMasterTrack = trackId == masterTrackId;
-    const auto au3Track
-        = isMasterTrack ? nullptr : dynamic_cast<au3::Au3Track*>(au3::DomAccessor::findTrack(*au3Project,
-                                                                                             au3::Au3TrackId(trackId)));
-    const auto trackeditProject = globalContext()->currentTrackeditProject().get();
-    const auto effectList = au3Track ? &RealtimeEffectList::Get(*au3Track) : &RealtimeEffectList::Get(*au3Project);
-
-    if (!au3Project || !(isMasterTrack || au3Track) || !trackeditProject) {
-        return {};
-    }
-    return UtilData{ au3Project, au3Track, trackeditProject, effectList };
-}
-
 RealtimeEffectStatePtr RealtimeEffectService::addRealtimeEffect(TrackId trackId, const muse::String& effectId)
 {
-    const auto data = utilData(trackId);
+    const auto data = utils::utilData(globalContext()->currentProject(), trackId);
     IF_ASSERT_FAILED(data) {
         return nullptr;
     }
@@ -332,7 +222,7 @@ std::shared_ptr<RealtimeEffectState> findEffectState(RealtimeEffectList& effectL
 
 void RealtimeEffectService::removeRealtimeEffect(TrackId trackId, const RealtimeEffectStatePtr& effectStateId)
 {
-    const auto data = utilData(trackId);
+    const auto data = utils::utilData(globalContext()->currentProject(), trackId);
     IF_ASSERT_FAILED(data) {
         return;
     }
@@ -350,7 +240,7 @@ void RealtimeEffectService::removeRealtimeEffect(TrackId trackId, const Realtime
 
 RealtimeEffectStatePtr RealtimeEffectService::replaceRealtimeEffect(TrackId trackId, int effectListIndex, const muse::String& newEffectId)
 {
-    const auto data = utilData(trackId);
+    const auto data = utils::utilData(globalContext()->currentProject(), trackId);
     IF_ASSERT_FAILED(data) {
         return nullptr;
     }
@@ -404,7 +294,7 @@ void RealtimeEffectService::setTrackEffectsActive(TrackId trackId, bool active)
 
 const RealtimeEffectList* RealtimeEffectService::realtimeEffectList(TrackId trackId) const
 {
-    const auto data = utilData(trackId);
+    const auto data = utils::utilData(globalContext()->currentProject(), trackId);
     if (!data) {
         return nullptr;
     }
@@ -414,6 +304,11 @@ const RealtimeEffectList* RealtimeEffectService::realtimeEffectList(TrackId trac
 RealtimeEffectList* RealtimeEffectService::realtimeEffectList(TrackId trackId)
 {
     return const_cast<RealtimeEffectList*>(const_cast<const RealtimeEffectService*>(this)->realtimeEffectList(trackId));
+}
+
+std::string RealtimeEffectService::getEffectName(const RealtimeEffectState& state) const
+{
+    return effectsProvider()->effectName(state.GetID().ToStdString());
 }
 }
 
