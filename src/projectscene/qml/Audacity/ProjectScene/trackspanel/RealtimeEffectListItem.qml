@@ -20,9 +20,6 @@ ListItemBlank {
     property int topMargin: 0
 
     property int itemHeight: listView ? height + listView.spacing : 0
-    property alias yOffsetAnimation: yOffsetAnimation
-
-    readonly property int yOffsetAnimationDuration: 200
 
     height: 24
     y: index * itemHeight + yOffset
@@ -30,12 +27,11 @@ ListItemBlank {
     background.color: "transparent"
     hoverHitColor: "transparent"
 
-    Behavior on yOffset {
-       NumberAnimation {
-           id: yOffsetAnimation
-           duration: yOffsetAnimationDuration
-           easing.type: Easing.InOutQuad
-       }
+    Behavior on y {
+        NumberAnimation {
+            duration: 200
+            easing.type: Easing.InOutQuad
+        }
     }
 
     RowLayout {
@@ -79,15 +75,6 @@ ListItemBlank {
             mouseArea.drag.target: content
             mouseArea.drag.axis: Drag.YAxis
             mouseArea.onReleased: {
-                const items = listView.contentItem.children
-                for (var i = 0; i < items.length; i++) {
-                    var item = items[i]
-                    if (item.hasOwnProperty("yOffset")) {
-                        item.yOffsetAnimation.duration = 0
-                        item.yOffset = 0
-                        item.yOffsetAnimation.duration = yOffsetAnimationDuration
-                    }
-                }
                 const posInListView = content.mapToItem(listView, 0, itemHeight / 2 - topMargin).y + scrollOffset
                 const targetIndex = Math.floor(posInListView / itemHeight)
                 listView.model.moveRow(root.index, targetIndex)
