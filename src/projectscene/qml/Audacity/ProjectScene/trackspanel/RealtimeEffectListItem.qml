@@ -107,6 +107,14 @@ ListItemBlank {
                     }
                 }
             }
+            mouseArea.drag.minimumY: {
+                const origHotspotY = content.Drag.hotSpot.y + root.index * itemHeight
+                return -origHotspotY
+            }
+            mouseArea.drag.maximumY: {
+                const origHotspotY = content.Drag.hotSpot.y + root.index * itemHeight
+                return listView.contentHeight - origHotspotY - 1
+            }
 
             contentItem: StyledIconLabel {
                 iconCode: IconCode.TOOLBAR_GRIP
