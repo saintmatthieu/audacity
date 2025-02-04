@@ -16,12 +16,11 @@ ListItemBlank {
     property var handleMenuItemWithState: null
     property int index: -1
     property int yOffset: 0
-    onYOffsetChanged: console.log("yOffset:", yOffset)
 
     property int itemHeight: listView ? height + listView.spacing : 0
     property alias yOffsetAnimation: yOffsetAnimation
 
-    readonly property int yOffsetAnimationDuration: 0
+    readonly property int yOffsetAnimationDuration: 200
 
     height: 24
     y: index * itemHeight + yOffset
@@ -35,33 +34,6 @@ ListItemBlank {
            duration: yOffsetAnimationDuration
            easing.type: Easing.InOutQuad
        }
-    }
-
-    DropArea {
-        id: dropArea
-
-        anchors.fill: parent
-        enabled: !content.Drag.active
-
-        onContainsDragChanged: {
-            if (!dropArea.drag.source)
-                return
-            const draggedIndex = dropArea.drag.source.index
-            const myIndex = root.index
-            if (!containsDrag || yOffsetAnimation.running || draggedIndex === myIndex) {
-                return
-            }
-            if (root.yOffset !== 0) {
-                root.yOffset = 0
-                console.log("index", myIndex, "offset reset to 0")
-                return
-            }
-            if (draggedIndex < myIndex)
-                root.yOffset = -itemHeight
-            else
-                root.yOffset = itemHeight
-            console.log("index", myIndex, "offset:", root.yOffset)
-        }
     }
 
     RowLayout {
@@ -114,9 +86,26 @@ ListItemBlank {
                         item.yOffsetAnimation.duration = yOffsetAnimationDuration
                     }
                 }
-                const posInListView = content.mapToItem(listView, 0, 0).y
-                const targetIndex = Math.round(posInListView / itemHeight)
+                const posInListView = content.mapToItem(listView, 0, height / 2).y
+                const targetIndex = Math.floor(posInListView / itemHeight)
                 listView.model.moveRow(root.index, targetIndex)
+            }
+            mouseArea.onPositionChanged: {
+                const posInListView = content.mapToItem(listView, 0, height / 2).y
+                const targetIndex = Math.floor(posInListView / itemHeight)
+                const siblings = listView.contentItem.children
+                for (var i = 0; i < siblings.length; ++i) {
+                    const sibling = siblings[i]
+                    if (!sibling.hasOwnProperty("yOffset"))
+                        continue
+                    else if (sibling.index > root.index && sibling.index <= targetIndex) {
+                        sibling.yOffset = -itemHeight
+                    } else if (sibling.index < root.index && sibling.index >= targetIndex) {
+                        sibling.yOffset = itemHeight
+                    } else {
+                        sibling.yOffset = 0
+                    }
+                }
             }
 
             contentItem: StyledIconLabel {
