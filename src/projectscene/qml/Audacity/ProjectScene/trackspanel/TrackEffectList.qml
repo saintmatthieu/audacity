@@ -52,6 +52,8 @@ Rectangle {
 
         delegate: RealtimeEffectListItem {
             item: itemData
+            scrollOffset: trackEffectList.contentY + root.topMargin
+            topMargin: root.topMargin
             index: model.index
             listView: trackEffectList
             availableEffects: trackEffectList.model.availableEffects

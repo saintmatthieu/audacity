@@ -16,6 +16,8 @@ ListItemBlank {
     property var handleMenuItemWithState: null
     property int index: -1
     property int yOffset: 0
+    property int scrollOffset: 0
+    property int topMargin: 0
 
     property int itemHeight: listView ? height + listView.spacing : 0
     property alias yOffsetAnimation: yOffsetAnimation
@@ -86,14 +88,14 @@ ListItemBlank {
                         item.yOffsetAnimation.duration = yOffsetAnimationDuration
                     }
                 }
-                const posInListView = content.mapToItem(listView, 0, height / 2).y
+                const posInListView = content.mapToItem(listView, 0, itemHeight / 2 - topMargin).y + scrollOffset
                 const targetIndex = Math.floor(posInListView / itemHeight)
                 listView.model.moveRow(root.index, targetIndex)
             }
             mouseArea.onPositionChanged: {
                 if (!mouseArea.drag.active)
                     return
-                const posInListView = content.mapToItem(listView, 0, height / 2).y
+                const posInListView = content.mapToItem(listView, 0, itemHeight / 2 - topMargin).y + scrollOffset
                 const targetIndex = Math.floor(posInListView / itemHeight)
                 const siblings = listView.contentItem.children
                 for (var i = 0; i < siblings.length; ++i) {
@@ -111,11 +113,11 @@ ListItemBlank {
             }
             mouseArea.drag.minimumY: {
                 const origHotspotY = (root.index + 0.5) * itemHeight
-                return -origHotspotY - 5
+                return -origHotspotY - 5 + scrollOffset
             }
             mouseArea.drag.maximumY: {
                 const origHotspotY = (root.index + 0.5) * itemHeight
-                return listView.contentHeight - origHotspotY - 5
+                return listView.height - origHotspotY - 5 + scrollOffset
             }
 
             contentItem: StyledIconLabel {
