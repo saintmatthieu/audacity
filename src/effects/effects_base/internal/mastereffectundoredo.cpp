@@ -1,4 +1,3 @@
-
 #include "mastereffectundoredo.h"
 
 #include "irealtimeeffectservice.h"

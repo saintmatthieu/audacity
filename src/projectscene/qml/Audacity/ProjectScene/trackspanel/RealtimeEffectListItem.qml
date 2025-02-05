@@ -112,14 +112,51 @@ ListItemBlank {
                         sibling.yOffset = 0
                     }
                 }
+                // Check if the mouse position is at the top or bottom of the list
+                if (posInListView < 16 || posInListView > listView.height - 16) {
+                    // Start a timer to scroll the list
+                    if (!scrollTimer.running) {
+                        console.log("Starting scroll timer")
+                        scrollTimer.start()
+                    }
+                } else if (scrollTimer.running) {
+                    console.log("Stopping scroll timer")
+                    scrollTimer.stop()
+                }
             }
+
             mouseArea.drag.minimumY: {
                 const origHotspotY = (root.index + 0.5) * itemHeight
-                return -origHotspotY - 5 + scrollOffset
+                return -origHotspotY - 5
             }
             mouseArea.drag.maximumY: {
                 const origHotspotY = (root.index + 0.5) * itemHeight
-                return listView.height - origHotspotY - 5 + scrollOffset
+                return listView.contentHeight - origHotspotY - 5
+            }
+
+            Timer {
+                id: scrollTimer
+                // 60 fps
+                interval: 1000 / 60
+                repeat: true
+                running: false
+                onTriggered: {
+                    const mouseDrag = gripButton.mouseArea.drag
+                    if (mouseDrag.y === mouseDrag.mimimumY || mouseDrag.y === mouseDrag.maximumY) {
+                        console.log("Stopping scroll timer because mouse is at the edge")
+                        scrollTimer.stop()
+                        return
+                    }
+                    const posInListView = content.mapToItem(listView, 0, itemHeight / 2 - topMargin).y + scrollOffset
+                    const targetIndex = Math.floor(posInListView / itemHeight)
+                    const siblings = listView.contentItem.children
+                    if (posInListView < 0) {
+                        listView.contentY -= 1
+                    } else if (posInListView > listView.height) {
+                        listView.contentY += 1
+                    }
+                    console.log("contentY", listView.contentY)
+                }
             }
 
             contentItem: StyledIconLabel {
