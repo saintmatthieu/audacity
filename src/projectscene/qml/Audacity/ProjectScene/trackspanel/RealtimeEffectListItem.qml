@@ -119,9 +119,6 @@ ListItemBlank {
                         console.log("Starting scroll timer")
                         scrollTimer.start()
                     }
-                } else if (scrollTimer.running) {
-                    console.log("Stopping scroll timer")
-                    scrollTimer.stop()
                 }
             }
 
@@ -135,27 +132,43 @@ ListItemBlank {
             }
 
             Timer {
+                // log every second
+                interval: 1000
+                running: true
+                repeat: true
+                onTriggered: {
+                    // console.log("contentY", listView.contentY + topMargin)
+                }
+            }
+
+            Timer {
                 id: scrollTimer
                 // 60 fps
                 interval: 1000 / 60
                 repeat: true
                 running: false
                 onTriggered: {
-                    const mouseDrag = gripButton.mouseArea.drag
-                    if (mouseDrag.y === mouseDrag.mimimumY || mouseDrag.y === mouseDrag.maximumY) {
-                        console.log("Stopping scroll timer because mouse is at the edge")
-                        scrollTimer.stop()
-                        return
-                    }
+                    const listY = listView.contentY + topMargin
                     const posInListView = content.mapToItem(listView, 0, itemHeight / 2 - topMargin).y + scrollOffset
                     const targetIndex = Math.floor(posInListView / itemHeight)
                     const siblings = listView.contentItem.children
                     if (posInListView < 0) {
-                        listView.contentY -= 1
+                        const nextY = listView.contentY - 1
+                        if (nextY <= 0) {
+                            console.log("Reached top")
+                            stop()
+                            return
+                        }
+                        listView.contentY = nextY
                     } else if (posInListView > listView.height) {
-                        listView.contentY += 1
+                        const nextY = listView.contentY + 1
+                        if (nextY >= listView.contentHeight - listView.height) {
+                            console.log("Reached bottom")
+                            stop()
+                            return
+                        }
+                        listView.contentY = nextY
                     }
-                    console.log("contentY", listView.contentY)
                 }
             }
 
