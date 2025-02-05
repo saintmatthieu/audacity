@@ -18,7 +18,7 @@ ListItemBlank {
     property int yOffset: 0
     property int scrollOffset: 0
     property int topMargin: 0
-
+    readonly property int animationDuration: 200
     property int itemHeight: listView ? height + listView.spacing : 0
 
     height: 24
@@ -29,7 +29,8 @@ ListItemBlank {
 
     Behavior on y {
         NumberAnimation {
-            duration: 200
+            id: yAnimation
+            duration: animationDuration
             easing.type: Easing.InOutQuad
         }
     }
@@ -77,7 +78,21 @@ ListItemBlank {
             mouseArea.onReleased: {
                 const posInListView = content.mapToItem(listView, 0, itemHeight / 2 - topMargin).y + scrollOffset
                 const targetIndex = Math.floor(posInListView / itemHeight)
+                const siblings = listView.contentItem.children
+
+                const prevContentY = listView.contentY
+                // Temporarily disable the animation, otherwise the dragged item first returns to its original position
+                // before sliding to its new position, which looks strange.
+                yAnimation.duration = 0
+                for (var i = 0; i < siblings.length; ++i) {
+                    const sibling = siblings[i]
+                    if (sibling.hasOwnProperty("yOffset")) {
+                        sibling.yOffset = 0
+                    }
+                }
                 listView.model.moveRow(root.index, targetIndex)
+                listView.contentY = prevContentY
+                yAnimation.duration = animationDuration
             }
             mouseArea.onPositionChanged: {
                 if (!mouseArea.drag.active)

@@ -42,6 +42,10 @@ public:
     RealtimeEffectStatePtr replaceRealtimeEffect(TrackId, int effectListIndex, const EffectId& newEffectId) override;
     void reorderRealtimeEffect(const RealtimeEffectStatePtr& state, int newIndex) override;
 
+    muse::async::Channel<TrackId, EffectChainLinkIndex, RealtimeEffectStatePtr> realtimeEffectAdded() const override;
+    muse::async::Channel<TrackId, RealtimeEffectStatePtr> realtimeEffectRemoved() const override;
+    muse::async::Channel<TrackId, EffectChainLinkIndex, RealtimeEffectStatePtr> realtimeEffectReplaced() const override;
+    muse::async::Channel<TrackId, EffectChainLinkIndex, EffectChainLinkIndex> realtimeEffectMoved() const override;
     muse::async::Channel<TrackId> realtimeEffectStackChanged() const override;
 
     std::optional<TrackId> trackId(const RealtimeEffectStatePtr&) const override;
@@ -62,12 +66,17 @@ private:
     void onTrackListEvent(const TrackListEvent&);
     std::string getEffectName(const RealtimeEffectState& state) const;
     std::optional<std::string> effectTrackName(TrackId trackId) const;
+    RealtimeEffectStatePtr effect(TrackId trackId, EffectChainLinkIndex index) const;
     const RealtimeEffectList* realtimeEffectList(au::effects::TrackId) const;
     RealtimeEffectList* realtimeEffectList(au::effects::TrackId);
 
     muse::async::Channel<RealtimeEffectStatePtr> m_isActiveChanged;
     Observer::Subscription m_tracklistSubscription;
     std::unordered_map<TrackId, Observer::Subscription> m_rtEffectSubscriptions;
+    muse::async::Channel<TrackId, EffectChainLinkIndex, RealtimeEffectStatePtr> m_realtimeEffectAdded;
+    muse::async::Channel<TrackId, RealtimeEffectStatePtr> m_realtimeEffectRemoved;
+    muse::async::Channel<TrackId, EffectChainLinkIndex, RealtimeEffectStatePtr> m_realtimeEffectReplaced;
+    muse::async::Channel<TrackId, EffectChainLinkIndex, EffectChainLinkIndex> m_realtimeEffectMoved;
     muse::async::Channel<TrackId> m_realtimeEffectStackChanged;
 };
 }

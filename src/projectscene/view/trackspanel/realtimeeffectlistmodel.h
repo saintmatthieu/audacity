@@ -52,10 +52,15 @@ private:
     void doPopulateMenu() override;
     void onSelectedTrackIdChanged() override;
 
+    bool belongsWithMe(effects::TrackId trackId) const;
+    void onInserted(effects::TrackId trackId, effects::EffectChainLinkIndex index, const effects::RealtimeEffectStatePtr& newState);
+    void onReplaced(effects::TrackId trackId, effects::EffectChainLinkIndex index, const effects::RealtimeEffectStatePtr& newState);
+    void onRemoved(effects::TrackId trackId, const effects::RealtimeEffectStatePtr& state);
+    void onMoved(effects::TrackId trackId, effects::EffectChainLinkIndex from, effects::EffectChainLinkIndex to);
     void onProjectChanged();
     void refresh(effects::TrackId trackId);
 
-    using EffectList = std::vector<RealtimeEffectListItemModelPtr>;
+    using EffectList = QList<RealtimeEffectListItemModelPtr>;
     std::map<effects::TrackId, EffectList> m_trackEffectLists;
 };
 }

@@ -80,11 +80,22 @@ void RealtimeEffectService::registerRealtimeEffectList(TrackId trackId, Realtime
         }
         switch (msg.type) {
         case RealtimeEffectListMessage::Type::Insert:
+            m_realtimeEffectAdded.send(trackId, msg.srcIndex, msg.affectedState);
+            return;
         case RealtimeEffectListMessage::Type::Remove:
-        case RealtimeEffectListMessage::Type::DidReplace:
+            m_realtimeEffectRemoved.send(trackId, msg.affectedState);
+            return;
+        case RealtimeEffectListMessage::Type::DidReplace: {
+            const auto newState = effect(trackId, msg.srcIndex);
+            IF_ASSERT_FAILED(newState) {
+                return;
+            }
+            m_realtimeEffectReplaced.send(trackId, msg.srcIndex, newState);
+        }
+            return;
         case RealtimeEffectListMessage::Type::Move:
-            m_realtimeEffectStackChanged.send(trackId);
-            break;
+            m_realtimeEffectMoved.send(trackId, msg.srcIndex, msg.dstIndex);
+            return;
         }
     });
 
@@ -118,6 +129,26 @@ void RealtimeEffectService::onTrackListEvent(const TrackListEvent& e)
     }
     break;
     }
+}
+
+muse::async::Channel<TrackId, EffectChainLinkIndex, RealtimeEffectStatePtr> RealtimeEffectService::realtimeEffectAdded() const
+{
+    return m_realtimeEffectAdded;
+}
+
+muse::async::Channel<TrackId, RealtimeEffectStatePtr> RealtimeEffectService::realtimeEffectRemoved() const
+{
+    return m_realtimeEffectRemoved;
+}
+
+muse::async::Channel<TrackId, EffectChainLinkIndex, RealtimeEffectStatePtr> RealtimeEffectService::realtimeEffectReplaced() const
+{
+    return m_realtimeEffectReplaced;
+}
+
+muse::async::Channel<TrackId, EffectChainLinkIndex, EffectChainLinkIndex> RealtimeEffectService::realtimeEffectMoved() const
+{
+    return m_realtimeEffectMoved;
 }
 
 muse::async::Channel<TrackId> RealtimeEffectService::realtimeEffectStackChanged() const
@@ -183,6 +214,18 @@ std::optional<std::string> RealtimeEffectService::effectTrackName(TrackId trackI
     } else {
         return {};
     }
+}
+
+RealtimeEffectStatePtr RealtimeEffectService::effect(TrackId trackId, EffectChainLinkIndex index) const
+{
+    const auto data = utils::utilData(globalContext()->currentProject(), trackId);
+    if (!data) {
+        return nullptr;
+    }
+    if (index < 0 || index >= data->effectList->GetStatesCount()) {
+        return nullptr;
+    }
+    return data->effectList->GetStateAt(index);
 }
 
 RealtimeEffectStatePtr RealtimeEffectService::addRealtimeEffect(TrackId trackId, const muse::String& effectId)

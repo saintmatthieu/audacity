@@ -31,6 +31,10 @@ public:
     virtual RealtimeEffectStatePtr replaceRealtimeEffect(TrackId trackId, int effectListIndex, const EffectId& newEffectId) = 0;
     virtual void reorderRealtimeEffect(const RealtimeEffectStatePtr& state, int newIndex) = 0;
 
+    virtual muse::async::Channel<TrackId, EffectChainLinkIndex, RealtimeEffectStatePtr> realtimeEffectAdded() const = 0;
+    virtual muse::async::Channel<TrackId, RealtimeEffectStatePtr> realtimeEffectRemoved() const = 0;
+    virtual muse::async::Channel<TrackId, EffectChainLinkIndex, RealtimeEffectStatePtr> realtimeEffectReplaced() const = 0;
+    virtual muse::async::Channel<TrackId, EffectChainLinkIndex, EffectChainLinkIndex> realtimeEffectMoved() const = 0;
     virtual muse::async::Channel<TrackId> realtimeEffectStackChanged() const = 0;
 
     virtual std::optional<TrackId> trackId(const RealtimeEffectStatePtr& state) const = 0;
