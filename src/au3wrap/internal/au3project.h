@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "../iau3project.h"
+#include "../au3types.h"
 #include "libraries/lib-utility/Observer.h"
 
 namespace au::au3 {
@@ -32,6 +33,7 @@ private:
     const std::shared_ptr<Au3ProjectData> m_data;
     Observer::Subscription mTrackListSubstription;
     bool m_hasSavedVersion = false;
+    std::shared_ptr<Au3TrackList> mLastSavedTracks;
 };
 
 class Au3ProjectCreator : public IAu3ProjectCreator
