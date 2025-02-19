@@ -51,5 +51,44 @@ void Au3TrackPlaybackControl::setBalance(long trackId, balance_t balance)
     }
 
     track->SetPan(balance);
-    return;
+}
+
+void Au3TrackPlaybackControl::setSolo(long trackId, bool solo)
+{
+    Au3WaveTrack* track = DomAccessor::findWaveTrack(projectRef(), Au3TrackId(trackId));
+    IF_ASSERT_FAILED(track) {
+        return;
+    }
+
+    track->SetSolo(solo);
+}
+
+bool Au3TrackPlaybackControl::solo(long trackId)
+{
+    Au3WaveTrack* track = DomAccessor::findWaveTrack(projectRef(), Au3TrackId(trackId));
+    IF_ASSERT_FAILED(track) {
+        return false;
+    }
+
+    return track->GetSolo();
+}
+
+void Au3TrackPlaybackControl::setMuted(long trackId, bool mute)
+{
+    Au3WaveTrack* track = DomAccessor::findWaveTrack(projectRef(), Au3TrackId(trackId));
+    IF_ASSERT_FAILED(track) {
+        return;
+    }
+
+    track->SetMute(mute);
+}
+
+bool Au3TrackPlaybackControl::muted(long trackId)
+{
+    Au3WaveTrack* track = DomAccessor::findWaveTrack(projectRef(), Au3TrackId(trackId));
+    IF_ASSERT_FAILED(track) {
+        return false;
+    }
+
+    return track->GetMute();
 }

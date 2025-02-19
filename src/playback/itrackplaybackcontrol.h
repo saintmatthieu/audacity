@@ -20,5 +20,11 @@ public:
 
     virtual void setBalance(long trackId, au::audio::balance_t balance) = 0;
     virtual au::audio::balance_t balance(long trackId) = 0;
+
+    virtual void setSolo(long trackId, bool solo) = 0;
+    virtual bool solo(long trackId) = 0;
+
+    virtual void setMuted(long trackId, bool mute) = 0;
+    virtual bool muted(long trackId) = 0;
 };
 }
