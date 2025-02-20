@@ -10,6 +10,8 @@ set( SOURCES
    RealtimeEffectManager.h
    RealtimeEffectState.cpp
    RealtimeEffectState.h
+   SavedRealtimeEffectList.cpp
+   SavedRealtimeEffectList.h
 )
 set( LIBRARIES
    lib-channel-interface
