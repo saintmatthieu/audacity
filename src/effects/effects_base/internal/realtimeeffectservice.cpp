@@ -356,6 +356,7 @@ void RealtimeEffectService::setTrackEffectsActive(TrackId trackId, bool active)
     if (list && list->IsActive() != active) {
         list->SetActive(active);
         projectHistory()->modifyState();
+        projectHistory()->markUnsaved();
     }
 }
 

@@ -49,6 +49,22 @@ void Au3SelectionController::init()
             m_tracksSubc.Reset();
         }
     });
+
+    m_selectedTracks.selected.onReceive(this, [this](auto&&){
+        projectHistory()->modifyState(false);
+    });
+    m_selectedClips.selected.onReceive(this, [this](auto&&){
+        projectHistory()->modifyState(false);
+    });
+    m_selectedStartTime.selected.onReceive(this, [this](auto&&){
+        projectHistory()->modifyState(false);
+    });
+    m_selectedEndTime.selected.onReceive(this, [this](auto&&){
+        projectHistory()->modifyState(false);
+    });
+    m_selectionStartTime.selected.onReceive(this, [this](auto&&){
+        projectHistory()->modifyState(false);
+    });
 }
 
 void Au3SelectionController::resetSelectedTracks()
