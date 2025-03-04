@@ -100,7 +100,7 @@ void RealtimeEffectService::registerRealtimeEffectList(TrackId trackId, Realtime
     });
 
     if (m_trackUndoRedoOngoing) {
-        m_modifiedTracks.insert(trackId);
+        m_modifiedTracks.emplace(trackId, realtimeEffectList(trackId)->shared_from_this());
     } else {
         m_realtimeEffectStackChanged.send(trackId);
     }
@@ -110,7 +110,7 @@ void RealtimeEffectService::unregisterRealtimeEffectList(TrackId trackId)
 {
     m_rtEffectSubscriptions.erase(trackId);
     if (m_trackUndoRedoOngoing) {
-        m_modifiedTracks.insert(trackId);
+        m_modifiedTracks.emplace(trackId, realtimeEffectList(trackId)->shared_from_this());
     } else {
         m_realtimeEffectStackChanged.send(trackId);
     }
@@ -140,7 +140,7 @@ void RealtimeEffectService::onTrackListEvent(const TrackListEvent& e)
         m_trackUndoRedoOngoing = true;
         break;
     case TrackListEvent::UNDO_REDO_END:
-        for (const auto& trackId : m_modifiedTracks) {
+        for (const auto& [trackId, _] : m_modifiedTracks) {
             m_realtimeEffectStackChanged.send(trackId);
         }
         m_modifiedTracks.clear();

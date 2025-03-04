@@ -81,6 +81,7 @@ private:
     muse::async::Channel<TrackId, EffectChainLinkIndex, EffectChainLinkIndex> m_realtimeEffectMoved;
     muse::async::Channel<TrackId> m_realtimeEffectStackChanged;
     bool m_trackUndoRedoOngoing = false;
-    std::unordered_set<TrackId> m_modifiedTracks;
+    // Keep the realtime effect list alive until undo/redo is complete.
+    std::unordered_map<TrackId, std::shared_ptr<RealtimeEffectList>> m_modifiedTracks;
 };
 }
