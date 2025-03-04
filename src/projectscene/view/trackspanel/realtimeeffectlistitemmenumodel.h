@@ -37,6 +37,6 @@ private:
     bool belongsWithMe(effects::TrackId) const;
     void updateEffectCheckmarks();
 
-    effects::RealtimeEffectStatePtr m_effectState;
+    std::weak_ptr<effects::RealtimeEffectState> m_effectState;
 };
 }
