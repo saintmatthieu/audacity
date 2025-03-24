@@ -25,7 +25,7 @@ EffectMetaList VstEffectsRepository::effectMetaList() const
     std::vector<AudioPluginInfo> allEffects = knownPlugins()->pluginInfoList();
 
     for (const AudioPluginInfo& info : allEffects) {
-        if (!(info.type == AudioPluginType::Fx && info.meta.type == AudioResourceType::VstPlugin)) {
+        if (!info.enabled || !(info.type == AudioPluginType::Fx && info.meta.type == AudioResourceType::VstPlugin)) {
             continue;
         }
 
