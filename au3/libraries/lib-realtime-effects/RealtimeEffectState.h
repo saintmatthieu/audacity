@@ -41,9 +41,18 @@ public:
                                                            > {};
 
     explicit RealtimeEffectState(const PluginID& id);
-    RealtimeEffectState(const RealtimeEffectState& other);
+    // Copying expects shared_from_this() to return a non-null pointer.
+    // First make_shared, then use the assignment operator instead.
+    RealtimeEffectState(const RealtimeEffectState&) = delete;
     RealtimeEffectState& operator =(const RealtimeEffectState& other);
+
+private:
+    RealtimeEffectState(int id, const PluginID& pluginId);
+
+public:
     ~RealtimeEffectState();
+
+    int GetID() const noexcept { return mID; }
 
     //! May be called with nonempty id at most once in the lifetime of a state
     /*!
@@ -133,6 +142,7 @@ private:
     }
 
     PluginID mPluginID;
+    const int mID;
 
     //! Stateful instance made by the plug-in
     std::weak_ptr<EffectInstance> mwInstance;
@@ -177,7 +187,7 @@ private:
     //! How many samples must be discarded
     std::optional<EffectInstance::SampleCount> mLatency;
     //! Assigned in the worker thread at the start of each processing scope
-    bool mLastActive{};
+    bool mLastWorkerActive{};
 
     //! @}
 
