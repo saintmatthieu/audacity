@@ -8,6 +8,7 @@
 #include "irealtimeeffectservice.h"
 #include "effects/effects_base/ieffectsprovider.h"
 #include "effects/effects_base/irealtimeeffectstateregister.h"
+#include "effects/effects_base/ieffectinstancesregister.h"
 #include "effectstypes.h"
 #include "context/iglobalcontext.h"
 #include "trackedit/iprojecthistory.h"
@@ -38,6 +39,7 @@ class RealtimeEffectService : public IRealtimeEffectService, muse::async::Asynca
     muse::Inject<trackedit::IProjectHistory> projectHistory;
     muse::Inject<IEffectsProvider> effectsProvider;
     muse::Inject<IRealtimeEffectStateRegister> stateRegister;
+    muse::Inject<IEffectInstancesRegister> instancesRegister;
 
 public:
     void init();

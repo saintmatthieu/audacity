@@ -39,10 +39,9 @@ void VstViewModel::init()
         settingsFromView();
     });
 
-    m_auVst3Instance->GetWrapper().ParamChangedHandler = [this](Steinberg::Vst::ParamID) {
-        projectHistory()->modifyState();
-        projectHistory()->markUnsaved();
-    };
+    // m_auVst3Instance->GetWrapper().ParamChangedHandler = [this](Steinberg::Vst::ParamID) {
+    //     projectHistory()->modifyState();
+    // };
 
     settingsToView();
 
@@ -119,6 +118,7 @@ bool VstViewModel::event(QEvent* event)
         });
         if (hasChanges) {
             m_settingsAccess->Flush();
+            projectHistory()->markUnsaved();
         }
     }
     return QObject::event(event);

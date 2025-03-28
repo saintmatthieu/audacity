@@ -5,6 +5,9 @@
 
 #include "irealtimeeffectservice.h"
 #include "irealtimeeffectstateregister.h"
+#include "ieffectinstancesregister.h"
+
+#include "log.h"
 
 #include "libraries/lib-project/Project.h"
 #include "libraries/lib-project-history/UndoManager.h"
@@ -34,6 +37,7 @@ public:
         static RealtimeEffectStackChanged& Get(AudacityProject& project);
         muse::async::Channel<TrackId> trackEffectsChanged;
         IRealtimeEffectStateRegister* stateRegister = nullptr;
+        IEffectInstancesRegister* instancesRegister = nullptr;
     };
 
     MasterEffectListRestorer(au3::Au3Project& project)
@@ -45,23 +49,38 @@ public:
     {
         auto& trackEffectsChanged = RealtimeEffectStackChanged::Get(project).trackEffectsChanged;
         auto stateRegister = RealtimeEffectStackChanged::Get(project).stateRegister;
+        auto instancesRegister = RealtimeEffectStackChanged::Get(project).instancesRegister;
         auto& currentList = RealtimeEffectList::Get(project);
 
         if (currentList != *m_targetList) {
             std::vector<RealtimeEffectStateId> oldIds;
             oldIds.reserve(currentList.GetStatesCount());
             for (auto i = 0u; i < currentList.GetStatesCount(); ++i) {
-                oldIds.push_back(stateRegister->registerState(currentList.GetStateAt(i)));
+                oldIds.push_back(currentList.GetStateAt(i)->GetID());
             }
 
             currentList = *m_targetList;
 
+            std::vector<RealtimeEffectStateId> newIds;
+            newIds.reserve(m_targetList->GetStatesCount());
             for (auto i = 0u; i < currentList.GetStatesCount(); ++i) {
-                stateRegister->registerState(currentList.GetStateAt(i));
+                const auto state = currentList.GetStateAt(i);
+                newIds.push_back(stateRegister->registerState(state));
+
+                // const auto effectId = EffectId::fromStdString(state->GetPluginID().ToStdString());
+                // const auto instance = std::dynamic_pointer_cast<effects::EffectInstance>(state->GetInstance());
+                // IF_ASSERT_FAILED(instance) {
+                //     continue;
+                // }
+                // instancesRegister->regInstance(effectId, instance, state->GetAccess());
             }
+
             trackEffectsChanged.send(IRealtimeEffectService::masterTrackId);
-            for (auto id : oldIds) {
-                stateRegister->unregisterState(id);
+
+            for (auto oldId : oldIds) {
+                if (std::find(newIds.begin(), newIds.end(), oldId) == newIds.end()) {
+                    stateRegister->unregisterState(oldId);
+                }
             }
         }
     }
@@ -91,9 +110,10 @@ MasterEffectListRestorer::RealtimeEffectStackChanged& MasterEffectListRestorer::
 }
 
 void au::effects::setupMasterEffectUndoRedo(au::au3::Au3Project& project, muse::async::Channel<TrackId> trackEffectsChanged,
-                                            IRealtimeEffectStateRegister* stateRegister)
+                                            IRealtimeEffectStateRegister* stateRegister, IEffectInstancesRegister* instancesRegister)
 {
     auto& instance = MasterEffectListRestorer::RealtimeEffectStackChanged::Get(project);
     instance.trackEffectsChanged = std::move(trackEffectsChanged);
     instance.stateRegister = stateRegister;
+    instance.instancesRegister = instancesRegister;
 }

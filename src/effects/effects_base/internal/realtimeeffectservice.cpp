@@ -59,7 +59,7 @@ void RealtimeEffectService::onProjectChanged(const au::project::IAudacityProject
 
     auto au3Project = reinterpret_cast<au::au3::Au3Project*>(project->au3ProjectPtr());
 
-    setupMasterEffectUndoRedo(*au3Project, m_realtimeEffectStackChanged, stateRegister().get());
+    setupMasterEffectUndoRedo(*au3Project, m_realtimeEffectStackChanged, stateRegister().get(), instancesRegister().get());
 
     auto& trackList = TrackList::Get(*au3Project);
 
@@ -109,7 +109,6 @@ void RealtimeEffectService::registerRealtimeEffectList(TrackId trackId, Realtime
                 return;
         }
     });
-
 
     // Proactively load realtime effects.
     for (auto i = 0u; i < list.GetStatesCount(); ++i) {
