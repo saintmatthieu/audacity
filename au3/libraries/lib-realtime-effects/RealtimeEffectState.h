@@ -40,14 +40,16 @@ public:
                                                            const EffectInstanceFactory* (const PluginID&)
                                                            > {};
 
+    //! Create a new effect state ; its ID will be set to the next available.
     explicit RealtimeEffectState(const PluginID& id);
+
+    //! To copy an effect state, use this constructor with the IDs of the state to be copied, and then use the assignment operator.
+    explicit RealtimeEffectState(int id, const PluginID& pluginId);
+    RealtimeEffectState& operator =(const RealtimeEffectState& other);
+
     // Copying expects shared_from_this() to return a non-null pointer.
     // First make_shared, then use the assignment operator instead.
     RealtimeEffectState(const RealtimeEffectState&) = delete;
-    RealtimeEffectState& operator =(const RealtimeEffectState& other);
-
-private:
-    RealtimeEffectState(int id, const PluginID& pluginId);
 
 public:
     ~RealtimeEffectState();
