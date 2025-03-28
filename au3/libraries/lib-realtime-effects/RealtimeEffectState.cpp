@@ -358,7 +358,7 @@ RealtimeEffectState::RealtimeEffectState(int id, const PluginID& pluginId)
     BuildAll();
 }
 
-RealtimeEffectState& RealtimeEffectState::operator =(const RealtimeEffectState& other)
+RealtimeEffectState& RealtimeEffectState::operator=(const RealtimeEffectState& other)
 {
     assert(other.mPluginID == mPluginID);
     SetActive(other.IsActive());
