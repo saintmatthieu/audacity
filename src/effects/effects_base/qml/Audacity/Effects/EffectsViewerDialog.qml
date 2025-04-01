@@ -7,26 +7,48 @@ import QtQuick.Layouts
 import Muse.Ui
 import Muse.UiComponents
 
+import Audacity.Vst
+
 StyledDialogView {
     id: root
 
-    property alias instanceId: viewer.instanceId
+    property var instanceId
+    property bool isVst: false
 
-    title: viewer.title
+    property alias viewer: loader.item
+    property bool isApplyAllowed: isVst || (viewer && viewer.isApplyAllowed)
 
-    contentWidth: Math.max(viewer.implicitWidth, bbox.implicitWidth)
-    contentHeight: viewer.implicitHeight + bbox.implicitHeight + 16
+    Component.onCompleted: {
+        loader.sourceComponent = isVst ? vstViewer : builtinViewer
+    }
+
+    title: viewer ? viewer.title : ""
+
+    contentWidth: Math.max(viewer ? viewer.implicitWidth : 0, bbox.implicitWidth)
+    contentHeight: (viewer ? viewer.implicitHeight : 0) + bbox.implicitHeight + 16
 
     margins: 16
 
-    EffectsViewer {
-        id: viewer
-        width: parent.width
-
-        onIsApplyAllowedChanged: {
-            bbox.buttonById(ButtonBoxModel.Apply).enabled = isApplyAllowed
-            bbox.buttonById(previewBtn.buttonId).enabled = isApplyAllowed
+    Component {
+        id: builtinViewer
+        EffectsViewer {
+            instanceId: root.instanceId
+            width: parent.width
         }
+    }
+
+    Component {
+        id: vstViewer
+        VstViewer {
+            instanceId: root.instanceId
+            width: root.contentWidth
+            height: implicitHeight
+        }
+    }
+
+    Loader {
+        id: loader
+        anchors.fill: parent
     }
 
     ButtonBox {
@@ -46,10 +68,6 @@ StyledDialogView {
             return null
         }
 
-        Component.onCompleted: {
-            bbox.buttonById(ButtonBoxModel.Apply).enabled = false
-        }
-
         FlatButton {
             id: manageBtn
             text: qsTrc("effects", "Manage")
@@ -66,6 +84,7 @@ StyledDialogView {
             buttonId: ButtonBoxModel.CustomButton + 2
             isLeftSide: true
             onClicked: viewer.preview()
+            enabled: root.isApplyAllowed
         }
 
         FlatButton {
@@ -81,6 +100,7 @@ StyledDialogView {
             buttonId: ButtonBoxModel.Apply
             accentButton: true
             onClicked: root.accept()
+            enabled: root.isApplyAllowed
         }
     }
 }
