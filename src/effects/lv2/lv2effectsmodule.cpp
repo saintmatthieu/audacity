@@ -6,7 +6,17 @@
 #include "audioplugins/iaudiopluginsscannerregister.h"
 #include "audioplugins/iaudiopluginmetareaderregister.h"
 
+#include "effects/effects_base/ieffectviewlaunchregister.h"
+
+#include "internal/lv2effectsrepository.h"
+#include "internal/lv2instancesregister.h"
+#include "internal/lv2pluginmetareader.h"
 #include "internal/lv2pluginsscanner.h"
+#include "internal/lv2viewlauncher.h"
+
+#include "log.h"
+
+#include "libraries/lib-lv2/LoadLV2.h"
 
 using namespace muse;
 using namespace au::effects;
@@ -23,6 +33,8 @@ std::string Lv2EffectsModule::moduleName() const
 
 void Lv2EffectsModule::registerExports()
 {
+    ioc()->registerExport<ILv2EffectsRepository>(moduleName(), new Lv2EffectsRepository());
+    ioc()->registerExport<ILv2InstancesRegister>(moduleName(), new Lv2InstancesRegister());
 }
 
 void Lv2EffectsModule::resolveImports()
@@ -32,15 +44,15 @@ void Lv2EffectsModule::resolveImports()
         scannerRegister->registerScanner(std::make_shared<Lv2PluginsScanner>());
     }
 
-    // auto metaReaderRegister = ioc()->resolve<muse::audioplugins::IAudioPluginMetaReaderRegister>(moduleName());
-    // if (metaReaderRegister) {
-    //     metaReaderRegister->registerReader(std::make_shared<Lv2PluginsMetaReader>());
-    // }
+    auto metaReaderRegister = ioc()->resolve<muse::audioplugins::IAudioPluginMetaReaderRegister>(moduleName());
+    if (metaReaderRegister) {
+        metaReaderRegister->registerReader(std::make_shared<Lv2PluginMetaReader>());
+    }
 
-    // auto lr = ioc()->resolve<IEffectViewLaunchRegister>(moduleName());
-    // if (lr) {
-    //     lr->regLauncher("LV2", std::make_shared<Lv2ViewLauncher>());
-    // }
+    auto lr = ioc()->resolve<IEffectViewLaunchRegister>(moduleName());
+    if (lr) {
+        lr->regLauncher("LV2", std::make_shared<Lv2ViewLauncher>());
+    }
 
     // auto ir = ioc()->resolve<IInteractiveUriRegister>(moduleName());
     // if (ir) {
@@ -59,8 +71,13 @@ void Lv2EffectsModule::registerUiTypes()
 
 void Lv2EffectsModule::onInit(const muse::IApplication::RunMode&)
 {
+    // IF_ASSERT_FAILED(Lv2EffectsModule::Initialize()) {
+    //     LOGE() << "Failed to initialize LV2";
+    //     return;
+    // }
 }
 
 void Lv2EffectsModule::onDeinit()
 {
+    // LV2Symbols::FinalizeGWorld();
 }

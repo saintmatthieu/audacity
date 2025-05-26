@@ -117,11 +117,11 @@ bool LV2EffectsModule::Initialize()
 
     wxGetEnv(wxT("LV2_PATH"), &mStartupPathVar);
 
-    if (PluginHost::IsHostProcess()) {
+    // if (PluginHost::IsHostProcess()) {
         //Plugin validation process does not call `AutoRegisterPlugins`
         //Register plugins from `LV2_PATH` here
         lilv_world_load_all(LV2Symbols::gWorld);
-    }
+    // }
     return true;
 }
 

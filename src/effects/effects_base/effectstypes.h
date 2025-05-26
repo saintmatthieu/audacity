@@ -52,6 +52,7 @@ enum class EffectFamily {
     Unknown = -1,
     Builtin,
     VST3,
+    LV2,
 };
 
 enum class EffectType {

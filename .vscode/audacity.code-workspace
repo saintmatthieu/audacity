@@ -10,6 +10,7 @@
         "cmake.installPrefix": "${workspaceFolder}/build/${buildType}/install",
         "cmake.configureArgs": [
             // "-DAU_MODULE_EFFECTS_VST=ON"
+            "-DAU_MODULE_EFFECTS_LV2=ON",
         ],
         "editor.guides.indentation": true,
         "editor.detectIndentation": true,
