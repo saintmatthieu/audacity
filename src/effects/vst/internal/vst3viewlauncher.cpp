@@ -49,7 +49,7 @@ muse::Ret Vst3ViewLauncher::showEffect(const EffectInstanceId& instanceId) const
 
     constexpr auto isVst = true;
     muse::Ret ret = interactive()->open(muse::String(EFFECT_VIEWER_URI)
-                                        .arg(size_t(museVstInstance->id())).arg(isVst).toStdString()
+                                        .arg(size_t(instanceId)).arg(isVst).toStdString()
                                         ).ret;
 
     return ret;

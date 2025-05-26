@@ -11,58 +11,16 @@
 
 using namespace au::effects;
 
-void Lv2ViewLauncher::registerFxPlugin(const EffectInstanceId& instanceId) const
-{
-    // if (museInstancesRegister()->instanceById(instanceId)) {
-    //     return;
-    // }
-
-    // std::shared_ptr<EffectInstance> instance = instancesRegister()->instanceById(instanceId);
-    // IF_ASSERT_FAILED(instance) {
-    //     return;
-    // }
-
-    // std::shared_ptr<VST3Instance> auVst3Instance = std::dynamic_pointer_cast<VST3Instance>(instance);
-    // IF_ASSERT_FAILED(auVst3Instance) {
-    //     return;
-    // }
-
-    // const auto effectId = instancesRegister()->effectIdByInstanceId(instanceId);
-
-    // std::shared_ptr<MuseVstPluginInstance> museVstInstance = std::make_shared<MuseVstPluginInstance>(effectId, instanceId, auVst3Instance);
-    // museInstancesRegister()->registerFxPlugin(0, 0, museVstInstance);
-}
-
 muse::Ret Lv2ViewLauncher::showEffect(const EffectInstanceId& instanceId) const
 {
-    // auto museVstInstance = museInstancesRegister()->instanceById(instanceId);
-    // if (!museVstInstance) {
-    //     registerFxPlugin(instanceId);
-    //     museVstInstance = museInstancesRegister()->instanceById(instanceId);
-    // }
-    // IF_ASSERT_FAILED(museVstInstance) {
-        return muse::make_ret(muse::Ret::Code::InternalError);
-    // }
-
-    // constexpr auto isVst = true;
-    // muse::Ret ret = interactive()->open(muse::String(EFFECT_VIEWER_URI)
-    //                                     .arg(size_t(museVstInstance->id())).arg(isVst).toStdString()
-    //                                     ).ret;
-
-    // return ret;
+    muse::UriQuery uri(muse::String(EFFECT_VIEWER_URI).toStdString());
+    uri.addParam("instanceId", muse::Val(instanceId));
+    uri.addParam("isVst", muse::Val(false));
+    uri.addParam("isLv2", muse::Val(true));
+    return interactive()->open(uri).ret;
 }
 
 void Lv2ViewLauncher::showRealtimeEffect(const RealtimeEffectStatePtr& state) const
 {
-    // const auto effectId = au3::wxToString(state->GetID());
-
-    // const auto instance = std::dynamic_pointer_cast<effects::EffectInstance>(state->GetInstance());
-    // if (!instance) {
-    //     LOGW() << "Could not get instance for " << effectId;
-    //     return;
-    // }
-
-    // instancesRegister()->regInstance(effectId, instance, state->GetAccess());
-    // registerFxPlugin(state->GetInstance()->id());
-    // doShowRealtimeEffect(state);
+    doShowRealtimeEffect(state);
 }

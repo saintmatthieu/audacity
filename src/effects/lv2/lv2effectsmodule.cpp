@@ -9,10 +9,10 @@
 #include "effects/effects_base/ieffectviewlaunchregister.h"
 
 #include "internal/lv2effectsrepository.h"
-#include "internal/lv2instancesregister.h"
 #include "internal/lv2pluginmetareader.h"
 #include "internal/lv2pluginsscanner.h"
 #include "internal/lv2viewlauncher.h"
+#include "view/lv2viewloader.h"
 
 #include "log.h"
 
@@ -23,7 +23,7 @@ using namespace au::effects;
 
 static void lv2_init_qrc()
 {
-    //Q_INIT_RESOURCE(lv2);
+    Q_INIT_RESOURCE(lv2);
 }
 
 std::string Lv2EffectsModule::moduleName() const
@@ -34,7 +34,6 @@ std::string Lv2EffectsModule::moduleName() const
 void Lv2EffectsModule::registerExports()
 {
     ioc()->registerExport<ILv2EffectsRepository>(moduleName(), new Lv2EffectsRepository());
-    ioc()->registerExport<ILv2InstancesRegister>(moduleName(), new Lv2InstancesRegister());
 }
 
 void Lv2EffectsModule::resolveImports()
@@ -67,6 +66,7 @@ void Lv2EffectsModule::registerResources()
 
 void Lv2EffectsModule::registerUiTypes()
 {
+    qmlRegisterType<Lv2ViewLoader>("Audacity.Lv2", 1, 0, "Lv2ViewLoader");
 }
 
 void Lv2EffectsModule::onInit(const muse::IApplication::RunMode&)

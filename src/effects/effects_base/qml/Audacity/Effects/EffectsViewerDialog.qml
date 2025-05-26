@@ -8,6 +8,7 @@ import Muse.Ui
 import Muse.UiComponents
 
 import Audacity.Effects
+import Audacity.Lv2
 import Audacity.Vst
 
 EffectStyledDialogView {
@@ -15,9 +16,10 @@ EffectStyledDialogView {
 
     property var instanceId
     property bool isVst: false
+    property bool isLv2: false
 
     property alias viewer: viewerLoader.item
-    property bool isApplyAllowed: isVst || (viewer && viewer.isApplyAllowed)
+    property bool isApplyAllowed: isVst || isLv2 || (viewer && viewer.isApplyAllowed)
 
     title: viewer ? viewer.title : ""
 
@@ -28,7 +30,7 @@ EffectStyledDialogView {
 
     onWindowChanged: {
         // Wait until the window is set: VstView needs it for intialization
-        viewerLoader.sourceComponent = isVst ? vstViewerComp : builtinViewerComp
+        viewerLoader.sourceComponent = isVst ? vstViewerComp : isLv2 ? lv2ViewerComp : builtinViewerComp
     }
 
     Component.onCompleted: {
@@ -60,6 +62,16 @@ EffectStyledDialogView {
             id: builtinViewerComp
             EffectsViewer {
                 instanceId: root.instanceId
+            }
+        }
+
+        Component {
+            id: lv2ViewerComp
+            Lv2Viewer {
+                instanceId: root.instanceId
+                height: implicitHeight
+                x: root.margins
+                y: root.margins * 3 + presetsBar.height + separator.height
             }
         }
 
