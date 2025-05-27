@@ -123,6 +123,15 @@ set(ZIX_SRC
     ${ZIX_PATH}/src/zix_config.h
 )
 
+# suil
+set(SUIL_PATH ${CMAKE_SOURCE_DIR}/au3/lib-src/lv2/suil)
+set(SUIL_SRC
+    ${SUIL_PATH}/src/host.c
+    ${SUIL_PATH}/src/instance.c
+    ${SUIL_PATH}/src/suil_internal.h
+    ${SUIL_PATH}/suil/suil.h
+)
+
 if (OS_IS_WIN)
     set(ZIX_SRC ${ZIX_SRC}
         ${ZIX_PATH}/src/win32/environment_win32.c
@@ -159,6 +168,7 @@ set(MODULE_SRC
     ${SORD_SRC}
     ${ZIX_SRC}
     ${SRATOM_SRC}
+    ${SUIL_SRC}
     )
 
 set(MODULE_INCLUDE
@@ -168,6 +178,7 @@ set(MODULE_INCLUDE
     ${SORD_PATH}/include
     ${ZIX_PATH}/include
     ${SRATOM_PATH}/include
+    ${SUIL_PATH}/include
     )
 
 set(MODULE_DEF

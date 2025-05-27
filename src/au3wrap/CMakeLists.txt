@@ -581,6 +581,8 @@ if (AU_MODULE_EFFECTS_LV2)
         ${AU3_LIBRARIES}/lib-lv2/LV2Preferences.h
         ${AU3_LIBRARIES}/lib-lv2/LV2Symbols.cpp
         ${AU3_LIBRARIES}/lib-lv2/LV2Symbols.h
+        ${AU3_LIBRARIES}/lib-lv2/LV2UIFeaturesList.cpp
+        ${AU3_LIBRARIES}/lib-lv2/LV2UIFeaturesList.h
         ${AU3_LIBRARIES}/lib-lv2/LV2Utils.h
         ${AU3_LIBRARIES}/lib-lv2/LV2Wrapper.cpp
         ${AU3_LIBRARIES}/lib-lv2/LV2Wrapper.h
