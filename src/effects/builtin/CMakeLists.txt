@@ -39,6 +39,16 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/amplify/amplifyviewmodel.cpp
     ${CMAKE_CURRENT_LIST_DIR}/amplify/amplifyviewmodel.h
 
+    ${CMAKE_CURRENT_LIST_DIR}/compressor/compressoreffect.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/compressor/compressoreffect.h
+    ${CMAKE_CURRENT_LIST_DIR}/compressor/compressorviewmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/compressor/compressorviewmodel.h
+
+    ${CMAKE_CURRENT_LIST_DIR}/limiter/limiterviewmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/limiter/limiterviewmodel.h
+    ${CMAKE_CURRENT_LIST_DIR}/limiter/limitereffect.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/limiter/limitereffect.h
+
     ${CMAKE_CURRENT_LIST_DIR}/normalize/normalizeeffect.cpp
     ${CMAKE_CURRENT_LIST_DIR}/normalize/normalizeeffect.h
     ${CMAKE_CURRENT_LIST_DIR}/normalize/normalizeviewmodel.cpp
