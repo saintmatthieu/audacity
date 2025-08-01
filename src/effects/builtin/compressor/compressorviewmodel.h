@@ -3,7 +3,8 @@
 */
 #pragma once
 
-#include "../common/abstracteffectmodel.h"
+#include "../common/effectsettingmodelimpl.h"
+#include "compressoreffect.h"
 
 #include "effects/effects_base/ieffectsprovider.h"
 
@@ -15,9 +16,15 @@ class CompressorViewModel : public AbstractEffectModel
     muse::Inject<IEffectsProvider> effectsProvider;
 
 public:
-    CompressorViewModel() = default;
+    CompressorViewModel(QObject* parent = nullptr);
 
 private:
     void doReload() override;
+};
+
+class CompressorSettingModel : public EffectSettingModelImpl<CompressorEffect>
+{
+public:
+    CompressorSettingModel(QObject* parent = nullptr);
 };
 }
