@@ -176,6 +176,7 @@ void BuiltinEffectsRepository::updateEffectMetaList()
                     );
         } else if (symbol == CompressorEffect::Symbol) {
             qmlRegisterType<CompressorViewModel>("Audacity.Effects", 1, 0, "CompressorViewModel");
+            qmlRegisterType<CompressorSettingModel>("Audacity.Effects", 1, 0, "CompressorSettingModel");
             regView(CompressorEffect::Symbol, u"qrc:/compressor/CompressorView.qml");
             regMeta(desc,
                     muse::mtrc("effects", "Compressor"),
@@ -185,6 +186,7 @@ void BuiltinEffectsRepository::updateEffectMetaList()
                     );
         } else if (symbol == LimiterEffect::Symbol) {
             qmlRegisterType<LimiterViewModel>("Audacity.Effects", 1, 0, "LimiterViewModel");
+            qmlRegisterType<LimiterSettingModel>("Audacity.Effects", 1, 0, "LimiterSettingModel");
             regView(LimiterEffect::Symbol, u"qrc:/limiter/LimiterView.qml");
             regMeta(desc,
                     muse::mtrc("effects", "Limiter"),
