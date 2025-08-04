@@ -5,6 +5,7 @@
         <file>common/EffectBase.qml</file>
         <file>common/ParameterKnob.qml</file>
         <file>common/BigParameterKnob.qml</file>
+        <file>common/SettingKnob.qml</file>
         <file>amplify/AmplifyView.qml</file>
         <file>compressor/CompressorView.qml</file>
         <file>limiter/LimiterView.qml</file>

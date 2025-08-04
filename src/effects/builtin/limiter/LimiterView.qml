@@ -12,8 +12,8 @@ EffectBase {
     property string title: qsTrc("effects/limiter", "Limiter")
     property bool isApplyAllowed: true
 
-    width: 400
-    implicitHeight: 400
+    width: knobRow.width
+    implicitHeight: knobRow.height
 
     model: limiter
 
@@ -25,151 +25,96 @@ EffectBase {
 
     Component.onCompleted: {
         limiter.init()
-        threshold.init()
-        makeup.init()
-        knee.init()
-        lookahead.init()
-        release.init()
-        showInput.init()
     }
 
-    Column {
-        BigParameterKnob {
-            LimiterSettingModel {
-                id: threshold
-                paramId: "thresholdDb"
-                instanceId: root.instanceId
+    Rectangle {
+
+        color: ui.theme.backgroundSecondaryColor
+        border.color: ui.theme.strokeColor
+        width: knobRow.width
+        height: knobRow.height
+        radius: 4
+
+        Row {
+            id: knobRow
+
+            spacing: 16
+            padding: 16
+
+            Column {
+                id: thresholdColumn
+
+                topPadding: 12
+                bottomPadding: 12
+
+                SettingKnob {
+                    id: thresholdKnob
+
+                    isBig: true
+                    title: qsTrc("effects/limiter", "Threshold")
+                    unit: "dB"
+                    model: LimiterSettingModel {
+                        paramId: "thresholdDb"
+                        instanceId: root.instanceId
+                    }
+                }
             }
 
-            parameter: {
-                "title": qsTrc("effects/limiter", "Threshold"),
-                "unit": "dB",
-                "min": threshold.min,
-                "max": threshold.max,
-                "value": threshold.value,
-                "stepSize": threshold.step
+            Column {
+                topPadding: 12
+                bottomPadding: 12
+
+                SettingKnob {
+                    id: makeupKnob
+
+                    isBig: true
+                    title: qsTrc("effects/limiter", "Make-up gain")
+                    unit: "dB"
+                    model: LimiterSettingModel {
+                        paramId: "makeupTargetDb"
+                        instanceId: root.instanceId
+                    }
+                }
             }
 
-            onNewValueRequested: function(_, newValue) {
-                threshold.value = newValue
+            // Can't use a SeparatorLine in a Row or Column, or we get an infinite loop.
+            Rectangle {
+                width: 1
+                height: thresholdColumn.height
+                color: ui.theme.strokeColor
             }
 
-            onCommitRequested: {
-                threshold.commitSettings()
-            }
-        }
+            SettingKnob {
+                id: lookaheadKnob
 
-        BigParameterKnob {
-            LimiterSettingModel {
-                id: makeup
-                paramId: "makeupTargetDb"
-                instanceId: root.instanceId
-            }
-
-            parameter: {
-                "title": qsTrc("effects/limiter", "Makeup"),
-                "unit": "dB",
-                "min": makeup.min,
-                "max": makeup.max,
-                "value": makeup.value,
-                "stepSize": makeup.step
+                title: qsTrc("effects/limiter", "Lookahead")
+                unit: "ms"
+                model: LimiterSettingModel {
+                    paramId: "lookaheadMs"
+                    instanceId: root.instanceId
+                }
             }
 
-            onNewValueRequested: function(_, newValue) {
-                makeup.value = newValue
+            SettingKnob {
+                id: kneeKnob
+
+                title: qsTrc("effects/limiter", "Knee width")
+                unit: "dB"
+                model: LimiterSettingModel {
+                    paramId: "kneeWidthDb"
+                    instanceId: root.instanceId
+                }
             }
 
-            onCommitRequested: {
-                makeup.commitSettings()
-            }
-        }
+            SettingKnob {
+                id: releaseKnob
 
-        ParameterKnob {
-            LimiterSettingModel {
-                id: lookahead
-                paramId: "lookaheadMs"
-                instanceId: root.instanceId
-            }
-
-            parameter: {
-                "title": qsTrc("effects/limiter", "Lookahead"),
-                "unit": "ms", // TODO should come from model
-                "min": lookahead.min,
-                "max": lookahead.max,
-                "value": lookahead.value,
-                "stepSize": lookahead.step
-            }
-
-            onNewValueRequested: function(_, newValue) {
-                lookahead.value = newValue
-            }
-
-            onCommitRequested: {
-                lookahead.commitSettings()
-            }
-        }
-
-        ParameterKnob {
-            LimiterSettingModel {
-                id: knee
-                paramId: "kneeWidthDb"
-                instanceId: root.instanceId
-            }
-
-            parameter: {
-                "title": qsTrc("effects/limiter", "Knee width"),
-                "unit": "dB",
-                "min": knee.min,
-                "max": knee.max,
-                "value": knee.value,
-                "stepSize": knee.step
-            }
-
-            onNewValueRequested: function(_, newValue) {
-                knee.value = newValue
-            }
-
-            onCommitRequested: {
-                knee.commitSettings()
-            }
-        }
-
-        ParameterKnob {
-            LimiterSettingModel {
-                id: release
-                paramId: "releaseMs"
-                instanceId: root.instanceId
-            }
-
-            parameter: {
-                "title": qsTrc("effects/limiter", "Release"),
-                "unit": "ms",
-                "min": release.min,
-                "max": release.max,
-                "value": release.value,
-                "stepSize": release.step
-            }
-
-            onNewValueRequested: function(_, newValue) {
-                release.value = newValue
-            }
-
-            onCommitRequested: {
-                release.commitSettings()
-            }
-        }
-
-        CheckBox {
-            LimiterSettingModel {
-                id: showInput
-                paramId: "showInput"
-                instanceId: root.instanceId
-            }
-
-            checked: showInput.value
-            onClicked: {
-                showInput.value = !checked
-                showInput.commitSettings()
+                title: qsTrc("effects/limiter", "Release")
+                unit: "ms"
+                model: LimiterSettingModel {
+                    paramId: "releaseMs"
+                    instanceId: root.instanceId
+                }
             }
         }
     }
