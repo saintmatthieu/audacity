@@ -27,81 +27,25 @@ EffectBase {
     }
 
     Column {
+        Repeater {
+            model: [
+                { id: "attackMs", title: qsTrc("effects/compressor", "Attack"), unit: "ms" },
+                { id: "releaseMs", title: qsTrc("effects/compressor", "Release"), unit: "ms" },
+                { id: "lookaheadMs", title: qsTrc("effects/compressor", "Lookahead"), unit: "ms" },
+                { id: "thresholdDb", title: qsTrc("effects/compressor", "Threshold"), unit: "dB" },
+                { id: "compressionRatio", title: qsTrc("effects/compressor", "Ratio"), unit: "" },
+                { id: "kneeWidthDb", title: qsTrc("effects/compressor", "Knee width"), unit: "dB" },
+                { id: "makeupGainDb", title: qsTrc("effects/compressor", "Make-up gain"), unit: "dB" }
+            ]
 
-        SettingKnob {
-            id: thresholdDbKnob
-
-            title: qsTrc("effects/compressor", "thresholdDb")
-            unit: "dB"
-            model: CompressorSettingModel {
-                paramId: "thresholdDb"
-                instanceId: root.instanceId
-            }
-        }
-
-        SettingKnob {
-            id: makeupGainDbKnob
-
-            title: qsTrc("effects/compressor", "makeupGainDb")
-            unit: "dB"
-            model: CompressorSettingModel {
-                paramId: "makeupGainDb"
-                instanceId: root.instanceId
-            }
-        }
-
-        SettingKnob {
-            id: kneeWidthDbKnob
-
-            title: qsTrc("effects/compressor", "kneeWidthDb")
-            unit: "dB"
-            model: CompressorSettingModel {
-                paramId: "kneeWidthDb"
-                instanceId: root.instanceId
-            }
-        }
-
-        SettingKnob {
-            id: compressionRatioKnob
-
-            title: qsTrc("effects/compressor", "compressionRatio")
-            unit: "dB"
-            model: CompressorSettingModel {
-                paramId: "compressionRatio"
-                instanceId: root.instanceId
-            }
-        }
-
-        SettingKnob {
-            id: lookaheadMsKnob
-
-            title: qsTrc("effects/compressor", "lookaheadMs")
-            unit: "dB"
-            model: CompressorSettingModel {
-                paramId: "lookaheadMs"
-                instanceId: root.instanceId
-            }
-        }
-
-        SettingKnob {
-            id: attackMsKnob
-
-            title: qsTrc("effects/compressor", "attackMs")
-            unit: "dB"
-            model: CompressorSettingModel {
-                paramId: "attackMs"
-                instanceId: root.instanceId
-            }
-        }
-
-        SettingKnob {
-            id: releaseMsKnob
-
-            title: qsTrc("effects/compressor", "releaseMs")
-            unit: "dB"
-            model: CompressorSettingModel {
-                paramId: "releaseMs"
-                instanceId: root.instanceId
+            delegate: SettingKnob {
+                required property var modelData
+                title: modelData.title
+                unit: modelData.unit
+                model: CompressorSettingModel {
+                    paramId: modelData.id
+                    instanceId: root.instanceId
+                }
             }
         }
     }
