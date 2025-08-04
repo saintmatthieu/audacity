@@ -84,36 +84,21 @@ EffectBase {
                 color: ui.theme.strokeColor
             }
 
-            SettingKnob {
-                id: lookaheadKnob
+            Repeater {
+                model: [
+                    { id: "lookaheadMs", title: qsTrc("effects/limiter", "Lookahead"), unit: "ms" },
+                    { id: "kneeWidthDb", title: qsTrc("effects/limiter", "Knee width"), unit: "dB" },
+                    { id: "releaseMs", title: qsTrc("effects/limiter", "Release"), unit: "ms" },
+                ]
 
-                title: qsTrc("effects/limiter", "Lookahead")
-                unit: "ms"
-                model: LimiterSettingModel {
-                    paramId: "lookaheadMs"
-                    instanceId: root.instanceId
-                }
-            }
-
-            SettingKnob {
-                id: kneeKnob
-
-                title: qsTrc("effects/limiter", "Knee width")
-                unit: "dB"
-                model: LimiterSettingModel {
-                    paramId: "kneeWidthDb"
-                    instanceId: root.instanceId
-                }
-            }
-
-            SettingKnob {
-                id: releaseKnob
-
-                title: qsTrc("effects/limiter", "Release")
-                unit: "ms"
-                model: LimiterSettingModel {
-                    paramId: "releaseMs"
-                    instanceId: root.instanceId
+                delegate: SettingKnob {
+                    required property var modelData
+                    title: modelData.title
+                    unit: modelData.unit
+                    model: LimiterSettingModel {
+                        paramId: modelData.id
+                        instanceId: root.instanceId
+                    }
                 }
             }
         }
