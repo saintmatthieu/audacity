@@ -42,7 +42,6 @@ public:
 
     EffectInstanceId instanceId() const;
     EffectId effectId() const;
-    bool inited() const;
 
 signals:
     void instanceIdChanged();
