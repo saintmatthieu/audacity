@@ -21,6 +21,8 @@ Item {
             knob.from = parameter["min"]
             knob.to = parameter["max"]
             knob.value = parameter["value"]
+            knob.stepSize = parameter["step"] || 1;
+            textEdit.measureUnitsSymbol = parameter["unit"] || "";
         }
     }
 
@@ -40,8 +42,6 @@ Item {
             KnobControl {
                 id: knob
 
-                stepSize: 1
-
                 onNewValueRequested: function (value) {
                     root.newValueRequested(root.parameter["key"], value)
                 }
@@ -52,6 +52,8 @@ Item {
             }
 
             IncrementalPropertyControl {
+                id: textEdit
+
                 width: 80
 
                 minValue: knob.from

@@ -34,95 +34,127 @@ EffectBase {
     }
 
     Column {
-        KnobControl {
+        BigParameterKnob {
             LimiterSettingModel {
                 id: threshold
                 paramId: "thresholdDb"
                 instanceId: root.instanceId
             }
 
-            currentValue: threshold.value
-            from: threshold.min
-            to: threshold.max
-            stepSize: threshold.step
-            onNewValueRequested: function(newValue) {
+            parameter: {
+                "title": qsTrc("effects/limiter", "Threshold"),
+                "unit": "dB",
+                "min": threshold.min,
+                "max": threshold.max,
+                "value": threshold.value,
+                "stepSize": threshold.step
+            }
+
+            onNewValueRequested: function(_, newValue) {
                 threshold.value = newValue
             }
-            onMouseReleased: {
+
+            onCommitRequested: {
                 threshold.commitSettings()
             }
         }
 
-        KnobControl {
+        BigParameterKnob {
             LimiterSettingModel {
                 id: makeup
                 paramId: "makeupTargetDb"
                 instanceId: root.instanceId
             }
 
-            currentValue: makeup.value
-            from: makeup.min
-            to: makeup.max
-            stepSize: makeup.step
-            onNewValueRequested: function(newValue) {
+            parameter: {
+                "title": qsTrc("effects/limiter", "Makeup"),
+                "unit": "dB",
+                "min": makeup.min,
+                "max": makeup.max,
+                "value": makeup.value,
+                "stepSize": makeup.step
+            }
+
+            onNewValueRequested: function(_, newValue) {
                 makeup.value = newValue
             }
-            onMouseReleased: {
+
+            onCommitRequested: {
                 makeup.commitSettings()
             }
         }
 
+        ParameterKnob {
             LimiterSettingModel {
                 id: lookahead
                 paramId: "lookaheadMs"
                 instanceId: root.instanceId
             }
 
-            currentValue: knee.value
-            from: knee.min
-            to: knee.max
-            stepSize: knee.step
-            onNewValueRequested: function(newValue) {
-                knee.value = newValue
+            parameter: {
+                "title": qsTrc("effects/limiter", "Lookahead"),
+                "unit": "ms", // TODO should come from model
+                "min": lookahead.min,
+                "max": lookahead.max,
+                "value": lookahead.value,
+                "stepSize": lookahead.step
             }
-            onMouseReleased: {
-                knee.commitSettings()
+
+            onNewValueRequested: function(_, newValue) {
+                lookahead.value = newValue
+            }
+
+            onCommitRequested: {
+                lookahead.commitSettings()
             }
         }
 
+        ParameterKnob {
             LimiterSettingModel {
                 id: knee
                 paramId: "kneeWidthDb"
                 instanceId: root.instanceId
             }
 
-            currentValue: lookahead.value
-            from: lookahead.min
-            to: lookahead.max
-            stepSize: lookahead.step
-            onNewValueRequested: function(newValue) {
-                lookahead.value = newValue
+            parameter: {
+                "title": qsTrc("effects/limiter", "Knee width"),
+                "unit": "dB",
+                "min": knee.min,
+                "max": knee.max,
+                "value": knee.value,
+                "stepSize": knee.step
             }
-            onMouseReleased: {
-                lookahead.commitSettings()
+
+            onNewValueRequested: function(_, newValue) {
+                knee.value = newValue
+            }
+
+            onCommitRequested: {
+                knee.commitSettings()
             }
         }
 
-        KnobControl {
+        ParameterKnob {
             LimiterSettingModel {
                 id: release
                 paramId: "releaseMs"
                 instanceId: root.instanceId
             }
 
-            currentValue: release.value
-            from: release.min
-            to: release.max
-            stepSize: release.step
-            onNewValueRequested: function(newValue) {
+            parameter: {
+                "title": qsTrc("effects/limiter", "Release"),
+                "unit": "ms",
+                "min": release.min,
+                "max": release.max,
+                "value": release.value,
+                "stepSize": release.step
+            }
+
+            onNewValueRequested: function(_, newValue) {
                 release.value = newValue
             }
-            onMouseReleased: {
+
+            onCommitRequested: {
                 release.commitSettings()
             }
         }

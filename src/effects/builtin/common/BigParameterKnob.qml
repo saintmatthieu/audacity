@@ -22,7 +22,8 @@ Item {
             knob.from = parameter["min"]
             knob.to = parameter["max"]
             knob.value = parameter["value"]
-            textEdit.measureUnitsSymbol = parameter["unit"]
+            knob.stepSize = parameter["step"] || 1;
+            textEdit.measureUnitsSymbol = parameter["unit"] || "";
         }
     }
 
@@ -36,7 +37,6 @@ Item {
 
             anchors.horizontalCenter: parent.horizontalCenter
 
-            stepSize: 1
             radius: 24
 
             onNewValueRequested: function (value) {
