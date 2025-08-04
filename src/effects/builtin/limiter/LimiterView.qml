@@ -50,7 +50,8 @@ EffectBase {
                 SettingKnob {
                     id: thresholdKnob
 
-                    isBig: true
+                    isVertical: true
+                    radius: 24
                     title: qsTrc("effects/limiter", "Threshold")
                     unit: "dB"
                     model: LimiterSettingModel {
@@ -67,7 +68,8 @@ EffectBase {
                 SettingKnob {
                     id: makeupKnob
 
-                    isBig: true
+                    isVertical: true
+                    radius: 24
                     title: qsTrc("effects/limiter", "Make-up gain")
                     unit: "dB"
                     model: LimiterSettingModel {
@@ -93,6 +95,7 @@ EffectBase {
 
                 delegate: SettingKnob {
                     required property var modelData
+                    isVertical: false
                     title: modelData.title
                     unit: modelData.unit
                     model: LimiterSettingModel {

@@ -56,6 +56,7 @@ EffectBase {
 
                     delegate: SettingKnob {
                         required property var modelData
+                        isVertical: true
                         title: modelData.title
                         unit: modelData.unit
                         model: CompressorSettingModel {
@@ -87,6 +88,7 @@ EffectBase {
 
                     delegate: SettingKnob {
                         required property var modelData
+                        isVertical: true
                         title: modelData.title
                         unit: modelData.unit
                         model: CompressorSettingModel {

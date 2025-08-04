@@ -6,7 +6,8 @@ Item {
     required property var model
     required property string title
     property string unit: ""
-    property bool isBig: false
+    property bool isVertical: false
+    property int radius: 16
 
     Component.onCompleted: {
         model.init()
@@ -19,13 +20,14 @@ Item {
             root.width = knobLoader.item.width
             root.height = knobLoader.item.height
         }
-        sourceComponent: isBig ? bigKnob : smallKnob
+        sourceComponent: isVertical ? verticalKnob : horizontalKnob
     }
 
     Component {
-        id: bigKnob
+        id: verticalKnob
 
         BigParameterKnob {
+            radius: root.radius
             parameter: {
                 "title": root.title,
                 "unit": root.unit,
@@ -46,9 +48,10 @@ Item {
     }
 
     Component {
-        id: smallKnob
+        id: horizontalKnob
 
         ParameterKnob {
+            radius: root.radius
             parameter: {
                 "title": root.title,
                 "unit": root.unit,
