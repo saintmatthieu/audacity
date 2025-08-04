@@ -11,8 +11,8 @@ EffectBase {
     property string title: qsTrc("effects/compressor", "Compressor")
     property bool isApplyAllowed: true
 
-    width: 400
-    implicitHeight: 400
+    width: row.width
+    implicitHeight: row.height
 
     model: compressor
 
@@ -26,25 +26,74 @@ EffectBase {
         compressor.init()
     }
 
-    Column {
-        Repeater {
-            model: [
-                { id: "attackMs", title: qsTrc("effects/compressor", "Attack"), unit: "ms" },
-                { id: "releaseMs", title: qsTrc("effects/compressor", "Release"), unit: "ms" },
-                { id: "lookaheadMs", title: qsTrc("effects/compressor", "Lookahead"), unit: "ms" },
-                { id: "thresholdDb", title: qsTrc("effects/compressor", "Threshold"), unit: "dB" },
-                { id: "compressionRatio", title: qsTrc("effects/compressor", "Ratio"), unit: "" },
-                { id: "kneeWidthDb", title: qsTrc("effects/compressor", "Knee width"), unit: "dB" },
-                { id: "makeupGainDb", title: qsTrc("effects/compressor", "Make-up gain"), unit: "dB" }
-            ]
+    Rectangle {
+        width: row.width
+        height: row.height
 
-            delegate: SettingKnob {
-                required property var modelData
-                title: modelData.title
-                unit: modelData.unit
-                model: CompressorSettingModel {
-                    paramId: modelData.id
-                    instanceId: root.instanceId
+        radius: 4
+
+        color: ui.theme.backgroundSecondaryColor
+        border.color: ui.theme.strokeColor
+
+        Row {
+            id: row
+
+            padding: 16
+            spacing: 24
+
+            Grid {
+                id: leftGrid
+
+                columns: 2
+                spacing: 24
+
+                Repeater {
+                    model: [
+                        { id: "attackMs", title: qsTrc("effects/compressor", "Attack"), unit: "ms" },
+                        { id: "releaseMs", title: qsTrc("effects/compressor", "Release"), unit: "ms" },
+                        { id: "lookaheadMs", title: qsTrc("effects/compressor", "Lookahead"), unit: "ms" },
+                    ]
+
+                    delegate: SettingKnob {
+                        required property var modelData
+                        title: modelData.title
+                        unit: modelData.unit
+                        model: CompressorSettingModel {
+                            paramId: modelData.id
+                            instanceId: root.instanceId
+                        }
+                    }
+                }
+            }
+
+            // Can't use a SeparatorLine in a Row or Column, or we get an infinite loop.
+            Rectangle {
+                width: 1
+                height: leftGrid.height
+                color: ui.theme.strokeColor
+            }
+
+            Grid {
+                columns: 2
+                spacing: 24
+
+                Repeater {
+                    model: [
+                        { id: "thresholdDb", title: qsTrc("effects/compressor", "Threshold"), unit: "dB" },
+                        { id: "compressionRatio", title: qsTrc("effects/compressor", "Ratio"), unit: "" },
+                        { id: "kneeWidthDb", title: qsTrc("effects/compressor", "Knee width"), unit: "dB" },
+                        { id: "makeupGainDb", title: qsTrc("effects/compressor", "Make-up gain"), unit: "dB" }
+                    ]
+
+                    delegate: SettingKnob {
+                        required property var modelData
+                        title: modelData.title
+                        unit: modelData.unit
+                        model: CompressorSettingModel {
+                            paramId: modelData.id
+                            instanceId: root.instanceId
+                        }
+                    }
                 }
             }
         }
