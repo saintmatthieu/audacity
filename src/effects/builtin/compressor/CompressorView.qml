@@ -28,230 +28,81 @@ EffectBase {
 
     Column {
 
-        ParameterKnob {
-            CompressorSettingModel {
-                id: thresholdDb
+        SettingKnob {
+            id: thresholdDbKnob
+
+            title: qsTrc("effects/compressor", "thresholdDb")
+            unit: "dB"
+            model: CompressorSettingModel {
                 paramId: "thresholdDb"
                 instanceId: root.instanceId
             }
-            parameter: {
-                "title": qsTrc("effects/compressor", "thresholdDb"),
-                "unit": "dB",
-                "min": thresholdDb.min,
-                "max": thresholdDb.max,
-                "value": thresholdDb.value,
-                "stepSize": thresholdDb.step
-            }
-
-            onNewValueRequested: function(_, newValue) {
-                thresholdDb.value = newValue
-            }
-
-            onCommitRequested: {
-                thresholdDb.commitSettings()
-            }
         }
 
-        ParameterKnob {
-            CompressorSettingModel {
-                id: makeupGainDb
+        SettingKnob {
+            id: makeupGainDbKnob
+
+            title: qsTrc("effects/compressor", "makeupGainDb")
+            unit: "dB"
+            model: CompressorSettingModel {
                 paramId: "makeupGainDb"
                 instanceId: root.instanceId
             }
-            parameter: {
-                "title": qsTrc("effects/compressor", "makeupGainDb"),
-                "unit": "dB",
-                "min": makeupGainDb.min,
-                "max": makeupGainDb.max,
-                "value": makeupGainDb.value,
-                "stepSize": makeupGainDb.step
-            }
-
-            onNewValueRequested: function(_, newValue) {
-                makeupGainDb.value = newValue
-            }
-
-            onCommitRequested: {
-                makeupGainDb.commitSettings()
-            }
         }
 
-        ParameterKnob {
-            CompressorSettingModel {
-                id: kneeWidthDb
+        SettingKnob {
+            id: kneeWidthDbKnob
+
+            title: qsTrc("effects/compressor", "kneeWidthDb")
+            unit: "dB"
+            model: CompressorSettingModel {
                 paramId: "kneeWidthDb"
                 instanceId: root.instanceId
             }
-            parameter: {
-                "title": qsTrc("effects/compressor", "kneeWidthDb"),
-                "unit": "dB",
-                "min": kneeWidthDb.min,
-                "max": kneeWidthDb.max,
-                "value": kneeWidthDb.value,
-                "stepSize": kneeWidthDb.step
-            }
-
-            onNewValueRequested: function(_, newValue) {
-                kneeWidthDb.value = newValue
-            }
-
-            onCommitRequested: {
-                kneeWidthDb.commitSettings()
-            }
         }
 
-        ParameterKnob {
-            CompressorSettingModel {
-                id: compressionRatio
+        SettingKnob {
+            id: compressionRatioKnob
+
+            title: qsTrc("effects/compressor", "compressionRatio")
+            unit: "dB"
+            model: CompressorSettingModel {
                 paramId: "compressionRatio"
                 instanceId: root.instanceId
             }
-            parameter: {
-                "title": qsTrc("effects/compressor", "compressionRatio"),
-                "unit": "dB",
-                "min": compressionRatio.min,
-                "max": compressionRatio.max,
-                "value": compressionRatio.value,
-                "stepSize": compressionRatio.step
-            }
-
-            onNewValueRequested: function(_, newValue) {
-                compressionRatio.value = newValue
-            }
-
-            onCommitRequested: {
-                compressionRatio.commitSettings()
-            }
         }
 
-        ParameterKnob {
-            CompressorSettingModel {
-                id: lookaheadMs
+        SettingKnob {
+            id: lookaheadMsKnob
+
+            title: qsTrc("effects/compressor", "lookaheadMs")
+            unit: "dB"
+            model: CompressorSettingModel {
                 paramId: "lookaheadMs"
                 instanceId: root.instanceId
             }
-            parameter: {
-                "title": qsTrc("effects/compressor", "lookaheadMs"),
-                "unit": "dB",
-                "min": lookaheadMs.min,
-                "max": lookaheadMs.max,
-                "value": lookaheadMs.value,
-                "stepSize": lookaheadMs.step
-            }
-
-            onNewValueRequested: function(_, newValue) {
-                lookaheadMs.value = newValue
-            }
-
-            onCommitRequested: {
-                lookaheadMs.commitSettings()
-            }
         }
 
-        ParameterKnob {
-            CompressorSettingModel {
-                id: attackMs
+        SettingKnob {
+            id: attackMsKnob
+
+            title: qsTrc("effects/compressor", "attackMs")
+            unit: "dB"
+            model: CompressorSettingModel {
                 paramId: "attackMs"
                 instanceId: root.instanceId
             }
-            parameter: {
-                "title": qsTrc("effects/compressor", "attackMs"),
-                "unit": "dB",
-                "min": attackMs.min,
-                "max": attackMs.max,
-                "value": attackMs.value,
-                "stepSize": attackMs.step
-            }
-
-            onNewValueRequested: function(_, newValue) {
-                attackMs.value = newValue
-            }
-
-            onCommitRequested: {
-                attackMs.commitSettings()
-            }
         }
 
-        ParameterKnob {
-            CompressorSettingModel {
-                id: releaseMs
+        SettingKnob {
+            id: releaseMsKnob
+
+            title: qsTrc("effects/compressor", "releaseMs")
+            unit: "dB"
+            model: CompressorSettingModel {
                 paramId: "releaseMs"
                 instanceId: root.instanceId
             }
-            parameter: {
-                "title": qsTrc("effects/compressor", "releaseMs"),
-                "unit": "dB",
-                "min": releaseMs.min,
-                "max": releaseMs.max,
-                "value": releaseMs.value,
-                "stepSize": releaseMs.step
-            }
-
-            onNewValueRequested: function(_, newValue) {
-                releaseMs.value = newValue
-            }
-
-            onCommitRequested: {
-                releaseMs.commitSettings()
-            }
         }
-
-        CheckBox {
-            CompressorSettingModel {
-                id: showInput
-                paramId: "showInput"
-                instanceId: root.instanceId
-            }
-
-            checked: showInput.value
-            onClicked: {
-                showInput.value = !checked
-                showInput.commitSettings()
-            }
-        }
-
-        CheckBox {
-            CompressorSettingModel {
-                id: showOutput
-                paramId: "showOutput"
-                instanceId: root.instanceId
-            }
-
-            checked: showOutput.value
-            onClicked: {
-                showOutput.value = !checked
-                showInput.commitSettings()
-            }
-        }
-
-        CheckBox {
-            CompressorSettingModel {
-                id: showActual
-                paramId: "showActual"
-                instanceId: root.instanceId
-            }
-
-            checked: showActual.value
-            onClicked: {
-                showActual.value = !checked
-                showInput.commitSettings()
-            }
-        }
-
-        CheckBox {
-            CompressorSettingModel {
-                id: showTarget
-                paramId: "showTarget"
-                instanceId: root.instanceId
-            }
-
-            checked: showTarget.value
-            onClicked: {
-                showTarget.value = !checked
-                showInput.commitSettings()
-            }
-        }
-
-
     }
 }

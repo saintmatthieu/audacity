@@ -6,6 +6,7 @@
         <file>common/SliderWithTextInput.qml</file>
         <file>common/ParameterKnob.qml</file>
         <file>common/BigParameterKnob.qml</file>
+        <file>common/SettingKnob.qml</file>
         <file>amplify/AmplifyView.qml</file>
         <file>clickremoval/ClickRemovalView.qml</file>
         <file>loudness/NormalizeLoudnessView.qml</file>
