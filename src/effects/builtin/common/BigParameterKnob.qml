@@ -10,6 +10,7 @@ Item {
 
     property alias value: knob.value
     property alias stepSize: knob.stepSize
+    property alias radius: knob.radius
 
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
@@ -36,8 +37,6 @@ Item {
             id: knob
 
             anchors.horizontalCenter: parent.horizontalCenter
-
-            radius: 24
 
             onNewValueRequested: function (value) {
                 root.newValueRequested(root.parameter["key"], value)

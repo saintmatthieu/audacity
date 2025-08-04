@@ -76,6 +76,7 @@ EffectBase {
                     Layout.fillWidth: true
 
                     parameter: reverb.paramsList["RoomSize"]
+                    radius: 24
 
                     onNewValueRequested: function(key, newValue) {
                         newParameterValueRequested(key, newValue)
@@ -89,6 +90,7 @@ EffectBase {
                     Layout.fillWidth: true
 
                     parameter: reverb.paramsList["StereoWidth"]
+                    radius: 24
 
                     onNewValueRequested: function(key, newValue) {
                         newParameterValueRequested(key, newValue)
@@ -102,6 +104,7 @@ EffectBase {
                     Layout.fillWidth: true
 
                     parameter: reverb.paramsList["PreDelay"]
+                    radius: 24
 
                     onNewValueRequested: function(key, newValue) {
                         newParameterValueRequested(key, newValue)

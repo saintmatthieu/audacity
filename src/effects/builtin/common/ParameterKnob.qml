@@ -9,6 +9,7 @@ Item {
     required property var parameter
 
     property alias value: knob.value
+    property alias radius: knob.radius
 
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
