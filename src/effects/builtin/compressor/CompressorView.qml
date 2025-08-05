@@ -20,6 +20,9 @@ EffectBase {
         id: compressor
 
         instanceId: root.instanceId
+        onCompressionCurveChanged: {
+            compressionCurve.requestPaint()
+        }
     }
 
     Component.onCompleted: {
@@ -94,9 +97,20 @@ EffectBase {
                         model: CompressorSettingModel {
                             paramId: modelData.id
                             instanceId: root.instanceId
+                            onValueChanged: {
+                                compressionCurve.requestPaint()
+                            }
                         }
                     }
                 }
+            }
+
+            CompressionCurve {
+                id: compressionCurve
+
+                model: compressor
+                anchors.bottom: leftGrid.bottom
+                availableHeight: leftGrid.height
             }
         }
     }

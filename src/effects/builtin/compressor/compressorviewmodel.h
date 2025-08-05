@@ -18,6 +18,11 @@ class CompressorViewModel : public AbstractEffectModel
 public:
     CompressorViewModel(QObject* parent = nullptr);
 
+    Q_INVOKABLE QList<float> compressionCurve(const QList<float>& dbIn) const;
+
+signals:
+    void compressionCurveChanged();
+
 private:
     void doReload() override;
 };

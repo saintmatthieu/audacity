@@ -11,6 +11,8 @@
         <file>clickremoval/ClickRemovalView.qml</file>
         <file>loudness/NormalizeLoudnessView.qml</file>
         <file>compressor/CompressorView.qml</file>
+        <file>compressor/CompressionCurve.qml</file>
+        <file>compressor/CompressionCurvePainter.qml</file>
         <file>limiter/LimiterView.qml</file>
         <file>normalize/NormalizeView.qml</file>
         <file>graphiceq/GraphicEqBoard.qml</file>
