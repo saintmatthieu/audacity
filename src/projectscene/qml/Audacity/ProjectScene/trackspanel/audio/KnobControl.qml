@@ -248,7 +248,7 @@ Dial {
                     const floor = 0.1 // The value may be stuck at 0 if the increment is too small.
                     dist = dist * Math.max(floor, scalar)
                 }
-                let newValue = root.value + span * dist / 100 * sgn
+                let newValue = root.value + span * dist / (root.exponential ? 75 : 200) * sgn
 
                 prv.prevX = mouse.x
                 prv.prevY = mouse.y
