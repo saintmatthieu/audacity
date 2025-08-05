@@ -254,7 +254,9 @@ Dial {
                     dist /= 3
                 }
                 let sgn = (dy < dx) ? 1 : -1
-                let newValue = prv.initialValue + dist * root.stepSize * sgn
+
+                const span = root.to - root.from
+                let newValue = prv.initialValue + span * dist / 100 * sgn
                 prv.requestNewValue(newValue)
             }
         }
