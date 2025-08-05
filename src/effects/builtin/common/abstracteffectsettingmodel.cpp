@@ -34,9 +34,4 @@ void AbstractEffectSettingModel::doUpdateSettings()
 {
     doReload();
 }
-
-const Effect* AbstractEffectSettingModel::effect() const
-{
-    return effectsProvider()->effect(effectId());
-}
 } // namespace au::effects

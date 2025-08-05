@@ -6,14 +6,10 @@
 #include "../common/effectsettingmodelimpl.h"
 #include "compressoreffect.h"
 
-#include "effects/effects_base/ieffectsprovider.h"
-
 namespace au::effects {
 class CompressorViewModel : public AbstractEffectModel
 {
     Q_OBJECT
-
-    muse::Inject<IEffectsProvider> effectsProvider;
 
 public:
     CompressorViewModel(QObject* parent = nullptr);

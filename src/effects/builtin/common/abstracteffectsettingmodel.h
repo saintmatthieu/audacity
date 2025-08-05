@@ -4,7 +4,6 @@
 #pragma once
 
 #include "abstracteffectmodel.h"
-#include "effects/effects_base/ieffectsprovider.h"
 
 namespace au::effects {
 class AbstractEffectSettingModel : public AbstractEffectModel
@@ -16,8 +15,6 @@ class AbstractEffectSettingModel : public AbstractEffectModel
     Q_PROPERTY(double min READ min NOTIFY minChanged FINAL)
     Q_PROPERTY(double max READ max NOTIFY maxChanged FINAL)
     Q_PROPERTY(double step READ step NOTIFY stepChanged FINAL)
-
-    muse::Inject<IEffectsProvider> effectsProvider;
 
 public:
     AbstractEffectSettingModel(QObject* parent);
@@ -42,7 +39,6 @@ signals:
     void stepChanged();
 
 protected:
-    const Effect* effect() const;
     QString m_paramId;
 
 private:
