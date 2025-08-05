@@ -30,10 +30,11 @@ Item {
     Column {
         id: content
 
-        spacing: 8
+        spacing: 6
 
         StyledTextLabel {
             text:  parameter["title"]
+            height: 16
             horizontalAlignment: Qt.AlignLeft
         }
 
