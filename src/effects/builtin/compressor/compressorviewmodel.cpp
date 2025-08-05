@@ -3,6 +3,8 @@
  */
 #include "compressorviewmodel.h"
 
+#include "libraries/lib-dynamic-range-processor/CompressorProcessor.h"
+
 #include "log.h"
 
 namespace au::effects {
@@ -11,8 +13,20 @@ CompressorViewModel::CompressorViewModel(QObject* parent)
 {
 }
 
+QList<float> CompressorViewModel::compressionCurve(const QList<float>& dbIn) const
+{
+    const auto& s = settings<CompressorSettings>();
+    QList<float> dbOut;
+    dbOut.reserve(dbIn.size());
+    for (const auto db : dbIn) {
+        dbOut.append(CompressorProcessor::EvaluateTransferFunction(s, db));
+    }
+    return dbOut;
+}
+
 void CompressorViewModel::doReload()
 {
+    emit compressionCurveChanged();
 }
 
 CompressorSettingModel::CompressorSettingModel(QObject* parent)
