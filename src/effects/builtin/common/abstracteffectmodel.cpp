@@ -45,6 +45,11 @@ std::shared_ptr<au::effects::EffectInstance> AbstractEffectModel::instance() con
     return instancesRegister()->instanceById(id);
 }
 
+Effect* AbstractEffectModel::effect() const
+{
+    return effectsProvider()->effect(effectId());
+}
+
 const EffectSettings* AbstractEffectModel::settings() const
 {
     EffectInstanceId id = this->instanceId();
