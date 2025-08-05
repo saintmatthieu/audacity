@@ -65,9 +65,8 @@ Dial {
 
         readonly property real startValueArcAngle: root.isPanKnob ? 0 : -140
 
-        property real initialValue: 0
-        property real dragStartX: 0
-        property real dragStartY: 0
+        property real prevX: 0
+        property real prevY: 0
         property bool dragActive: false
 
         function requestNewValue(newValue) {
@@ -202,9 +201,8 @@ Dial {
         preventStealing: true // Don't let a Flickable steal the mouse
 
         onPressed: function(mouse) {
-            prv.initialValue = root.value
-            prv.dragStartX = mouse.x
-            prv.dragStartY = mouse.y
+            prv.prevX = mouse.x
+            prv.prevY = mouse.y
             prv.dragActive = true
             mousePressed()
         }
@@ -231,24 +229,8 @@ Dial {
 
         onPositionChanged: function(mouse)  {
             if (prv.dragActive) {
-                if ((mouse.modifiers & (Qt.ShiftModifier))) {
-                    if (!root.shiftPressed) {
-                        root.shiftPressed = true
-                        prv.initialValue = root.value
-                        prv.dragStartX = mouse.x
-                        prv.dragStartY = mouse.y
-                    }
-                } else {
-                    if (root.shiftPressed) {
-                        root.shiftPressed = false
-                        prv.initialValue = root.value
-                        prv.dragStartX = mouse.x
-                        prv.dragStartY = mouse.y
-                    }
-                }
-
-                let dx = mouse.x - prv.dragStartX
-                let dy = mouse.y - prv.dragStartY
+                let dx = mouse.x - prv.prevX
+                let dy = mouse.y - prv.prevY
                 let dist = Math.sqrt(dx * dx + dy * dy)
                 if ((mouse.modifiers & (Qt.ShiftModifier))) {
                     dist /= 3
@@ -256,7 +238,12 @@ Dial {
                 let sgn = (dy < dx) ? 1 : -1
 
                 const span = root.to - root.from
-                let newValue = prv.initialValue + span * dist / 100 * sgn
+
+                let newValue = root.value + span * dist / 100 * sgn
+
+                prv.prevX = mouse.x
+                prv.prevY = mouse.y
+
                 prv.requestNewValue(newValue)
             }
         }
