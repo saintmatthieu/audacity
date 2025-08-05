@@ -31,7 +31,7 @@ Item {
     Column {
         id: content
 
-        spacing: 8
+        spacing: 6
 
         KnobControl {
             id: knob
@@ -51,6 +51,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
 
             text:  parameter["title"]
+            height: 16
             horizontalAlignment: Qt.AlignHCenter
         }
 
