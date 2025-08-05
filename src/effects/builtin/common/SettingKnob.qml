@@ -6,6 +6,7 @@ Item {
     required property var model
     required property string title
     property string unit: ""
+    property bool exponential: false
     property bool isVertical: false
     property int radius: 16
 
@@ -28,6 +29,7 @@ Item {
 
         BigParameterKnob {
             radius: root.radius
+            exponential: root.exponential
             parameter: {
                 "title": root.title,
                 "unit": root.unit,
@@ -52,6 +54,7 @@ Item {
 
         ParameterKnob {
             radius: root.radius
+            exponential: root.exponential
             parameter: {
                 "title": root.title,
                 "unit": root.unit,

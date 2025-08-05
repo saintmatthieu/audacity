@@ -52,9 +52,9 @@ EffectBase {
 
                 Repeater {
                     model: [
-                        { id: "attackMs", title: qsTrc("effects/compressor", "Attack"), unit: "ms" },
-                        { id: "releaseMs", title: qsTrc("effects/compressor", "Release"), unit: "ms" },
-                        { id: "lookaheadMs", title: qsTrc("effects/compressor", "Lookahead"), unit: "ms" },
+                        { id: "attackMs", title: qsTrc("effects/compressor", "Attack"), unit: "ms", exponential: true },
+                        { id: "releaseMs", title: qsTrc("effects/compressor", "Release"), unit: "ms", exponential: true },
+                        { id: "lookaheadMs", title: qsTrc("effects/compressor", "Lookahead"), unit: "ms", exponential: true },
                     ]
 
                     delegate: SettingKnob {
@@ -62,6 +62,7 @@ EffectBase {
                         isVertical: true
                         title: modelData.title
                         unit: modelData.unit
+                        exponential: modelData.exponential || false
                         model: CompressorSettingModel {
                             paramId: modelData.id
                             instanceId: root.instanceId
@@ -84,7 +85,7 @@ EffectBase {
                 Repeater {
                     model: [
                         { id: "thresholdDb", title: qsTrc("effects/compressor", "Threshold"), unit: "dB" },
-                        { id: "compressionRatio", title: qsTrc("effects/compressor", "Ratio"), unit: "" },
+                        { id: "compressionRatio", title: qsTrc("effects/compressor", "Ratio"), unit: "", exponential: true },
                         { id: "kneeWidthDb", title: qsTrc("effects/compressor", "Knee width"), unit: "dB" },
                         { id: "makeupGainDb", title: qsTrc("effects/compressor", "Make-up gain"), unit: "dB" }
                     ]
@@ -94,6 +95,7 @@ EffectBase {
                         isVertical: true
                         title: modelData.title
                         unit: modelData.unit
+                        exponential: modelData.exponential || false
                         model: CompressorSettingModel {
                             paramId: modelData.id
                             instanceId: root.instanceId
