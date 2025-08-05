@@ -17,6 +17,8 @@ Dial {
 
     property bool isPanKnob: false
 
+    property bool exponential: false
+
     property bool accentControl: true
 
     property alias mouseArea: mouseArea
@@ -239,6 +241,13 @@ Dial {
 
                 const span = root.to - root.from
 
+                if (root.exponential) {
+                    // A gentle warping to give more control at low values and faster change at high values.
+                    const p = 1.2
+                    const scalar = (1 - Math.pow(p, root.value / span)) / (1 - p)
+                    const floor = 0.1 // The value may be stuck at 0 if the increment is too small.
+                    dist = dist * Math.max(floor, scalar)
+                }
                 let newValue = root.value + span * dist / 100 * sgn
 
                 prv.prevX = mouse.x

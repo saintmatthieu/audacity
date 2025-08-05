@@ -88,9 +88,9 @@ EffectBase {
 
             Repeater {
                 model: [
-                    { id: "lookaheadMs", title: qsTrc("effects/limiter", "Lookahead"), unit: "ms" },
+                    { id: "lookaheadMs", title: qsTrc("effects/limiter", "Lookahead"), unit: "ms", exponential: true },
                     { id: "kneeWidthDb", title: qsTrc("effects/limiter", "Knee width"), unit: "dB" },
-                    { id: "releaseMs", title: qsTrc("effects/limiter", "Release"), unit: "ms" },
+                    { id: "releaseMs", title: qsTrc("effects/limiter", "Release"), unit: "ms", exponential: true },
                 ]
 
                 delegate: SettingKnob {
@@ -98,6 +98,7 @@ EffectBase {
                     isVertical: false
                     title: modelData.title
                     unit: modelData.unit
+                    exponential: modelData.exponential || false
                     model: LimiterSettingModel {
                         paramId: modelData.id
                         instanceId: root.instanceId

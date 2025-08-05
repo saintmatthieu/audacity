@@ -11,6 +11,7 @@ Item {
     property alias value: knob.value
     property alias stepSize: knob.stepSize
     property alias radius: knob.radius
+    property alias exponential: knob.exponential
 
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
