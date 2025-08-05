@@ -12,6 +12,7 @@ Item {
     property alias stepSize: knob.stepSize
     property alias radius: knob.radius
     property alias exponential: knob.exponential
+    property bool knobFirst: true
 
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
@@ -34,6 +35,15 @@ Item {
 
         spacing: 6
 
+        StyledTextLabel {
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            visible: !root.knobFirst
+            text:  parameter["title"]
+            height: 16
+            horizontalAlignment: Qt.AlignHCenter
+        }
+
         KnobControl {
             id: knob
 
@@ -51,6 +61,7 @@ Item {
         StyledTextLabel {
             anchors.horizontalCenter: parent.horizontalCenter
 
+            visible: root.knobFirst
             text:  parameter["title"]
             height: 16
             horizontalAlignment: Qt.AlignHCenter

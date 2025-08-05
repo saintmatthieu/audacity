@@ -8,6 +8,7 @@ Item {
     property string unit: ""
     property bool exponential: false
     property bool isVertical: false
+    property bool knobFirst: true // Only relevant is `isVertical` is true
     property int radius: 16
 
     Component.onCompleted: {
@@ -30,6 +31,7 @@ Item {
         BigParameterKnob {
             radius: root.radius
             exponential: root.exponential
+            knobFirst: root.knobFirst
             parameter: {
                 "title": root.title,
                 "unit": root.unit,

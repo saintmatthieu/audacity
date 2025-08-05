@@ -94,8 +94,11 @@ EffectBase {
                 ]
 
                 delegate: SettingKnob {
+                    anchors.verticalCenter: parent.verticalCenter
                     required property var modelData
-                    isVertical: false
+                    isVertical: true
+                    knobFirst: false
+                    radius: 16
                     title: modelData.title
                     unit: modelData.unit
                     exponential: modelData.exponential || false

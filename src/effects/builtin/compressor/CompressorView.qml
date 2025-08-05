@@ -60,6 +60,7 @@ EffectBase {
                     delegate: SettingKnob {
                         required property var modelData
                         isVertical: true
+                        knobFirst: false
                         title: modelData.title
                         unit: modelData.unit
                         exponential: modelData.exponential || false
@@ -93,6 +94,7 @@ EffectBase {
                     delegate: SettingKnob {
                         required property var modelData
                         isVertical: true
+                        knobFirst: false
                         title: modelData.title
                         unit: modelData.unit
                         exponential: modelData.exponential || false
