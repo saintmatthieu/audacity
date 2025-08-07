@@ -10,7 +10,7 @@
 
 namespace au::effects {
 template<typename EffectType>
-using ParamGetter = std::function<const EffectParameter<typename EffectType::Settings, double, double, double>& (const EffectType&)>;
+using ParamGetter = std::function<EffectParameter<typename EffectType::Settings, double, double, double> (const EffectType&)>;
 
 template<typename EffectType>
 class EffectSettingModelImpl : public AbstractEffectSettingModel
@@ -28,7 +28,7 @@ public:
             return 0.0;
         }
         const auto& s = settings<SettingsType>();
-        const auto& param = m_getter(*effect);
+        const auto param = m_getter(*effect);
         const double v = s.*param.mem;
         return v;
     }
@@ -47,7 +47,7 @@ public:
             if (!effect) {
                 return;
             }
-            const auto& param = m_getter(*effect);
+            const auto param = m_getter(*effect);
             s->*param.mem = newValue;
         });
         emit valueChanged();
@@ -59,7 +59,7 @@ public:
         if (!effect) {
             return 0.0;
         }
-        const auto& param = m_getter(*effect);
+        const auto param = m_getter(*effect);
         return param.min;
     }
 
@@ -69,7 +69,7 @@ public:
         if (!effect) {
             return 1.0;
         }
-        const auto& param = m_getter(*effect);
+        const auto param = m_getter(*effect);
         return param.max;
     }
 
@@ -79,7 +79,7 @@ public:
         if (!effect) {
             return 1.0;
         }
-        const auto& param = m_getter(*effect);
+        const auto param = m_getter(*effect);
         return param.step;
     }
 
