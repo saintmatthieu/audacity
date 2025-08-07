@@ -10,7 +10,7 @@
 
 namespace au::effects {
 template<typename EffectType>
-using ParamGetter = std::function<const EffectParameter<typename EffectType::Settings, double, double, double>& (const EffectType&)>;
+using ParamGetter = std::function<EffectParameter<typename EffectType::Settings, double, double, double> (const EffectType&)>;
 
 template<typename EffectType>
 class EffectSettingModelImpl : public AbstractEffectSettingModel
