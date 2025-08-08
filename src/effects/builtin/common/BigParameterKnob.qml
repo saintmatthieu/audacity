@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Audacity.ProjectScene
+import Audacity.BuiltinEffects
 import Muse.UiComponents
 
 Item {
@@ -8,10 +9,9 @@ Item {
 
     required property var parameter
 
-    property alias value: knob.value
     property alias stepSize: knob.stepSize
     property alias radius: knob.radius
-    property alias exponential: knob.exponential
+    property alias warpingType: warper.warpingType
     property bool knobFirst: true
 
     implicitWidth: content.implicitWidth
@@ -22,11 +22,32 @@ Item {
 
     onParameterChanged: {
         if (parameter) {
+            if (warpingType !== ControlWarpingType.None) {
+                console.log("SettingKnob: parameter changed: min =", parameter["min"], "max =", parameter["max"], "value =", parameter["value"]);
+            }
             knob.from = parameter["min"]
             knob.to = parameter["max"]
-            knob.value = parameter["value"]
+            warper.value = parameter["value"]
             knob.stepSize = parameter["step"] || 1;
             textEdit.measureUnitsSymbol = parameter["unit"] || "";
+        }
+    }
+
+    Component.onCompleted: {
+        if (warpingType !== ControlWarpingType.None) {
+            console.log("completed")
+        }
+        warper.value = parameter["value"];
+    }
+
+    ControlWarper {
+        id: warper
+
+        min: knob.from
+        max: knob.to
+
+        onValueChanged: {
+            root.newValueRequested(root.parameter["key"], warper.value)
         }
     }
 
@@ -47,10 +68,12 @@ Item {
         KnobControl {
             id: knob
 
+            value: warper.warpedValue
+
             anchors.horizontalCenter: parent.horizontalCenter
 
             onNewValueRequested: function (value) {
-                root.newValueRequested(root.parameter["key"], value)
+                warper.warpedValue = value
             }
 
             mouseArea.onReleased: function() {
@@ -84,7 +107,7 @@ Item {
             }
             step: knob.stepSize
 
-            currentValue: +knob.value.toFixed(decimals)
+            currentValue: +warper.value.toFixed(decimals)
 
             onValueEdited: function(value) {
                 root.newValueRequested(root.parameter["key"], value)

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Audacity.ProjectScene
+import Audacity.BuiltinEffects
 import Muse.UiComponents
 
 Item {
@@ -10,7 +11,7 @@ Item {
 
     property alias value: knob.value
     property alias radius: knob.radius
-    property alias exponential: knob.exponential
+    property int warpingType: ControlWarpingType.None
 
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
