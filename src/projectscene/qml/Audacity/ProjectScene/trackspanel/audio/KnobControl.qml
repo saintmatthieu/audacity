@@ -21,10 +21,6 @@ Dial {
 
     property alias mouseArea: mouseArea
 
-    property alias currentValue: root.value
-
-    property bool shiftPressed: false
-
     implicitWidth: root.radius * 2
     implicitHeight: implicitWidth
 
@@ -67,6 +63,9 @@ Dial {
 
         property real prevX: 0
         property real prevY: 0
+        property real unclampedValue: -1
+
+        property bool shiftPressed: false
         property bool dragActive: false
 
         function requestNewValue(newValue) {
@@ -221,6 +220,7 @@ Dial {
 
         onReleased: {
             prv.dragActive = false
+            prv.unclampedValue = -1
             if (!containsMouse) {
                 mouseExited()
             }
@@ -229,6 +229,19 @@ Dial {
 
         onPositionChanged: function(mouse)  {
             if (prv.dragActive) {
+
+                if ((mouse.modifiers & (Qt.ShiftModifier))) {
+                    if (!prv.shiftPressed) {
+                        prv.shiftPressed = true
+                        prv.unclampedValue = -1
+                    }
+                } else {
+                    if (prv.shiftPressed) {
+                        prv.shiftPressed = false
+                        prv.unclampedValue = -1
+                    }
+                }
+
                 const dx = mouse.x - prv.prevX
                 const dy = mouse.y - prv.prevY
                 let dist = Math.sqrt(dx * dx + dy * dy)
@@ -237,10 +250,11 @@ Dial {
                 }
                 const sgn = (dy < dx) ? 1 : -1
                 const span = root.to - root.from
-                const newValue = root.value + span * dist / 200 * sgn
+                const newValue = (prv.unclampedValue === -1 ? root.value : prv.unclampedValue) + span * dist / 200 * sgn
 
                 prv.prevX = mouse.x
                 prv.prevY = mouse.y
+                prv.unclampedValue = newValue
 
                 prv.requestNewValue(newValue)
             }
