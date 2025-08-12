@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import Audacity.BuiltinEffects
 
 Item {
     id: root
@@ -6,7 +7,7 @@ Item {
     required property var model
     required property string title
     property string unit: ""
-    property bool exponential: false
+    property int warpingType: ControlWarpingType.None
     property bool isVertical: false
     property bool knobFirst: true // Only relevant is `isVertical` is true
     property int radius: 16
@@ -30,7 +31,7 @@ Item {
 
         BigParameterKnob {
             radius: root.radius
-            exponential: root.exponential
+            warpingType: root.warpingType
             knobFirst: root.knobFirst
             parameter: {
                 "title": root.title,
@@ -56,7 +57,6 @@ Item {
 
         ParameterKnob {
             radius: root.radius
-            exponential: root.exponential
             parameter: {
                 "title": root.title,
                 "unit": root.unit,

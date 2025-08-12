@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Muse.UiComponents
 import Audacity.Effects
 import Audacity.ProjectScene
+import Audacity.BuiltinEffects
 
 import "../common"
 
@@ -88,9 +89,9 @@ EffectBase {
 
             Repeater {
                 model: [
-                    { id: "lookaheadMs", title: qsTrc("effects/limiter", "Lookahead"), unit: "ms", exponential: true },
-                    { id: "kneeWidthDb", title: qsTrc("effects/limiter", "Knee width"), unit: "dB" },
-                    { id: "releaseMs", title: qsTrc("effects/limiter", "Release"), unit: "ms", exponential: true },
+                    { id: "lookaheadMs", title: qsTrc("effects/limiter", "Lookahead"), unit: "ms", warpingType: ControlWarpingType.Aggressive },
+                    { id: "kneeWidthDb", title: qsTrc("effects/limiter", "Knee width"), unit: "dB", warpingType: ControlWarpingType.None },
+                    { id: "releaseMs", title: qsTrc("effects/limiter", "Release"), unit: "ms", warpingType: ControlWarpingType.Soft },
                 ]
 
                 delegate: SettingKnob {
@@ -101,7 +102,7 @@ EffectBase {
                     radius: 16
                     title: modelData.title
                     unit: modelData.unit
-                    exponential: modelData.exponential || false
+                    warpingType: modelData.warpingType
                     model: LimiterSettingModel {
                         paramId: modelData.id
                         instanceId: root.instanceId

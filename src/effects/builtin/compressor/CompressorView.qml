@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Muse.UiComponents
 import Audacity.Effects
+import Audacity.BuiltinEffects
 
 import "../common"
 
@@ -52,9 +53,9 @@ EffectBase {
 
                 Repeater {
                     model: [
-                        { id: "attackMs", title: qsTrc("effects/compressor", "Attack"), unit: "ms", exponential: true },
-                        { id: "releaseMs", title: qsTrc("effects/compressor", "Release"), unit: "ms", exponential: true },
-                        { id: "lookaheadMs", title: qsTrc("effects/compressor", "Lookahead"), unit: "ms", exponential: true },
+                        { id: "attackMs", title: qsTrc("effects/compressor", "Attack"), unit: "ms", warpingType: ControlWarpingType.Soft },
+                        { id: "releaseMs", title: qsTrc("effects/compressor", "Release"), unit: "ms", warpingType: ControlWarpingType.Soft },
+                        { id: "lookaheadMs", title: qsTrc("effects/compressor", "Lookahead"), unit: "ms", warpingType: ControlWarpingType.Soft },
                     ]
 
                     delegate: SettingKnob {
@@ -63,7 +64,7 @@ EffectBase {
                         knobFirst: false
                         title: modelData.title
                         unit: modelData.unit
-                        exponential: modelData.exponential || false
+                        warpingType: modelData.warpingType
                         model: CompressorSettingModel {
                             paramId: modelData.id
                             instanceId: root.instanceId
@@ -85,10 +86,10 @@ EffectBase {
 
                 Repeater {
                     model: [
-                        { id: "thresholdDb", title: qsTrc("effects/compressor", "Threshold"), unit: "dB" },
-                        { id: "compressionRatio", title: qsTrc("effects/compressor", "Ratio"), unit: "", exponential: true },
-                        { id: "kneeWidthDb", title: qsTrc("effects/compressor", "Knee width"), unit: "dB" },
-                        { id: "makeupGainDb", title: qsTrc("effects/compressor", "Make-up gain"), unit: "dB" }
+                        { id: "thresholdDb", title: qsTrc("effects/compressor", "Threshold"), unit: "dB", warpingType: ControlWarpingType.None },
+                        { id: "compressionRatio", title: qsTrc("effects/compressor", "Ratio"), unit: "", warpingType: ControlWarpingType.Aggressive },
+                        { id: "kneeWidthDb", title: qsTrc("effects/compressor", "Knee width"), unit: "dB", warpingType: ControlWarpingType.None },
+                        { id: "makeupGainDb", title: qsTrc("effects/compressor", "Make-up gain"), unit: "dB", warpingType: ControlWarpingType.None }
                     ]
 
                     delegate: SettingKnob {
@@ -97,7 +98,7 @@ EffectBase {
                         knobFirst: false
                         title: modelData.title
                         unit: modelData.unit
-                        exponential: modelData.exponential || false
+                        warpingType: modelData.warpingType
                         model: CompressorSettingModel {
                             paramId: modelData.id
                             instanceId: root.instanceId

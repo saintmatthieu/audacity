@@ -17,8 +17,6 @@ Dial {
 
     property bool isPanKnob: false
 
-    property bool exponential: false
-
     property bool accentControl: true
 
     property alias mouseArea: mouseArea
@@ -231,24 +229,15 @@ Dial {
 
         onPositionChanged: function(mouse)  {
             if (prv.dragActive) {
-                let dx = mouse.x - prv.prevX
-                let dy = mouse.y - prv.prevY
+                const dx = mouse.x - prv.prevX
+                const dy = mouse.y - prv.prevY
                 let dist = Math.sqrt(dx * dx + dy * dy)
                 if ((mouse.modifiers & (Qt.ShiftModifier))) {
                     dist /= 3
                 }
-                let sgn = (dy < dx) ? 1 : -1
-
+                const sgn = (dy < dx) ? 1 : -1
                 const span = root.to - root.from
-
-                if (root.exponential) {
-                    // A gentle warping to give more control at low values and faster change at high values.
-                    const p = 1.2
-                    const scalar = (1 - Math.pow(p, root.value / span)) / (1 - p)
-                    const floor = 0.1 // The value may be stuck at 0 if the increment is too small.
-                    dist = dist * Math.max(floor, scalar)
-                }
-                let newValue = root.value + span * dist / (root.exponential ? 75 : 200) * sgn
+                const newValue = root.value + span * dist / 200 * sgn
 
                 prv.prevX = mouse.x
                 prv.prevY = mouse.y
