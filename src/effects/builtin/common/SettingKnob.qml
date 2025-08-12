@@ -13,8 +13,8 @@ Item {
     property int radius: 16
 
     Component.onCompleted: {
+        console.log("SettingKnob completed with title:", root.title);
         model.init()
-        // knobLoader.item.init()
     }
 
     Loader {

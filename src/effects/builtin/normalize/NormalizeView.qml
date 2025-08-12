@@ -10,6 +10,7 @@ EffectBase {
 
     property string title: qsTrc("effects/normalize", "Normalize")
     property bool isApplyAllowed: removeDcCheckbox.checked || normalizePeakAmplitudeCheckbox.checked
+    property alias instanceId: normalize.instanceId
 
     width: 400
     implicitHeight: column.height
@@ -18,8 +19,6 @@ EffectBase {
 
     NormalizeViewModel {
         id: normalize
-
-        instanceId: root.instanceId
     }
 
     Component.onCompleted: {

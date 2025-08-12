@@ -20,6 +20,10 @@ Item {
     signal newValueRequested(string key, real newValue)
     signal commitRequested()
 
+    function init() {
+        warper.init()
+    }
+
     onParameterChanged: {
         if (parameter) {
             if (warpingType !== ControlWarpingType.None) {

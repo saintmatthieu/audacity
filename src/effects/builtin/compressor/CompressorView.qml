@@ -27,6 +27,7 @@ EffectBase {
     }
 
     Component.onCompleted: {
+        console.log("CompressorView completed")
         compressor.init()
     }
 
@@ -53,9 +54,9 @@ EffectBase {
 
                 Repeater {
                     model: [
-                        { id: "attackMs", title: qsTrc("effects/compressor", "Attack"), unit: "ms", warpingType: ControlWarpingType.None /* ControlWarpingType.Soft */ },
-                        { id: "releaseMs", title: qsTrc("effects/compressor", "Release"), unit: "ms", warpingType: ControlWarpingType.None /* ControlWarpingType.Soft */ },
-                        { id: "lookaheadMs", title: qsTrc("effects/compressor", "Lookahead"), unit: "ms", warpingType: ControlWarpingType.None /* ControlWarpingType.Soft */ },
+                        // { id: "attackMs", title: qsTrc("effects/compressor", "Attack"), unit: "ms", warpingType: ControlWarpingType.None /* ControlWarpingType.Soft */ },
+                        // { id: "releaseMs", title: qsTrc("effects/compressor", "Release"), unit: "ms", warpingType: ControlWarpingType.None /* ControlWarpingType.Soft */ },
+                        // { id: "lookaheadMs", title: qsTrc("effects/compressor", "Lookahead"), unit: "ms", warpingType: ControlWarpingType.None /* ControlWarpingType.Soft */ },
                     ]
 
                     delegate: SettingKnob {
@@ -86,10 +87,10 @@ EffectBase {
 
                 Repeater {
                     model: [
-                        { id: "thresholdDb", title: qsTrc("effects/compressor", "Threshold"), unit: "dB", warpingType: ControlWarpingType.None /* ControlWarpingType.None */ },
+                        // { id: "thresholdDb", title: qsTrc("effects/compressor", "Threshold"), unit: "dB", warpingType: ControlWarpingType.None /* ControlWarpingType.None */ },
                         { id: "compressionRatio", title: qsTrc("effects/compressor", "Ratio"), unit: "", warpingType: ControlWarpingType.Aggressive /* ControlWarpingType.Aggressive */ },
-                        { id: "kneeWidthDb", title: qsTrc("effects/compressor", "Knee width"), unit: "dB", warpingType: ControlWarpingType.None /* ControlWarpingType.None */ },
-                        { id: "makeupGainDb", title: qsTrc("effects/compressor", "Make-up gain"), unit: "dB", warpingType: ControlWarpingType.None /* ControlWarpingType.None */ }
+                        // { id: "kneeWidthDb", title: qsTrc("effects/compressor", "Knee width"), unit: "dB", warpingType: ControlWarpingType.None /* ControlWarpingType.None */ },
+                        // { id: "makeupGainDb", title: qsTrc("effects/compressor", "Make-up gain"), unit: "dB", warpingType: ControlWarpingType.None /* ControlWarpingType.None */ }
                     ]
 
                     delegate: SettingKnob {

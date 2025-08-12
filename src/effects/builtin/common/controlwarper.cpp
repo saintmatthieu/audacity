@@ -37,9 +37,12 @@ static const double aggressiveExpC = std::exp(aggressiveC);
 
 void ControlWarper::init()
 {
-    if (updateWarpedValue()) {
-        emit warpedValueChanged();
+    if (m_initialized) {
+        return;
     }
+
+    m_initialized = true;
+    emit valueChanged();
 }
 
 double ControlWarper::value() const
@@ -53,9 +56,12 @@ void ControlWarper::setValue(double value)
         return;
     }
     m_value = value;
-    emit valueChanged();
-    if (updateWarpedValue()) {
-        emit warpedValueChanged();
+
+    if (m_initialized) {
+        emit valueChanged();
+        if (updateWarpedValue()) {
+            emit warpedValueChanged();
+        }
     }
 }
 
@@ -95,9 +101,11 @@ void ControlWarper::setWarpedValue(double value)
         return;
     }
     m_warpedValue = value;
-    emit warpedValueChanged();
-    if (updateValue()) {
-        emit valueChanged();
+    if (m_initialized) {
+        emit warpedValueChanged();
+        if (updateValue()) {
+            emit valueChanged();
+        }
     }
 }
 
@@ -135,9 +143,10 @@ void ControlWarper::setWarpingType(ControlWarpingType type)
         return;
     }
     m_warpingType = type;
-    updateValue();
     emit warpingTypeChanged();
-    emit valueChanged();
+    if (m_initialized && updateValue()) {
+        emit valueChanged();
+    }
 }
 
 double ControlWarper::min() const
@@ -151,9 +160,10 @@ void ControlWarper::setMin(double value)
         return;
     }
     m_min = value;
-    updateValue();
     emit minChanged();
-    emit valueChanged();
+    if (m_initialized && updateValue()) {
+        emit valueChanged();
+    }
 }
 
 double ControlWarper::max() const
@@ -167,8 +177,9 @@ void ControlWarper::setMax(double value)
         return;
     }
     m_max = value;
-    updateValue();
     emit maxChanged();
-    emit valueChanged();
+    if (m_initialized && updateValue()) {
+        emit valueChanged();
+    }
 }
 }

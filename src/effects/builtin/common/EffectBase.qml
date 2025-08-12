@@ -10,9 +10,9 @@ Rectangle {
 
     id: root
 
-    property var instanceId: null
-
     property AbstractEffectModel model: null
+
+    signal inited()
 
     color: ui.theme.backgroundPrimaryColor
 

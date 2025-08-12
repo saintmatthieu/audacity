@@ -75,5 +75,6 @@ private:
     double m_warpedValue = 0.0;
     double m_min = 0.0;
     double m_max = 1.0;
+    bool m_initialized = false;
 };
 } // namespace au::effects
