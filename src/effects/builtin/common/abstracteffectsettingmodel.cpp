@@ -24,10 +24,6 @@ void AbstractEffectSettingModel::setParamId(const QString& newParamId)
 void AbstractEffectSettingModel::doReload()
 {
     emit valueChanged();
-    emit labelChanged();
-    emit minChanged();
-    emit maxChanged();
-    emit stepChanged();
 }
 
 void AbstractEffectSettingModel::doUpdateSettings()
