@@ -20,8 +20,6 @@ EffectBase {
 
     LimiterViewModel {
         id: limiter
-
-        instanceId: root.instanceId
     }
 
     Component.onCompleted: {
@@ -57,7 +55,6 @@ EffectBase {
                     unit: "dB"
                     model: LimiterSettingModel {
                         paramId: "thresholdDb"
-                        instanceId: root.instanceId
                     }
                 }
             }
@@ -75,7 +72,6 @@ EffectBase {
                     unit: "dB"
                     model: LimiterSettingModel {
                         paramId: "makeupTargetDb"
-                        instanceId: root.instanceId
                     }
                 }
             }
@@ -105,7 +101,6 @@ EffectBase {
                     warpingType: modelData.warpingType
                     model: LimiterSettingModel {
                         paramId: modelData.id
-                        instanceId: root.instanceId
                     }
                 }
             }

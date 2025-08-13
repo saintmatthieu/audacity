@@ -20,7 +20,6 @@ EffectBase {
     CompressorViewModel {
         id: compressor
 
-        instanceId: root.instanceId
         onCompressionCurveChanged: {
             compressionCurve.requestPaint()
         }
@@ -67,7 +66,6 @@ EffectBase {
                         warpingType: modelData.warpingType
                         model: CompressorSettingModel {
                             paramId: modelData.id
-                            instanceId: root.instanceId
                         }
                     }
                 }
@@ -101,7 +99,6 @@ EffectBase {
                         warpingType: modelData.warpingType
                         model: CompressorSettingModel {
                             paramId: modelData.id
-                            instanceId: root.instanceId
                             onValueChanged: {
                                 compressionCurve.requestPaint()
                             }
