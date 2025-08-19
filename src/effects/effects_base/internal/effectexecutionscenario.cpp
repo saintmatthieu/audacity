@@ -309,8 +309,8 @@ muse::Ret EffectExecutionScenario::doPerformEffect(au3::Au3Project& project, con
         }
 
         if (!(flags & EffectManager::kSkipState)) {
-            const auto shortDesc = PluginManager::Get().GetName(ID).Translation().ToStdString();
-            const auto longDesc = muse::mtrc("effects", "Applied effect: %1").arg(muse::String { shortDesc.c_str() }).toStdString();
+            const auto shortDesc = muse::TranslatableString::untranslatable(PluginManager::Get().GetName(ID).Translation().c_str());
+            const auto longDesc = muse::TranslatableString("effects", "Applied effect: %1").arg(shortDesc);
             projectHistory()->pushHistoryState(longDesc, shortDesc);
         }
 

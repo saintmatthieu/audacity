@@ -24,8 +24,8 @@ public:
     virtual void undo() = 0;
     virtual bool redoAvailable() const = 0;
     virtual void redo() = 0;
-    virtual void pushHistoryState(const std::string& longDescription, const std::string& shortDescription) = 0;
-    virtual void pushHistoryState(const std::string& longDescription, const std::string& shortDescription,
+    virtual void pushHistoryState(const muse::TranslatableString& longDescription, const muse::TranslatableString& shortDescription) = 0;
+    virtual void pushHistoryState(const muse::TranslatableString& longDescription, const muse::TranslatableString& shortDescription,
                                   trackedit::UndoPushType flags) = 0;
 
     virtual void undoRedoToIndex(size_t index) = 0;

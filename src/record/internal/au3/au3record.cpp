@@ -621,7 +621,7 @@ void Au3Record::cancelRecording()
 
 void Au3Record::commitRecording()
 {
-    projectHistory()->pushHistoryState(trc("record", "Recorded Audio"), trc("record", "Record"));
+    projectHistory()->pushHistoryState(muse::TranslatableString("record", "Recorded Audio"), muse::TranslatableString("record", "Record"));
 }
 
 bool Au3Record::canStopAudioStream() const

@@ -251,9 +251,11 @@ RealtimeEffectStatePtr RealtimeEffectService::addRealtimeEffect(TrackId trackId,
 
     effectsProvider()->loadEffect(effectId);
     if (const auto state = AudioIO::Get()->AddState(*data->au3Project, data->au3Track, effectId.toStdString())) {
-        const auto effectName = getEffectName(*state);
-        const auto trackName = effectTrackName(trackId);
-        projectHistory()->pushHistoryState("Added " + effectName + " to " + trackName.value_or(""), "Add " + effectName);
+        const auto effectName = muse::TranslatableString::untranslatable(getEffectName(*state).c_str());
+        const auto trackName = muse::TranslatableString::untranslatable(effectTrackName(trackId).value_or("").c_str());
+        const auto longDesc = muse::TranslatableString("effects", "Added %1 to %2").arg(effectName).arg(trackName);
+        const auto shortDesc = muse::TranslatableString("effects", "Add %1").arg(effectName);
+        projectHistory()->pushHistoryState(longDesc, shortDesc);
         return state;
     }
 
@@ -288,7 +290,9 @@ void RealtimeEffectService::removeRealtimeEffect(TrackId trackId, const Realtime
     AudioIO::Get()->RemoveState(*data->au3Project, data->au3Track, state);
     const auto effectName = getEffectName(*state);
     const auto trackName = effectTrackName(trackId);
-    projectHistory()->pushHistoryState("Removed " + effectName + " from " + trackName.value_or(""), "Remove " + effectName);
+    const auto longDesc = muse::TranslatableString("effects", "Removed %1 from %2").arg(effectName).arg(trackName.value_or(""));
+    const auto shortDesc = muse::TranslatableString("effects", "Remove %1").arg(effectName);
+    projectHistory()->pushHistoryState(longDesc, shortDesc);
 }
 
 RealtimeEffectStatePtr RealtimeEffectService::replaceRealtimeEffect(TrackId trackId, int effectListIndex, const muse::String& newEffectId)
@@ -303,7 +307,10 @@ RealtimeEffectStatePtr RealtimeEffectService::replaceRealtimeEffect(TrackId trac
     if (const auto newState = AudioIO::Get()->ReplaceState(*data->au3Project, data->au3Track, effectListIndex, newEffectId.toStdString())) {
         const auto oldEffectName = getEffectName(*oldState);
         const auto newEffectName = getEffectName(*newState);
-        projectHistory()->pushHistoryState("Replaced " + oldEffectName + " with " + newEffectName, "Replace " + oldEffectName);
+        const auto longDesc = muse::TranslatableString("effects", "Replaced %1 with %2 in %3")
+                              .arg(oldEffectName).arg(newEffectName).arg(effectTrackName(trackId).value_or(""));
+        const auto shortDesc = muse::TranslatableString("effects", "Replace %1 with %2").arg(oldEffectName).arg(newEffectName);
+        projectHistory()->pushHistoryState(longDesc, shortDesc);
         return newState;
     }
 
@@ -335,9 +342,9 @@ void RealtimeEffectService::moveRealtimeEffect(const RealtimeEffectStatePtr& sta
 
     const auto effectName = getEffectName(*state);
     const auto trackName = effectTrackName(*tId);
-    projectHistory()->pushHistoryState("Moved " + effectName
-                                       + (oldIndex < newIndex ? " up " : " down ") + " in " + trackName.value_or(""),
-                                       "Change effect order");
+    const auto longDesc = muse::TranslatableString("effects", "Moved %1 in %2").arg(effectName).arg(trackName.value_or(""));
+    const auto shortDesc = muse::TranslatableString("effects", "Move %1").arg(effectName);
+    projectHistory()->pushHistoryState(longDesc, shortDesc);
 }
 
 bool RealtimeEffectService::isActive(const RealtimeEffectStatePtr& state) const

@@ -23,10 +23,9 @@ public:
     void undo() override;
     bool redoAvailable() const override;
     void redo() override;
-    void pushHistoryState(
-        const std::string& longDescription, const std::string& shortDescription) override;
-    void pushHistoryState(
-        const std::string& longDescription, const std::string& shortDescription, UndoPushType flags) override;
+    void pushHistoryState(const muse::TranslatableString& longDescription, const muse::TranslatableString& shortDescription) override;
+    void pushHistoryState(const muse::TranslatableString& longDescription, const muse::TranslatableString& shortDescription,
+                          UndoPushType flags) override;
     void rollbackState() override;
     void modifyState(bool autoSave) override;
     void markUnsaved() override;

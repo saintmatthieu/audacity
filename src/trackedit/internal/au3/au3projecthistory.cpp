@@ -47,18 +47,21 @@ void au::trackedit::Au3ProjectHistory::redo()
     notifyAboutHistoryChanged();
 }
 
-void au::trackedit::Au3ProjectHistory::pushHistoryState(const std::string& longDescription, const std::string& shortDescription)
+void au::trackedit::Au3ProjectHistory::pushHistoryState(const muse::TranslatableString& longDescription,
+                                                        const muse::TranslatableString& shortDescription)
 {
     pushHistoryState(longDescription, shortDescription, UndoPushType::NONE);
 }
 
-void Au3ProjectHistory::pushHistoryState(const std::string& longDescription, const std::string& shortDescription, UndoPushType flags)
+void Au3ProjectHistory::pushHistoryState(const muse::TranslatableString& longDescription, const muse::TranslatableString& shortDescription,
+                                         UndoPushType flags)
 {
-    LOGI() << "pushHistoryState(\"" << shortDescription << "\", " << flags << ")";
+    LOGI() << "pushHistoryState(\"" << shortDescription.translated() << "\", " << flags << ")";
     auto& project = projectRef();
     UndoPush undoFlags = static_cast<UndoPush>(flags);
-    ::ProjectHistory::Get(project).PushState(TranslatableString { longDescription, {} }, TranslatableString { shortDescription, {} },
-                                             undoFlags);
+    const ::TranslatableString au3LongDescription = ::Verbatim(wxFromString(longDescription.translated()));
+    const ::TranslatableString au3ShortDescription = ::Verbatim(wxFromString(shortDescription.translated()));
+    ::ProjectHistory::Get(project).PushState(au3LongDescription, au3ShortDescription, undoFlags);
 
     m_interactionOngoing = false;
     notifyAboutHistoryChanged();

@@ -481,7 +481,8 @@ void WaveView::onWaveZoomChanged()
 
 void WaveView::pushProjectHistorySampleEdit()
 {
-    projectHistory()->pushHistoryState("Moved Samples", "Sample Edit", trackedit::UndoPushType::CONSOLIDATE);
+    projectHistory()->pushHistoryState(muse::TranslatableString("projectscene", "Moved Samples"),
+                                       muse::TranslatableString("projectscene", "Sample Edit"), trackedit::UndoPushType::CONSOLIDATE);
 }
 
 au::context::IPlaybackStatePtr WaveView::playbackState() const

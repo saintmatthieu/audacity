@@ -303,19 +303,19 @@ void Au3TrackeditProject::setTimeSignature(const trackedit::TimeSignature& timeS
 {
     ProjectTimeSignature& timeSig = ProjectTimeSignature::Get(*m_impl->prj);
 
-    std::string historyStateMessage;
+    muse::TranslatableString historyStateMessage;
     if (!muse::is_equal(timeSig.GetTempo(), timeSignature.tempo)) {
-        historyStateMessage = "Tempo changed";
+        historyStateMessage = muse::TranslatableString("trackedit", "Tempo changed");
     }
     timeSig.SetTempo(timeSignature.tempo);
 
     if (!muse::is_equal(timeSig.GetUpperTimeSignature(), timeSignature.upper)) {
-        historyStateMessage = "Upper time signature changed";
+        historyStateMessage = muse::TranslatableString("trackedit", "Upper time signature changed");
     }
     timeSig.SetUpperTimeSignature(timeSignature.upper);
 
     if (!muse::is_equal(timeSig.GetLowerTimeSignature(), timeSignature.lower)) {
-        historyStateMessage = "Lower time signature changed";
+        historyStateMessage = muse::TranslatableString("trackedit", "Lower time signature changed");
     }
     timeSig.SetLowerTimeSignature(timeSignature.lower);
 

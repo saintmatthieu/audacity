@@ -36,8 +36,8 @@ void Au3TrackPlaybackControl::setVolume(long trackId, volume_dbfs_t vol, bool co
     track->SetVolume(vol > -60 ? DB_TO_LINEAR(vol) : 0);
 
     if (completed) {
-        projectHistory()->pushHistoryState(muse::trc("playback", "Moved volume slider"),
-                                           muse::trc("playback", "Volume"),
+        projectHistory()->pushHistoryState(muse::TranslatableString("playback", "Moved volume slider"),
+                                           muse::TranslatableString("playback", "Volume"),
                                            trackedit::UndoPushType::CONSOLIDATE);
     }
     return;
@@ -63,8 +63,8 @@ void Au3TrackPlaybackControl::setPan(long trackId, au::audio::pan_t pan, bool co
     track->SetPan(pan);
 
     if (completed) {
-        projectHistory()->pushHistoryState(muse::trc("playback", "Moved pan dial"),
-                                           muse::trc("playback", "Pan"),
+        projectHistory()->pushHistoryState(muse::TranslatableString("playback", "Moved pan dial"),
+                                           muse::TranslatableString("playback", "Pan"),
                                            trackedit::UndoPushType::CONSOLIDATE);
     }
 }
