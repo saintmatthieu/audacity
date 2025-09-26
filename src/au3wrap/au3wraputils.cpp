@@ -20,6 +20,11 @@ class DialogImpl : public muse::async::Asyncable
     muse::Inject<muse::IInteractive> interactive;
 
 public:
+    DialogImpl()
+    {
+        m_museProgress.setMaxNumIncrements(200);
+    }
+
     muse::Ret executeInBackground(Task task, std::string title, muse::Ret::Code errorCode)
     {
         QEventLoop loop;
@@ -31,7 +36,7 @@ public:
         });
 
         // Make sure that the progress is started before the thread starts being executed.
-        interactive()->showProgress(title, &m_museProgress);
+        interactive()->showProgress(title, m_museProgress);
 
         std::thread thread([&] {
             DialogImpl::Au3Progress au3Progress { m_museProgress };
