@@ -23,7 +23,8 @@ public:
     virtual muse::async::Channel<playback::PlaybackStatus> playbackStatusChanged() const = 0;
 
     virtual muse::secs_t playbackPosition() const = 0;
-    virtual muse::async::Channel<muse::secs_t> playbackPositionChanged() const = 0;
+    virtual void addPlaybackPositionListener(class playback::IPlaybackPositionListener* listener) = 0;
+    virtual void removePlaybackPositionListener(class playback::IPlaybackPositionListener* listener) = 0;
 };
 
 using IPlaybackStatePtr = std::shared_ptr<IPlaybackState>;

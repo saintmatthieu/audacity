@@ -7,7 +7,6 @@ void PlaybackState::setPlayer(playback::IPlayerPtr player)
 {
     if (m_player) {
         m_player->playbackStatusChanged().resetOnReceive(this);
-        m_player->playbackPositionChangedMainThreadOnly().resetOnReceive(this);
     }
 
     m_player = player;
@@ -15,10 +14,6 @@ void PlaybackState::setPlayer(playback::IPlayerPtr player)
     //! The redirect is needed so that consumers do not have to worry about resubscribing if the player changes
     m_player->playbackStatusChanged().onReceive(this, [this](PlaybackStatus st) {
         m_playbackStatusChanged.send(st);
-    });
-
-    m_player->playbackPositionChangedMainThreadOnly().onReceive(this, [this](muse::secs_t pos) {
-        m_playbackPositionChanged.send(pos);
     });
 }
 
@@ -42,7 +37,18 @@ muse::secs_t PlaybackState::playbackPosition() const
     return m_player ? m_player->playbackPosition() : muse::secs_t(0.0);
 }
 
-muse::async::Channel<muse::secs_t> PlaybackState::playbackPositionChanged() const
+void PlaybackState::addPlaybackPositionListener(class playback::IPlaybackPositionListener* listener)
 {
-    return m_playbackPositionChanged;
+    IF_ASSERT_FAILED(m_player) {
+        return;
+    }
+    m_player->addPlaybackPositionListener(listener);
+}
+
+void PlaybackState::removePlaybackPositionListener(class playback::IPlaybackPositionListener* listener)
+{
+    IF_ASSERT_FAILED(m_player) {
+        return;
+    }
+    m_player->removePlaybackPositionListener(listener);
 }

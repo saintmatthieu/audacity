@@ -16,10 +16,7 @@ PlaybackToolBarTimeItem::PlaybackToolBarTimeItem(const muse::ui::UiAction& actio
                                                  QObject* parent)
     : muse::uicomponents::ToolBarItem(action, type, parent)
 {
-    playbackState()->playbackPositionChanged().onReceive(this, [this](muse::secs_t) {
-        emit currentValueChanged();
-    });
-
+    playbackState()->addPlaybackPositionListener(this);
     playback()->audioOutput()->sampleRateChanged().onReceive(this, [this](audio::sample_rate_t) {
         emit sampleRateChanged();
     });
@@ -35,6 +32,18 @@ PlaybackToolBarTimeItem::PlaybackToolBarTimeItem(const muse::ui::UiAction& actio
 
     configuration()->playbackTimeItemFormatChanged().onNotify(this, [this](){
         emit currentFormatChanged();
+    });
+}
+
+PlaybackToolBarTimeItem::~PlaybackToolBarTimeItem()
+{
+    playbackState()->removePlaybackPositionListener(this);
+}
+
+void PlaybackToolBarTimeItem::onPlaybackPositionChanged(muse::secs_t)
+{
+    QTimer::singleShot(0, [this]() {
+        emit currentValueChanged();
     });
 }
 

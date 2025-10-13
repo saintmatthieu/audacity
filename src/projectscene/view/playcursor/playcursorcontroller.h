@@ -32,7 +32,7 @@
 #include "../timeline/timelinecontext.h"
 
 namespace au::projectscene {
-class PlayCursorController : public QObject, public muse::async::Asyncable
+class PlayCursorController : public QObject, public muse::async::Asyncable, public playback::IPlaybackPositionListener
 {
     Q_OBJECT
 
@@ -45,6 +45,7 @@ class PlayCursorController : public QObject, public muse::async::Asyncable
 
 public:
     PlayCursorController(QObject* parent = nullptr);
+    ~PlayCursorController() override;
 
     TimelineContext* timelineContext() const;
     void setTimelineContext(TimelineContext* newContext);
@@ -64,6 +65,8 @@ private slots:
 private:
     context::IPlaybackStatePtr playbackState() const;
     projectscene::IProjectViewStatePtr projectViewState() const;
+
+    void onPlaybackPositionChanged(muse::secs_t newPosition) override;
 
     void updatePositionX(muse::secs_t secs);
 

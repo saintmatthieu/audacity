@@ -22,7 +22,9 @@ public:
     muse::async::Channel<playback::PlaybackStatus> playbackStatusChanged() const override;
 
     muse::secs_t playbackPosition() const override;
-    muse::async::Channel<muse::secs_t> playbackPositionChanged() const override;
+
+    void addPlaybackPositionListener(class playback::IPlaybackPositionListener* listener) override;
+    void removePlaybackPositionListener(class playback::IPlaybackPositionListener* listener) override;
 
 private:
     playback::IPlayerPtr m_player;

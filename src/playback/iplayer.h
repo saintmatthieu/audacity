@@ -57,7 +57,9 @@ public:
     virtual void updatePlaybackPositionTimeCritical() = 0;
 
     virtual muse::secs_t playbackPosition() const = 0;
-    virtual muse::async::Channel<muse::secs_t> playbackPositionChangedMainThreadOnly() const = 0;
+
+    virtual void addPlaybackPositionListener(IPlaybackPositionListener* listener) = 0;
+    virtual void removePlaybackPositionListener(IPlaybackPositionListener* listener) = 0;
 
     // tracks
     virtual muse::Ret playTracks(TrackList& trackList, double startTime, double endTime, const PlayTracksOptions& options = {}) = 0;

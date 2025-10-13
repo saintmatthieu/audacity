@@ -65,12 +65,12 @@ void PlaybackController::init()
     });
 
     // No need to assert that we're on the main thread here: this is the init method of a controller...
-    m_player->playbackPositionChangedMainThreadOnly().onReceive(this, [this](const muse::secs_t&) {
-        if (isPlaybackPositionOnTheEndOfProject() || isPlaybackPositionOnTheEndOfPlaybackRegion()) {
-            //! NOTE: just stop, without seek
-            player()->stop();
-        }
-    });
+    // m_player->playbackPositionChangedMainThreadOnly().onReceive(this, [this](const muse::secs_t&) {
+    //     if (isPlaybackPositionOnTheEndOfProject() || isPlaybackPositionOnTheEndOfPlaybackRegion()) {
+    //         //! NOTE: just stop, without seek
+    //         player()->stop();
+    //     }
+    // });
 
     m_player->loopRegionChanged().onNotify(this, [this](){
         m_actionCheckedChanged.send("toggle-loop-region");

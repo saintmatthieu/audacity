@@ -14,7 +14,7 @@
 #include "uicomponents/view/toolbaritem.h"
 
 namespace au::playback {
-class PlaybackToolBarTimeItem : public muse::uicomponents::ToolBarItem
+class PlaybackToolBarTimeItem : public muse::uicomponents::ToolBarItem, public IPlaybackPositionListener
 {
     Q_OBJECT
 
@@ -35,6 +35,7 @@ class PlaybackToolBarTimeItem : public muse::uicomponents::ToolBarItem
 public:
     explicit PlaybackToolBarTimeItem(const muse::ui::UiAction& action, muse::uicomponents::ToolBarItemType::Type type,
                                      QObject* parent = nullptr);
+    ~PlaybackToolBarTimeItem() override;
 
     int currentFormat() const;
     void setCurrentFormat(int format);
@@ -55,6 +56,8 @@ signals:
     void timeSignatureChanged();
 
 private:
+    void onPlaybackPositionChanged(muse::secs_t newPosition) override;
+
     context::IPlaybackStatePtr playbackState() const;
 };
 }

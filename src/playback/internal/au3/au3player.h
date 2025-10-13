@@ -63,7 +63,9 @@ public:
 
     muse::secs_t playbackPosition() const override;
     void updatePlaybackPositionTimeCritical() override;
-    muse::async::Channel<muse::secs_t> playbackPositionChangedMainThreadOnly() const override;
+
+    void addPlaybackPositionListener(IPlaybackPositionListener* listener) override;
+    void removePlaybackPositionListener(IPlaybackPositionListener* listener) override;
 
     muse::Ret playTracks(TrackList& trackList, double startTime, double endTime, const PlayTracksOptions& options = {}) override;
 
@@ -83,9 +85,11 @@ private:
     muse::ValCh<PlaybackStatus> m_playbackStatus;
     muse::ValNt<bool> m_reachedEnd;
 
-    muse::ValCh<muse::secs_t> m_playbackPositionMainThreadOnly;
     double m_startOffset = 0.0;
+    double m_playbackPositionTime = 0.0;
 
     unsigned long long m_elapsedSamplesAtLastReport = 0;
+
+    std::vector<IPlaybackPositionListener*> m_playbackPositionListeners;
 };
 }

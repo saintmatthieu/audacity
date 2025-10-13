@@ -32,15 +32,22 @@ PlayCursorController::PlayCursorController(QObject* parent)
 {
 }
 
+PlayCursorController::~PlayCursorController()
+{
+    playbackState()->removePlaybackPositionListener(this);
+}
+
 void PlayCursorController::init()
 {
-    playbackState()->playbackPositionChanged().onReceive(this, [this](muse::secs_t secs) {
-        updatePositionX(secs);
-    });
-
+    playbackState()->addPlaybackPositionListener(this);
     globalContext()->recordPositionChanged().onReceive(this, [this](muse::secs_t secs){
         updatePositionX(secs);
     });
+}
+
+void PlayCursorController::onPlaybackPositionChanged(muse::secs_t newPosition)
+{
+    updatePositionX(newPosition);
 }
 
 void PlayCursorController::seekToX(double x, bool triggerPlay)

@@ -169,4 +169,11 @@ public:
 
     Q_ENUM(DbRange)
 };
+
+class IPlaybackPositionListener
+{
+public:
+    virtual ~IPlaybackPositionListener() = default;
+    virtual void onPlaybackPositionChanged(muse::secs_t newPosition) = 0;
+};
 }

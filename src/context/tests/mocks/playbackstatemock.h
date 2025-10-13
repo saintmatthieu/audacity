@@ -16,6 +16,8 @@ public:
     MOCK_METHOD(muse::async::Channel<playback::PlaybackStatus>, playbackStatusChanged, (), (const, override));
 
     MOCK_METHOD(muse::secs_t, playbackPosition, (), (const, override));
-    MOCK_METHOD(muse::async::Channel<muse::secs_t>, playbackPositionChanged, (), (const, override));
+
+    MOCK_METHOD(void, addPlaybackPositionListener, (class playback::IPlaybackPositionListener* listener), (override));
+    MOCK_METHOD(void, removePlaybackPositionListener, (class playback::IPlaybackPositionListener* listener), (override));
 };
 }

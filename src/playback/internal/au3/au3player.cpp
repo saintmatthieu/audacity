@@ -218,7 +218,7 @@ void Au3Player::seek(const muse::secs_t newPosition, bool applyIfPlaying)
         gAudioIO->SeekStream(pos - gAudioIO->GetStreamTime());
     }
 
-    m_playbackPositionMainThreadOnly.set(pos);
+    m_playbackPositionTime = pos;
 }
 
 void Au3Player::rewind()
@@ -329,7 +329,7 @@ PlaybackRegion Au3Player::playbackRegion() const
 
 void Au3Player::setPlaybackRegion(const PlaybackRegion& region)
 {
-    m_playbackPositionMainThreadOnly.set(std::max(0.0, region.start.raw()));
+    m_playbackPositionTime = std::max(0.0, region.start.raw());
 
     Au3Project& project = projectRef();
 
@@ -370,7 +370,7 @@ void Au3Player::loopEditingEnd()
     auto& playRegion = ViewInfo::Get(project).playRegion;
     playRegion.Order();
 
-    m_playbackPositionMainThreadOnly.set(std::max(loopRegion().start.raw(), 0.0));
+    m_playbackPositionTime = std::max(loopRegion().start.raw(), 0.0);
 }
 
 void Au3Player::setLoopRegion(const PlaybackRegion& region)
@@ -480,9 +480,9 @@ void Au3Player::updatePlaybackStateTimeCritical()
 
     if (isActive) {
         m_reachedEnd.val = false;
-        const auto newTime = std::max(0.0, time);
-        if (!muse::is_equal(newTime, m_playbackPositionMainThreadOnly.val.raw())) {
-            m_playbackPositionMainThreadOnly.set(newTime);
+        m_playbackPositionTime = std::max(0.0, time);
+        for (IPlaybackPositionListener* listener : m_playbackPositionListeners) {
+            listener->onPlaybackPositionChanged(m_playbackPositionTime);
         }
     } else {
         if (playbackStatus() == PlaybackStatus::Running && !m_reachedEnd.val) {
@@ -494,7 +494,7 @@ void Au3Player::updatePlaybackStateTimeCritical()
 
 muse::secs_t Au3Player::playbackPosition() const
 {
-    return m_playbackPositionMainThreadOnly.val;
+    return m_playbackPositionTime;
 }
 
 void Au3Player::updatePlaybackPositionTimeCritical()
@@ -515,7 +515,6 @@ void Au3Player::updatePlaybackPositionTimeCritical()
         updatePlaybackStateTimeCritical();
     };
 
-
     const double sampleRate = AudioIO::Get()->GetPlaybackSampleRate();
 
     // Make 100% sure we do not introduce drift: quantize the elapsed time to an integral sample value,
@@ -529,11 +528,6 @@ void Au3Player::updatePlaybackPositionTimeCritical()
     m_elapsedSamplesAtLastReport = elapsedSamples;
 
     audioIO.UpdateTimePosition(elapsed);
-}
-
-muse::async::Channel<muse::secs_t> Au3Player::playbackPositionChangedMainThreadOnly() const
-{
-    return m_playbackPositionMainThreadOnly.ch;
 }
 
 Au3Project& Au3Player::projectRef() const
@@ -563,4 +557,21 @@ TransportSequences Au3Player::makeTransportTracks(Au3TrackList& trackList, bool 
         }
     }
     return result;
+}
+
+void Au3Player::addPlaybackPositionListener(IPlaybackPositionListener* listener)
+{
+    if (listener
+        && std::find(m_playbackPositionListeners.begin(), m_playbackPositionListeners.end(),
+                     listener) == m_playbackPositionListeners.end()) {
+        m_playbackPositionListeners.push_back(listener);
+    }
+}
+
+void Au3Player::removePlaybackPositionListener(IPlaybackPositionListener* listener)
+{
+    auto it = std::find(m_playbackPositionListeners.begin(), m_playbackPositionListeners.end(), listener);
+    if (it != m_playbackPositionListeners.end()) {
+        m_playbackPositionListeners.erase(it);
+    }
 }
