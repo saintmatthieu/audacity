@@ -3,7 +3,6 @@
 #include "playback/iplayback.h"
 
 #include "framework/global/modularity/ioc.h"
-#include "framework/audio/common/iaudiothreadsecurer.h"
 
 #include <QQuickItem>
 
@@ -11,7 +10,6 @@ namespace au::playback {
 class PlaybackPositionTimer : public QQuickItem
 {
     muse::Inject<IPlayback> playback;
-    muse::Inject<muse::audio::IAudioThreadSecurer> audioThreadSecurer;
 
 public:
     explicit PlaybackPositionTimer(QQuickItem* parent = nullptr);
@@ -19,8 +17,8 @@ public:
 
 private:
     void itemChange(ItemChange change, const ItemChangeData& value) override;
-    void doBeforeRendering();
+    void doBeforeSynchronizing();
 
-    QMetaObject::Connection m_beforeRenderingConnection{};
+    QMetaObject::Connection m_beforeSynchronizingConnection{};
 };
 }

@@ -5,7 +5,6 @@
 
 #include "../../iplayer.h"
 
-#include "framework/audio/common/iaudiothreadsecurer.h"
 #include "framework/global/async/asyncable.h"
 #include "framework/global/types/retval.h"
 #include "framework/global/timer.h"
@@ -24,7 +23,6 @@ struct TransportSequences;
 namespace au::playback {
 class Au3Player : public IPlayer, public muse::async::Asyncable
 {
-    muse::Inject<muse::audio::IAudioThreadSecurer> audioThreadSecurer;
     muse::Inject<context::IGlobalContext> globalContext;
     muse::Inject<au::trackedit::ISelectionController> selectionController;
     muse::Inject<au::audio::IAudioEngine> audioEngine;

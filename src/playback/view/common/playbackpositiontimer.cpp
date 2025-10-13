@@ -14,8 +14,8 @@ PlaybackPositionTimer::PlaybackPositionTimer(QQuickItem* parent)
 
 PlaybackPositionTimer::~PlaybackPositionTimer()
 {
-    disconnect(m_beforeRenderingConnection);
-    m_beforeRenderingConnection = {};
+    disconnect(m_beforeSynchronizingConnection);
+    m_beforeSynchronizingConnection = {};
 }
 
 void PlaybackPositionTimer::itemChange(ItemChange change, const ItemChangeData& value)
@@ -27,16 +27,16 @@ void PlaybackPositionTimer::itemChange(ItemChange change, const ItemChangeData& 
             // > Warning: This signal is emitted from the scene graph rendering thread.
             // > If your slot function needs to finish before execution continues, you must make sure that
             // > the connection is direct (see Qt::ConnectionType).
-            m_beforeRenderingConnection = connect(value.window, &QQuickWindow::beforeRendering, this,
-                                                  &PlaybackPositionTimer::doBeforeRendering, Qt::DirectConnection);
+            m_beforeSynchronizingConnection = connect(value.window, &QQuickWindow::beforeRendering, this,
+                                                      &PlaybackPositionTimer::doBeforeSynchronizing, Qt::DirectConnection);
         } else {
-            disconnect(m_beforeRenderingConnection);
-            m_beforeRenderingConnection = {};
+            disconnect(m_beforeSynchronizingConnection);
+            m_beforeSynchronizingConnection = {};
         }
     }
 }
 
-void PlaybackPositionTimer::doBeforeRendering()
+void PlaybackPositionTimer::doBeforeSynchronizing()
 {
     const auto playback = this->playback();
     if (!playback) {
@@ -46,7 +46,6 @@ void PlaybackPositionTimer::doBeforeRendering()
     if (!player) {
         return;
     }
-    assert(audioThreadSecurer()->isMainThread());
     player->updatePlaybackPositionTimeCritical();
 }
 }

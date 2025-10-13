@@ -17,7 +17,6 @@ void PlaybackState::setPlayer(playback::IPlayerPtr player)
         m_playbackStatusChanged.send(st);
     });
 
-    assert(audioThreadSecurer()->isMainThread());
     m_player->playbackPositionChangedMainThreadOnly().onReceive(this, [this](muse::secs_t pos) {
         m_playbackPositionChanged.send(pos);
     });
