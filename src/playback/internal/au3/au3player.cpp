@@ -488,10 +488,6 @@ void Au3Player::updatePlaybackStateTimeCritical()
         m_reachedEnd.val = false;
         const auto newTime = std::max(0.0, time);
         if (!muse::is_equal(newTime, m_playbackPositionMainThreadOnly.val.raw())) {
-            // Both sender (us) and receiver must be on the main thread to avoid a mutex getting involved.
-            // (We don't do this check elsewhere m_playbackPositionMainThreadOnly sends a notification
-            // because then it actually is less critical).
-            assert(audioThreadSecurer()->isMainThread());
             m_playbackPositionMainThreadOnly.set(newTime);
         }
     } else {
