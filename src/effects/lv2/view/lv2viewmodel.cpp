@@ -180,7 +180,7 @@ void Lv2ViewModel::deinit()
     }
 }
 
-void Lv2ViewModel::preview()
+void Lv2ViewModel::doStartPreview()
 {
     IF_ASSERT_FAILED(m_settingsAccess) {
         return;
