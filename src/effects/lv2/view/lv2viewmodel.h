@@ -40,9 +40,6 @@ public:
 
     Q_INVOKABLE void deinit();
 
-    int instanceId() const;
-    void setInstanceId(int newInstanceId);
-
     QString effectState() const;
     void setEffectState(const QString& state);
 
@@ -52,7 +49,6 @@ public:
     void setTitle(const QString& title);
 
 signals:
-    void instanceIdChanged();
     void titleChanged();
     void externalUiClosed();
     void effectStateChanged();
@@ -84,7 +80,6 @@ private:
 
     Lv2UiHandler m_handler;
 
-    int m_instanceId = -1;
     int m_minimumWidth = 0;
     QString m_title;
     RealtimeEffectStatePtr m_effectState;
