@@ -137,6 +137,7 @@ set(AU3_INCLUDE
     ${AU3_LIBRARIES}/lib-stretching-sequence
     ${AU3_LIBRARIES}/lib-wave-track
     ${AU3_LIBRARIES}/lib-wave-track-fft
+    ${AU3_LIBRARIES}/lib-wave-track-settings
     ${AU3_LIBRARIES}/lib-sample-track
     ${AU3_LIBRARIES}/lib-label-track
     # Note: lib-note-track is only needed if USE_MIDI is defined

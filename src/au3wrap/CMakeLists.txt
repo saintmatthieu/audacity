@@ -323,6 +323,8 @@ set(AU3_SRC
 
     ${AU3_LIBRARIES}/lib-fft/FFT.cpp
     ${AU3_LIBRARIES}/lib-fft/FFT.h
+    ${AU3_LIBRARIES}/lib-fft/Spectrum.cpp
+    ${AU3_LIBRARIES}/lib-fft/Spectrum.h
     ${AU3_LIBRARIES}/lib-fft/SpectrumTransformer.cpp
     ${AU3_LIBRARIES}/lib-fft/SpectrumTransformer.h
     ${AU3_LIBRARIES}/lib-fft/RealFFTf.cpp
