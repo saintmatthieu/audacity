@@ -333,6 +333,9 @@ set(AU3_SRC
     ${AU3_LIBRARIES}/lib-wave-track-fft/TrackSpectrumTransformer.cpp
     ${AU3_LIBRARIES}/lib-wave-track-fft/TrackSpectrumTransformer.h
 
+    ${AU3_LIBRARIES}/lib-wave-track-settings/SpectrogramSettings.cpp
+    ${AU3_LIBRARIES}/lib-wave-track-settings/SpectrogramSettings.h
+
     ${AU3_LIBRARIES}/lib-stretching-sequence/AudioSegmentSampleView.cpp
     ${AU3_LIBRARIES}/lib-stretching-sequence/AudioSegmentSampleView.h
     ${AU3_LIBRARIES}/lib-stretching-sequence/ClipInterface.cpp
@@ -450,8 +453,13 @@ set(AU3_SRC
     ${AU3_LIBRARIES}/lib-wave-track-paint/waveform/WavePaintParameters.cpp
     ${AU3_LIBRARIES}/lib-wave-track-paint/waveform/WavePaintParameters.h
 
-    ${AU3_LIBRARIES}/lib-wave-track-settings/SpectrogramSettings.cpp
-    ${AU3_LIBRARIES}/lib-wave-track-settings/SpectrogramSettings.h
+    ${AU3_LIBRARIES}/lib-theme/Theme.cpp
+    ${AU3_LIBRARIES}/lib-theme/Theme.h
+    ${AU3_LIBRARIES}/lib-theme/AllThemeResources.cpp
+    ${AU3_LIBRARIES}/lib-theme/AllThemeResources.h
+    ${AU3_LIBRARIES}/lib-theme/AColor.cpp
+    ${AU3_LIBRARIES}/lib-theme/AColor.h
+    ${AU3_LIBRARIES}/lib-theme/MacroMagic.h
 
     ${AU3_LIBRARIES}/lib-graphics/FrameStatistics.cpp
     ${AU3_LIBRARIES}/lib-graphics/FrameStatistics.h
