@@ -2,8 +2,6 @@
  * Audacity: A Digital Audio Editor
  */
 #pragma once
- 
-#include "ComponentInterfaceSymbol.h" // Identifier
 
 #include <QColor>
 
@@ -11,7 +9,6 @@
 
 #include <unordered_set>
 #include <vector>
-
 
 struct ThemeSet
 {
