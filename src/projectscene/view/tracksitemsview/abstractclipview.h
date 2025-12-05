@@ -26,7 +26,7 @@ public:
     AbstractClipView(QQuickItem* parent = nullptr);
 
     TimelineContext* timelineContext() const;
-    virtual void setTimelineContext(TimelineContext* newContext) = 0;
+    void setTimelineContext(TimelineContext* newContext);
 
     ClipKey clipKey() const;
     void setClipKey(const ClipKey& newClipKey);
@@ -57,5 +57,9 @@ protected:
     bool m_clipSelected = false;
     ClipTime m_clipTime;
     std::optional<int> m_currentChannel;
+
+private:
+    virtual void addSpecializedConnections(TimelineContext&) {}
+    void updateView();
 };
 }
