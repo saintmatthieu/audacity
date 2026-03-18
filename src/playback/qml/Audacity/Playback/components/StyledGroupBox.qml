@@ -20,6 +20,8 @@ Item {
     property int borderWidth: 1
     property int boarderRadius: 2
 
+    property alias navPanel: meterStyleGroup.navigation
+
     property int value
 
     property bool enabled: true
@@ -41,7 +43,7 @@ Item {
             text: root.title
             horizontalAlignment: Text.AlignLeft
         }
-        
+
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -70,6 +72,10 @@ Item {
                         text: modelData["label"]
                         checked: root.value == modelData["value"]
                         enabled: root.enabled
+
+                        navigation.panel: root.navPanel
+                        navigation.name: modelData["label"]
+                        navigation.order: index
 
                         onToggled: {
                             root.valueChangeRequested(modelData["value"])

@@ -25,6 +25,8 @@ class SpectrogramChannelRulerModel : public QObject, public QQmlParserStatus, pu
     Q_PROPERTY(QVariantList minorTicks READ minorTicks NOTIFY ticksChanged FINAL)
     Q_PROPERTY(double rulerGuideYPos READ rulerGuideYPos WRITE setRulerGuideYPos NOTIFY rulerGuideYPosChanged FINAL)
 
+    Q_PROPERTY(bool isMinZoom READ isMinZoom NOTIFY zoomStateChanged FINAL)
+
     muse::Inject<ISpectrogramService> spectrogramService{ this };
     muse::Inject<ISpectrogramViewService> spectrogramViewService{ this };
 
@@ -42,8 +44,14 @@ public:
 
     Q_INVOKABLE void zoomIn(double mouseY);
     Q_INVOKABLE void zoomOut(double mouseY);
+    Q_INVOKABLE void setPopupPosition(double yPos);
+    Q_INVOKABLE void zoomInFromPopup();
+    Q_INVOKABLE void zoomOutFromPopup();
+    Q_INVOKABLE void resetZoom();
 
     Q_INVOKABLE void scrollBy(double delta);
+
+    bool isMinZoom() const;
 
     QVariantList majorTicks() const;
     QVariantList minorTicks() const;
@@ -57,6 +65,7 @@ signals:
     void ticksChanged();
     void labelHeightChanged();
     void rulerGuideYPosChanged();
+    void zoomStateChanged();
 
 private:
     void classBegin() override {}
@@ -71,5 +80,6 @@ private:
     int m_labelHeight = 0;
     double m_channelHeight = 0.0;
     SpectrogramRulerTicks m_ticks;
+    double m_popupPosition = 0.0;
 };
 } // namespace au::spectrogram

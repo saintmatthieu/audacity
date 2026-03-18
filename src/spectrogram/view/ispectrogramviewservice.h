@@ -4,6 +4,7 @@
 #pragma once
 
 #include "framework/global/async/channel.h"
+#include "framework/global/async/notification.h"
 #include "framework/global/modularity/imoduleinterface.h"
 
 namespace au::spectrogram {

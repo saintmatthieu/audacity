@@ -93,11 +93,23 @@ Item {
         height: 1
         color: ui.theme.fontPrimaryColor
         y: rulerModel.rulerGuideYPos - height / 2
+
+        SpectrogramRulerCustomizePopup {
+            id: customizePopup
+            rulerModel: rulerModel
+        }
     }
 
     MouseArea {
         anchors.fill: parent
-        acceptedButtons: Qt.NoButton
+        hoverEnabled: true
+
+        acceptedButtons: Qt.RightButton | Qt.LeftButton
+
+        onClicked: function (mouseEvent) {
+            rulerModel.setPopupPosition(mouseEvent.y)
+            customizePopup.toggleOpened()
+        }
 
         onWheel: function (wheelEvent) {
             if (wheelEvent.modifiers & Qt.ControlModifier) {
@@ -111,6 +123,14 @@ Item {
                 rulerModel.scrollBy(wheelEvent.angleDelta.y)
             }
             wheelEvent.accepted = true
+        }
+
+        onPositionChanged: function (mouse) {
+            rulerModel.rulerGuideYPos = mouse.y
+        }
+
+        onExited: function (mouse) {
+            rulerModel.rulerGuideYPos = -1
         }
     }
 }
