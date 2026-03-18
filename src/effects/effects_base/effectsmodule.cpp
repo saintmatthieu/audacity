@@ -78,6 +78,8 @@ void EffectsModule::registerUiTypes()
     qmlRegisterUncreatableType<EffectFamilies>("Audacity.Effects", 1, 0, "EffectFamily", "Not creatable from QML");
     qmlRegisterUncreatableType<ViewerComponentTypes>("Audacity.Effects", 1, 0, "ViewerComponentType", "Not creatable from QML");
     qmlRegisterType<PluginManagerTableViewModel>("Audacity.Effects", 1, 0, "PluginManagerTableViewModel");
+    qmlRegisterUncreatableMetaObject(PluginManagerTableViewCellType::staticMetaObject, "Audacity.Effects", 1, 0,
+                                     "PluginManagerTableViewCellType", "Not creatable from QML");
 }
 
 void EffectsModule::onInit(const muse::IApplication::RunMode&)
