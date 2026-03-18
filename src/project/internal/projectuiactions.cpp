@@ -484,13 +484,14 @@ const UiActionList ProjectUiActions::m_actions = {
              TranslatableString("action", "Keep tracks synchronised")
              ),
 
-    // generate menu
-    UiAction("generate-plugin-manager",
-             au::context::UiCtxUnknown,
+    UiAction("plugin-manager",
+             au::context::UiCtxAny,
              au::context::CTX_ANY,
              TranslatableString("action", "Plugin manager"),
              TranslatableString("action", "Plugin manager")
              ),
+
+    // generate menu
     UiAction("generate-omitted",
              au::context::UiCtxAny,
              au::context::CTX_ANY,
@@ -499,12 +500,6 @@ const UiActionList ProjectUiActions::m_actions = {
              ),
 
     // effects menu
-    UiAction("effect-plugin-manager",
-             au::context::UiCtxUnknown,
-             au::context::CTX_ANY,
-             TranslatableString("action", "Plugin manager"),
-             TranslatableString("action", "Plugin manager")
-             ),
     UiAction("add-realtime-effects",
              au::context::UiCtxAny,
              au::context::CTX_ANY,
@@ -537,12 +532,6 @@ const UiActionList ProjectUiActions::m_actions = {
              ),
 
     // analyze menu
-    UiAction("analyze-plugin-manager",
-             au::context::UiCtxUnknown,
-             au::context::CTX_ANY,
-             TranslatableString("action", "Plugin manager"),
-             TranslatableString("action", "Plugin manager")
-             ),
     UiAction("contrast-analyzer",
              au::context::UiCtxUnknown,
              au::context::CTX_ANY,
@@ -563,12 +552,6 @@ const UiActionList ProjectUiActions::m_actions = {
              ),
 
     // tools menu
-    UiAction("tools-plugin-manager",
-             au::context::UiCtxUnknown,
-             au::context::CTX_ANY,
-             TranslatableString("action", "Plugin manager"),
-             TranslatableString("action", "Plugin manager")
-             ),
     UiAction("manage-macros",
              au::context::UiCtxUnknown,
              au::context::CTX_ANY,
