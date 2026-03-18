@@ -15,10 +15,9 @@ StyledPopupView {
 
     required property SpectrogramChannelRulerModel rulerModel
 
-    contentWidth: prv.popupWidth - 2 * prv.popupMargins
-    contentHeight: prv.popupHeight - 2 * prv.popupMargins
+    contentWidth: mainColumn.width
+    contentHeight: mainColumn.height
 
-    margins: prv.popupMargins
     placementPolicies: PopupView.PreferLeft
 
     property alias settingsModel: settingsModel
@@ -32,38 +31,20 @@ StyledPopupView {
     QtObject {
         id: prv
 
-        readonly property int popupWidth: 240
-        readonly property int popupHeight: 370
-
-        readonly property int popupMargins: 12
-        readonly property int itemsSpacing: 12
-        readonly property int btnSpacing: 6
-
-        readonly property int btnHeight: 28
-        readonly property int zoomBtnWidth: 40
-        readonly property int resetBtnWidth: 85
-        readonly property int formatGroupBoxHeight: 180
-
-        property int prefsColumnWidth: 68
-        readonly property int prefsColumnSpacing: 8
-
-        readonly property int smallControlWidth: prefsColumnWidth
-        readonly property int mediumControlWidth: 2 * prefsColumnWidth + prefsColumnSpacing
-        readonly property int largeControlWidth: 3 * prefsColumnWidth + 2 * prefsColumnSpacing
-
-        readonly property int narrowSpacing: 8
-        readonly property int mediumSpacing: 16
+        readonly property int zoomBtnWidth: 34
     }
 
     Column {
-        anchors.fill: parent
-        spacing: prv.itemsSpacing
+        id: mainColumn
+
+        width: 175
+        spacing: 12
 
         Row {
             width: parent.width
-            height: prv.btnHeight
+            height: 28
 
-            spacing: prv.btnSpacing
+            spacing: 6
 
             NavigationPanel {
                 id: zoomNavigationPanel
@@ -115,7 +96,7 @@ StyledPopupView {
 
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                width: prv.resetBtnWidth
+                width: 96
 
                 navigation.panel: zoomNavigationPanel
                 navigation.order: zoomOutBtn.navigation.order + 1
@@ -139,7 +120,7 @@ StyledPopupView {
             id: scaleGroupBox
 
             width: parent.width
-            height: prv.formatGroupBoxHeight
+            height: scaleGroupBox.implicitHeight
 
             title: qsTrc("spectrogram", "Scale")
 
@@ -147,9 +128,9 @@ StyledPopupView {
             navPanel.order: 1
             navPanel.name: "ScaleGroupBox"
 
-            titleSpacing: 4
-
-            backgroundColor: ui.theme.backgroundSecondaryColor
+            titleSpacing: 8
+            margin: 16
+            itemSpacing: 16
 
             model: {
                 const result = []
@@ -170,7 +151,7 @@ StyledPopupView {
 
         Column {
             width: parent.width
-            spacing: 4
+            spacing: 10
 
             StyledTextLabel {
                 width: parent.width
@@ -191,7 +172,6 @@ StyledPopupView {
                 model: ScaleSectionParameterListModel {
                     settingsModel: root.settingsModel
                     trackId: root.rulerModel.trackId
-                    columnWidth: prv.prefsColumnWidth
                 }
 
                 Row {
@@ -209,7 +189,7 @@ StyledPopupView {
                     IncrementalPropertyControl {
                         id: control
 
-                        width: prv.smallControlWidth
+                        width: 90
                         anchors.verticalCenter: parent.verticalCenter
 
                         navigation.panel: root.minMaxNavigationPanel

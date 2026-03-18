@@ -8,17 +8,16 @@ import QtQuick.Controls 2.15
 import Muse.UiComponents
 import Muse.Ui 1.0
 
-Item {
+Column {
     id: root
 
     property string title: ""
 
-    property int titleSpacing: 12
+    property int titleSpacing: 4
+    property int margin: 12
     property int itemSpacing: 8
-    property int itemMargin: 12
 
     property int borderWidth: 1
-    property int boarderRadius: 2
 
     property alias navPanel: meterStyleGroup.navigation
 
@@ -26,60 +25,56 @@ Item {
 
     property bool enabled: true
 
-    property color backgroundColor: ui.theme.backgroundPrimaryColor
+    property color backgroundColor: ui.theme.backgroundSecondaryColor
 
     property var model: null
 
+    spacing: root.titleSpacing
+
     signal valueChangeRequested(int value)
 
-    ColumnLayout {
-        anchors.fill: parent
+    StyledTextLabel {
+        width: parent.width
 
-        spacing: root.titleSpacing
+        text: root.title
+        horizontalAlignment: Text.AlignLeft
+    }
 
-        StyledTextLabel {
-            Layout.fillWidth: true
+    Rectangle {
+        width: parent.width
+        height: meterStyleGroup.implicitHeight + 2 * root.margin
 
-            text: root.title
-            horizontalAlignment: Text.AlignLeft
-        }
+        color: root.backgroundColor
+        border.width: root.borderWidth
+        border.color: ui.theme.strokeColor
+        radius: 2
 
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+        Item {
+            anchors.fill: parent
+            anchors.margins: root.margin
 
-            color: root.backgroundColor
-            border.width: root.borderWidth
-            border.color: ui.theme.strokeColor
-            radius: root.boarderRadius
+            RadioButtonGroup {
+                id: meterStyleGroup
 
-            Item {
-                anchors.fill: parent
-                anchors.margins: root.itemMargin
+                orientation: Qt.Vertical
+                width: parent.width
 
-                RadioButtonGroup {
-                    id: meterStyleGroup
+                spacing: root.itemSpacing
 
-                    orientation: Qt.Vertical
-                    width: parent.width
+                model: root.model
 
-                    spacing: root.itemSpacing
+                delegate: RoundedRadioButton {
+                    id: meterStyleButton
+                    text: modelData["label"]
+                    checked: root.value == modelData["value"]
+                    enabled: root.enabled
 
-                    model: root.model
+                    navigation.panel: root.navPanel
+                    navigation.name: modelData["label"]
+                    navigation.order: index
 
-                    delegate: RoundedRadioButton {
-                        id: meterStyleButton
-                        text: modelData["label"]
-                        checked: root.value == modelData["value"]
-                        enabled: root.enabled
-
-                        navigation.panel: root.navPanel
-                        navigation.name: modelData["label"]
-                        navigation.order: index
-
-                        onToggled: {
-                            root.valueChangeRequested(modelData["value"])
-                        }
+                    onToggled: {
+                        root.valueChangeRequested(modelData["value"])
                     }
                 }
             }

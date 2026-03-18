@@ -58,6 +58,7 @@ StyledPopupView {
 
             StyledGroupBox {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 0 // Force both to start with the same width
                 Layout.preferredHeight: 120
 
                 title: qsTrc("Playback", "Meter style")
@@ -88,6 +89,7 @@ StyledPopupView {
 
             StyledGroupBox {
                 Layout.fillWidth: true
+                Layout.preferredWidth: 0 // Force both to start with the same width
                 Layout.preferredHeight: 120
 
                 title: qsTrc("Playback", "Meter type")
