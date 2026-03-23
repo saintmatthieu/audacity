@@ -7,6 +7,7 @@
 #include "modularity/imodulesetup.h"
 
 namespace au::effects {
+class BuiltinEffectsRepository;
 class BuiltinEffectsModule : public muse::modularity::IModuleSetup
 {
 public:
@@ -17,5 +18,8 @@ public:
     void registerUiTypes() override;
     void onInit(const muse::IApplication::RunMode& mode) override;
     void onDelayedInit() override;
+
+private:
+    std::shared_ptr<BuiltinEffectsRepository> m_builtinEffectsRepository;
 };
 }

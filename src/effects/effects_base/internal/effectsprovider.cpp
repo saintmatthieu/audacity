@@ -32,9 +32,18 @@
 using namespace muse;
 using namespace au::effects;
 
+EffectsProvider::EffectsProvider(const muse::modularity::ContextPtr& ctx)
+    : muse::Injectable(ctx)
+{
+}
+
 void EffectsProvider::init()
 {
     knownPluginsRegister()->pluginInfoListChanged().onNotify(this, [this]() {
+        reloadEffects();
+    });
+
+    m_au3PluginsChangedSubscription = PluginManager::Get().Subscribe([this](::PluginsChangedMessage) {
         reloadEffects();
     });
 }
@@ -223,6 +232,31 @@ Effect* EffectsProvider::effect(const EffectId& effectId) const
     }
 
     return effect;
+}
+
+void EffectsProvider::setEffectEnabled(const EffectId& effectId, bool enabled)
+{
+    const auto it = std::find_if(m_effects.cbegin(), m_effects.cend(), [&](const EffectMeta& meta) {
+        return meta.id == effectId;
+    });
+    if (it == m_effects.cend()) {
+        LOGE() << "effect not found: " << effectId;
+        return;
+    }
+    const auto& meta = *it;
+    const wxString pluginId{ effectId.toStdString() };
+    auto& pm = PluginManager::Get();
+    const auto wasEnabled = pm.IsPluginEnabled(pluginId);
+    assert(wasEnabled == meta.isEnabled);
+    if (enabled == wasEnabled) {
+        return;
+    }
+    pm.EnablePlugin(pluginId, enabled);
+    IF_ASSERT_FAILED(pm.IsPluginEnabled(pluginId) == enabled) {
+        return;
+    }
+    pm.Save();
+    pm.NotifyPluginsChanged();
 }
 
 namespace {

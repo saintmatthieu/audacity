@@ -21,6 +21,8 @@
 
 #include "../ieffectsprovider.h"
 
+#include "au3-utility/Observer.h"
+
 class EffectBase;
 class EffectSettingsAccess;
 
@@ -45,8 +47,7 @@ class EffectsProvider : public IEffectsProvider, public muse::async::Asyncable, 
     muse::Inject<IEffectViewLaunchRegister> viewLaunchRegister{ this };
 
 public:
-    EffectsProvider(const muse::modularity::ContextPtr& ctx)
-        : muse::Injectable(ctx) {}
+    EffectsProvider(const muse::modularity::ContextPtr& ctx);
 
     void init();
 
@@ -61,6 +62,7 @@ public:
     std::string effectName(const effects::RealtimeEffectState& state) const override;
     std::string effectSymbol(const std::string& effectId) const override;
     Effect* effect(const EffectId& effectId) const override;
+    void setEffectEnabled(const EffectId& effectId, bool enabled) override;
 
     bool supportsMultipleClipSelection(const EffectId& effectId) const override;
 
@@ -104,5 +106,6 @@ private:
     mutable EffectMetaList m_effects;
     muse::async::Notification m_effectsChanged;
     std::optional<EffectPreviewState> m_effectPreviewState;
+    ::Observer::Subscription m_au3PluginsChangedSubscription;
 };
 }

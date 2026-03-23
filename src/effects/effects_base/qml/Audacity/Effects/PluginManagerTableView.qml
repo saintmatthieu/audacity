@@ -46,6 +46,7 @@ StyledTableView {
 
             checked: val
             onClicked: {
+                console.log("Toggled enabled for effect", itemData.id, "to", checked)
                 item.changed(!checked)
             }
         }

@@ -55,7 +55,7 @@ muse::modularity::IContextSetup* BuiltinEffectsCollectionModule::newContext(cons
 // =====================================================
 
 BuiltinEffectsContext::BuiltinEffectsContext(const muse::modularity::ContextPtr& ctx)
-    : muse::modularity::IContextSetup(ctx), m_builtinEffectsLoader(std::make_unique<BuiltinEffectsLoader>(muse::modularity::globalCtx()))
+    : muse::modularity::IContextSetup(ctx), m_builtinEffectsLoader(std::make_shared<BuiltinEffectsLoader>(muse::modularity::globalCtx()))
 {
 }
 
@@ -65,9 +65,12 @@ void BuiltinEffectsContext::registerExports()
 
 void BuiltinEffectsContext::resolveImports()
 {
-    auto lr = ioc()->resolve<IEffectViewLaunchRegister>(mname);
-    if (lr) {
+    if (const auto lr = ioc()->resolve<IEffectViewLaunchRegister>(mname)) {
         lr->regLauncher("Audacity" /*builtin*/, std::make_shared<BuiltinViewLauncher>(iocContext()));
+    }
+
+    if (const auto repository = ioc()->resolve<IBuiltinEffectsRepository>(mname)) {
+        repository->registerLoader(m_builtinEffectsLoader);
     }
 }
 

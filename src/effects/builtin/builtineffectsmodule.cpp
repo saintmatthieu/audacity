@@ -23,8 +23,10 @@ std::string BuiltinEffectsModule::moduleName() const
 
 void BuiltinEffectsModule::registerExports()
 {
+    m_builtinEffectsRepository = std::make_shared<BuiltinEffectsRepository>();
+
     globalIoc()->registerExport<IBuiltinEffectsViewRegister>(moduleName(), new BuiltinEffectsViewRegister());
-    globalIoc()->registerExport<IBuiltinEffectsRepository>(moduleName(), new BuiltinEffectsRepository());
+    globalIoc()->registerExport<IBuiltinEffectsRepository>(moduleName(), m_builtinEffectsRepository);
 }
 
 void BuiltinEffectsModule::resolveImports()
@@ -44,6 +46,7 @@ void BuiltinEffectsModule::registerUiTypes()
 
 void BuiltinEffectsModule::onInit(const muse::IApplication::RunMode&)
 {
+    m_builtinEffectsRepository->init();
 }
 
 void BuiltinEffectsModule::onDelayedInit()

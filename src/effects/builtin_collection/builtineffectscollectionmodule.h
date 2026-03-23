@@ -34,6 +34,6 @@ public:
     void onDeinit() override;
 
 private:
-    const std::unique_ptr<BuiltinEffectsLoader> m_builtinEffectsLoader;
+    const std::shared_ptr<BuiltinEffectsLoader> m_builtinEffectsLoader;
 };
 }

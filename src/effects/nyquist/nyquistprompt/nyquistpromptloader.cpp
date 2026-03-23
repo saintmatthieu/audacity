@@ -16,7 +16,16 @@ void NyquistPromptLoader::preInit()
 
 void NyquistPromptLoader::init()
 {
-    for (const PluginDescriptor& desc : PluginManager::Get().PluginsOfType(PluginTypeEffect)) {
+    m_pluginManagerSubscription = PluginManager::Get().Subscribe([this](PluginsChangedMessage) {
+        m_effectMetaListUpdated.notify();
+    });
+}
+
+EffectMetaList NyquistPromptLoader::effectMetaList() const
+{
+    // All plugins and not PluginsOfType(PluginTypeEffect) to also get disabled effects
+    const auto allPlugins = PluginManager::Get().AllPlugins();
+    for (const PluginDescriptor& desc : allPlugins) {
         const auto& symbol = desc.GetSymbol();
         if (symbol != NyquistPromptEffect::Symbol) {
             continue;
@@ -39,8 +48,11 @@ void NyquistPromptLoader::init()
         meta.vendor = "Audacity";
         meta.path = desc.GetPath();
         meta.type = EffectType::Tool;
+        meta.isEnabled = desc.IsEnabled();
 
-        builtinEffectsRepository()->registerMeta(meta);
+        return { meta };
     }
+
+    return {};
 }
 }

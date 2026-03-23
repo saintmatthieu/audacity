@@ -188,6 +188,7 @@ struct EffectMeta {
 
     muse::String category;
 
+    bool isEnabled = true;
     bool isRealtimeCapable = false;
     bool supportsMultipleClipSelection = true;
 

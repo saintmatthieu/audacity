@@ -65,6 +65,7 @@ EffectMetaList EffectsRepositoryHelper::effectMetaList() const
         meta.vendor = muse::String::fromStdString(info.meta.vendor);
         meta.type = EffectType::Processor;
         meta.path = info.path;
+        meta.isEnabled = info.enabled;
 
         effects.push_back(std::move(meta));
     }

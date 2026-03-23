@@ -11,16 +11,27 @@
 
 using namespace au::effects;
 
-void BuiltinEffectsRepository::registerMeta(const EffectMeta& meta)
+void BuiltinEffectsRepository::init()
 {
-    IF_ASSERT_FAILED(meta.isValid()) {
-        LOGW() << "Trying to register invalid meta with id: " << meta.id.toStdString();
+    m_metas.clear();
+    for (const auto& loader : m_loaders) {
+        EffectMetaList metas = loader->effectMetaList();
+        m_metas.insert(m_metas.end(), std::make_move_iterator(metas.begin()), std::make_move_iterator(metas.end()));
     }
-    IF_ASSERT_FAILED(std::none_of(m_metas.begin(), m_metas.end(), [&meta](const EffectMeta& m) { return m.id == meta.id; })) {
-        LOGW() << "Registering meta with duplicate id: " << meta.id.toStdString();
-    }
-    m_metas.push_back(meta);
     m_effectMetaListUpdated.notify();
+}
+
+void BuiltinEffectsRepository::registerLoader(const std::shared_ptr<IBuiltinEffectsLoader>& loader)
+{
+    IF_ASSERT_FAILED(std::find(m_loaders.begin(), m_loaders.end(), loader) == m_loaders.end()) {
+        LOGW() << "Trying to register duplicate loader";
+        return;
+    }
+    loader->effectMetaListUpdated().onNotify(this, [this]() {
+        init();
+    });
+    m_loaders.push_back(loader);
+    init();
 }
 
 muse::async::Notification BuiltinEffectsRepository::effectMetaListUpdated() const

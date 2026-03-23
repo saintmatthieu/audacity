@@ -60,7 +60,7 @@ muse::modularity::IContextSetup* au::effects::NyquistEffectsModule::newContext(c
 
 au::effects::NyquistEffectsContext::NyquistEffectsContext(const muse::modularity::ContextPtr& ctx)
     : muse::modularity::IContextSetup(ctx),
-    m_nyquistPromptLoader(std::make_unique<NyquistPromptLoader>(iocContext()))
+    m_nyquistPromptLoader(std::make_shared<NyquistPromptLoader>(iocContext()))
 {
 }
 
@@ -90,13 +90,18 @@ void au::effects::NyquistEffectsContext::resolveImports()
     if (launchRegister) {
         launchRegister->regLauncher("Nyquist", std::make_shared<NyquistViewLauncher>(iocContext()));
     }
+
+    auto builtinEffectsRepo = ioc()->resolve<IBuiltinEffectsRepository>(mname);
+    if (builtinEffectsRepo) {
+        builtinEffectsRepo->registerLoader(m_nyquistPromptLoader);
+    }
 }
 
 void au::effects::NyquistEffectsContext::onInit(const muse::IApplication::RunMode& runMode)
 {
     m_nyquistMetaReader->init(runMode);
-    m_nyquistPromptLoader->init();
     m_nyquistEffectsRepository->init();
+    m_nyquistPromptLoader->init();
 }
 
 void au::effects::NyquistEffectsContext::onDeinit()
