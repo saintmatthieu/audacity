@@ -75,7 +75,7 @@ private:
     }
 
     std::string m_filename;
-    std::string m_currentGroup;
+    std::vector<std::string> m_groupStack;
     std::map<std::string /* full key*/, Val> m_vals;
 };
 } // namespace au::au3

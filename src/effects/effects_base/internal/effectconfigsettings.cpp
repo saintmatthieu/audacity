@@ -9,14 +9,16 @@
 #include "au3wrap/internal/wxtypes_convert.h"
 #include "log.h"
 
+#include <cassert>
+#include <set>
+
 using namespace muse;
 using namespace au::au3;
-
-static const std::string GENERAL("General");
 
 EffectConfigSettings::EffectConfigSettings(const std::string& filename)
     : m_filename(filename)
 {
+    m_groupStack.push_back("/");
     Load();
 }
 
@@ -122,79 +124,74 @@ bool EffectConfigSettings::Save()
 
 std::string EffectConfigSettings::fullKey(const wxString& key) const
 {
-    std::string path = au3::wxToStdString(key);
-    if (!m_currentGroup.empty()) {
-        return m_currentGroup + "/" + path;
+    if (key.starts_with('/')) {
+        return key.ToStdString();
     }
-
-    if (path.find_first_of('/') != std::string::npos) {
-        return path;
+    if (m_groupStack.size() > 1) {
+        return m_groupStack.back() + "/" + au3::wxToStdString(key);
     }
-
-    return GENERAL + "/" + path;
+    return "/" + au3::wxToStdString(key);
 }
 
 wxString EffectConfigSettings::GetGroup() const
 {
-    if (m_currentGroup.empty()) {
-        return GENERAL;
-    } else {
-        return m_currentGroup;
+    assert(!m_groupStack.empty());
+    if (m_groupStack.size() > 1) {
+        const auto path = wxString{ m_groupStack.back() };
+        return path.Right(path.Length() - 1);
     }
+    return {};
 }
 
 wxArrayString EffectConfigSettings::GetChildGroups() const
 {
-    wxArrayString child;
-    std::string group = m_currentGroup;
-    for (const auto& p : m_vals) {
-        const std::string& fullKey = p.first;
-
-        std::string subgroup;
-        if (group.empty()) {
-            size_t sep = fullKey.find_last_of('/');
-            if (sep == std::string::npos) {
-                continue;
-            }
-
-            subgroup = fullKey.substr(0, sep);
-        } else {
-            if (fullKey.find(group) == std::string::npos) {
-                continue;
-            }
-
-            std::string fullSub = fullKey.substr(group.size() + 1);
-            size_t sep = fullSub.find_last_of('/');
-            if (sep == std::string::npos) {
-                continue;
-            }
-
-            subgroup = fullSub.substr(0, sep);
-        }
-
-        child.push_back(subgroup);
+    wxArrayString children;
+    if (m_groupStack.empty()) {
+        return children;
     }
 
-    return child;
+    const std::string& currentPath = m_groupStack.back();
+
+    std::set<std::string> seen;
+    for (const auto& p : m_vals) {
+        const std::string& key = p.first;
+        if (key.compare(0, currentPath.size(), currentPath) != 0) {
+            continue;
+        }
+
+        std::string remainder = key.substr(currentPath.size());
+        size_t sep = remainder.find('/');
+        if (sep == std::string::npos) {
+            continue;
+        }
+
+        std::string groupName = remainder.substr(0, sep);
+        if (seen.insert(groupName).second) {
+            children.push_back(groupName);
+        }
+    }
+
+    return children;
 }
 
 wxArrayString EffectConfigSettings::GetChildKeys() const
 {
     wxArrayString child;
-    std::string group = au3::wxToStdString(GetGroup());
+    const std::string& currentPath = m_groupStack.back();
+    const std::string prefix = (currentPath == "/") ? "/" : currentPath + "/";
+
     for (const auto& p : m_vals) {
-        const std::string& fullKey = p.first;
-        if (fullKey.find(group) == std::string::npos) {
+        const std::string& key = p.first;
+        if (key.compare(0, prefix.size(), prefix) != 0) {
             continue;
         }
 
-        std::string fullSub = fullKey.substr(group.size() + 1);
-        size_t sep = fullSub.find_last_of('/');
-        if (sep != std::string::npos) {
+        std::string remainder = key.substr(prefix.size());
+        if (remainder.find('/') != std::string::npos) {
             continue;
         }
 
-        child.push_back(fullSub);
+        child.push_back(remainder);
     }
 
     return child;
@@ -208,9 +205,9 @@ bool EffectConfigSettings::HasEntry(const wxString& key) const
 
 bool EffectConfigSettings::HasGroup(const wxString& group) const
 {
-    std::string full = fullKey(group);
+    const std::string full = fullKey(group);
     for (const auto& p : m_vals) {
-        if (p.first.find(full) != std::string::npos) {
+        if (p.first.compare(0, full.size(), full) == 0) {
             return true;
         }
     }
@@ -219,18 +216,42 @@ bool EffectConfigSettings::HasGroup(const wxString& group) const
 
 bool EffectConfigSettings::Remove(const wxString& key)
 {
-    std::string full = fullKey(key);
+    if (key.empty()) {
+        const std::string& currentPath = m_groupStack.back();
+        const std::string prefix = (currentPath == "/") ? "/" : currentPath + "/";
+        std::vector<std::string> toRemoveKeys;
+        for (const auto& p : m_vals) {
+            if (p.first.compare(0, prefix.size(), prefix) == 0) {
+                toRemoveKeys.push_back(p.first);
+            }
+        }
+        for (const std::string& k : toRemoveKeys) {
+            m_vals.erase(k);
+        }
+        return true;
+    }
+
+    const std::string full = fullKey(key);
+
+    auto it = m_vals.find(full);
+    if (it != m_vals.end()) {
+        m_vals.erase(it);
+        return true;
+    }
+
+    const std::string prefix = full + "/";
     std::vector<std::string> toRemoveKeys;
     for (const auto& p : m_vals) {
-        if (p.first.find(full) != std::string::npos) {
+        if (p.first.compare(0, prefix.size(), prefix) == 0) {
             toRemoveKeys.push_back(p.first);
         }
     }
-
+    if (toRemoveKeys.empty()) {
+        return false;
+    }
     for (const std::string& k : toRemoveKeys) {
         m_vals.erase(k);
     }
-
     return true;
 }
 
@@ -304,15 +325,25 @@ bool EffectConfigSettings::Flush() noexcept
     return Save();
 }
 
-void EffectConfigSettings::DoBeginGroup(const wxString& prefix)
+void EffectConfigSettings::DoBeginGroup(const wxString& wxPrefix)
 {
-    m_currentGroup = au3::wxToStdString(prefix);
-    if (!m_currentGroup.empty() && m_currentGroup.back() == '/') {
-        m_currentGroup.pop_back();
+    const auto prefix = wxPrefix.ToStdString();
+    if (wxPrefix.starts_with('/')) {
+        m_groupStack.push_back(prefix);
+    } else {
+        if (m_groupStack.size() > 1) {
+            m_groupStack.push_back(m_groupStack.back() + prefix);
+        } else {
+            m_groupStack.push_back(std::string { "/" } + prefix);
+        }
     }
 }
 
 void EffectConfigSettings::DoEndGroup() noexcept
 {
-    m_currentGroup.clear();
+    assert(m_groupStack.size() > 1);// "No matching DoBeginGroup"
+
+    if (m_groupStack.size() > 1) {
+        m_groupStack.pop_back();
+    }
 }
