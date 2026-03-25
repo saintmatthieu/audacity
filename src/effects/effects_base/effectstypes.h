@@ -43,6 +43,19 @@ using RealtimeEffectStatePtr = std::shared_ptr<RealtimeEffectState>;
 using TrackId = long;
 using EffectChainLinkIndex = int;
 
+// Plugin registry attributes (effect-specific metadata)
+static const muse::String EFFECT_TYPE_ATTRIBUTE(u"effectType");
+static const muse::String EFFECT_FAMILY_ATTRIBUTE(u"effectFamily");
+static const muse::String EFFECT_INTERACTIVE_ATTRIBUTE(u"effectInteractive");
+static const muse::String EFFECT_REALTIME_ATTRIBUTE(u"effectRealtime");
+static const muse::String EFFECT_AUTOMATABLE_ATTRIBUTE(u"effectAutomatable");
+static const muse::String EFFECT_DEFAULT_ATTRIBUTE(u"effectDefault");
+static const muse::String VERSION_ATTRIBUTE(u"version");
+static const muse::String DESCRIPTION_ATTRIBUTE(u"description");
+static const muse::String PROVIDER_ID_ATTRIBUTE(u"providerId");
+static const muse::String SYMBOL_ATTRIBUTE(u"symbol");
+static const muse::String PLUGIN_NAME_ATTRIBUTE(u"pluginName");
+
 enum class EffectMenuOrganization {
     Grouped = 0,
     Flat = 1,

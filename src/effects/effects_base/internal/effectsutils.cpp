@@ -57,6 +57,15 @@ muse::String au::effects::utils::builtinEffectCategoryIdString(BuiltinEffectCate
     }
 }
 
+muse::audio::AudioResourceMeta au::effects::utils::toMuseAudioResourceMeta(const EffectMeta& effectMeta)
+{
+    muse::audio::AudioResourceMeta meta;
+    meta.id = effectMeta.id.toStdString();
+    meta.vendor = effectFamilyString(effectMeta.family);
+    meta.type = muse::audio::AudioResourceType::MusePlugin; // for now
+    return meta;
+}
+
 int au::effects::utils::builtinEffectCategoryIdOrder(const muse::String& category)
 {
     using namespace au::effects::utils;

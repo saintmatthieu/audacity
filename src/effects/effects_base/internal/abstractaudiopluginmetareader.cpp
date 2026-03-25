@@ -1,6 +1,8 @@
 #include "abstractaudiopluginmetareader.h"
 #include "effecterrors.h"
+#include "effectstypes.h"
 
+#include "au3-components/EffectInterface.h"
 #include "au3-components/PluginProvider.h"
 #include "au3-strings/TranslatableString.h"
 #include "au3-module-manager/PluginManager.h"
@@ -108,10 +110,10 @@ muse::RetVal<muse::audio::AudioResourceMetaList> AbstractAudioPluginMetaReader::
         //! NOTE At the moment AU supports Fx (Process, Generate, Analyze, Tool)
         //! All effect types are treated as "Fx" for the plugin system
         muse::String type;
-        if (desc.GetEffectType() == EffectType::EffectTypeProcess
-            || desc.GetEffectType() == EffectType::EffectTypeGenerate
-            || desc.GetEffectType() == EffectType::EffectTypeAnalyze
-            || desc.GetEffectType() == EffectType::EffectTypeTool) {
+        if (desc.GetEffectType() == ::EffectType::EffectTypeProcess
+            || desc.GetEffectType() == ::EffectType::EffectTypeGenerate
+            || desc.GetEffectType() == ::EffectType::EffectTypeAnalyze
+            || desc.GetEffectType() == ::EffectType::EffectTypeTool) {
             type = u"Fx";
         } else {
             type = u"None";
@@ -123,6 +125,52 @@ muse::RetVal<muse::audio::AudioResourceMetaList> AbstractAudioPluginMetaReader::
         meta.attributes.emplace(muse::audio::CATEGORIES_ATTRIBUTE, type);
         meta.vendor = desc.GetVendor();
         meta.hasNativeEditorSupport = true;
+
+        // Effect-specific attributes for plugin registry
+        meta.attributes.emplace(SYMBOL_ATTRIBUTE,
+                                muse::String::fromStdString(desc.GetSymbol().Internal().ToStdString()));
+        meta.attributes.emplace(PLUGIN_NAME_ATTRIBUTE,
+                                muse::String::fromStdString(desc.GetSymbol().Msgid().MSGID().GET().ToStdString()));
+        meta.attributes.emplace(VERSION_ATTRIBUTE,
+                                muse::String::fromStdString(desc.GetUntranslatedVersion().ToStdString()));
+        meta.attributes.emplace(PROVIDER_ID_ATTRIBUTE,
+                                muse::String::fromStdString(desc.GetProviderID().ToStdString()));
+        meta.attributes.emplace(EFFECT_TYPE_ATTRIBUTE,
+                                muse::String::fromStdString(au3::wxToStdString(desc.GetEffectType()
+                                                                               ==
+                                                                               ::EffectType::EffectTypeNone ? wxT("None")
+                                                                               : desc.
+                                                                               GetEffectType()
+                                                                               ==
+                                                                               ::EffectType::EffectTypeAnalyze ? wxT("Analyze")
+                                                                               : desc.
+                                                                               GetEffectType()
+                                                                               ==
+                                                                               ::EffectType::EffectTypeGenerate ? wxT("Generate")
+                                                                               : desc.
+                                                                               GetEffectType()
+                                                                               ==
+                                                                               ::EffectType::EffectTypeProcess ? wxT("Process")
+                                                                               : desc.
+                                                                               GetEffectType()
+                                                                               ==
+                                                                               ::EffectType::EffectTypeTool ? wxT("Tool")
+                                                                               : desc.
+                                                                               GetEffectType()
+                                                                               ==
+                                                                               ::EffectType::EffectTypeHidden ? wxT("Hidden")
+                                                                               : wxT(
+                                                                                   "None"))));
+        meta.attributes.emplace(EFFECT_FAMILY_ATTRIBUTE,
+                                muse::String::fromStdString(desc.GetEffectFamily().ToStdString()));
+        meta.attributes.emplace(EFFECT_DEFAULT_ATTRIBUTE,
+                                muse::String(desc.IsEffectDefault() ? u"1" : u"0"));
+        meta.attributes.emplace(EFFECT_INTERACTIVE_ATTRIBUTE,
+                                muse::String(desc.IsEffectInteractive() ? u"1" : u"0"));
+        meta.attributes.emplace(EFFECT_REALTIME_ATTRIBUTE,
+                                muse::String::fromStdString(desc.SerializeRealtimeSupport().ToStdString()));
+        meta.attributes.emplace(EFFECT_AUTOMATABLE_ATTRIBUTE,
+                                muse::String(desc.IsEffectAutomatable() ? u"1" : u"0"));
 
         metaList.emplace_back(std::move(meta));
     }

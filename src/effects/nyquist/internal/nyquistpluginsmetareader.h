@@ -3,21 +3,16 @@
 */
 #pragma once
 
-#include "effects/effects_base/internal/abstractaudiopluginmetareader.h"
+#include "effects/effects_base/effectstypes.h"
 
 #include "au3-nyquist-effects/LoadNyquist.h"
 
 namespace au::effects {
-class NyquistPluginsMetaReader : public AbstractAudioPluginMetaReader
+class NyquistPluginsMetaReader
 {
 public:
-    NyquistPluginsMetaReader();
-    muse::audio::AudioResourceType metaType() const override;
-    bool canReadMeta(const muse::io::path_t& pluginPath) const override;
-    muse::RetVal<muse::audio::AudioResourceMetaList> readMeta(const muse::io::path_t& pluginPath) const override;
-
-protected:
-    void doInit(const muse::IApplication::RunMode& mode) override;
+    void init();
+    std::optional<EffectMeta> readMeta(const muse::io::path_t& pluginPath) const;
 
 private:
     ::NyquistEffectsModule m_module;

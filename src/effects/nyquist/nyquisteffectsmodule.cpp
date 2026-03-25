@@ -92,14 +92,13 @@ void au::effects::NyquistEffectsContext::resolveImports()
     }
 }
 
-void au::effects::NyquistEffectsContext::onInit(const muse::IApplication::RunMode& runMode)
+void au::effects::NyquistEffectsContext::onInit(const muse::IApplication::RunMode&)
 {
-    m_nyquistMetaReader->init(runMode);
+    m_nyquistMetaReader->init();
     m_nyquistPromptLoader->init();
     m_nyquistEffectsRepository->init();
 }
 
 void au::effects::NyquistEffectsContext::onDeinit()
 {
-    m_nyquistMetaReader->deinit();
 }

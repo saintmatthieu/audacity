@@ -33,6 +33,8 @@ set(MODULE_SRC
     # internal
     ${CMAKE_CURRENT_LIST_DIR}/internal/abstractaudiopluginmetareader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/abstractaudiopluginmetareader.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/pluginregistrysettings.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/pluginregistrysettings.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/abstractviewlauncher.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/abstractviewlauncher.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/effectconfigsettings.cpp
@@ -73,6 +75,7 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/parameterextractorregistry.h
 
     # AU3
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au3/au3effectsutils.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au3/au3effectsutils.h
 
     # view

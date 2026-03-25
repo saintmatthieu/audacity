@@ -10,7 +10,11 @@
 #include "framework/diagnostics/idiagnosticspathsregister.h"
 
 #include "internal/effectconfigsettings.h"
+#include "internal/pluginregistrysettings.h"
 #include "internal/effectsprovider.h"
+
+#include "audioplugins/iaudiopluginsscannerregister.h"
+#include "audioplugins/iaudiopluginmetareaderregister.h"
 #include "internal/effectsmenuprovider.h"
 #include "internal/effectsconfiguration.h"
 #include "internal/effectsactionscontroller.h"
@@ -80,7 +84,10 @@ void EffectsModule::registerUiTypes()
 
 void EffectsModule::onInit(const muse::IApplication::RunMode&)
 {
-    PluginManager::Get().Initialize([](const FilePath& localFileName) {
+    PluginManager::Get().Initialize([](const FilePath& localFileName) -> std::unique_ptr<audacity::BasicSettings> {
+        // if (localFileName == FileNames::PluginRegistry()) {
+        //     return std::make_unique<PluginRegistrySettings>();
+        // }
         return std::make_unique<au3::EffectConfigSettings>(localFileName.ToStdString());
     });
 
