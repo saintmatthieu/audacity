@@ -8,9 +8,11 @@
 
 #include "effects/effects_base/ieffectloadersregister.h"
 #include "effects/effects_base/ieffectviewlaunchregister.h"
+#include "effects/effects_base/iparameterextractorregistry.h"
 #include "effects/effects_base/view/effectsviewutils.h"
 
 #include "internal/lv2effectloader.h"
+#include "internal/lv2parameterextractorservice.h"
 #include "internal/lv2pluginmetareader.h"
 #include "internal/lv2pluginsscanner.h"
 #include "internal/lv2viewlauncher.h"
@@ -108,6 +110,11 @@ void Lv2EffectsContext::registerExports()
 
 void Lv2EffectsContext::resolveImports()
 {
+    auto paramExtractorRegistry = muse::modularity::globalIoc()->resolve<IParameterExtractorRegistry>(mname);
+    if (paramExtractorRegistry) {
+        paramExtractorRegistry->registerExtractor(std::make_shared<Lv2ParameterExtractorService>());
+    }
+
     auto lr = ioc()->resolve<IEffectViewLaunchRegister>(mname);
     if (lr) {
         lr->regLauncher(EffectFamily::LV2, std::make_shared<Lv2ViewLauncher>(iocContext()));
