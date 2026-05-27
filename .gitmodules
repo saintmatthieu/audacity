@@ -1,3 +1,9 @@
 [submodule "muse"]
 	path = muse
 	url = https://github.com/musescore/muse_framework.git
+[submodule "thirdparty/clap"]
+	path = thirdparty/clap
+	url = https://github.com/free-audio/clap.git
+[submodule "thirdparty/clap-helpers"]
+	path = thirdparty/clap-helpers
+	url = https://github.com/free-audio/clap-helpers.git

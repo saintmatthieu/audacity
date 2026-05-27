@@ -183,6 +183,7 @@ public:
         Unknown = -1,
         Builtin,
         VST3,
+        CLAP,
 #ifdef Q_OS_LINUX
         LV2,
 #endif

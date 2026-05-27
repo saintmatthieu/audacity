@@ -99,6 +99,10 @@ if (AU_MODULE_EFFECTS_VST)
    list( APPEND LIBRARIES au3-vst3)
 endif()
 
+if (AU_MODULE_EFFECTS_CLAP)
+   list( APPEND LIBRARIES au3-clap)
+endif()
+
 if (AU_MODULE_EFFECTS_LV2)
    list( APPEND LIBRARIES au3-lv2)
 endif()

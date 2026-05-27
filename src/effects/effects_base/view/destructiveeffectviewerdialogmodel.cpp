@@ -104,7 +104,8 @@ ViewerComponentType DestructiveEffectViewerDialogModel::viewerComponentType() co
         return ViewerComponentType::Builtin;
     }
 
-    if (family == EffectFamily::Nyquist) {
+    if (family == EffectFamily::Nyquist || family == EffectFamily::CLAP) {
+        // CLAP currently always uses the auto-generated UI (no native GUI host yet).
         return ViewerComponentType::Generated;
     }
 

@@ -45,6 +45,7 @@ constexpr muse::audio::AudioResourceType toMuseAudioResourceType(EffectFamily fa
 {
     switch (family) {
     case EffectFamily::VST3: return muse::audio::AudioResourceType::VstPlugin;
+    case EffectFamily::CLAP: return muse::audio::AudioResourceType::ClapPlugin;
 #ifdef Q_OS_LINUX
     case EffectFamily::LV2: return muse::audio::AudioResourceType::Lv2Plugin;
 #endif
@@ -64,6 +65,7 @@ constexpr EffectFamily fromMuseAudioResourceType(muse::audio::AudioResourceType 
 {
     switch (type) {
     case muse::audio::AudioResourceType::VstPlugin: return EffectFamily::VST3;
+    case muse::audio::AudioResourceType::ClapPlugin: return EffectFamily::CLAP;
 #ifdef Q_OS_LINUX
     case muse::audio::AudioResourceType::Lv2Plugin: return EffectFamily::LV2;
 #endif

@@ -212,6 +212,11 @@ ViewerComponentType RealtimeEffectViewerDialogModel::viewerComponentType() const
         return ViewerComponentType::Builtin;
     }
 
+    // CLAP currently always uses the auto-generated UI (no native GUI host yet).
+    if (family == EffectFamily::CLAP) {
+        return ViewerComponentType::Generated;
+    }
+
     // For external plugins (VST3, LV2), check if we should use generated UI
     const bool shouldUseVendorUI = useVendorUI();
     if (!shouldUseVendorUI) {

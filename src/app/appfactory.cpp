@@ -74,6 +74,12 @@
 #include "stubs/vst/vsteffectsstubmodule.h"
 #endif
 
+#ifdef AU_MODULE_EFFECTS_CLAP
+#include "effects/clap/clapeffectsmodule.h"
+#else
+#include "stubs/clap/clapeffectsstubmodule.h"
+#endif
+
 #ifdef AU_MODULE_EFFECTS_AUDIO_UNIT
 #include "effects/audio_unit/audiouniteffectsmodule.h"
 #else
@@ -151,6 +157,7 @@ std::shared_ptr<muse::IApplication> AppFactory::newGuiApp(const std::shared_ptr<
     app->addModule(new au::effects::AudioUnitEffectsModule());
     app->addModule(new au::effects::Lv2EffectsModule());
     app->addModule(new au::effects::VstEffectsModule());
+    app->addModule(new au::effects::ClapEffectsModule());
     app->addModule(new au::effects::NyquistEffectsModule());
     app->addModule(new au::context::ContextModule());
     app->addModule(new au::audio::AudioModule());
@@ -185,6 +192,7 @@ std::shared_ptr<muse::IApplication> AppFactory::newPluginRegistrationApp(const s
     app->addModule(new au::effects::AudioUnitEffectsModule());
     app->addModule(new au::effects::Lv2EffectsModule());
     app->addModule(new au::effects::VstEffectsModule());
+    app->addModule(new au::effects::ClapEffectsModule());
     app->addModule(new au::effects::NyquistEffectsModule());
 
     return app;

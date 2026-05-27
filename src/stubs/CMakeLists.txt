@@ -10,6 +10,10 @@ if (NOT AU_MODULE_EFFECTS_VST)
     add_subdirectory(vst)
 endif()
 
+if (NOT AU_MODULE_EFFECTS_CLAP)
+    add_subdirectory(clap)
+endif()
+
 if (NOT AU_BUILD_CLOUD_AUDIOCOM)
     add_subdirectory(au3cloud)
 endif()

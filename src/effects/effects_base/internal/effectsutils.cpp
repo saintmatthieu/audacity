@@ -16,6 +16,7 @@ muse::String utils::effectFamilyToString(EffectFamily family)
     switch (family) {
     case EffectFamily::Builtin: return u"Audacity";
     case EffectFamily::VST3: return u"VST3";
+    case EffectFamily::CLAP: return u"CLAP";
 #ifdef Q_OS_LINUX
     case EffectFamily::LV2: return u"LV2";
 #endif
@@ -35,6 +36,8 @@ EffectFamily utils::effectFamilyFromString(const muse::String& family)
         return EffectFamily::Builtin;
     } else if (family == u"VST3") {
         return EffectFamily::VST3;
+    } else if (family == u"CLAP") {
+        return EffectFamily::CLAP;
 #ifdef Q_OS_LINUX
     } else if (family == u"LV2") {
         return EffectFamily::LV2;
@@ -247,7 +250,7 @@ template<typename T = muse::String>
 T attributeValue(const muse::audio::AudioResourceMeta& meta, const muse::String& key, bool enabled)
 {
     const auto valStr = meta.attributeVal(key);
-    IF_ASSERT_FAILED(!enabled || !valStr.empty()) {
+    if (!enabled || !valStr.empty()) {
         return {};
     }
     return value<T>(valStr);
