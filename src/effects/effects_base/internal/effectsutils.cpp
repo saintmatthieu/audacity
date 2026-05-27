@@ -250,7 +250,7 @@ template<typename T = muse::String>
 T attributeValue(const muse::audio::AudioResourceMeta& meta, const muse::String& key, bool enabled)
 {
     const auto valStr = meta.attributeVal(key);
-    if (!enabled || !valStr.empty()) {
+    if (enabled && valStr.empty()) {
         return {};
     }
     return value<T>(valStr);
