@@ -28,6 +28,8 @@
 
 #include "au3-components/EffectInterface.h"
 
+#include "IClapHostListener.h"
+
 class ClapEntry;
 class CommandParameters;
 
@@ -85,6 +87,34 @@ public:
     //! Push pending changes to the plugin while it is not processing.
     void FlushParameters();
 
+    // ---- GUI (clap.gui + timer-support + posix-fd-support) -------------------
+    //! Register the muse-side listener that bridges plugin->host callbacks.
+    //! Must outlive any time the plugin can call back into the host (i.e. between
+    //! setHostListener(non-null) and setHostListener(nullptr)).
+    void setHostListener(IClapHostListener* listener) { mListener = listener; }
+
+    //! True if the plugin advertises the clap.gui extension.
+    bool hasGui() const { return mGui != nullptr; }
+
+    bool guiIsApiSupported(const char* api, bool isFloating) const;
+    bool guiCreate(const char* api, bool isFloating);
+    void guiDestroy();
+    bool guiSetScale(double scale);
+    bool guiGetSize(uint32_t& w, uint32_t& h) const;
+    bool guiCanResize() const;
+    bool guiAdjustSize(uint32_t& w, uint32_t& h) const;
+    bool guiSetSize(uint32_t w, uint32_t h);
+    //! \p api is one of CLAP_WINDOW_API_*, \p nativeHandle is the platform handle
+    //! to embed into (X11 Window ID cast to void*, HWND, or NSView*).
+    bool guiSetParent(const char* api, void* nativeHandle);
+    bool guiShow();
+    bool guiHide();
+
+    //! Forward a fired timer to the plugin's clap.timer-support extension.
+    void fireTimer(uint32_t timerId);
+    //! Forward an fd event to the plugin's clap.posix-fd-support extension.
+    void fireFd(int fd, uint32_t flags);
+
     // ---- Settings statics (mirror VST3Wrapper) -------------------------------
     static EffectSettings MakeSettings();
     static void CopySettingsContents(const EffectSettings& src, EffectSettings& dst);
@@ -109,6 +139,19 @@ private:
     static void hostParamsRequestFlush(const clap_host_t* host);
     static void hostLatencyChanged(const clap_host_t* host);
     static void hostStateMarkDirty(const clap_host_t* host);
+    // gui
+    static void hostGuiResizeHintsChanged(const clap_host_t* host);
+    static bool hostGuiRequestResize(const clap_host_t* host, uint32_t width, uint32_t height);
+    static bool hostGuiRequestShow(const clap_host_t* host);
+    static bool hostGuiRequestHide(const clap_host_t* host);
+    static void hostGuiClosed(const clap_host_t* host, bool wasDestroyed);
+    // timer-support
+    static bool hostTimerRegister(const clap_host_t* host, uint32_t periodMs, clap_id* outTimerId);
+    static bool hostTimerUnregister(const clap_host_t* host, clap_id timerId);
+    // posix-fd-support
+    static bool hostPosixFdRegister(const clap_host_t* host, int fd, clap_posix_fd_flags_t flags);
+    static bool hostPosixFdModify(const clap_host_t* host, int fd, clap_posix_fd_flags_t flags);
+    static bool hostPosixFdUnregister(const clap_host_t* host, int fd);
 
     static ClapWrapper* from(const clap_host_t* host) { return static_cast<ClapWrapper*>(host->host_data); }
 
@@ -126,12 +169,21 @@ private:
     clap_host_params_t mHostParams {};
     clap_host_latency_t mHostLatency {};
     clap_host_state_t mHostState {};
+    clap_host_gui_t mHostGui {};
+    clap_host_timer_support_t mHostTimerSupport {};
+    clap_host_posix_fd_support_t mHostPosixFd {};
 
     const clap_plugin_t* mPlugin { nullptr };
     const clap_plugin_params_t* mParams { nullptr };
     const clap_plugin_audio_ports_t* mAudioPorts { nullptr };
     const clap_plugin_state_t* mState { nullptr };
     const clap_plugin_latency_t* mLatency { nullptr };
+    const clap_plugin_gui_t* mGui { nullptr };
+    const clap_plugin_timer_support_t* mPluginTimerSupport { nullptr };
+    const clap_plugin_posix_fd_support_t* mPluginPosixFd { nullptr };
+
+    //! Set by the muse layer when a viewer is active; nullptr otherwise.
+    IClapHostListener* mListener { nullptr };
 
     bool mActive { false };
     bool mStarted { false };

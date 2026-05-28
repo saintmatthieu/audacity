@@ -18,6 +18,8 @@
 
 #include "au3-effects/PerTrackEffect.h"
 
+#include "IClapHostListener.h"
+
 class ClapWrapper;
 class ClapEntry;
 
@@ -55,6 +57,23 @@ public:
     size_t ProcessBlock(EffectSettings& settings, const float* const* inBlock, float* const* outBlock, size_t blockLen) override;
 
     ClapWrapper& GetWrapper();
+
+    // ---- GUI facade (SDK-free) -------------------------------------------------
+    void setHostListener(IClapHostListener* listener);
+    bool hasGui() const;
+    bool guiIsApiSupported(const char* api, bool isFloating) const;
+    bool guiCreate(const char* api, bool isFloating);
+    void guiDestroy();
+    bool guiSetScale(double scale);
+    bool guiGetSize(uint32_t& w, uint32_t& h) const;
+    bool guiCanResize() const;
+    bool guiAdjustSize(uint32_t& w, uint32_t& h) const;
+    bool guiSetSize(uint32_t w, uint32_t h);
+    bool guiSetParent(const char* api, void* nativeHandle);
+    bool guiShow();
+    bool guiHide();
+    void fireTimer(uint32_t timerId);
+    void fireFd(int fd, uint32_t flags);
 
 private:
     std::shared_ptr<ClapEntry> mEntry;

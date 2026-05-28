@@ -12,6 +12,7 @@ import Audacity.BuiltinEffects
 import Audacity.Lv2
 import Audacity.AudioUnit
 import Audacity.Vst
+import Audacity.Clap
 
 EffectStyledDialogView {
     id: root
@@ -115,6 +116,9 @@ EffectStyledDialogView {
         case ViewerComponentType.Vst:
             viewerLoader.sourceComponent = vstViewerComponent
             break
+        case ViewerComponentType.Clap:
+            viewerLoader.sourceComponent = clapViewerComponent
+            break
         case ViewerComponentType.Builtin:
             viewerLoader.sourceComponent = builtinViewerComponent
             break
@@ -155,6 +159,19 @@ EffectStyledDialogView {
     Component {
         id: vstViewerComponent
         VstViewer {
+            height: implicitHeight
+
+            instanceId: root.instanceId
+            topPadding: topPanel.height
+            bottomPadding: bbox.implicitHeight + prv.panelMargins * 2
+            sidePadding: prv.viewMargins
+            minimumWidth: prv.minimumWidth
+        }
+    }
+
+    Component {
+        id: clapViewerComponent
+        ClapViewer {
             height: implicitHeight
 
             instanceId: root.instanceId

@@ -185,6 +185,19 @@ ClapWrapper::ClapWrapper(std::shared_ptr<ClapEntry> entry, std::string pluginId)
     mHostParams.request_flush = &ClapWrapper::hostParamsRequestFlush;
     mHostLatency.changed = &ClapWrapper::hostLatencyChanged;
     mHostState.mark_dirty = &ClapWrapper::hostStateMarkDirty;
+
+    mHostGui.resize_hints_changed = &ClapWrapper::hostGuiResizeHintsChanged;
+    mHostGui.request_resize = &ClapWrapper::hostGuiRequestResize;
+    mHostGui.request_show = &ClapWrapper::hostGuiRequestShow;
+    mHostGui.request_hide = &ClapWrapper::hostGuiRequestHide;
+    mHostGui.closed = &ClapWrapper::hostGuiClosed;
+
+    mHostTimerSupport.register_timer = &ClapWrapper::hostTimerRegister;
+    mHostTimerSupport.unregister_timer = &ClapWrapper::hostTimerUnregister;
+
+    mHostPosixFd.register_fd = &ClapWrapper::hostPosixFdRegister;
+    mHostPosixFd.modify_fd = &ClapWrapper::hostPosixFdModify;
+    mHostPosixFd.unregister_fd = &ClapWrapper::hostPosixFdUnregister;
 }
 
 ClapWrapper::~ClapWrapper()
@@ -215,6 +228,9 @@ void ClapWrapper::InitializeComponents()
     mAudioPorts = static_cast<const clap_plugin_audio_ports_t*>(mPlugin->get_extension(mPlugin, CLAP_EXT_AUDIO_PORTS));
     mState = static_cast<const clap_plugin_state_t*>(mPlugin->get_extension(mPlugin, CLAP_EXT_STATE));
     mLatency = static_cast<const clap_plugin_latency_t*>(mPlugin->get_extension(mPlugin, CLAP_EXT_LATENCY));
+    mGui = static_cast<const clap_plugin_gui_t*>(mPlugin->get_extension(mPlugin, CLAP_EXT_GUI));
+    mPluginTimerSupport = static_cast<const clap_plugin_timer_support_t*>(mPlugin->get_extension(mPlugin, CLAP_EXT_TIMER_SUPPORT));
+    mPluginPosixFd = static_cast<const clap_plugin_posix_fd_support_t*>(mPlugin->get_extension(mPlugin, CLAP_EXT_POSIX_FD_SUPPORT));
 
     scanAudioPorts();
 }
@@ -567,7 +583,15 @@ const void* ClapWrapper::hostGetExtension(const clap_host_t* host, const char* i
     if (std::strcmp(id, CLAP_EXT_STATE) == 0) {
         return &self->mHostState;
     }
-    // GUI / timer / posix-fd extensions are intentionally declined in this phase.
+    if (std::strcmp(id, CLAP_EXT_GUI) == 0) {
+        return &self->mHostGui;
+    }
+    if (std::strcmp(id, CLAP_EXT_TIMER_SUPPORT) == 0) {
+        return &self->mHostTimerSupport;
+    }
+    if (std::strcmp(id, CLAP_EXT_POSIX_FD_SUPPORT) == 0) {
+        return &self->mHostPosixFd;
+    }
     return nullptr;
 }
 
@@ -610,6 +634,164 @@ void ClapWrapper::hostParamsClear(const clap_host_t*, clap_id, clap_param_clear_
 void ClapWrapper::hostParamsRequestFlush(const clap_host_t*) {}
 void ClapWrapper::hostLatencyChanged(const clap_host_t*) {}
 void ClapWrapper::hostStateMarkDirty(const clap_host_t*) {}
+
+void ClapWrapper::hostGuiResizeHintsChanged(const clap_host_t* host)
+{
+    if (auto* l = from(host)->mListener) {
+        l->guiResizeHintsChanged();
+    }
+}
+
+bool ClapWrapper::hostGuiRequestResize(const clap_host_t* host, uint32_t width, uint32_t height)
+{
+    auto* l = from(host)->mListener;
+    return l ? l->guiRequestResize(width, height) : false;
+}
+
+bool ClapWrapper::hostGuiRequestShow(const clap_host_t* host)
+{
+    auto* l = from(host)->mListener;
+    return l ? l->guiRequestShow() : false;
+}
+
+bool ClapWrapper::hostGuiRequestHide(const clap_host_t* host)
+{
+    auto* l = from(host)->mListener;
+    return l ? l->guiRequestHide() : false;
+}
+
+void ClapWrapper::hostGuiClosed(const clap_host_t* host, bool wasDestroyed)
+{
+    if (auto* l = from(host)->mListener) {
+        l->guiClosed(wasDestroyed);
+    }
+}
+
+bool ClapWrapper::hostTimerRegister(const clap_host_t* host, uint32_t periodMs, clap_id* outTimerId)
+{
+    auto* l = from(host)->mListener;
+    if (!l || !outTimerId) {
+        return false;
+    }
+    uint32_t id = 0;
+    if (!l->registerTimer(periodMs, id)) {
+        return false;
+    }
+    *outTimerId = static_cast<clap_id>(id);
+    return true;
+}
+
+bool ClapWrapper::hostTimerUnregister(const clap_host_t* host, clap_id timerId)
+{
+    auto* l = from(host)->mListener;
+    return l ? l->unregisterTimer(static_cast<uint32_t>(timerId)) : false;
+}
+
+bool ClapWrapper::hostPosixFdRegister(const clap_host_t* host, int fd, clap_posix_fd_flags_t flags)
+{
+    auto* l = from(host)->mListener;
+    return l ? l->registerFd(fd, static_cast<uint32_t>(flags)) : false;
+}
+
+bool ClapWrapper::hostPosixFdModify(const clap_host_t* host, int fd, clap_posix_fd_flags_t flags)
+{
+    auto* l = from(host)->mListener;
+    return l ? l->modifyFd(fd, static_cast<uint32_t>(flags)) : false;
+}
+
+bool ClapWrapper::hostPosixFdUnregister(const clap_host_t* host, int fd)
+{
+    auto* l = from(host)->mListener;
+    return l ? l->unregisterFd(fd) : false;
+}
+
+// ===========================================================================
+// GUI public methods (forward to mGui after null-checking)
+// ===========================================================================
+
+bool ClapWrapper::guiIsApiSupported(const char* api, bool isFloating) const
+{
+    return mGui && mPlugin && mGui->is_api_supported && mGui->is_api_supported(mPlugin, api, isFloating);
+}
+
+bool ClapWrapper::guiCreate(const char* api, bool isFloating)
+{
+    return mGui && mPlugin && mGui->create && mGui->create(mPlugin, api, isFloating);
+}
+
+void ClapWrapper::guiDestroy()
+{
+    if (mGui && mPlugin && mGui->destroy) {
+        mGui->destroy(mPlugin);
+    }
+}
+
+bool ClapWrapper::guiSetScale(double scale)
+{
+    return mGui && mPlugin && mGui->set_scale && mGui->set_scale(mPlugin, scale);
+}
+
+bool ClapWrapper::guiGetSize(uint32_t& w, uint32_t& h) const
+{
+    return mGui && mPlugin && mGui->get_size && mGui->get_size(mPlugin, &w, &h);
+}
+
+bool ClapWrapper::guiCanResize() const
+{
+    return mGui && mPlugin && mGui->can_resize && mGui->can_resize(mPlugin);
+}
+
+bool ClapWrapper::guiAdjustSize(uint32_t& w, uint32_t& h) const
+{
+    return mGui && mPlugin && mGui->adjust_size && mGui->adjust_size(mPlugin, &w, &h);
+}
+
+bool ClapWrapper::guiSetSize(uint32_t w, uint32_t h)
+{
+    return mGui && mPlugin && mGui->set_size && mGui->set_size(mPlugin, w, h);
+}
+
+bool ClapWrapper::guiSetParent(const char* api, void* nativeHandle)
+{
+    if (!mGui || !mPlugin || !mGui->set_parent) {
+        return false;
+    }
+    clap_window_t window {};
+    window.api = api;
+    // The union members are all pointers / unsigned long; storing into `ptr`
+    // covers cocoa/uikit/win32 and the upper bits of x11 are zero on 64-bit
+    // platforms. For X11 we set the x11 field explicitly.
+    if (api && std::strcmp(api, CLAP_WINDOW_API_X11) == 0) {
+        window.x11 = reinterpret_cast<clap_xwnd>(nativeHandle);
+    } else {
+        window.ptr = nativeHandle;
+    }
+    return mGui->set_parent(mPlugin, &window);
+}
+
+bool ClapWrapper::guiShow()
+{
+    return mGui && mPlugin && mGui->show && mGui->show(mPlugin);
+}
+
+bool ClapWrapper::guiHide()
+{
+    return mGui && mPlugin && mGui->hide && mGui->hide(mPlugin);
+}
+
+void ClapWrapper::fireTimer(uint32_t timerId)
+{
+    if (mPluginTimerSupport && mPlugin && mPluginTimerSupport->on_timer) {
+        mPluginTimerSupport->on_timer(mPlugin, static_cast<clap_id>(timerId));
+    }
+}
+
+void ClapWrapper::fireFd(int fd, uint32_t flags)
+{
+    if (mPluginPosixFd && mPlugin && mPluginPosixFd->on_fd) {
+        mPluginPosixFd->on_fd(mPlugin, fd, static_cast<clap_posix_fd_flags_t>(flags));
+    }
+}
 
 // ===========================================================================
 // Settings statics

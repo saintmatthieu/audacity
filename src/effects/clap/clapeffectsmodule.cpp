@@ -3,12 +3,15 @@
 */
 #include "clapeffectsmodule.h"
 
+#include <QtQml>
+
 #include "audioplugins/iaudiopluginsscannerregister.h"
 #include "audioplugins/iaudiopluginmetareaderregister.h"
 
 #include "effects/effects_base/ieffectloadersregister.h"
 #include "effects/effects_base/ieffectviewlaunchregister.h"
 #include "effects/effects_base/iparameterextractorregistry.h"
+#include "effects/effects_base/view/effectsviewutils.h"
 
 #include "internal/clapeffectloader.h"
 #include "internal/clappluginsscanner.h"
@@ -16,16 +19,25 @@
 #include "internal/clapparameterextractorservice.h"
 #include "internal/clapviewlauncher.h"
 
+#include "view/clapview.h"
+#include "view/clapviewmodel.h"
+
 using namespace muse;
 using namespace au::effects;
 
 static const std::string mname("effects_clap");
+
+static void clap_init_qrc()
+{
+    Q_INIT_RESOURCE(clap);
+}
 
 ClapEffectsModule::ClapEffectsModule()
     : m_metaReader(std::make_shared<ClapPluginsMetaReader>()),
     m_effectLoader(std::make_shared<ClapEffectLoader>()),
     m_pluginsScanner(std::make_shared<ClapPluginsScanner>())
 {
+    clap_init_qrc();
 }
 
 std::string ClapEffectsModule::moduleName() const
@@ -66,6 +78,8 @@ void ClapEffectsModule::registerResources()
 
 void ClapEffectsModule::registerUiTypes()
 {
+    qmlRegisterType<ClapView>("Audacity.Clap", 1, 0, "ClapView");
+    REGISTER_AUDACITY_EFFECTS_SINGLETON_TYPE(ClapViewModelFactory);
 }
 
 void ClapEffectsModule::onInit(const muse::IApplication::RunMode& mode)

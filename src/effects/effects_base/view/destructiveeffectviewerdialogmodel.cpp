@@ -104,8 +104,7 @@ ViewerComponentType DestructiveEffectViewerDialogModel::viewerComponentType() co
         return ViewerComponentType::Builtin;
     }
 
-    if (family == EffectFamily::Nyquist || family == EffectFamily::CLAP) {
-        // CLAP currently always uses the auto-generated UI (no native GUI host yet).
+    if (family == EffectFamily::Nyquist) {
         return ViewerComponentType::Generated;
     }
 
@@ -123,6 +122,8 @@ ViewerComponentType DestructiveEffectViewerDialogModel::viewerComponentType() co
 #endif
     case EffectFamily::VST3:
         return ViewerComponentType::Vst;
+    case EffectFamily::CLAP:
+        return ViewerComponentType::Clap;
     default:
         return ViewerComponentType::Unknown;
     }

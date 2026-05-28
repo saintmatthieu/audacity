@@ -212,12 +212,7 @@ ViewerComponentType RealtimeEffectViewerDialogModel::viewerComponentType() const
         return ViewerComponentType::Builtin;
     }
 
-    // CLAP currently always uses the auto-generated UI (no native GUI host yet).
-    if (family == EffectFamily::CLAP) {
-        return ViewerComponentType::Generated;
-    }
-
-    // For external plugins (VST3, LV2), check if we should use generated UI
+    // For external plugins (VST3, LV2, CLAP), check if we should use generated UI
     const bool shouldUseVendorUI = useVendorUI();
     if (!shouldUseVendorUI) {
         return ViewerComponentType::Generated;
@@ -231,6 +226,8 @@ ViewerComponentType RealtimeEffectViewerDialogModel::viewerComponentType() const
 #endif
     case EffectFamily::VST3:
         return ViewerComponentType::Vst;
+    case EffectFamily::CLAP:
+        return ViewerComponentType::Clap;
     default:
         return ViewerComponentType::Unknown;
     }

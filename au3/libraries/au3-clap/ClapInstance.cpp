@@ -165,3 +165,21 @@ ClapWrapper& ClapInstance::GetWrapper()
 {
     return *mWrapper;
 }
+
+// GUI facade --------------------------------------------------------------------
+
+void ClapInstance::setHostListener(IClapHostListener* listener) { mWrapper->setHostListener(listener); }
+bool ClapInstance::hasGui() const { return mWrapper->hasGui(); }
+bool ClapInstance::guiIsApiSupported(const char* api, bool isFloating) const { return mWrapper->guiIsApiSupported(api, isFloating); }
+bool ClapInstance::guiCreate(const char* api, bool isFloating) { return mWrapper->guiCreate(api, isFloating); }
+void ClapInstance::guiDestroy() { mWrapper->guiDestroy(); }
+bool ClapInstance::guiSetScale(double scale) { return mWrapper->guiSetScale(scale); }
+bool ClapInstance::guiGetSize(uint32_t& w, uint32_t& h) const { return mWrapper->guiGetSize(w, h); }
+bool ClapInstance::guiCanResize() const { return mWrapper->guiCanResize(); }
+bool ClapInstance::guiAdjustSize(uint32_t& w, uint32_t& h) const { return mWrapper->guiAdjustSize(w, h); }
+bool ClapInstance::guiSetSize(uint32_t w, uint32_t h) { return mWrapper->guiSetSize(w, h); }
+bool ClapInstance::guiSetParent(const char* api, void* nativeHandle) { return mWrapper->guiSetParent(api, nativeHandle); }
+bool ClapInstance::guiShow() { return mWrapper->guiShow(); }
+bool ClapInstance::guiHide() { return mWrapper->guiHide(); }
+void ClapInstance::fireTimer(uint32_t timerId) { mWrapper->fireTimer(timerId); }
+void ClapInstance::fireFd(int fd, uint32_t flags) { mWrapper->fireFd(fd, flags); }

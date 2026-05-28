@@ -20,6 +20,7 @@ set( SOURCES
    ClapUtils.h
    ClapWrapper.cpp
    ClapWrapper.h
+   IClapHostListener.h
 )
 set( LIBRARIES
    au3-utility

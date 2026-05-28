@@ -3,6 +3,9 @@
 #
 declare_module(effects_clap)
 
+set(MODULE_QRC clap.qrc)
+set(MODULE_QML_IMPORT ${CMAKE_CURRENT_LIST_DIR}/qml)
+
 set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/clapeffectsmodule.cpp
     ${CMAKE_CURRENT_LIST_DIR}/clapeffectsmodule.h
@@ -15,6 +18,11 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/clapparameterextractorservice.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/clapviewlauncher.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/clapviewlauncher.h
+
+    ${CMAKE_CURRENT_LIST_DIR}/view/clapview.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/clapview.h
+    ${CMAKE_CURRENT_LIST_DIR}/view/clapviewmodel.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/view/clapviewmodel.h
 )
 
 # AU3

@@ -14,6 +14,7 @@ public:
         AudioUnit,
         Lv2,
         Vst,
+        Clap,
         Builtin,
         Generated,
         Unknown
