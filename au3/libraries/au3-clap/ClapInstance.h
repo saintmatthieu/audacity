@@ -60,6 +60,7 @@ public:
 
     // ---- GUI facade (SDK-free) -------------------------------------------------
     void setHostListener(IClapHostListener* listener);
+    IClapHostListener* hostListener() const;
     bool hasGui() const;
     bool guiIsApiSupported(const char* api, bool isFloating) const;
     bool guiCreate(const char* api, bool isFloating);

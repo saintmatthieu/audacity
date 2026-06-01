@@ -69,7 +69,8 @@
                 // "target symbols add /usr/lib/lv2/meters.lv2/meters_glui.so",
             ],
             "env": {
-                "LD_LIBRARY_PATH": "${command:cmake.launchTargetDirectory}/lib"
+                "LD_LIBRARY_PATH": "${command:cmake.launchTargetDirectory}/lib",
+                "GDK_BACKEND": "x11"
             }
         },
         {

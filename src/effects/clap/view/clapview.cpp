@@ -159,20 +159,29 @@ void ClapView::deinit()
     m_timers.clear();
     m_fds.clear();
 
-    if (m_instance) {
-        m_instance->setHostListener(nullptr);
-        m_instance = nullptr;
-    }
+    // destroyGuiAndWindow() above already cleared the listener IFF we were
+    // still it; don't re-clear here (that would clobber a newer ClapView that
+    // has since taken over the same plugin instance).
+    m_instance = nullptr;
     m_instanceHolder.reset();
 }
 
 void ClapView::destroyGuiAndWindow()
 {
-    if (m_instance && m_guiCreated) {
-        m_instance->guiHide();
-        m_instance->guiDestroy();
-        m_guiCreated = false;
+    // Only touch the plugin's GUI state if we are still the active listener.
+    // When the user closes one dialog and quickly opens another for the same
+    // realtime effect instance, a NEW ClapView's init() races ahead of the
+    // OLD ClapView's destructor and re-establishes the plugin GUI. The OLD
+    // ClapView must not then call guiDestroy() on the (shared) plugin, or it
+    // would tear down the NEW ClapView's freshly-created widgets.
+    if (m_instance && m_instance->hostListener() == this) {
+        if (m_guiCreated) {
+            m_instance->guiHide();
+            m_instance->guiDestroy();
+        }
+        m_instance->setHostListener(nullptr);
     }
+    m_guiCreated = false;
     if (m_clapWindow) {
         m_clapWindow->hide();
         delete m_clapWindow;

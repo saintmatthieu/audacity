@@ -169,6 +169,7 @@ ClapWrapper& ClapInstance::GetWrapper()
 // GUI facade --------------------------------------------------------------------
 
 void ClapInstance::setHostListener(IClapHostListener* listener) { mWrapper->setHostListener(listener); }
+IClapHostListener* ClapInstance::hostListener() const { return mWrapper->hostListener(); }
 bool ClapInstance::hasGui() const { return mWrapper->hasGui(); }
 bool ClapInstance::guiIsApiSupported(const char* api, bool isFloating) const { return mWrapper->guiIsApiSupported(api, isFloating); }
 bool ClapInstance::guiCreate(const char* api, bool isFloating) { return mWrapper->guiCreate(api, isFloating); }

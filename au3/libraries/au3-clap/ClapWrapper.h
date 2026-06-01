@@ -92,6 +92,10 @@ public:
     //! Must outlive any time the plugin can call back into the host (i.e. between
     //! setHostListener(non-null) and setHostListener(nullptr)).
     void setHostListener(IClapHostListener* listener) { mListener = listener; }
+    //! The currently registered listener. Used by viewers to detect "did
+    //! someone else take over this plugin's GUI session?" before performing
+    //! teardown that would clobber the newer viewer's state.
+    IClapHostListener* hostListener() const { return mListener; }
 
     //! True if the plugin advertises the clap.gui extension.
     bool hasGui() const { return mGui != nullptr; }
