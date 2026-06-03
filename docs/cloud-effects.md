@@ -2,7 +2,7 @@
 @startuml
 actor User
 participant App as "App\n\n(examples:\n* Audacity\n* test host\n* 3rd-party host ?\n* ...)"
-participant Host as "AudiocomEffectHost\n(CLAP host)"
+participant Host as "AudiocomCloudEffectHost\n(CLAP host)"
 participant CloudEffect as "CloudEffect\n(CLAP plugin)"
 participant "IAu3AudioComService\n(wraps audio.com REST)" as audiocom
 
@@ -37,75 +37,67 @@ note over App: toast:\n"New tracks ready"
 Host -[#DarkOrange]>> audiocom: **clearCloudEffectJob(jobId)**
 @enduml
 
-@startuml
+@startuml Cloud-effect flow
 actor User
 participant Audacity
-participant Task as "CloudEffectTask\n(Audacity class)"
-participant ExtUi as "MyCloudEffectUi\n(3rd-party)"
-participant Script as "MyCloudEffectScript\n(async main)"
+participant CloudEffect as "CloudEffect\n(frontend)"
 participant Audiocom
-participant 3rd as "3rd party service"
+participant AudiocomCloudEffect as "AudiocomCloudEffect\n(backend)"
+participant 3rd as "3rdPartyCloudEffect\n(backend)\n(other server)"
 
-User -> ExtUi:open
-activate ExtUi
-note over ExtUi:UI
-User -> ExtUi: apply
-ExtUi -->> Task:create(params)
-activate Task
-deactivate ExtUi
-Task-->>Audacity:toast("Cloud effect initiated...")
-Task -->> Audiocom:requestSelection(projectId, selection)
-note over Audiocom:Creates audio from selection\nusing audacit exec:\n`audacity project -export sel.json`
-Audiocom -->> Task:urls
-Task ->> Script:async main()
-Script -->> Task: Promise<Output> (pending)
-note over Script: await someCommand(...)
-Script ->> 3rd: someCommand(params, urls)
-note over 3rd:processing...
+User -> CloudEffect:open
+activate CloudEffect
+note over CloudEffect:UI
+User -> CloudEffect: apply
+CloudEffect -->> Audacity:toast("Cloud effect initiated...")
+CloudEffect -->> Audiocom: process(\n\tprojectId,\n\tselection,\n\teffectId,\n\texportFormat,\n\tparams)
+deactivate CloudEffect
+note over Audiocom:Creates audio from selection\nusing audacit exec:\n`audacity project -export selection exportFormat`
+Audiocom -->> Audacity:toast("cloud processing....")
+Audiocom -> Audiocom: resolve effect id
+alt is audiocom effect
+Audiocom -->> AudiocomCloudEffect:process(inputUrls, params)
 ...
 ...
-note over 3rd:... done.
-3rd -->> Script:newUrls
-note over Script: main resolves
-Script -->> Task: Output (newUrls)
-Task -->> Audiocom:integrate(projectId, selection, newUrls)
-deactivate Task
-note over Audiocom:`audacity project -integrate selection newUrls`
+AudiocomCloudEffect -->> Audiocom: outputs
+else is 3rd-party effect
+note over Audiocom: resolve effect id -> vetted provider\n(registered endpoint + auth,\nfrom audio.com's provider registry)
+Audiocom ->> Audiocom: mint signed input URLs (selection)
+Audiocom ->> 3rd: POST {provider.endpoint}/job\n{ inputUrls, params, callbackUrl, jobToken }
+3rd -->> Audiocom: 202 Accepted { jobId }
+
+note over 3rd:processing ...
+...
+...
+note over 3rd:... done.\nuploads outputs (audio + labels + ...)
+3rd ->> Audiocom: POST {callbackUrl}\n{ jobToken, outputs: [\n  {type:"audio",  url, name, startTime},\n  {type:"labels", url, format},\n  ... ] }
+note over Audiocom: verify jobToken
+end
+note over Audiocom:`audacity project -integrate selection outputs`\n(dispatch by type: audio -> track, labels -> label track)
 Audiocom -->> Audacity:sync
 @enduml
 
+@startuml CloudEffectExtension
+class CloudEffectExtensionModel {
+  Q_INVOKABLE void apply()
+}
+note top of CloudEffectExtensionModel: `apply()` collects project ID, selection, ...\nand calls IAu3AudioComService
+
+class CloudEffectExtension {
+  +required property string effectId
+  +property var params // JSON-serializable
+  +function apply()
+}
+note top of CloudEffectExtension: Has access to all Muse UI Components\n(`import MuseApi.Controls`)
+
+class MyCloudEffectExtension {}
+note bottom of MyCloudEffectExtension:* provide UI\n* provide effect ID for audiocom server\n* optionally sets `params`
+
+CloudEffectExtension <|-- MyCloudEffectExtension
+CloudEffectExtension *-- CloudEffectExtensionModel
+@enduml
+
 @startuml
-class AudioFile {
-  string url
-  real startTime
-  ...
-}
 
-note bottom of AudioFile
-  `url` -> authentication ?
-end note
-
-class Selection {
- var audioFiles: []
- ...
-}
-
-class Output {
-  var audioFiles: []
-  ...
-}
-
-class CloudEffectScript {
-  async main(Selection sel, params): Output
-}
-
-class MyCloudEffectScript {
-  main: async function (sel, params) { /* call service, await, return Output */ }
-}
-
-Selection *-- AudioFile
-Output *-- AudioFile
-
-CloudEffectScript <|-- MyCloudEffectScript
 @enduml
 ```
