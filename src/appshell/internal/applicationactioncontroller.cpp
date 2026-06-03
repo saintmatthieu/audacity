@@ -78,6 +78,10 @@ void ApplicationActionController::init()
 
     dispatcher()->reg(this, "revert-factory", this, &ApplicationActionController::revertToFactorySettings);
 
+    dispatcher()->reg(this, "manage-plugins", [this]() {
+        interactive()->open("audacity://home?section=extensions");
+    });
+
     dispatcher()->reg(this, "audio-settings", this, &ApplicationActionController::openAudioSettingsDialog);
     dispatcher()->reg(this, "shortcuts-preferences", this, &ApplicationActionController::openShortcutsPreferencesDialog);
     dispatcher()->reg(this, "editing-preferences", this, &ApplicationActionController::openEditingPreferencesDialog);

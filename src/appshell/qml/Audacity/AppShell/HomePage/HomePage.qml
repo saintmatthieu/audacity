@@ -70,6 +70,10 @@ DockPage {
         case "projects":
             root.central = projetsComp
             break
+        case "plugins": // backward compatibility
+        case "extensions":
+            root.central = extensionsComp
+            break
         case "learn":
             root.central = learnComp
             break
@@ -122,6 +126,12 @@ DockPage {
         id: projetsComp
 
         ProjectsPage {}
+    }
+
+    Component {
+        id: extensionsComp
+
+        PluginsPage {}
     }
 
     Component {

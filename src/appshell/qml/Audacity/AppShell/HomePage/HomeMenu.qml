@@ -96,6 +96,12 @@ Item {
                     "enabled": true
                 },
                 {
+                    "name": "extensions",
+                    "title": qsTrc("appshell", "Plugins"),
+                    "icon": IconCode.PLUGIN,
+                    "enabled": true
+                },
+                {
                     "name": "learn",
                     "title": qsTrc("appshell", "Learn"),
                     "icon": IconCode.LEARN,

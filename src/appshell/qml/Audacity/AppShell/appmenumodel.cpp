@@ -40,7 +40,10 @@ using namespace muse::actions;
 using namespace au::project;
 //! TODO AU4
 // using namespace muse::workspace;
-// using namespace muse::extensions;
+
+#ifdef MUSE_MODULE_EXTENSIONS
+using namespace muse::extensions;
+#endif
 
 static QString makeId(const ActionCode& actionCode, int itemIndex)
 {
@@ -77,6 +80,9 @@ void AppMenuModel::load()
         makeAnalyzeMenu(),
         makeToolsMenu(),
         makeExtraMenu(),
+#ifdef MUSE_MODULE_EXTENSIONS
+        makePluginsMenu(),
+#endif
         makeHelpMenu()
     };
 
@@ -133,6 +139,18 @@ void AppMenuModel::setupConnections()
             }
         }
     });
+
+#ifdef MUSE_MODULE_EXTENSIONS
+    extensionsProvider()->manifestListChanged().onNotify(this, [this]() {
+        MenuItem& pluginsMenu = findMenu("menu-plugins");
+        pluginsMenu.setSubitems(makePluginsMenuSubitems());
+    });
+
+    extensionsProvider()->manifestChanged().onReceive(this, [this](const muse::extensions::Manifest&) {
+        MenuItem& pluginsMenu = findMenu("menu-plugins");
+        pluginsMenu.setSubitems(makePluginsMenuSubitems());
+    });
+#endif
 
     effectsProvider()->effectMetaListChanged().onNotify(this, [this]() {
         onEffectsChanged();
@@ -890,3 +908,95 @@ void AppMenuModel::onEffectsChanged()
     MenuItem& toolsItem = findMenu("menu-tools");
     toolsItem.setSubitems(makeToolItems());
 }
+
+#ifdef MUSE_MODULE_EXTENSIONS
+MenuItem* AppMenuModel::makePluginsMenu()
+{
+    return makeMenu(TranslatableString("appshell/menu/plugins", "&Plugins"), makePluginsMenuSubitems(), "menu-plugins");
+}
+
+MenuItemList AppMenuModel::makePluginsMenuSubitems()
+{
+    MenuItemList subitems {
+        makeMenuItem("manage-plugins"),
+    };
+
+    MenuItemList enabledPlugins = makePluginsItems();
+
+    if (!enabledPlugins.empty()) {
+        subitems << makeSeparator();
+    }
+
+    subitems << enabledPlugins;
+
+    return subitems;
+}
+
+MenuItemList AppMenuModel::makePluginsItems()
+{
+    MenuItemList result;
+
+    KnownCategories categories = extensionsProvider()->knownCategories();
+    ManifestList enabledExtensions = extensionsProvider()->manifestList(Filter::Enabled);
+
+    auto addMenuItems = [this](MenuItemList& items, const Manifest& m) {
+        if (m.actions.size() == 1) {
+            const muse::extensions::Action& a = m.actions.at(0);
+            if (!a.showOnAppmenu) {
+                return;
+            }
+            items << makeMenuItem(makeActionQuery(m.uri, a.code).toString(),
+                                  !a.title.empty()
+                                  ? TranslatableString::untranslatable(a.title)
+                                  : TranslatableString::untranslatable(m.title));
+        } else {
+            MenuItemList sub;
+            for (const muse::extensions::Action& a : m.actions) {
+                if (!a.showOnAppmenu) {
+                    continue;
+                }
+                sub << makeMenuItem(makeActionQuery(m.uri, a.code).toString(),
+                                    TranslatableString::untranslatable(a.title));
+            }
+
+            if (!sub.empty()) {
+                items << makeMenu(TranslatableString::untranslatable(m.title), sub);
+            }
+        }
+    };
+
+    std::map<std::string, MenuItemList> categoriesMap;
+    MenuItemList pluginsWithoutCategories;
+    for (const Manifest& m : enabledExtensions) {
+        std::string categoryStr = m.category.toStdString();
+        if (!categoryStr.empty()) {
+            if (!muse::contains(categories, categoryStr)) {
+                categories[categoryStr] = TranslatableString("extensions", m.category);
+            }
+            MenuItemList& items = categoriesMap[categoryStr];
+            addMenuItems(items, m);
+        } else {
+            addMenuItems(pluginsWithoutCategories, m);
+        }
+    }
+
+    for (const auto& it : categoriesMap) {
+        TranslatableString categoryTitle = muse::value(categories, it.first, {});
+        result << makeMenu(categoryTitle, it.second);
+    }
+
+    std::sort(result.begin(), result.end(), [](const MenuItem& l, const MenuItem& r) {
+        return l.translatedTitle() < r.translatedTitle();
+    });
+
+    std::sort(pluginsWithoutCategories.begin(), pluginsWithoutCategories.end(), [](const MenuItem& l, const MenuItem& r) {
+        return l.translatedTitle() < r.translatedTitle();
+    });
+
+    for (MenuItem* plugin : pluginsWithoutCategories) {
+        result << plugin;
+    }
+
+    return result;
+}
+#endif

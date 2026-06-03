@@ -49,8 +49,12 @@ Q_MOC_INCLUDE(< QWindow >)
 //! TODO AU4
 // #include "workspace/iworkspacemanager.h"
 #include "project/irecentfilescontroller.h"
-// #include "extensions/iextensionsprovider.h"
 #include "update/iupdateconfiguration.h"
+
+#include "muse_framework_config.h"
+#ifdef MUSE_MODULE_EXTENSIONS
+#include "extensions/iextensionsprovider.h"
+#endif
 
 namespace au::appshell {
 class AppMenuModel : public muse::uicomponents::AbstractMenuModel, public effects::IEffectMenuItemFactory
@@ -75,7 +79,10 @@ public:
 
     //! TODO AU4
     // muse::ContextInject<workspace::IWorkspaceManager> workspacesManager = { this };
-    // muse::ContextInject<extensions::IExtensionsProvider> extensionsProvider = { this };
+
+#ifdef MUSE_MODULE_EXTENSIONS
+    muse::ContextInject<muse::extensions::IExtensionsProvider> extensionsProvider = { this };
+#endif
 
 public:
     explicit AppMenuModel(QObject* parent = nullptr);
@@ -108,6 +115,12 @@ private:
     muse::uicomponents::MenuItem* makeExtraMenu();
     muse::uicomponents::MenuItem* makeHelpMenu();
     muse::uicomponents::MenuItem* makeDiagnosticMenu();
+
+#ifdef MUSE_MODULE_EXTENSIONS
+    muse::uicomponents::MenuItem* makePluginsMenu();
+    muse::uicomponents::MenuItemList makePluginsMenuSubitems();
+    muse::uicomponents::MenuItemList makePluginsItems();
+#endif
 
     muse::uicomponents::MenuItemList makeRecentProjectsItems();
     muse::uicomponents::MenuItemList appendClearRecentSection(const muse::uicomponents::MenuItemList& recentScores);
