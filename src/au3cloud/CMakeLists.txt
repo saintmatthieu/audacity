@@ -55,3 +55,5 @@ set(MODULE_DEF ${AU3_DEF})
 set(MODULE_LINK au3wrap Qt6::Network Qt6::NetworkAuth)
 
 setup_module()
+
+add_subdirectory(qml/Audacity/CloudEffects)

@@ -11,4 +11,5 @@ install(DIRECTORY .
     PATTERN "*.json"
     PATTERN "*.qml"
     PATTERN "*.js"
+    PATTERN "*.svg"
 )
