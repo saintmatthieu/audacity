@@ -12,7 +12,11 @@ qt_add_qml_module(au3cloud_qml
         cloudeffectmodel.h
     QML_FILES
         CloudEffect.qml
+        DummyCloudEffect.qml
+        CloudEffectDialog.qml
     IMPORTS
         QtQuick
         TARGET muse_uicomponents_qmlapi
+        TARGET muse_ui_qml
+        TARGET muse_uicomponents_qml
 )

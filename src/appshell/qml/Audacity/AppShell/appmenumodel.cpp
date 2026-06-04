@@ -77,6 +77,7 @@ void AppMenuModel::load()
         makeTracksMenu(),
         makeGenerateMenu(),
         makeEffectMenu(),
+        makeCloudEffectsMenu(),
         makeAnalyzeMenu(),
         makeToolsMenu(),
         makeExtraMenu(),
@@ -379,6 +380,20 @@ MenuItem* AppMenuModel::makeGenerateMenu()
 MenuItem* AppMenuModel::makeEffectMenu()
 {
     return makeMenu(TranslatableString("appshell/menu/effect", "&Effect"), makeEffectsItems(), "menu-effect");
+}
+
+MenuItem* AppMenuModel::makeCloudEffectsMenu()
+{
+    return makeMenu(TranslatableString("appshell/menu/cloudeffects", "&Cloud effects"), makeCloudEffectsItems(), "menu-cloud-effects");
+}
+
+MenuItemList AppMenuModel::makeCloudEffectsItems()
+{
+    MenuItemList items;
+    for (const au3cloud::CloudEffectItem& e : cloudEffectsProvider()->effects()) {
+        items << makeMenuItem(au3cloud::cloudEffectOpenActionCode(e.id));
+    }
+    return items;
 }
 
 MenuItem* AppMenuModel::makeAnalyzeMenu()

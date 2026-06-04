@@ -20,6 +20,12 @@
 #include "view/accountmodel.h"
 
 #include "internal/customschemeregistrar.h"
+#include "internal/cloudeffectsprovider.h"
+#include "internal/cloudeffectsuiactions.h"
+#include "internal/cloudeffectsactionscontroller.h"
+
+#include "au3cloud/icloudeffectsprovider.h"
+#include "framework/interactive/iinteractiveuriregister.h"
 
 using namespace au::au3cloud;
 
@@ -38,6 +44,17 @@ void Au3CloudModule::registerExports()
     m_cloudService = std::make_shared<Au3CloudService>();
     globalIoc()->registerExport<au3cloud::IAuthorization>(mname, m_cloudService);
     globalIoc()->registerExport<au3cloud::IUsageInfo>(mname, m_cloudService);
+
+    m_cloudEffectsProvider = std::make_shared<CloudEffectsProvider>();
+    globalIoc()->registerExport<au3cloud::ICloudEffectsProvider>(mname, m_cloudEffectsProvider);
+}
+
+void Au3CloudModule::resolveImports()
+{
+    auto ir = globalIoc()->resolve<muse::interactive::IInteractiveUriRegister>(mname);
+    if (ir) {
+        ir->registerQmlUri(muse::Uri(CLOUD_EFFECT_DIALOG_URI), "Audacity.CloudEffects", "CloudEffectDialog");
+    }
 }
 
 void Au3CloudModule::onInit(const muse::IApplication::RunMode&)
@@ -73,6 +90,8 @@ void Au3CloudContext::registerExports()
     m_audioComService = std::make_shared<Au3AudioComService>(iocContext());
     m_actionsController = std::make_shared<Au3CloudActionsController>(iocContext());
     m_uiActions = std::make_shared<CloudUiActions>();
+    m_cloudEffectsUiActions = std::make_shared<CloudEffectsUiActions>();
+    m_cloudEffectsController = std::make_shared<CloudEffectsActionsController>(iocContext());
 
     ioc()->registerExport<au3cloud::IAu3AudioComService>(mname, m_audioComService);
 }
@@ -81,10 +100,12 @@ void Au3CloudContext::onInit(const muse::IApplication::RunMode&)
 {
     m_audioComService->init();
     m_actionsController->init();
+    m_cloudEffectsController->init();
 
     auto ar = ioc()->resolve<muse::ui::IUiActionsRegister>(mname);
     if (ar) {
         ar->reg(m_uiActions);
+        ar->reg(m_cloudEffectsUiActions);
     }
 }
 

@@ -13,6 +13,7 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/iau3audiocomservice.h
     ${CMAKE_CURRENT_LIST_DIR}/iau3cloudconfiguration.h
     ${CMAKE_CURRENT_LIST_DIR}/iusageinfo.h
+    ${CMAKE_CURRENT_LIST_DIR}/icloudeffectsprovider.h
 
     ${CMAKE_CURRENT_LIST_DIR}/internal/au3audiocomservice.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au3audiocomservice.h
@@ -32,6 +33,13 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au3audiocomtypeconv.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/downloadmanager.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/downloadmanager.h
+
+    ${CMAKE_CURRENT_LIST_DIR}/internal/cloudeffectsprovider.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/cloudeffectsprovider.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/cloudeffectsuiactions.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/cloudeffectsuiactions.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/cloudeffectsactionscontroller.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/cloudeffectsactionscontroller.h
 
     ${CMAKE_CURRENT_LIST_DIR}/internal/cloudurlhandler.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/cloudurlhandler.h

@@ -45,6 +45,7 @@ Q_MOC_INCLUDE(< QWindow >)
 #include "effects/effects_base/effectstypes.h"
 #include "effects/effects_base/ieffectsmenuprovider.h"
 #include "trackedit/iprojecthistory.h"
+#include "au3cloud/icloudeffectsprovider.h"
 
 //! TODO AU4
 // #include "workspace/iworkspacemanager.h"
@@ -68,6 +69,7 @@ public:
     muse::GlobalInject<IAppShellConfiguration> configuration;
     muse::GlobalInject<IAppMenuModelHook> appMenuModelHook;
     muse::GlobalInject<effects::IEffectsProvider> effectsProvider;
+    muse::GlobalInject<au3cloud::ICloudEffectsProvider> cloudEffectsProvider;
     muse::GlobalInject<muse::update::IUpdateConfiguration> updateConfiguration;
 
     muse::ContextInject<muse::actions::IActionsDispatcher> actionsDispatcher = { this };
@@ -110,6 +112,7 @@ private:
     muse::uicomponents::MenuItem* makeTracksMenu();
     muse::uicomponents::MenuItem* makeGenerateMenu();
     muse::uicomponents::MenuItem* makeEffectMenu();
+    muse::uicomponents::MenuItem* makeCloudEffectsMenu();
     muse::uicomponents::MenuItem* makeAnalyzeMenu();
     muse::uicomponents::MenuItem* makeToolsMenu();
     muse::uicomponents::MenuItem* makeExtraMenu();
@@ -143,6 +146,7 @@ private:
     muse::uicomponents::MenuItemList makeWorkspacesItems();
     muse::uicomponents::MenuItemList makeShowItems();
     muse::uicomponents::MenuItemList makeEffectsItems();
+    muse::uicomponents::MenuItemList makeCloudEffectsItems();
     muse::uicomponents::MenuItemList makeGeneratorItems();
     muse::uicomponents::MenuItemList makeToolItems();
     muse::uicomponents::MenuItemList makeAnalyzeItems();

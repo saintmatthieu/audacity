@@ -11,6 +11,9 @@ class Au3CloudService;
 class Au3AudioComService;
 class Au3CloudActionsController;
 class CloudUiActions;
+class CloudEffectsProvider;
+class CloudEffectsUiActions;
+class CloudEffectsActionsController;
 
 class Au3CloudModule : public muse::modularity::IModuleSetup
 {
@@ -18,6 +21,7 @@ public:
 
     std::string moduleName() const override;
     void registerExports() override;
+    void resolveImports() override;
     void registerUiTypes() override;
     void onInit(const muse::IApplication::RunMode& mode) override;
     void onDeinit() override;
@@ -27,6 +31,7 @@ public:
 private:
     std::shared_ptr<Au3CloudConfiguration> m_cloudConfiguration;
     std::shared_ptr<Au3CloudService> m_cloudService;
+    std::shared_ptr<CloudEffectsProvider> m_cloudEffectsProvider;
 };
 
 class Au3CloudContext : public muse::modularity::IContextSetup
@@ -43,5 +48,7 @@ private:
     std::shared_ptr<Au3AudioComService> m_audioComService;
     std::shared_ptr<Au3CloudActionsController> m_actionsController;
     std::shared_ptr<CloudUiActions> m_uiActions;
+    std::shared_ptr<CloudEffectsUiActions> m_cloudEffectsUiActions;
+    std::shared_ptr<CloudEffectsActionsController> m_cloudEffectsController;
 };
 }
