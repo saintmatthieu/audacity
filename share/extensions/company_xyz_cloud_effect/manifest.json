@@ -1,0 +1,16 @@
+{
+    "uri": "musescore://extensions/dev/company_xyz_cloud_effect",
+    "type": "form",
+    "title": "Super cloud effect by XYZ",
+    "thumbnail": "thumbnail.svg",
+    "ui_context": "Any",
+
+    "actions": [
+        {
+            "code": "open",
+            "type": "form",
+            "title": "Super cloud effect by XYZ",
+            "path": "CompanyXyzCloudEffect.qml"
+        }
+    ]
+}
