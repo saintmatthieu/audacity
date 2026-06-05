@@ -85,17 +85,26 @@ end
 else is 3rd-party effect
 
 group Work item 2.2
-note over Audiocom: resolve effect id -> vetted provider\n(registered endpoint + auth,\nfrom audio.com's provider registry)
-Audiocom ->> Audiocom: mint signed input URLs (selection)
-Audiocom ->> 3rd: POST {provider.endpoint}/job\n{ inputUrls, params, callbackUrl, jobToken }
-3rd -->> Audiocom: 202 Accepted { jobId }
+note over Audiocom: resolve effectId -> vetted provider\n(registered endpoint + auth,\nfrom audio.com's provider registry)
+Audiocom ->> Audiocom: mint signed input URLs (expiresAt: +1h)
+Audiocom ->> 3rd: POST /job  [JobRequest]\n{\n  effectId,\n  inputFiles: [{url, expiresAt, mediaType, durationSeconds}],\n  params,\n  callbackUrl,\n  jobToken\n}
+3rd -->> Audiocom: 202 Accepted  [JobAccepted]\n{ jobId }
 
-note over 3rd:processing ...
+note over 3rd: processing...
 ...
+opt polling fallback
+  Audiocom ->> 3rd: GET /job/{jobId}
+  3rd -->> Audiocom: [JobStatus]\n{ status: pending|processing|done|failed,\n  progressPercent }
+end
 ...
-note over 3rd:... done.\nuploads outputs (audio + labels + ...)
-3rd ->> Audiocom: POST {callbackUrl}\n{ jobToken, outputs: [\n  {type:"audio",  url, name, startTime},\n  {type:"labels", url, format},\n  ... ] }
-note over Audiocom: verify jobToken
+note over 3rd: done — outputs ready on provider storage
+3rd ->> Audiocom: POST {callbackUrl}  [JobCallback]\n{\n  jobToken,\n  status: "done",\n  outputs: [\n    {type:"audio", url, name, startTimeSecs, mediaType},\n    {type:"labels", url, format}\n  ]\n}
+note over Audiocom: verify jobToken\naudio.com fetches output URLs
+end
+
+group cancel path (user cancels / project closes)
+Audiocom ->> 3rd: DELETE /job/{jobId}
+3rd -->> Audiocom: 204 No Content
 end
 end
 

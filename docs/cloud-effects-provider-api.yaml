@@ -1,0 +1,300 @@
+openapi: 3.1.0
+info:
+  title: Audacity Cloud Effects — Provider API
+  version: "0.1"
+  description: |
+    Contract that a 3rd-party cloud-effect provider must implement.
+
+    **Flow**
+
+    1. audio.com `POST /job` with signed input URLs, the effect's params, and a
+       `callbackUrl` it owns.
+    2. Provider responds `202 Accepted` with a `jobId` and starts processing
+       asynchronously.
+    3. When done, the provider `POST`s the `callbackUrl` with a typed output
+       manifest.  audio.com verifies the `jobToken` and integrates the results
+       into the Audacity project.
+
+    **Authentication** between audio.com and the provider is negotiated
+    bilaterally (e.g. Bearer token, mTLS) and is out of scope for this spec.
+
+servers:
+  - url: https://provider.example/audacity/v1
+    description: Provider base URL (registered in audio.com's provider registry)
+
+paths:
+
+  /job:
+    post:
+      summary: Submit a new processing job
+      operationId: createJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobRequest"
+      responses:
+        "202":
+          description: Job accepted and queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /job/{jobId}:
+    get:
+      summary: Poll job status
+      description: |
+        Optional — providers may implement this for polling fallback.
+        audio.com prefers the webhook callback but falls back to polling
+        if no callback arrives within a reasonable timeout.
+      operationId: getJobStatus
+      parameters:
+        - $ref: "#/components/parameters/jobId"
+      responses:
+        "200":
+          description: Current job status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobStatus"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      summary: Cancel a job
+      description: |
+        audio.com calls this when the user cancels or the project is closed
+        before processing completes.  Provider should abort processing and
+        release any resources.
+      operationId: cancelJob
+      parameters:
+        - $ref: "#/components/parameters/jobId"
+      responses:
+        "204":
+          description: Job cancelled
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Job already completed or cancelled
+
+components:
+
+  schemas:
+
+    JobRequest:
+      type: object
+      required: [effectId, inputFiles, callbackUrl, jobToken]
+      properties:
+        effectId:
+          type: string
+          description: |
+            Stable identifier of the cloud effect, as registered in
+            audio.com's provider registry.
+          example: "my-vendor.denoise-v1"
+        inputFiles:
+          type: array
+          minItems: 1
+          description: |
+            Signed, time-limited read URLs for the input audio files
+            (minted by audio.com).  Each URL is accessible without
+            audio.com credentials for the duration of `expiresAt`.
+          items:
+            $ref: "#/components/schemas/InputFile"
+        params:
+          type: object
+          description: |
+            Opaque, effect-specific parameters.  Schema is defined by the
+            provider and surfaced to the user via the effect's Audacity UI.
+            audio.com passes this through without interpretation.
+          additionalProperties: true
+          example: { "denoise": true, "intensity": 0.7 }
+        callbackUrl:
+          type: string
+          format: uri
+          description: |
+            audio.com endpoint that the provider POSTs when the job
+            completes or fails.  See `JobCallback`.
+          example: "https://api.audio.com/cloudeffects/callback"
+        jobToken:
+          type: string
+          description: |
+            Opaque token minted by audio.com.  Must be echoed back in the
+            callback body so audio.com can verify the callback's origin.
+          example: "tok_a1b2c3d4e5f6"
+
+    InputFile:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Pre-signed read URL for this input file.
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the pre-signed URL expires.
+        mediaType:
+          type: string
+          description: MIME type of the audio file.
+          example: "audio/x-wav"
+        durationSeconds:
+          type: number
+          description: Duration of the audio in seconds.
+
+    JobAccepted:
+      type: object
+      required: [jobId]
+      properties:
+        jobId:
+          type: string
+          description: |
+            Provider-assigned identifier for this job.  Used by audio.com
+            for polling (`GET /job/{jobId}`) and cancellation
+            (`DELETE /job/{jobId}`).
+          example: "job_xyz789"
+
+    JobStatus:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, done, failed]
+        progressPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Optional progress hint (0–100).
+        outputs:
+          description: |
+            Present (and non-empty) when `status` is `done`.
+          type: array
+          items:
+            $ref: "#/components/schemas/OutputFile"
+        error:
+          $ref: "#/components/schemas/JobError"
+
+    # ------------------------------------------------------------------
+    # Callback — POSTed by the provider to {callbackUrl} on completion.
+    # Not an endpoint of the provider; documented here for completeness.
+    # ------------------------------------------------------------------
+
+    JobCallback:
+      type: object
+      required: [jobToken, status]
+      description: |
+        Body of the POST the provider sends to `callbackUrl` when
+        processing finishes (successfully or not).
+      properties:
+        jobToken:
+          type: string
+          description: Echo of the `jobToken` from the original request.
+        status:
+          type: string
+          enum: [done, failed]
+        outputs:
+          description: Present when `status` is `done`.
+          type: array
+          items:
+            $ref: "#/components/schemas/OutputFile"
+        error:
+          $ref: "#/components/schemas/JobError"
+
+    OutputFile:
+      type: object
+      required: [type, url]
+      discriminator:
+        propertyName: type
+      properties:
+        type:
+          type: string
+          enum: [audio, labels]
+          description: |
+            `audio` — a processed audio track.
+            `labels` — a label/marker track (e.g. chapter marks, detected
+            segments).
+        url:
+          type: string
+          format: uri
+          description: |
+            URL from which audio.com downloads this output.  Must be
+            accessible for at least 1 hour after the callback is sent.
+
+    AudioOutputFile:
+      allOf:
+        - $ref: "#/components/schemas/OutputFile"
+        - type: object
+          properties:
+            name:
+              type: string
+              description: Human-readable track name shown in Audacity.
+              example: "Denoised vocals"
+            startTimeSecs:
+              type: number
+              description: |
+                Position (seconds) at which this track should be placed in
+                the timeline.  Defaults to the start of the original
+                selection if omitted.
+            mediaType:
+              type: string
+              example: "audio/x-wav"
+
+    LabelsOutputFile:
+      allOf:
+        - $ref: "#/components/schemas/OutputFile"
+        - type: object
+          properties:
+            format:
+              type: string
+              enum: [audacity-labels, srt, vtt]
+              description: Label file format.
+              default: audacity-labels
+
+    JobError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          example: "UNSUPPORTED_FORMAT"
+        message:
+          type: string
+          description: Human-readable description of the error.
+
+  parameters:
+    jobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Malformed request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/JobError"
+    Unauthorized:
+      description: Missing or invalid authentication
+    UnprocessableEntity:
+      description: Request was valid but the effect cannot process these inputs
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/JobError"
+    NotFound:
+      description: Unknown jobId
