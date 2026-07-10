@@ -262,7 +262,10 @@ const std::string DESTRUCTIVE_EFFECT_VIEWER_URI = "audacity://effects/destructiv
 
 inline std::string makeEffectAction(const std::string& action, const EffectId& id)
 {
-    return QString::fromStdString(action).arg(id).toStdString();
+    //! NOTE effect ids may contain characters (e.g. '&', '=') that would otherwise
+    //! be misparsed as query syntax once this string is turned back into an ActionQuery
+    std::string encodedId = muse::Uri::percentEncode(id.toStdString());
+    return QString::fromStdString(action).arg(QString::fromStdString(encodedId)).toStdString();
 }
 
 inline EffectId effectIdFromAction(const muse::actions::ActionQuery& action)
