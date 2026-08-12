@@ -99,13 +99,13 @@ const UiActionList ProjectUiActions::m_actions = {
     UiAction("export-labels",
              au::context::UiCtxAny,
              au::context::CTX_ANY,
-             TranslatableString("action", "&Export labels"),
+             TranslatableString("action", "Export &labels"),
              TranslatableString("action", "Export labels")
              ),
     UiAction("export-midi",
              au::context::UiCtxAny,
              au::context::CTX_ANY,
-             TranslatableString("action", "&Export MIDI"),
+             TranslatableString("action", "Export &MIDI"),
              TranslatableString("action", "Export MIDI")
              ),
     UiAction("file-close",
