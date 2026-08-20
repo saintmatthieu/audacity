@@ -659,17 +659,10 @@ void TimelineContext::fitTracksToHeight()
     const trackedit::TrackIdList allTracks = project->trackIdList();
     const trackedit::TrackIdList selectedTracks = selectionController()->selectedTracks();
 
-    const auto isAudioTrack = [&project](const trackedit::TrackId& trackId) {
-        const std::optional<trackedit::Track> track = project->track(trackId);
-        return track.has_value()
-               && (track->type == trackedit::TrackType::Mono || track->type == trackedit::TrackType::Stereo);
-    };
-
-    //! NOTE Fit the selected audio tracks, or all audio tracks if none are selected
+    //! NOTE Fit the selected tracks, or all tracks if none are selected
     trackedit::TrackIdList tracksToFit;
     for (const trackedit::TrackId& trackId : allTracks) {
-        const bool isTarget = selectedTracks.empty() || muse::contains(selectedTracks, trackId);
-        if (isTarget && isAudioTrack(trackId)) {
+        if (selectedTracks.empty() || muse::contains(selectedTracks, trackId)) {
             tracksToFit.push_back(trackId);
         }
     }
