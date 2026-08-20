@@ -71,6 +71,12 @@ static UiActionList STATIC_ACTIONS = {
              TranslatableString("action", "Zoom toggle"),
              IconCode::Code::ZOOM_TOGGLE
              ),
+    UiAction("fit-v",
+             au::context::UiCtxProjectOpened,
+             au::context::CTX_ANY,
+             TranslatableString("action", "Fit to height"),
+             TranslatableString("action", "Fit selected tracks vertically")
+             ),
     UiAction("center-view-on-playhead",
              au::context::UiCtxProjectOpened,
              au::context::CTX_ANY,
