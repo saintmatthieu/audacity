@@ -221,6 +221,7 @@ private:
 
     void fitSelectionToWidth();
     void fitProjectToWidth();
+    void fitTracksToHeight();
     void zoomToggle();
     double getZoomOfPreset(ZoomPresets::Preset preset) const;
     double clampedZoom(double zoom) const;

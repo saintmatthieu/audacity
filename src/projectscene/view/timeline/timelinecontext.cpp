@@ -3,6 +3,7 @@
 #include <QWheelEvent>
 #include <cmath>
 
+#include "global/containers.h"
 #include "global/types/number.h"
 
 #include "playback/iaudiooutput.h"
@@ -122,6 +123,7 @@ void TimelineContext::init(double frameWidth)
     dispatcher()->reg(this, "zoom-default", this, &TimelineContext::zoomDefault);
     dispatcher()->reg(this, "zoom-to-selection", this, &TimelineContext::fitSelectionToWidth);
     dispatcher()->reg(this, "zoom-to-fit-project", this, &TimelineContext::fitProjectToWidth);
+    dispatcher()->reg(this, "fit-v", this, &TimelineContext::fitTracksToHeight);
     dispatcher()->reg(this, "center-view-on-playhead", this, &TimelineContext::centerViewOnPlayhead);
     dispatcher()->reg(this, "zoom-toggle", this, &TimelineContext::zoomToggle);
 
@@ -644,6 +646,72 @@ void TimelineContext::fitProjectToWidth()
 
     //! position view to begin
     shiftFrameTime(0.0 - m_frameStartTime);
+}
+
+void TimelineContext::fitTracksToHeight()
+{
+    trackedit::ITrackeditProjectPtr project = trackEditProject();
+    IProjectViewStatePtr vs = viewState();
+    if (!project || !vs || m_frameHeight <= 0.0) {
+        return;
+    }
+
+    const trackedit::TrackIdList allTracks = project->trackIdList();
+    const trackedit::TrackIdList selectedTracks = selectionController()->selectedTracks();
+
+    const auto isAudioTrack = [&project](const trackedit::TrackId& trackId) {
+        const std::optional<trackedit::Track> track = project->track(trackId);
+        return track.has_value()
+               && (track->type == trackedit::TrackType::Mono || track->type == trackedit::TrackType::Stereo);
+    };
+
+    //! NOTE Fit the selected audio tracks, or all audio tracks if none are selected
+    trackedit::TrackIdList tracksToFit;
+    for (const trackedit::TrackId& trackId : allTracks) {
+        const bool isTarget = selectedTracks.empty() || muse::contains(selectedTracks, trackId);
+        if (isTarget && isAudioTrack(trackId)) {
+            tracksToFit.push_back(trackId);
+        }
+    }
+
+    if (tracksToFit.empty()) {
+        return;
+    }
+
+    //! NOTE Non-fitted tracks lying between the fitted ones keep their height,
+    //! but still take up viewport space
+    int availableHeight = static_cast<int>(m_frameHeight);
+    int scrollOffset = 0;
+    bool spanStarted = false;
+    for (const trackedit::TrackId& trackId : allTracks) {
+        if (trackId == tracksToFit.front()) {
+            spanStarted = true;
+        }
+        if (!spanStarted) {
+            scrollOffset += vs->trackHeight(trackId).val;
+        } else if (!muse::contains(tracksToFit, trackId)) {
+            availableHeight -= vs->trackHeight(trackId).val;
+        }
+        if (trackId == tracksToFit.back()) {
+            break;
+        }
+    }
+    availableHeight = std::max(availableHeight, 0);
+
+    const int count = static_cast<int>(tracksToFit.size());
+    const int height = availableHeight / count;
+    int remainder = availableHeight % count;
+
+    //! NOTE Scroll so that the first fitted track is at the top of the view.
+    //! Must happen before the resize: the view clamps its scroll position when the total
+    //! track height shrinks, which would override an offset set afterwards.
+    vs->changeTracksVerticalOffset(scrollOffset);
+
+    for (const trackedit::TrackId& trackId : tracksToFit) {
+        // setTrackHeight clamps to the minimum track height
+        vs->setTrackHeight(trackId, height + (remainder > 0 ? 1 : 0));
+        remainder = std::max(remainder - 1, 0);
+    }
 }
 
 double TimelineContext::getZoomOfPreset(ZoomPresets::Preset preset) const
