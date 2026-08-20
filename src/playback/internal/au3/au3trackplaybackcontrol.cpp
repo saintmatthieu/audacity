@@ -69,7 +69,7 @@ void Au3TrackPlaybackControl::setPan(long trackId, au::audio::pan_t pan, bool co
     }
 }
 
-void Au3TrackPlaybackControl::setMuteOrSolo(long trackId, bool value, MuteOrSolo which)
+void Au3TrackPlaybackControl::setMuteOrSolo(long trackId, bool value, MuteOrSolo which, bool exclusive)
 {
     Au3WaveTrack* track = DomAccessor::findWaveTrack(projectRef(), Au3TrackId(trackId));
     IF_ASSERT_FAILED(track) {
@@ -85,10 +85,8 @@ void Au3TrackPlaybackControl::setMuteOrSolo(long trackId, bool value, MuteOrSolo
         which == MuteOrSolo::Solo ? t->SetSolo(v) : t->SetMute(v);
     };
 
-    const bool exclusiveSet = application()->keyboardModifiers().testFlag(Qt::ShiftModifier);
-
     bool changed = false;
-    if (exclusiveSet) {
+    if (exclusive) {
         value = true;
 
         for (auto playable : tracks.Any<PlayableTrack>().Excluding(track)) {
@@ -116,9 +114,9 @@ void Au3TrackPlaybackControl::setMuteOrSolo(long trackId, bool value, MuteOrSolo
     projectHistory()->markUnsaved();
 }
 
-void Au3TrackPlaybackControl::setSolo(long trackId, bool solo)
+void Au3TrackPlaybackControl::setSolo(long trackId, bool solo, bool exclusive)
 {
-    setMuteOrSolo(trackId, solo, MuteOrSolo::Solo);
+    setMuteOrSolo(trackId, solo, MuteOrSolo::Solo, exclusive);
 }
 
 bool Au3TrackPlaybackControl::solo(long trackId) const
@@ -131,9 +129,9 @@ bool Au3TrackPlaybackControl::solo(long trackId) const
     return track->GetSolo();
 }
 
-void Au3TrackPlaybackControl::setMuted(long trackId, bool mute)
+void Au3TrackPlaybackControl::setMuted(long trackId, bool mute, bool exclusive)
 {
-    setMuteOrSolo(trackId, mute, MuteOrSolo::Mute);
+    setMuteOrSolo(trackId, mute, MuteOrSolo::Mute, exclusive);
 }
 
 bool Au3TrackPlaybackControl::muted(long trackId) const

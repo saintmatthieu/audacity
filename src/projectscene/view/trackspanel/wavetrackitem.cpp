@@ -80,6 +80,10 @@ void WaveTrackItem::init(const trackedit::Track& track)
         muteOrSoloChanged();
     }, muse::async::Asyncable::Mode::SetReplace);
 
+    shortcutsRegister()->shortcutsChanged().onNotify(this, [this]() {
+        emit shortcutsChanged();
+    }, muse::async::Asyncable::Mode::SetReplace);
+
     const int inputChannelsCount = audioDriverController()->configuration().inputChannels;
     m_recordStreamChannelsMatch = (trackType() == trackedit::TrackType::Mono && inputChannelsCount == 1)
                                   || (trackType() == trackedit::TrackType::Stereo && inputChannelsCount == 2);
@@ -252,12 +256,30 @@ void WaveTrackItem::setPan(int pan, bool completed)
 
 void WaveTrackItem::setSolo(bool solo)
 {
-    trackPlaybackControl()->setSolo(trackId(), solo);
+    const bool exclusive = application()->keyboardModifiers().testFlag(Qt::ShiftModifier);
+    trackPlaybackControl()->setSolo(trackId(), solo, exclusive);
 }
 
 void WaveTrackItem::setMuted(bool mute)
 {
-    trackPlaybackControl()->setMuted(trackId(), mute);
+    const bool exclusive = application()->keyboardModifiers().testFlag(Qt::ShiftModifier);
+    trackPlaybackControl()->setMuted(trackId(), mute, exclusive);
+}
+
+QString WaveTrackItem::muteShortcut() const
+{
+    return shortcutText("track-mute");
+}
+
+QString WaveTrackItem::soloShortcut() const
+{
+    return shortcutText("track-solo");
+}
+
+QString WaveTrackItem::shortcutText(const std::string& actionCode) const
+{
+    const muse::shortcuts::Shortcut& shortcut = shortcutsRegister()->shortcut(actionCode);
+    return muse::shortcuts::sequencesToNativeText(shortcut.sequences);
 }
 
 void WaveTrackItem::setAudioChannelVolumePressure(const trackedit::audioch_t chNum, const float newValue)

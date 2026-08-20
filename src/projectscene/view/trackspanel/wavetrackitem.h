@@ -4,9 +4,11 @@
 #pragma once
 
 #include "audio/driver/iaudiodrivercontroller.h"
+#include "framework/global/iapplication.h"
 #include "playback/iplayback.h"
 #include "playback/itrackplaybackcontrol.h"
 #include "record/irecord.h"
+#include "shortcuts/ishortcutsregister.h"
 
 #include "trackitem.h"
 
@@ -28,8 +30,13 @@ class WaveTrackItem : public TrackItem
     Q_PROPERTY(bool solo READ solo WRITE setSolo NOTIFY soloChanged)
     Q_PROPERTY(bool muted READ muted WRITE setMuted NOTIFY mutedChanged)
 
-    muse::GlobalInject<audio::IAudioDriverController> audioDriverController;
+    Q_PROPERTY(QString muteShortcut READ muteShortcut NOTIFY shortcutsChanged)
+    Q_PROPERTY(QString soloShortcut READ soloShortcut NOTIFY shortcutsChanged)
 
+    muse::GlobalInject<audio::IAudioDriverController> audioDriverController;
+    muse::GlobalInject<muse::IApplication> application;
+
+    muse::ContextInject<muse::shortcuts::IShortcutsRegister> shortcutsRegister{ this };
     muse::ContextInject<playback::ITrackPlaybackControl> trackPlaybackControl{ this };
     muse::ContextInject<playback::IPlayback> playback{ this };
     muse::ContextInject<record::IRecord> record{ this };
@@ -56,6 +63,9 @@ public:
     bool solo() const;
     bool muted() const;
 
+    QString muteShortcut() const;
+    QString soloShortcut() const;
+
     void loadOutputParams(const audio::AudioOutputParams& newParams);
 
     const audio::AudioOutputParams& outputParams() const;
@@ -81,6 +91,7 @@ signals:
     void panChanged(int pan);
     void soloChanged();
     void mutedChanged();
+    void shortcutsChanged();
 
     void outputParamsChanged(const audio::AudioOutputParams& params);
 
@@ -94,6 +105,8 @@ protected:
     bool isAudible() const override;
 
 private:
+    QString shortcutText(const std::string& actionCode) const;
+
     audio::AudioOutputParams m_outParams;
 
     float m_leftChannelPressure = playback::MIN_DISPLAYED_DBFS;

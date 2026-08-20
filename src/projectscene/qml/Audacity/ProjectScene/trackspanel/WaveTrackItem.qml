@@ -248,6 +248,7 @@ TrackItem {
                 toolTipDescription: checked
                                     ? ""
                                     : qsTrc("projectscene", "Shift+click to mute only this track")
+                toolTipShortcut: Boolean(root.item) ? root.item.muteShortcut : ""
 
                 navigation.panel: root.headerNavigationPanel
                 navigation.order: root.headerTrailingControlsNavigationStart
@@ -274,6 +275,7 @@ TrackItem {
                 toolTipDescription: checked
                                     ? ""
                                     : qsTrc("projectscene", "Shift+click to solo only this track")
+                toolTipShortcut: Boolean(root.item) ? root.item.soloShortcut : ""
 
                 navigation.panel: root.headerNavigationPanel
                 navigation.order: muteButton.navigation.order + 1
