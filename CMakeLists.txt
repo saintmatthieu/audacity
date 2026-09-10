@@ -94,6 +94,10 @@ endif(OS_IS_LIN)
 
 if( CMAKE_SYSTEM_NAME MATCHES "Darwin" )
     option(AU_MODULE_EFFECTS_AUDIO_UNIT "Build Audacity Audio Unit module" ON)
+    # Copies the Qt runtime into the bundle with macdeployqt at install time, as
+    # needed for packaging. Local builds can turn it OFF to keep the install
+    # step fast and load Qt from QT_INSTALL_LIBS instead.
+    option(AU_INSTALL_QT_RUNTIME "Deploy the Qt runtime into the app bundle at install time" ON)
 endif()
 
 # Time-stretching and pitch-shifting libraries

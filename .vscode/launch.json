@@ -46,7 +46,39 @@
             "environment": [],
             "sourceFileMap": {
                 "/Users/qt/work/qt": "${env:QTDIR}/../Src"
-            }
+            },
+            "setupCommands": [
+                {
+                    "text": "-interpreter-exec console \"settings set symbols.load-on-demand true\""
+                },
+                {
+                    "text": "-interpreter-exec console \"settings set target.preload-symbols false\""
+                },
+                {
+                    "text": "-interpreter-exec console \"settings set symbols.enable-external-lookup false\""
+                }
+            ]
+        },
+        {
+            // Requires CodeLLDB extension. Runs the plugin-validation subprocess directly on the
+            // deployed test VST3 (see tools/vst3-test-plugin), so a crash while loading it is
+            // caught in the debugger instead of being reported by the parent app.
+            "name": "run audacity (MacOS, CodeLLDB, validate test VST3)",
+            "type": "lldb",
+            "request": "launch",
+            "preLaunchTask": "CMake: install",
+            "cwd": "${workspaceFolder}",
+            "program": "${command:cmake.launchTargetPath}",
+            "initCommands": [
+                "settings set symbols.load-on-demand true",
+                "settings set target.preload-symbols false",
+                "settings set symbols.enable-external-lookup false"
+            ],
+            "args": [
+                // "--register-audio-plugin", "${userHome}/Library/Audio/Plug-Ins/VST3/AuVst3TestPlugin.vst3",
+                // "--register-audio-plugin-out", "${userHome}/Downloads/validation_result.json"
+            ],
+            "sourceMap": { "/Users/qt/work/qt": "${env:QTDIR}/../Src" }
         },
         {
             // Requires CodeLLDB extension

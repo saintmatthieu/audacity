@@ -410,20 +410,53 @@ elseif(OS_IS_MAC)
         )
     endif()
 
-    qt_generate_deploy_qml_app_script(
-        TARGET audacity
-        OUTPUT_SCRIPT deploy_script
-        NO_TRANSLATIONS
-        EXCLUDE_PLUGIN_TYPES qmltooling sqldrivers styles
-        DEPLOY_TOOL_OPTIONS
-            -qmldir=${PROJECT_SOURCE_DIR}/src
-            -qmldir=${PROJECT_SOURCE_DIR}/muse/framework
-    )
-    install(SCRIPT ${deploy_script})
+    set(MACOS_BUNDLE_DIR "\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/audacity.app")
 
-    install(SCRIPT
-        "${PROJECT_SOURCE_DIR}/buildscripts/packaging/prune_qt_runtime.cmake"
-    )
+    if (AU_INSTALL_QT_RUNTIME)
+        qt_generate_deploy_qml_app_script(
+            TARGET audacity
+            OUTPUT_SCRIPT deploy_script
+            NO_TRANSLATIONS
+            EXCLUDE_PLUGIN_TYPES qmltooling sqldrivers styles
+            DEPLOY_TOOL_OPTIONS
+                -qmldir=${PROJECT_SOURCE_DIR}/src
+                -qmldir=${PROJECT_SOURCE_DIR}/muse/framework
+        )
+        install(SCRIPT ${deploy_script})
+
+        install(SCRIPT
+            "${PROJECT_SOURCE_DIR}/buildscripts/packaging/prune_qt_runtime.cmake"
+        )
+    else()
+        # Developer builds: the app keeps loading Qt from QT_INSTALL_LIBS through
+        # its rpath, like the build-tree binary does. Remove what an earlier
+        # deploying install may have left behind, otherwise qt.conf would point
+        # the plugins at a second copy of Qt inside the bundle.
+        install(CODE "
+            file(GLOB _stale_qt_frameworks \"${MACOS_BUNDLE_DIR}/Contents/Frameworks/Qt*.framework\")
+            file(REMOVE_RECURSE
+                \${_stale_qt_frameworks}
+                \"${MACOS_BUNDLE_DIR}/Contents/PlugIns\"
+                \"${MACOS_BUNDLE_DIR}/Contents/Resources/qml\"
+                \"${MACOS_BUNDLE_DIR}/Contents/Resources/qt.conf\"
+            )
+        ")
+    endif()
+
+    # The ad-hoc signature applied at POST_BUILD does not survive installation:
+    # CMake's rpath fix-up and macdeployqt both run install_name_tool on the
+    # binaries, and the Qt plugins carry a Developer ID signature that neither
+    # tool can refresh. Without re-signing, the installed app is killed at
+    # launch unless a debugger is attached.
+    install(CODE "
+        execute_process(
+            COMMAND codesign --force --deep --sign - \"${MACOS_BUNDLE_DIR}\"
+            RESULT_VARIABLE _codesign_result
+        )
+        if (NOT _codesign_result EQUAL 0)
+            message(FATAL_ERROR \"Failed to ad-hoc sign ${MACOS_BUNDLE_DIR}\")
+        endif()
+    ")
 
 ###########################################
 # Wasm
