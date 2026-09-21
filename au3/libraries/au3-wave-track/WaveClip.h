@@ -286,9 +286,11 @@ public:
     }
 
     static std::shared_ptr<WaveClip> NewShared(size_t width, const SampleBlockFactoryPtr& factory,
-                                               sampleFormat format, int rate)
+                                               sampleFormat format, int rate, std::optional<double> projectTempo = std::nullopt)
     {
-        return std::shared_ptr<WaveClip>(New(width, factory, format, rate));
+        auto clip = std::shared_ptr<WaveClip>(New(width, factory, format, rate));
+        clip->mClipTempo = projectTempo;
+        return clip;
     }
 
     //! Create a new clip as copy origin
@@ -403,7 +405,6 @@ public:
     // Set rate without resampling. This will change the length of the clip
     void SetRate(int rate);
     void SetRawAudioTempo(double tempo);
-    void SetClipTempo(double tempo);
 
     PitchAndSpeedPreset GetPitchAndSpeedPreset() const override;
 
@@ -423,7 +424,15 @@ public:
 
     //! Enabling stretch to match tempo
     bool GetStretchToMatchProjectTempo() const;
-    void SetStretchToMatchProjectTempo(bool enabled);
+    /*!
+     * @param projectTempo the tempo of the project the clip belongs to, needed
+     * to lock the clip onto it when enabling. Pass `std::nullopt` for a clip
+     * that isn't in a project (yet).
+     * @post `GetStretchRatio()` is unchanged: following the project tempo
+     * starts to matter from the next tempo change on.
+     */
+    void SetStretchToMatchProjectTempo(
+        bool enabled, const std::optional<double>& projectTempo);
 
     /*
      * @post `true` if `TimeAndPitchInterface::MinCent <= cents && cents <=

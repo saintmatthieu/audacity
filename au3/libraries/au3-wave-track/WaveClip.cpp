@@ -805,10 +805,19 @@ bool WaveClip::GetStretchToMatchProjectTempo() const
     return mStretchToMatchProjectTempo;
 }
 
-void WaveClip::SetStretchToMatchProjectTempo(bool enabled)
+void WaveClip::SetStretchToMatchProjectTempo(
+    bool enabled, const std::optional<double>& projectTempo)
 {
     if (mStretchToMatchProjectTempo == enabled) {
         return;
+    }
+    if (enabled && projectTempo.has_value()) {
+        // Lock onto the project tempo without changing the speed the clip
+        // plays at: whatever the tempo mapping starts to contribute is taken
+        // out of the user-set stretch.
+        const auto oldStretchRatio = GetStretchRatio();
+        mClipTempo = projectTempo;
+        mClipStretchRatio *= oldStretchRatio / GetStretchRatio();
     }
     mStretchToMatchProjectTempo = enabled;
 }
@@ -1113,6 +1122,7 @@ bool WaveClip::HandleXMLTag(const std::string_view& tag, const AttributesList& a
         double dblValue;
         long longValue;
         bool boolValue;
+        bool hasClipTempo = false;
         for (auto pair : attrs) {
             auto attr = pair.first;
             auto value = pair.second;
@@ -1166,6 +1176,7 @@ bool WaveClip::HandleXMLTag(const std::string_view& tag, const AttributesList& a
                     return false;
                 }
                 mClipTempo = dblValue;
+                hasClipTempo = true;
             } else if (attr == Name_attr) {
                 if (value.IsStringView()) {
                     SetName(value.ToWString());
@@ -1188,6 +1199,12 @@ bool WaveClip::HandleXMLTag(const std::string_view& tag, const AttributesList& a
             }
                            )) {
             }
+        }
+        // The clip was constructed with the tempo of the project it is loaded
+        // into. Clips saved before `clipTempo` existed and which don't follow
+        // the project tempo were played at their raw-audio speed, though.
+        if (!hasClipTempo && !mStretchToMatchProjectTempo) {
+            mClipTempo.reset();
         }
         return true;
     }
@@ -1778,11 +1795,6 @@ void WaveClip::SetRate(int rate)
 void WaveClip::SetRawAudioTempo(double tempo)
 {
     mRawAudioTempo = tempo;
-}
-
-void WaveClip::SetClipTempo(double tempo)
-{
-    mClipTempo = tempo;
 }
 
 bool WaveClip::SetCentShift(int cents)
