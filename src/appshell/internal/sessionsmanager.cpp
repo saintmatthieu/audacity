@@ -22,13 +22,15 @@
 
 #include "sessionsmanager.h"
 
-#include "appshell/appshelltypes.h"
-
 using namespace au::appshell;
 using namespace muse;
 
 void SessionsManager::init()
 {
+    if (!multiwindowsProvider() || multiwindowsProvider()->isFirstWindow()) {
+        pruneOutdatedSessions();
+    }
+
     update();
 
     globalContext()->currentProjectChanged().onNotify(this, [this]() {
@@ -42,18 +44,13 @@ void SessionsManager::init()
     });
 }
 
-void SessionsManager::deinit()
+void SessionsManager::pruneOutdatedSessions()
 {
-    if (!multiwindowsProvider()) {
-        return;
-    }
-
-    if (!multiwindowsProvider()->isFirstWindow()) {
-        return;
-    }
-
-    if (configuration()->startupModeType() != StartupModeType::ContinueLastSession) {
-        reset();
+    io::paths_t projects = configuration()->sessionProjectsPaths();
+    for (const io::path_t& path : projects) {
+        if (!fileSystem()->exists(path)) {
+            removeProjectFromSession(path);
+        }
     }
 }
 
@@ -62,22 +59,28 @@ bool SessionsManager::hasProjectsForRestore()
     return !configuration()->sessionProjectsPaths().empty();
 }
 
-void SessionsManager::restore()
+io::paths_t SessionsManager::projectsForRestore() const
 {
-    io::paths_t projects = configuration()->sessionProjectsPaths();
-    if (projects.empty()) {
-        return;
-    }
+    return configuration()->sessionProjectsPaths();
+}
 
+void SessionsManager::restore(const io::paths_t& projects)
+{
     for (const io::path_t& path : projects) {
+        if (!fileSystem()->exists(path)) {
+            LOGW() << "Project does not exist: " << path;
+            continue;
+        }
         dispatcher()->dispatch("file-open", actions::ActionData::make_arg1<QUrl>(path.toQUrl()));
     }
 }
 
-void SessionsManager::reset()
+void SessionsManager::discard(const io::paths_t& projects)
 {
-    removeProjectsUnsavedChanges(configuration()->sessionProjectsPaths());
-    configuration()->setSessionProjectsPaths({});
+    for (const io::path_t& path : projects) {
+        removeUnsavedChanges(path);
+        removeProjectFromSession(path);
+    }
 }
 
 void SessionsManager::update()
