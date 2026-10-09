@@ -16,6 +16,10 @@
 
 #include "framework/testflow/itestflow.h"
 
+#ifndef Q_OS_WIN
+#include "testflowstepper.h"
+#endif
+
 #include "appshell/testflowstartup.h"
 #include "effects/effects_base/ieffectsproviderinitializer.h"
 
@@ -159,6 +163,14 @@ void TestflowRunner::execAndReport()
         testflow->setSpeedMode(muse::testflow::speedModeFromString(m_options.testCaseSpeed));
     }
 
+    if (m_options.stepByStep) {
+#ifdef Q_OS_WIN
+        std::cout << "[testflow] --test-case-step-by-step is not supported on Windows, playing all steps" << std::endl;
+#else
+        m_stepper = std::make_unique<TestflowStepper>(m_ctx, testflow, m_scriptPath);
+#endif
+    }
+
     muse::testflow::ITestflow::Options opt;
     opt.context = muse::io::path_t(m_options.testCaseContextNameOrFile);
     opt.contextVal = m_options.testCaseContextValue.toStdString();
@@ -166,10 +178,18 @@ void TestflowRunner::execAndReport()
     opt.funcArgs = m_options.testCaseFuncArgs.toStdString();
 
     //! NOTE A script that fails to load, or never runs a test case, still ends
-    //! up Finished, so count the steps to tell that apart
+    //! up Finished, so count the steps to tell that apart. By outcome, as unpausing sends Started again
     testflow->stepStatusChanged().onReceive(this, [this](const muse::testflow::StepInfo& step, const muse::Ret&) {
-        if (step.status == muse::testflow::StepStatus::Started) {
+        using muse::testflow::StepStatus;
+        switch (step.status) {
+        case StepStatus::Finished:
+        case StepStatus::Skipped:
+        case StepStatus::Error:
+        case StepStatus::Aborted:
             ++m_startedSteps;
+            break;
+        default:
+            break;
         }
     });
 

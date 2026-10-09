@@ -9,6 +9,10 @@
 
 #include "cmdoptions.h"
 
+#include <QObject>
+
+#include <memory>
+
 namespace au::app {
 //! NOTE Runs one test case, then ends the process with its result.
 //!
@@ -40,5 +44,6 @@ private:
     AudacityCmdOptions::Testflow m_options;
     muse::io::path_t m_scriptPath;
     int m_startedSteps = 0;
+    std::unique_ptr<QObject> m_stepper;
 };
 }

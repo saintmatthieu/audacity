@@ -29,7 +29,7 @@
             "type": "shell",
             // Escaping the picker does not cancel the task: VS Code leaves ${input:testflowScript}
             // unsubstituted, which run_testflow.sh rejects before starting anything
-            "command": "buildscripts/tools/run_testflow.sh '${input:testflowScript}'",
+            "command": "buildscripts/tools/run_testflow.sh --step-by-step '${input:testflowScript}'",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": { "BUILD_DIR": "${config:au4.testflowBuildDir}" }

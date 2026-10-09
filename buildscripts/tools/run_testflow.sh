@@ -5,11 +5,16 @@
 #   run_testflow.sh --all
 #   run_testflow.sh TC1.1_BasicTest.js
 #   run_testflow.sh TC3.1_CrashRecovery.testflow
+#   run_testflow.sh --step-by-step TC3.1_CrashRecovery.testflow
 #
 # A test case is a script or a series, given by name in share/testflowscripts or
 # by path. A series is a .testflow file listing scripts, one per line, relative
 # to it; lines starting with # are comments. Its scripts run in that order, as
 # successive runs of the app sharing one profile, and stop at the first failure.
+#
+# --step-by-step starts each run of the app paused, to step through it from this
+# terminal: Enter plays the next step, a + Enter all remaining ones, p + Enter pauses.
+# The app's output then goes to a log file, of which only the outcome is shown.
 #
 # Set BUILD_DIR for a build other than the default. Single scripts run against
 # your own settings. Series run in a throwaway profile, which only works on Linux.
@@ -27,6 +32,12 @@ case "$(uname)" in
 esac
 test -x "$APP" || { echo "no build at $APP, set BUILD_DIR"; exit 1; }
 
+step_by_step=
+if [ "${1:-}" = "--step-by-step" ]; then
+    step_by_step=--test-case-step-by-step
+    shift
+fi
+
 if [ "${1:-}" = "--all" ]; then
     set --
     for path in "$SCRIPTS_DIR"/*.js "$SCRIPTS_DIR"/*.testflow; do
@@ -35,7 +46,7 @@ if [ "${1:-}" = "--all" ]; then
     done
 fi
 
-test $# -gt 0 || { echo "usage: $(basename "$0") [--all | <test case>...]"; exit 1; }
+test $# -gt 0 || { echo "usage: $(basename "$0") [--step-by-step] [--all | <test case>...]"; exit 1; }
 
 export MUSE_TESTFLOW_SCRIPTS_PATH="$SCRIPTS_DIR"
 export MUSE_TESTFLOW_DATA_PATH="$PWD/$BUILD_DIR/testflow_data"
@@ -43,7 +54,22 @@ export AU_ALLOW_MULTIPLE_PROCESSES=1
 export ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=0:new_delete_type_mismatch=0}
 
 run_script() {
-    "$APP" --test-case "$1" --test-case-speed Fast
+    if [ -n "$step_by_step" ]; then
+        local log
+        log="$MUSE_TESTFLOW_DATA_PATH/logs/$(basename "$1" .js).log"
+        mkdir -p "$(dirname "$log")"
+        # Slow enough to follow when playing all. The steps are announced straight to the terminal
+        local rc=0
+        "$APP" --test-case "$1" --test-case-speed Normal "$step_by_step" > "$log" 2>&1 || rc=$?
+        local result=PASSED
+        test $rc -eq 0 || result=FAILED
+        echo "$result, log: ${log#"$PWD"/}"
+        # Without the log's colour codes
+        grep -a -o 'failed exec step: .*' "$log" | sed 's/\x1b\[[0-9;]*m//g' || true
+        return $rc
+    else
+        "$APP" --test-case "$1" --test-case-speed Fast
+    fi
 }
 
 run_series() {

@@ -41,6 +41,7 @@ struct AudacityCmdOptions : public muse::CmdOptions {
         QString testCaseFunc;
         QString testCaseFuncArgs;
         QString testCaseSpeed;
+        bool stepByStep = false;
     } testflow;
 
     struct Diagnostics {

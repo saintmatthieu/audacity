@@ -91,6 +91,8 @@ void CommandLineParser::init()
     m_parser.addOption(QCommandLineOption("test-case-func", "Call test case function", "name"));
     m_parser.addOption(QCommandLineOption("test-case-func-args", "Call test case function args", "args"));
     m_parser.addOption(QCommandLineOption("test-case-speed", "Test case speed mode: Default|Fast|Normal|Slow", "mode"));
+    m_parser.addOption(QCommandLineOption("test-case-step-by-step",
+                                          "Start the test case paused, then step through it from the terminal"));
 #endif
 }
 
@@ -218,6 +220,8 @@ void CommandLineParser::parse(int argc, char** argv)
     if (m_parser.isSet("test-case-speed")) {
         m_options->testflow.testCaseSpeed = m_parser.value("test-case-speed");
     }
+
+    m_options->testflow.stepByStep = m_parser.isSet("test-case-step-by-step");
 #endif
 
     // Startup

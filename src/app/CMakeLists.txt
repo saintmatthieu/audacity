@@ -173,6 +173,10 @@ endif()
 
 if (MUSE_MODULE_TESTFLOW)
     list(APPEND AUDACITY_APPEND_SRC testflowrunner.cpp testflowrunner.h)
+    if (NOT OS_IS_WIN)
+        # Reads the terminal with a QSocketNotifier on stdin, which Windows does not support
+        list(APPEND AUDACITY_APPEND_SRC testflowstepper.cpp testflowstepper.h)
+    endif()
 endif()
 
 if (OS_IS_WIN)
