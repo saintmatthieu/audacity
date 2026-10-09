@@ -113,7 +113,7 @@ void GuiApp::doStartupScenario(const muse::modularity::ContextPtr& ctxId)
         startupScenario->runAfterSplashScreen();
 
 #ifdef MUSE_MODULE_TESTFLOW
-        TestflowRunner::runIfRequested(ctxId, options->testflow);
+        TestflowRunner::runIfRequested();
 #endif
     }, Qt::QueuedConnection);
 }

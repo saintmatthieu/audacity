@@ -33,6 +33,8 @@ struct AudacityCmdOptions : public muse::CmdOptions {
     } startup;
 
     struct Testflow {
+        //! NOTE Also set when --test-case is given an empty value, e.g. by a cancelled IDE file picker
+        bool testCaseRequested = false;
         QString testCaseNameOrFile;
         QString testCaseContextNameOrFile;
         QString testCaseContextValue;

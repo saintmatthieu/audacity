@@ -5,10 +5,13 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <utility>
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QTimer>
 
 #include "framework/testflow/itestflow.h"
@@ -31,36 +34,90 @@ namespace {
 {
     std::_Exit(code);
 }
+
+//! NOTE Lives until the process ends, which it does itself
+au::app::TestflowRunner* s_runner = nullptr;
 }
 
 void TestflowRunner::prepare(const muse::modularity::ContextPtr& ctx, const AudacityCmdOptions::Testflow& options)
 {
-    if (options.testCaseNameOrFile.isEmpty()) {
+    if (!options.testCaseRequested) {
         return;
     }
 
-    au::appshell::installTestflowStartupScenario(ctx);
+    if (options.testCaseNameOrFile.isEmpty()) {
+        std::cout << "[testflow] FAILED: --test-case was given no test case" << std::endl;
+        exitWithoutTeardown(2);
+    }
 
-    auto effectsInitializer = muse::modularity::ioc(ctx)->resolve<au::effects::IEffectsProviderInitializer>("app");
+    s_runner = new TestflowRunner(ctx, options);
+    s_runner->prepare();
+}
+
+void TestflowRunner::runIfRequested()
+{
+    //! NOTE Taken, so that windows opened by the test case, which go through startup too, do not run it again
+    if (TestflowRunner* runner = std::exchange(s_runner, nullptr)) {
+        runner->run();
+    }
+}
+
+TestflowRunner::TestflowRunner(const muse::modularity::ContextPtr& ctx, const AudacityCmdOptions::Testflow& options)
+    : m_ctx(ctx), m_options(options)
+{
+}
+
+void TestflowRunner::prepare()
+{
+    m_scriptPath = resolveScriptPath();
+    if (m_scriptPath.empty()) {
+        std::cout << "[testflow] FAILED: script not found: " << m_options.testCaseNameOrFile.toStdString() << std::endl;
+        exitWithoutTeardown(2);
+    }
+
+    const ScriptOptions scriptOptions = readScriptOptions();
+
+    au::appshell::installTestflowStartupScenario(m_ctx, scriptOptions.allowRecovery);
+
+    auto effectsInitializer = muse::modularity::ioc(m_ctx)->resolve<au::effects::IEffectsProviderInitializer>("app");
     IF_ASSERT_FAILED(effectsInitializer) {
         return;
     }
     effectsInitializer->setStartupPluginValidationPolicy(au::effects::StartupPluginValidationPolicy::Skip);
 }
 
-void TestflowRunner::runIfRequested(const muse::modularity::ContextPtr& ctx, const AudacityCmdOptions::Testflow& options)
+TestflowRunner::ScriptOptions TestflowRunner::readScriptOptions() const
 {
-    if (options.testCaseNameOrFile.isEmpty()) {
-        return;
+    QFile file(m_scriptPath.toQString());
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        std::cout << "[testflow] FAILED: cannot read script: " << m_scriptPath.toStdString() << std::endl;
+        exitWithoutTeardown(2);
     }
 
-    //! NOTE Lives until the process ends, which it does itself
-    (new TestflowRunner(ctx, options))->run();
-}
+    ScriptOptions options;
 
-TestflowRunner::TestflowRunner(const muse::modularity::ContextPtr& ctx, const AudacityCmdOptions::Testflow& options)
-    : m_ctx(ctx), m_options(options)
-{
+    //! NOTE Like Jest's pragmas, only the docblock the script starts with counts
+    static const QRegularExpression docblock(R"(^\s*/\*.*?\*/)", QRegularExpression::DotMatchesEverythingOption);
+    const QRegularExpressionMatch header = docblock.match(QString::fromUtf8(file.readAll()));
+    if (!header.hasMatch()) {
+        return options;
+    }
+
+    static const QRegularExpression tag(R"(@testflow\s+(\S+))");
+    QRegularExpressionMatchIterator it = tag.globalMatch(header.captured());
+    while (it.hasNext()) {
+        const QString option = it.next().captured(1);
+        if (option == "allow-recovery") {
+            options.allowRecovery = true;
+        } else {
+            //! NOTE Rather than letting a typo make the test case fail for another reason
+            std::cout << "[testflow] FAILED: unknown option @testflow " << option.toStdString()
+                      << " in script: " << m_scriptPath.toStdString() << std::endl;
+            exitWithoutTeardown(2);
+        }
+    }
+
+    return options;
 }
 
 muse::io::path_t TestflowRunner::resolveScriptPath() const
@@ -84,20 +141,14 @@ muse::io::path_t TestflowRunner::resolveScriptPath() const
 
 void TestflowRunner::run()
 {
-    const muse::io::path_t scriptPath = resolveScriptPath();
-    if (scriptPath.empty()) {
-        std::cout << "[testflow] FAILED: script not found: " << m_options.testCaseNameOrFile.toStdString() << std::endl;
-        exitWithoutTeardown(2);
-    }
+    std::cout << "[testflow] running script=" << m_scriptPath.toStdString() << std::endl;
 
-    std::cout << "[testflow] running script=" << scriptPath.toStdString() << std::endl;
-
-    QTimer::singleShot(SETTLE_MS, qApp, [this, scriptPath]() {
-        execAndReport(scriptPath);
+    QTimer::singleShot(SETTLE_MS, qApp, [this]() {
+        execAndReport();
     });
 }
 
-void TestflowRunner::execAndReport(const muse::io::path_t& scriptPath)
+void TestflowRunner::execAndReport()
 {
     auto testflow = muse::modularity::ioc(m_ctx)->resolve<muse::testflow::ITestflow>("app");
     IF_ASSERT_FAILED(testflow) {
@@ -122,7 +173,7 @@ void TestflowRunner::execAndReport(const muse::io::path_t& scriptPath)
         }
     });
 
-    testflow->execScript(scriptPath, opt);
+    testflow->execScript(m_scriptPath, opt);
 
     const muse::testflow::ITestflow::Status status = testflow->status();
     const bool ok = status == muse::testflow::ITestflow::Status::Finished && m_startedSteps > 0;
@@ -130,7 +181,7 @@ void TestflowRunner::execAndReport(const muse::io::path_t& scriptPath)
     std::cout << "[testflow] " << (ok ? "PASSED" : "FAILED")
               << " status=" << muse::testflow::ITestflow::statusToString(status).toStdString()
               << " steps=" << m_startedSteps
-              << " script=" << scriptPath.toStdString()
+              << " script=" << m_scriptPath.toStdString()
               << " reports=" << configuration()->reportsPath().toStdString() << std::endl;
     if (m_startedSteps == 0) {
         std::cout << "[testflow] no steps were executed"

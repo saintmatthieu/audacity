@@ -195,6 +195,7 @@ void CommandLineParser::parse(int argc, char** argv)
 #ifdef MUSE_MODULE_TESTFLOW
     // Testflow
     if (m_parser.isSet("test-case")) {
+        m_options->testflow.testCaseRequested = true;
         m_options->testflow.testCaseNameOrFile = fromUserInputPath(m_parser.value("test-case"));
     }
 
