@@ -47,6 +47,8 @@ Item {
 
         readonly property int handleMinH: 22
         readonly property int handleMaxH: 32
+        readonly property int handleWidth: 30
+        readonly property int handleClipOverlap: 6
 
         readonly property int animationDuration: 100
 
@@ -56,9 +58,9 @@ Item {
     Item {
         id: leftTrimHandle
 
-        x: -24
+        x: prv.handleClipOverlap - prv.handleWidth
         height: root.handleHeight
-        width: 36
+        width: prv.handleWidth
 
         visible: handlesVisible
 
@@ -214,9 +216,9 @@ Item {
     Item {
         id: rightTrimHandle
 
-        x: parent.width - 12
+        x: parent.width - prv.handleClipOverlap
         height: root.handleHeight
-        width: 36
+        width: prv.handleWidth
 
         visible: handlesVisible
 
@@ -372,10 +374,10 @@ Item {
     Item {
         id: leftTimecode
 
-        x: -24
+        x: prv.handleClipOverlap - prv.handleWidth
         y: leftTrimHandle.height
         height: root.handleHeight
-        width: 36
+        width: prv.handleWidth
 
         visible: handlesVisible
 
@@ -536,10 +538,10 @@ Item {
     Item {
         id: rightTimecode
 
-        x: parent.width - 12
+        x: parent.width - prv.handleClipOverlap
         y: rightTrimHandle.height
         height: root.handleHeight
-        width: 36
+        width: prv.handleWidth
 
         visible: handlesVisible
 
