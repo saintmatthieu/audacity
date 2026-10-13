@@ -1146,6 +1146,16 @@ Rectangle {
         }
     }
 
+    ClipFades {
+        id: fades
+
+        y: clipHandles.y
+        width: root.width
+        handleHeight: clipHandles.handleHeight
+
+        handlesVisible: !root.moveActive && (root.hover || fades.hovered || root.leftTrimContainsMouse || root.rightTrimContainsMouse || navCtrl.highlight)
+    }
+
     ClipHandles {
         id: clipHandles
 
