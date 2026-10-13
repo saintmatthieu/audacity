@@ -9,20 +9,13 @@ Item {
     id: root
 
     property var canvas: null
-    property bool handlesHovered: false
     property bool handlesVisible: false
     property bool altPressed: false
 
     property bool collapsed: false
     property int clipHeight: 114
     property int headerHeight: 20
-    readonly property int handleMinH: 22
-    readonly property int handleMaxH: 32
-    readonly property int handleHeight: Math.min(handleMaxH, Math.max(handleMinH, collapsed ? Math.round(clipHeight / 2) : Math.round((clipHeight - headerHeight) / 2)))
-
-    property int animationDuration: 100
-
-    property bool debugRectsVisible: false
+    readonly property int handleHeight: Math.min(prv.handleMaxH, Math.max(prv.handleMinH, collapsed ? Math.round(clipHeight / 2) : Math.round((clipHeight - headerHeight) / 2)))
 
     property NavigationPanel clipNavigationPanel: null
     property bool leftTrimActive: false
@@ -33,8 +26,6 @@ Item {
     // mouse position event is not propagated on overlapping mouse areas
     // so we are handling it manually
     signal clipHandlesMousePositionChanged(real x, real y)
-
-    property var trimStartPos
 
     signal clipStartEditRequested
     signal clipEndEditRequested
@@ -48,6 +39,19 @@ Item {
 
     //! NOTE: auto-scroll for trimming is triggered from trackclipslistmodel
     signal stopAutoScroll
+
+    QtObject {
+        id: prv
+
+        property bool handlesHovered: false
+
+        readonly property int handleMinH: 22
+        readonly property int handleMaxH: 32
+
+        readonly property int animationDuration: 100
+
+        readonly property bool debugRectsVisible: false
+    }
 
     Item {
         id: leftTrimHandle
@@ -65,7 +69,7 @@ Item {
             border.width: 1
             border.color: "blue"
 
-            visible: debugRectsVisible
+            visible: prv.debugRectsVisible
         }
 
         StyledIconLabel {
@@ -90,7 +94,7 @@ Item {
                 border.color: "red"
                 border.width: 1
 
-                visible: debugRectsVisible
+                visible: prv.debugRectsVisible
             }
 
             NavigationControl {
@@ -184,12 +188,12 @@ Item {
             }
 
             onEntered: {
-                handlesHovered = true
+                prv.handlesHovered = true
             }
 
             onExited: {
                 if (!leftTimeMa.containsMouse) {
-                    handlesHovered = false
+                    prv.handlesHovered = false
                 }
             }
 
@@ -223,7 +227,7 @@ Item {
             border.width: 1
             border.color: "blue"
 
-            visible: debugRectsVisible
+            visible: prv.debugRectsVisible
         }
 
         StyledIconLabel {
@@ -248,7 +252,7 @@ Item {
                 border.color: "red"
                 border.width: 1
 
-                visible: debugRectsVisible
+                visible: prv.debugRectsVisible
             }
 
             NavigationControl {
@@ -342,12 +346,12 @@ Item {
             }
 
             onEntered: {
-                handlesHovered = true
+                prv.handlesHovered = true
             }
 
             onExited: {
                 if (!rightTimeMa.containsMouse) {
-                    handlesHovered = false
+                    prv.handlesHovered = false
                 }
             }
 
@@ -382,7 +386,7 @@ Item {
             border.width: 1
             border.color: "blue"
 
-            visible: debugRectsVisible
+            visible: prv.debugRectsVisible
         }
 
         Rectangle {
@@ -416,7 +420,7 @@ Item {
                     border.color: "red"
                     border.width: 1
 
-                    visible: debugRectsVisible
+                    visible: prv.debugRectsVisible
                 }
             }
 
@@ -506,12 +510,12 @@ Item {
             }
 
             onEntered: {
-                handlesHovered = true
+                prv.handlesHovered = true
             }
 
             onExited: {
                 if (!leftTrimMa.containsMouse && mouseY > 2) {
-                    handlesHovered = false
+                    prv.handlesHovered = false
                 }
             }
 
@@ -545,7 +549,7 @@ Item {
             color: "transparent"
             border.width: 1
             border.color: "blue"
-            visible: debugRectsVisible
+            visible: prv.debugRectsVisible
         }
 
         Rectangle {
@@ -577,7 +581,7 @@ Item {
 
                     border.color: "red"
                     border.width: 1
-                    visible: debugRectsVisible
+                    visible: prv.debugRectsVisible
                 }
 
                 NavigationControl {
@@ -667,12 +671,12 @@ Item {
             }
 
             onEntered: {
-                handlesHovered = true
+                prv.handlesHovered = true
             }
 
             onExited: {
                 if (!rightTrimMa.containsMouse && mouseY > 2) {
-                    handlesHovered = false
+                    prv.handlesHovered = false
                 }
             }
 
@@ -755,49 +759,49 @@ Item {
             PropertyAnimation {
                 target: leftArrow
                 properties: "font.pixelSize"
-                duration: animationDuration
+                duration: prv.animationDuration
                 easing.type: Easing.Linear
             }
             PropertyAnimation {
                 target: leftArrow
                 properties: "anchors.leftMargin"
-                duration: animationDuration
+                duration: prv.animationDuration
                 easing.type: Easing.Linear
             }
             PropertyAnimation {
                 target: rightArrow
                 properties: "font.pixelSize"
-                duration: animationDuration
+                duration: prv.animationDuration
                 easing.type: Easing.Linear
             }
             PropertyAnimation {
                 target: rightArrow
                 properties: "anchors.rightMargin"
-                duration: animationDuration
+                duration: prv.animationDuration
                 easing.type: Easing.Linear
             }
             PropertyAnimation {
                 target: leftClockIcon
                 properties: "font.pixelSize"
-                duration: animationDuration
+                duration: prv.animationDuration
                 easing.type: Easing.Linear
             }
             PropertyAnimation {
                 target: leftClock
                 properties: "anchors.leftMargin"
-                duration: animationDuration
+                duration: prv.animationDuration
                 easing.type: Easing.Linear
             }
             PropertyAnimation {
                 target: rightClockIcon
                 properties: "font.pixelSize"
-                duration: animationDuration
+                duration: prv.animationDuration
                 easing.type: Easing.Linear
             }
             PropertyAnimation {
                 target: rightClock
                 properties: "anchors.rightMargin"
-                duration: animationDuration
+                duration: prv.animationDuration
                 easing.type: Easing.Linear
             }
         }
