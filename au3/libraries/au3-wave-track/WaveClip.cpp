@@ -1038,6 +1038,9 @@ static constexpr auto Selected_attr = "isSelected";
 bool WaveClip::HandleXMLTag(const std::string_view& tag, const AttributesList& attrs)
 {
     if (tag == WaveClip_tag) {
+        // Attachments are built lazily, so we need to ensure they are all constructed before handling XML attributes.
+        Attachments::BuildAll();
+
         // Tempi of clips saved before the stretch ratio became absolute; see
         // the end of this function.
         std::optional<double> legacyRawAudioTempo;

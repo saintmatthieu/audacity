@@ -67,6 +67,9 @@ Rectangle {
     required property var pressedSpectrogram
     required property bool splitToolActive
 
+    property real fadeInDuration: 0
+    property real fadeOutDuration: 0
+
     property real distanceToLeftNeighbor: -1
     property real distanceToRightNeighbor: -1
 
@@ -87,6 +90,9 @@ Rectangle {
     signal clipRightTrimRequested(bool completed, int action)
     signal clipLeftStretchRequested(bool completed, int action)
     signal clipRightStretchRequested(bool completed, int action)
+
+    signal fadeInDurationChangeRequested(real duration, bool completed)
+    signal fadeOutDurationChangeRequested(real duration, bool completed)
 
     signal requestSelected
     signal requestSelectionReset
@@ -1151,9 +1157,25 @@ Rectangle {
 
         y: clipHandles.y
         width: root.width
+        height: root.height - y
         handleHeight: clipHandles.handleHeight
 
+        fadeInWidth: root.fadeInDuration * root.context.zoom
+        fadeOutWidth: root.fadeOutDuration * root.context.zoom
+
         handlesVisible: !root.moveActive && (root.hover || fades.hovered || root.leftTrimContainsMouse || root.rightTrimContainsMouse || navCtrl.highlight)
+
+        onFadeInWidthChangeRequested: function (width, completed) {
+            root.fadeInDurationChangeRequested(width / root.context.zoom, completed)
+        }
+
+        onFadeOutWidthChangeRequested: function (width, completed) {
+            root.fadeOutDurationChangeRequested(width / root.context.zoom, completed)
+        }
+
+        onFadeHandlesMousePositionChanged: function (xWithinFadeHandles, yWithinFadeHandles) {
+            clipItemMousePositionChanged(xWithinFadeHandles, fades.y + yWithinFadeHandles)
+        }
     }
 
     ClipHandles {

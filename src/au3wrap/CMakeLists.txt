@@ -35,6 +35,8 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/wxtypes_convert.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/wxlogwrap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/wxlogwrap.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/clipfades.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/clipfades.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/domconverter.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/domconverter.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/progressdialog.cpp

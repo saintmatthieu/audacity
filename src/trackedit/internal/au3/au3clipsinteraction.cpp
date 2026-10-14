@@ -19,6 +19,7 @@
 #include "global/types/ret.h"
 #include "global/types/number.h"
 
+#include "au3wrap/internal/clipfades.h"
 #include "au3wrap/internal/domaccessor.h"
 #include "au3wrap/internal/domconverter.h"
 #include "au3wrap/internal/wxtypes_convert.h"
@@ -245,6 +246,47 @@ bool Au3ClipsInteraction::changeClipColor(const ClipKey& clipKey, ClipColorIndex
     }
 
     clip->SetColorIndex(colorIndex);
+
+    trackedit::ITrackeditProjectPtr prj = globalContext()->currentTrackeditProject();
+    prj->notifyAboutClipChanged(DomConverter::clip(waveTrack, clip.get()));
+
+    return true;
+}
+
+// a fade pushes the other one back when it runs into it
+bool Au3ClipsInteraction::changeClipFadeIn(const ClipKey& clipKey, secs_t duration)
+{
+    WaveTrack* waveTrack = DomAccessor::findWaveTrack(projectRef(), ::TrackId(clipKey.trackId));
+    IF_ASSERT_FAILED(waveTrack) {
+        return false;
+    }
+
+    std::shared_ptr<WaveClip> clip = DomAccessor::findWaveClip(waveTrack, clipKey.itemId);
+    IF_ASSERT_FAILED(clip) {
+        return false;
+    }
+
+    ClipFades::Get(*clip).setFadeIn(duration.to_double());
+
+    trackedit::ITrackeditProjectPtr prj = globalContext()->currentTrackeditProject();
+    prj->notifyAboutClipChanged(DomConverter::clip(waveTrack, clip.get()));
+
+    return true;
+}
+
+bool Au3ClipsInteraction::changeClipFadeOut(const ClipKey& clipKey, secs_t duration)
+{
+    WaveTrack* waveTrack = DomAccessor::findWaveTrack(projectRef(), ::TrackId(clipKey.trackId));
+    IF_ASSERT_FAILED(waveTrack) {
+        return false;
+    }
+
+    std::shared_ptr<WaveClip> clip = DomAccessor::findWaveClip(waveTrack, clipKey.itemId);
+    IF_ASSERT_FAILED(clip) {
+        return false;
+    }
+
+    ClipFades::Get(*clip).setFadeOut(duration.to_double());
 
     trackedit::ITrackeditProjectPtr prj = globalContext()->currentTrackeditProject();
     prj->notifyAboutClipChanged(DomConverter::clip(waveTrack, clip.get()));
