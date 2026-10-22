@@ -20,6 +20,11 @@ function selectTrack(t) {
     api.dispatcher.dispatch("action://trackedit/select-track?trackIndex=" + t)
 }
 function run(action)   { api.dispatcher.dispatch(action) }
+// Unlike run, returns once the command is done, and fails the step if it failed
+function command(uri, params) {
+    var r = api.commands.dispatch(uri, params || {})
+    if (!r.success) fail(uri + " failed: " + r.text + " (" + r.code + ")")
+}
 function undo()        { run("action://undo") }
 function sleep(ms)     { api.testflow.sleep(ms) }
 function fail(msg)     { api.testflow.error(msg) }
@@ -66,6 +71,7 @@ module.exports = {
     selectAllTracks: selectAllTracks,
     selectTrack: selectTrack,
     run: run,
+    command: command,
     undo: undo,
     sleep: sleep,
     fail: fail,

@@ -11,7 +11,12 @@
 var u = require("steps/TestUtils.js");
 
 function newProject() {
-    u.run("file-new");
+    u.command("command://project/new");
+}
+
+// The command responds once it has asked for a new window, which only then gets created, with its project
+function newProjectInNewWindow() {
+    newProject();
     u.sleep(2000);
 }
 
@@ -21,15 +26,13 @@ var testCase = {
     steps: [
         u.step("Create first project, with a track", function () {
             newProject();
-            u.run("new-mono-track");
-            // Dispatching a command only queues it
-            u.sleep(500);
+            u.command("command://trackedit/new-mono-track");
             u.eq(u.trackCount(), 1, "track count");
         }),
-        u.step("Create second project", newProject),
+        u.step("Create second project", newProjectInNewWindow),
         u.step(
             "Create third project and terminate this run - it will exit like it crashed",
-            newProject,
+            newProjectInNewWindow,
         ),
     ],
 };
