@@ -23,7 +23,7 @@
  * @brief The audio of a clip, as played: its samples are at the rate of the
  * sequence it is in, counted from its play start.
  */
-class STRETCHING_SEQUENCE_API AudioSegment
+class CLIP_PROCESSING_SEQUENCE_API AudioSegment
 {
 public:
     virtual ~AudioSegment();

@@ -6,7 +6,7 @@ Please refer to this directory's readme for a presentation of the constraints
 inherent to such an implementation.
 ]]
 
-set( TARGET au3-stretching-sequence )
+set( TARGET au3-clip-processing-sequence )
 
 set( SOURCES
    AudioSegment.cpp
@@ -22,8 +22,8 @@ set( SOURCES
    ClipSegment.cpp
    ClipSegment.h
    PlaybackDirection.h
-   StretchingSequence.cpp
-   StretchingSequence.h
+   ClipProcessingSequence.cpp
+   ClipProcessingSequence.h
    ClipTimeAndPitchSource.cpp
    ClipTimeAndPitchSource.h
    TempoChange.cpp

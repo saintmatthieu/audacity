@@ -22,7 +22,7 @@ struct ClipAudioSegment {
     std::shared_ptr<AudioSegment> segment;
 };
 
-class STRETCHING_SEQUENCE_API AudioSegmentFactoryInterface
+class CLIP_PROCESSING_SEQUENCE_API AudioSegmentFactoryInterface
 {
 public:
     virtual ~AudioSegmentFactoryInterface();

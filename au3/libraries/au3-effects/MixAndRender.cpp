@@ -13,7 +13,7 @@ Paul Licameli split from Mix.cpp
 #include "au3-basic-ui/BasicUI.h"
 #include "au3-mixer/Mix.h"
 #include "au3-realtime-effects/RealtimeEffectList.h"
-#include "au3-stretching-sequence/StretchingSequence.h"
+#include "au3-clip-processing-sequence/ClipProcessingSequence.h"
 #include "au3-wave-track/WaveTrack.h"
 
 using WaveTrackConstArray = std::vector < std::shared_ptr < const WaveTrack > >;
@@ -69,9 +69,9 @@ Track::Holder MixAndRender(const TrackIterRange<const WaveTrack>& trackRange,
     Mixer::Inputs waveArray;
 
     for (auto wt : trackRange) {
-        const auto stretchingSequence
-            =StretchingSequence::Create(*wt, wt->GetClipInterfaces());
-        waveArray.emplace_back(stretchingSequence, GetEffectStages(*wt));
+        const auto clipProcessingSequence
+            =ClipProcessingSequence::Create(*wt, wt->GetClipInterfaces());
+        waveArray.emplace_back(clipProcessingSequence, GetEffectStages(*wt));
         tstart = wt->GetStartTime();
         tend = wt->GetEndTime();
         if (tend > mixEndTime) {

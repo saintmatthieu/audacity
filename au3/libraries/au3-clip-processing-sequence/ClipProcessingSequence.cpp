@@ -3,12 +3,12 @@
 
   Audacity: A Digital Audio Editor
 
-  StretchingSequence.cpp
+  ClipProcessingSequence.cpp
 
   Matthieu Hodgkinson
 
 **********************************************************************/
-#include "StretchingSequence.h"
+#include "ClipProcessingSequence.h"
 #include "AudioSegment.h"
 #include "AudioSegmentFactory.h"
 
@@ -26,75 +26,75 @@ void GetOffsetBuffer(
 }
 } // namespace
 
-StretchingSequence::StretchingSequence(
+ClipProcessingSequence::ClipProcessingSequence(
     const PlayableSequence& sequence, const AudioSegmentFactoryInterface& factory)
     : mSequence{sequence}
     , mSegments{factory.CreateClipAudioSegments()}
 {
 }
 
-size_t StretchingSequence::NChannels() const
+size_t ClipProcessingSequence::NChannels() const
 {
     return mSequence.NChannels();
 }
 
-float StretchingSequence::GetChannelVolume(int channel) const
+float ClipProcessingSequence::GetChannelVolume(int channel) const
 {
     return mSequence.GetChannelVolume(channel);
 }
 
-const ChannelGroup* StretchingSequence::FindChannelGroup() const
+const ChannelGroup* ClipProcessingSequence::FindChannelGroup() const
 {
     return mSequence.FindChannelGroup();
 }
 
-bool StretchingSequence::GetSolo() const
+bool ClipProcessingSequence::GetSolo() const
 {
     return mSequence.GetSolo();
 }
 
-bool StretchingSequence::GetMute() const
+bool ClipProcessingSequence::GetMute() const
 {
     return mSequence.GetMute();
 }
 
-double StretchingSequence::GetStartTime() const
+double ClipProcessingSequence::GetStartTime() const
 {
     return mSequence.GetStartTime();
 }
 
-double StretchingSequence::GetEndTime() const
+double ClipProcessingSequence::GetEndTime() const
 {
     return mSequence.GetEndTime();
 }
 
-double StretchingSequence::GetRate() const
+double ClipProcessingSequence::GetRate() const
 {
     return mSequence.GetRate();
 }
 
-sampleFormat StretchingSequence::WidestEffectiveFormat() const
+sampleFormat ClipProcessingSequence::WidestEffectiveFormat() const
 {
     return mSequence.WidestEffectiveFormat();
 }
 
-bool StretchingSequence::HasTrivialEnvelope() const
+bool ClipProcessingSequence::HasTrivialEnvelope() const
 {
     return mSequence.HasTrivialEnvelope();
 }
 
-void StretchingSequence::GetEnvelopeValues(
+void ClipProcessingSequence::GetEnvelopeValues(
     double* buffer, size_t bufferLen, double t0, bool backwards) const
 {
     mSequence.GetEnvelopeValues(buffer, bufferLen, t0, backwards);
 }
 
-AudioGraph::ChannelType StretchingSequence::GetChannelType() const
+AudioGraph::ChannelType ClipProcessingSequence::GetChannelType() const
 {
     return mSequence.GetChannelType();
 }
 
-bool StretchingSequence::GetFloats(
+bool ClipProcessingSequence::GetFloats(
     float* buffers[], sampleCount start, size_t len, bool backwards) const
 {
     std::vector<samplePtr> charBuffers;
@@ -109,12 +109,12 @@ bool StretchingSequence::GetFloats(
         len, backwards);
 }
 
-bool StretchingSequence::DoGet(
+bool ClipProcessingSequence::DoGet(
     size_t iChannel, size_t nBuffers, const samplePtr buffers[],
     sampleFormat format, sampleCount start, size_t len, bool backwards,
     fillFormat, bool, sampleCount*) const
 {
-    // StretchingSequence is not expected to be used for any other case.
+    // ClipProcessingSequence is not expected to be used for any other case.
     assert(iChannel == 0u);
     assert(format == floatSample);
     // More-than-stereo isn't supported
@@ -151,9 +151,9 @@ bool StretchingSequence::DoGet(
     return true;
 }
 
-std::shared_ptr<StretchingSequence> StretchingSequence::Create(
+std::shared_ptr<ClipProcessingSequence> ClipProcessingSequence::Create(
     const PlayableSequence& sequence, const ClipConstHolders& clips)
 {
     const AudioSegmentFactory factory { clips };
-    return std::make_shared<StretchingSequence>(sequence, factory);
+    return std::make_shared<ClipProcessingSequence>(sequence, factory);
 }

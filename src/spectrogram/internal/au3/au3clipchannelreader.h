@@ -5,7 +5,7 @@
 
 #include "internal/iclipchannelreader.h"
 
-#include "au3-stretching-sequence/AudioSegmentSampleView.h"
+#include "au3-clip-processing-sequence/AudioSegmentSampleView.h"
 #include "au3-wave-track/WaveTrack.h"
 
 namespace au::spectrogram {

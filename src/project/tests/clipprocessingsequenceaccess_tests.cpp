@@ -12,7 +12,7 @@
 
 #include "au3wrap/internal/au3project.h"
 #include "au3-project/Project.h"
-#include "au3-stretching-sequence/StretchingSequence.h"
+#include "au3-clip-processing-sequence/ClipProcessingSequence.h"
 #include "au3-wave-track/WaveClip.h"
 #include "au3-wave-track/WaveTrack.h"
 #include "testing/testcontext.h"
@@ -31,8 +31,8 @@ constexpr auto trackEndSample = static_cast<size_t>(TEST_TRACK_END * TEST_SAMPLE
 }
 
 namespace au::project {
-//! Without stretching nor pitch shifting, reading the stretching sequence is reading the track
-class StretchingSequenceAccessTests : public ::testing::Test
+//! Without stretching nor pitch shifting, reading the clip processing sequence is reading the track
+class ClipProcessingSequenceAccessTests : public ::testing::Test
 {
 protected:
     QTemporaryDir m_directory;
@@ -70,9 +70,9 @@ protected:
         m_accessor.close();
     }
 
-    std::shared_ptr<StretchingSequence> sequence()
+    std::shared_ptr<ClipProcessingSequence> sequence()
     {
-        return StretchingSequence::Create(*m_track, m_track->GetClipInterfaces());
+        return ClipProcessingSequence::Create(*m_track, m_track->GetClipInterfaces());
     }
 
     static std::vector<float> read(const WideSampleSequence& sequence, sampleCount start, size_t len, bool backwards)
@@ -95,17 +95,17 @@ protected:
     }
 };
 
-TEST_F(StretchingSequenceAccessTests, ReadingForwardIsReadingTheTrack)
+TEST_F(ClipProcessingSequenceAccessTests, ReadingForwardIsReadingTheTrack)
 {
     expectSameReads(*sequence(), 0, trackEndSample, false);
 }
 
-TEST_F(StretchingSequenceAccessTests, ReadingBackwardIsReadingTheTrack)
+TEST_F(ClipProcessingSequenceAccessTests, ReadingBackwardIsReadingTheTrack)
 {
     expectSameReads(*sequence(), trackEndSample, 0, true);
 }
 
-TEST_F(StretchingSequenceAccessTests, ReadingAnywhereIsReadingTheTrack)
+TEST_F(ClipProcessingSequenceAccessTests, ReadingAnywhereIsReadingTheTrack)
 {
     const auto stretching = sequence();
     std::mt19937 generator;

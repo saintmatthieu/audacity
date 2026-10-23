@@ -4,7 +4,7 @@
 
 #include "lteaudioreaderbridge.h"
 
-#include "au3-stretching-sequence/ClipInterface.h"
+#include "au3-clip-processing-sequence/ClipInterface.h"
 #include "au3-math/SampleCount.h"
 
 #include <algorithm>

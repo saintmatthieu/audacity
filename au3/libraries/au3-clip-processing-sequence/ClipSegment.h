@@ -28,7 +28,7 @@ class ClipInterface;
  * It is important that objects of this class are instantiated and destroyed on
  * the same thread, due to the owned Observer::Subscription.
  */
-class STRETCHING_SEQUENCE_API ClipSegment final : public AudioSegment
+class CLIP_PROCESSING_SEQUENCE_API ClipSegment final : public AudioSegment
 {
 public:
     explicit ClipSegment(const ClipInterface&);

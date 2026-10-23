@@ -16,9 +16,9 @@
 #include "au3-utility/CRTPBase.h"
 #include "au3-math/SampleFormat.h"
 #include "au3-math/SampleCount.h"
-#include "au3-stretching-sequence/ClipInterface.h"
+#include "au3-clip-processing-sequence/ClipInterface.h"
 #include "au3-xml/XMLTagHandler.h"
-#include "au3-stretching-sequence/AudioSegmentSampleView.h"
+#include "au3-clip-processing-sequence/AudioSegmentSampleView.h"
 
 #include <wx/longlong.h>
 

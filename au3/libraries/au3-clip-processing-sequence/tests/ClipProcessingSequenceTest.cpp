@@ -3,12 +3,12 @@
 
   Audacity: A Digital Audio Editor
 
-  StretchingSequenceTest.cpp
+  ClipProcessingSequenceTest.cpp
 
   Matthieu Hodgkinson
 
 **********************************************************************/
-#include "StretchingSequence.h"
+#include "ClipProcessingSequence.h"
 #include "au3-time-and-pitch/AudioContainer.h"
 #include "AudioContainerHelper.h"
 #include "FloatVectorClip.h"
@@ -27,7 +27,7 @@ namespace {
 constexpr auto sampleRate = 3;
 } // namespace
 
-TEST_CASE("StretchingSequence unit tests")
+TEST_CASE("ClipProcessingSequence unit tests")
 {
     SECTION("Get")
     {
@@ -47,7 +47,7 @@ TEST_CASE("StretchingSequence unit tests")
             clip3->playStartTime = 3.0;
             const auto mockSequence
                 =std::make_shared<MockPlayableSequence>(sampleRate, numChannels);
-            const auto sut = StretchingSequence::Create(
+            const auto sut = ClipProcessingSequence::Create(
                 *mockSequence, ClipConstHolders { clip1, clip3 });
 
             constexpr auto len = 2;
@@ -74,7 +74,7 @@ TEST_CASE("StretchingSequence unit tests")
             auto factory = new MockAudioSegmentFactory;
             const auto mockSequence
                 =std::make_shared<MockPlayableSequence>(sampleRate, numChannels);
-            StretchingSequence sut(
+            ClipProcessingSequence sut(
                 *mockSequence, sampleRate, numChannels,
                 std::unique_ptr<AudioSegmentFactoryInterface> { factory });
             constexpr auto numSamples = 3;
@@ -111,7 +111,7 @@ TEST_CASE("StretchingSequence unit tests")
     }
 }
 
-TEST_CASE("StretchingSequence with real audio")
+TEST_CASE("ClipProcessingSequence with real audio")
 {
     const auto filenameStem = "FifeAndDrumsStereo"s;
     const auto inputPath
@@ -134,7 +134,7 @@ TEST_CASE("StretchingSequence with real audio")
         const auto mockSequence = std::make_shared<MockPlayableSequence>(
             info.sampleRate, info.numChannels);
         const auto sut
-            =StretchingSequence::Create(*mockSequence, ClipConstHolders { clip });
+            =ClipProcessingSequence::Create(*mockSequence, ClipConstHolders { clip });
         const size_t numOutputSamples = clip->stretchRatio * input[0].size() + .5;
         AudioContainer container(numOutputSamples, input.size());
         sut->GetFloats(
@@ -169,7 +169,7 @@ TEST_CASE("StretchingSequence with real audio")
 
         const auto mockSequence
             =std::make_shared<MockPlayableSequence>(info.sampleRate, 2u);
-        const auto sut = StretchingSequence::Create(
+        const auto sut = ClipProcessingSequence::Create(
             *mockSequence, ClipConstHolders { clip1, clip2 });
         const size_t numOutputSamples
             =totalDuration * info.sampleRate /*assuming both have same sample rate*/

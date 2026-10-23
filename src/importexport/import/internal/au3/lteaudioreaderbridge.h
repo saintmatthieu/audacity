@@ -9,7 +9,7 @@
 #include <memory>
 #include <optional>
 
-#include "au3-stretching-sequence/AudioSegmentSampleView.h"
+#include "au3-clip-processing-sequence/AudioSegmentSampleView.h"
 
 class ClipInterface;
 

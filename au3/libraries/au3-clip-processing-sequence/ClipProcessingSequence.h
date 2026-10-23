@@ -3,7 +3,7 @@
 
   Audacity: A Digital Audio Editor
 
-  StretchingSequence.h
+  ClipProcessingSequence.h
 
   Matthieu Hodgkinson
 
@@ -25,16 +25,16 @@ using ClipConstHolders = std::vector<std::shared_ptr<const ClipInterface> >;
  * Any range can be read, forward or backward. Time stretching being stateful, reading a clip where its previous read
  * ended is cheaper than elsewhere: see readme.md.
  */
-class STRETCHING_SEQUENCE_API StretchingSequence final : public PlayableSequence
+class CLIP_PROCESSING_SEQUENCE_API ClipProcessingSequence final : public PlayableSequence
 {
 public:
     //! Must be called on the main thread
-    static std::shared_ptr<StretchingSequence>
+    static std::shared_ptr<ClipProcessingSequence>
     Create(const PlayableSequence&, const ClipConstHolders& clips);
 
     //! Must be called on the main thread
-    StretchingSequence(const PlayableSequence&, const AudioSegmentFactoryInterface&);
-    ~StretchingSequence() override = default;
+    ClipProcessingSequence(const PlayableSequence&, const AudioSegmentFactoryInterface&);
+    ~ClipProcessingSequence() override = default;
 
     // WideSampleSequence
     size_t NChannels() const override;
