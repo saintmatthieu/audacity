@@ -18,6 +18,8 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/cliptempopersistence_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/clipprocessingsequenceaccess_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/clipfadespersistence_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/fadechangesmoothing_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/playbackfades_tests.cpp
 )
 
 set(MODULE_TEST_LINK

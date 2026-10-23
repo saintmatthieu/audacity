@@ -24,6 +24,8 @@ set( TARGET au3-mixer )
 set( SOURCES
    AudioIOSequences.cpp
    AudioIOSequences.h
+   ExtrapolatingCrossfader.cpp
+   ExtrapolatingCrossfader.h
    DownmixSource.cpp
    DownmixSource.h
    DownmixStage.cpp

@@ -11,6 +11,8 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/mocks/au3projectmock.h
 
     ${CMAKE_CURRENT_LIST_DIR}/filenames_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/extrapolatingcrossfader_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/lookaheadsmoother_tests.cpp
 )
 
 set(MODULE_TEST_LINK

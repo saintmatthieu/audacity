@@ -31,7 +31,7 @@ constexpr auto trackEndSample = static_cast<size_t>(TEST_TRACK_END * TEST_SAMPLE
 }
 
 namespace au::project {
-//! Without stretching nor pitch shifting, reading the clip processing sequence is reading the track
+//! Without stretching, pitch shifting nor fades, reading the clip processing sequence is reading the track
 class ClipProcessingSequenceAccessTests : public ::testing::Test
 {
 protected:

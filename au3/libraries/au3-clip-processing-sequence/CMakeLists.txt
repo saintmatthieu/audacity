@@ -19,10 +19,14 @@ set( SOURCES
    AudioSegmentSampleView.h
    ClipFades.cpp
    ClipFades.h
+   ClipFadesProcessor.cpp
+   ClipFadesProcessor.h
    ClipInterface.cpp
    ClipInterface.h
    ClipSegment.cpp
    ClipSegment.h
+   LookaheadSmoother.cpp
+   LookaheadSmoother.h
    PlaybackDirection.h
    ClipProcessingSequence.cpp
    ClipProcessingSequence.h

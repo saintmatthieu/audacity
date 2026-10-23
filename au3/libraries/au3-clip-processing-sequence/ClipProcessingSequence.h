@@ -20,7 +20,7 @@ class ClipInterface;
 struct ClipAudioSegment;
 using ClipConstHolders = std::vector<std::shared_ptr<const ClipInterface> >;
 
-//! Reads the clips of a sequence, time-stretched and pitch-shifted, and silence between them
+//! Reads the clips of a sequence, time-stretched, pitch-shifted and faded, and silence between them
 /*!
  * Any range can be read, forward or backward. Time stretching being stateful, reading a clip where its previous read
  * ended is cheaper than elsewhere: see readme.md.

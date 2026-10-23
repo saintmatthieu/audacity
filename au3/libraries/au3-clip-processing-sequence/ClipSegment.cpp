@@ -9,8 +9,10 @@
 
 **********************************************************************/
 #include "ClipSegment.h"
+#include "ClipFadesProcessor.h"
 #include "ClipInterface.h"
 #include "ClipTimeAndPitchSource.h"
+#include "LookaheadSmoother.h"
 #include "au3-time-and-pitch/StaffPadTimeAndPitch.h"
 #include <cmath>
 #include <functional>
@@ -30,19 +32,27 @@ GetStretchingParameters(const ClipInterface& clip)
 
 struct ClipSegment::Stream {
     //! @param durationToDiscard play time, from the clip's play start if forward, from its play end if backward
-    Stream(const ClipInterface& clip, double durationToDiscard, PlaybackDirection direction)
+    Stream(const ClipInterface& clip, const ClipFades& fades, double durationToDiscard, PlaybackDirection direction)
         : source{clip, durationToDiscard, direction}
         , stretcher{clip.GetRate(), clip.NChannels(), source, GetStretchingParameters(clip)}
+        , fadesProcessor{clip, fades, durationToDiscard, direction}
+        , fadesSmoother{
+            fadesProcessor, [this](float* const* buffers, size_t len) { stretcher.GetSamples(buffers, len); },
+            clip.NChannels(), static_cast<size_t>(std::lround(fadeChangeCrossfadeDuration * clip.GetRate()))}
     {
     }
 
     ClipTimeAndPitchSource source;
     // Refers to `source`, constructed before it
     StaffPadTimeAndPitch stretcher;
+    //! Fades are applied after stretching, smoothly when they change during playback
+    ClipFadesProcessor fadesProcessor;
+    LookaheadSmoother fadesSmoother;
 };
 
 ClipSegment::ClipSegment(const ClipInterface& clip)
     : mClip{clip}
+    , mFades{ClipFades::Get(clip)}
     , mPreserveFormants{clip.GetPitchAndSpeedPreset()
                         == PitchAndSpeedPreset::OptimizeForVoice}
     , mCentShift{clip.GetCentShift()}
@@ -76,7 +86,7 @@ void ClipSegment::GetFloats(
         const auto durationToDiscard = direction == PlaybackDirection::forward
                                        ? playTime
                                        : NumSamples().as_double() / mClip.GetRate() - playTime;
-        mStream = std::make_unique<Stream>(mClip, durationToDiscard, direction);
+        mStream = std::make_unique<Stream>(mClip, mFades, durationToDiscard, direction);
         mDirection = direction;
     }
     const auto signedLen = static_cast<sampleCount::type>(len);
@@ -95,7 +105,7 @@ void ClipSegment::GetFloats(
     if (mUpdateCentShift.exchange(false)) {
         mStream->stretcher.OnCentShiftChange(mCentShift);
     }
-    mStream->stretcher.GetSamples(buffers, len);
+    mStream->fadesSmoother.GetSamples(buffers, len);
 }
 
 sampleCount ClipSegment::NumSamples() const

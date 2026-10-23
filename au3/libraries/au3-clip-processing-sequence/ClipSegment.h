@@ -17,10 +17,11 @@
 #include <memory>
 #include <optional>
 
+class ClipFades;
 class ClipInterface;
 
 /*!
- * Plays a clip, time-stretched and pitch-shifted.
+ * Plays a clip, time-stretched and pitch-shifted, then faded.
  *
  * Stretching is stateful: it is a stream, which reading where the previous
  * read ended continues. Reading elsewhere restarts it there.
@@ -31,6 +32,10 @@ class ClipInterface;
 class CLIP_PROCESSING_SEQUENCE_API ClipSegment final : public AudioSegment
 {
 public:
+    //! Duration over which fade changes during playback are cross-faded
+    static constexpr double fadeChangeCrossfadeDuration = 0.01;
+
+    //! Must be constructed on the main thread
     explicit ClipSegment(const ClipInterface&);
     ~ClipSegment() override;
 
@@ -45,6 +50,8 @@ private:
     struct Stream;
 
     const ClipInterface& mClip;
+    // Got at construction: getting them may construct them, which must not happen on the audio thread
+    const ClipFades& mFades;
     std::unique_ptr<Stream> mStream;
     //! Where the stream continues
     std::optional<sampleCount> mExpectedStart;
