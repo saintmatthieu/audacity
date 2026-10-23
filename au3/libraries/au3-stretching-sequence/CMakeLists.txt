@@ -22,8 +22,6 @@ set( SOURCES
    ClipSegment.cpp
    ClipSegment.h
    PlaybackDirection.h
-   SilenceSegment.cpp
-   SilenceSegment.h
    StretchingSequence.cpp
    StretchingSequence.h
    ClipTimeAndPitchSource.cpp

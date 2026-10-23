@@ -14,14 +14,19 @@
 #include <vector>
 
 class AudioSegment;
-class WaveClip;
-enum class PlaybackDirection;
+class ClipInterface;
+
+//! A clip, and the segment playing it
+struct ClipAudioSegment {
+    std::shared_ptr<const ClipInterface> clip;
+    std::shared_ptr<AudioSegment> segment;
+};
 
 class STRETCHING_SEQUENCE_API AudioSegmentFactoryInterface
 {
 public:
     virtual ~AudioSegmentFactoryInterface();
 
-    virtual std::vector<std::shared_ptr<AudioSegment> >
-    CreateAudioSegmentSequence(double playbackStartTime, PlaybackDirection) = 0;
+    //! Called on the main thread
+    virtual std::vector<ClipAudioSegment> CreateClipAudioSegments() const = 0;
 };

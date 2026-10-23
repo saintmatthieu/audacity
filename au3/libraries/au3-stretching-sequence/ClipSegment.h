@@ -11,45 +11,49 @@
 #pragma once
 
 #include "AudioSegment.h"
-#include "ClipTimeAndPitchSource.h"
 #include "au3-utility/Observer.h"
 #include "PlaybackDirection.h"
 #include <atomic>
 #include <memory>
+#include <optional>
 
 class ClipInterface;
-class TimeAndPitchInterface;
-
-using PitchRatioChangeCbSubscriber
-    =std::function<void (std::function<void (double)>)>;
 
 /*!
+ * Plays a clip, time-stretched and pitch-shifted.
+ *
+ * Stretching is stateful: it is a stream, which reading where the previous
+ * read ended continues. Reading elsewhere restarts it there.
+ *
  * It is important that objects of this class are instantiated and destroyed on
  * the same thread, due to the owned Observer::Subscription.
  */
 class STRETCHING_SEQUENCE_API ClipSegment final : public AudioSegment
 {
 public:
-    ClipSegment(const ClipInterface&, double durationToDiscard, PlaybackDirection);
+    explicit ClipSegment(const ClipInterface&);
     ~ClipSegment() override;
 
     // AudioSegment
-    size_t GetFloats(float* const* buffers, size_t numSamples) override;
-    bool Empty() const override;
+    void GetFloats(
+        float* const* buffers, sampleCount start, size_t len, PlaybackDirection) override;
+    sampleCount NumSamples() const override;
     size_t NChannels() const override;
 
 private:
-    const sampleCount mTotalNumSamplesToProduce;
-    sampleCount mTotalNumSamplesProduced = 0;
-    ClipTimeAndPitchSource mSource;
+    //! What reading elsewhere than where the previous read ended restarts
+    struct Stream;
+
+    const ClipInterface& mClip;
+    std::unique_ptr<Stream> mStream;
+    //! Where the stream continues
+    std::optional<sampleCount> mExpectedStart;
+    PlaybackDirection mDirection = PlaybackDirection::forward;
+
     bool mPreserveFormants;
     int mCentShift;
     std::atomic<bool> mUpdateFormantPreservation = false;
     std::atomic<bool> mUpdateCentShift = false;
-    // Careful that this guy is constructed after `mSource`, which it refers to
-    // in its ctor.
-    // todo(mhodgkinson) make this safe.
-    std::unique_ptr<TimeAndPitchInterface> mStretcher;
     Observer::Subscription mOnSemitoneShiftChangeSubscription;
     Observer::Subscription mOnFormantPreservationChangeSubscription;
 };

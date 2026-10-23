@@ -10,7 +10,9 @@
 **********************************************************************/
 #include "ClipSegment.h"
 #include "ClipInterface.h"
+#include "ClipTimeAndPitchSource.h"
 #include "au3-time-and-pitch/StaffPadTimeAndPitch.h"
+#include <cmath>
 #include <functional>
 
 namespace {
@@ -24,27 +26,26 @@ GetStretchingParameters(const ClipInterface& clip)
         =clip.GetPitchAndSpeedPreset() == PitchAndSpeedPreset::OptimizeForVoice;
     return params;
 }
-
-sampleCount
-GetTotalNumSamplesToProduce(const ClipInterface& clip, double durationToDiscard)
-{
-    return sampleCount { clip.GetVisibleSampleCount().as_double()
-                         * clip.GetStretchRatio()
-                         - durationToDiscard * clip.GetRate() + .5 };
-}
 } // namespace
 
-ClipSegment::ClipSegment(
-    const ClipInterface& clip, double durationToDiscard, PlaybackDirection direction)
-    : mTotalNumSamplesToProduce{GetTotalNumSamplesToProduce(
-                                    clip, durationToDiscard)}
-    , mSource{clip, durationToDiscard, direction}
+struct ClipSegment::Stream {
+    //! @param durationToDiscard play time, from the clip's play start if forward, from its play end if backward
+    Stream(const ClipInterface& clip, double durationToDiscard, PlaybackDirection direction)
+        : source{clip, durationToDiscard, direction}
+        , stretcher{clip.GetRate(), clip.NChannels(), source, GetStretchingParameters(clip)}
+    {
+    }
+
+    ClipTimeAndPitchSource source;
+    // Refers to `source`, constructed before it
+    StaffPadTimeAndPitch stretcher;
+};
+
+ClipSegment::ClipSegment(const ClipInterface& clip)
+    : mClip{clip}
     , mPreserveFormants{clip.GetPitchAndSpeedPreset()
                         == PitchAndSpeedPreset::OptimizeForVoice}
     , mCentShift{clip.GetCentShift()}
-    , mStretcher{std::make_unique<StaffPadTimeAndPitch>(
-                     clip.GetRate(), clip.NChannels(), mSource,
-                     GetStretchingParameters(clip))}
     , mOnSemitoneShiftChangeSubscription{clip.SubscribeToCentShiftChange(
                                              [this](int cents) {
         mCentShift = cents;
@@ -67,8 +68,20 @@ ClipSegment::~ClipSegment()
     mOnFormantPreservationChangeSubscription.Reset();
 }
 
-size_t ClipSegment::GetFloats(float* const* buffers, size_t numSamples)
+void ClipSegment::GetFloats(
+    float* const* buffers, sampleCount start, size_t len, PlaybackDirection direction)
 {
+    if (!mStream || mExpectedStart != start || mDirection != direction) {
+        const auto playTime = start.as_double() / mClip.GetRate();
+        const auto durationToDiscard = direction == PlaybackDirection::forward
+                                       ? playTime
+                                       : NumSamples().as_double() / mClip.GetRate() - playTime;
+        mStream = std::make_unique<Stream>(mClip, durationToDiscard, direction);
+        mDirection = direction;
+    }
+    const auto signedLen = static_cast<sampleCount::type>(len);
+    mExpectedStart = direction == PlaybackDirection::forward ? start + signedLen : start - signedLen;
+
     // Check if formant preservation of pitch shift needs to be updated.
     // This approach is not immune to a race condition, but it is unlikely and
     // not critical, as it would only affect one playback pass, during which the
@@ -77,24 +90,20 @@ size_t ClipSegment::GetFloats(float* const* buffers, size_t numSamples)
     // destruction of this object, so better not do anything too sophisticated
     // there.
     if (mUpdateFormantPreservation.exchange(false)) {
-        mStretcher->OnFormantPreservationChange(mPreserveFormants);
+        mStream->stretcher.OnFormantPreservationChange(mPreserveFormants);
     }
     if (mUpdateCentShift.exchange(false)) {
-        mStretcher->OnCentShiftChange(mCentShift);
+        mStream->stretcher.OnCentShiftChange(mCentShift);
     }
-    const auto numSamplesToProduce = limitSampleBufferSize(
-        numSamples, mTotalNumSamplesToProduce - mTotalNumSamplesProduced);
-    mStretcher->GetSamples(buffers, numSamplesToProduce);
-    mTotalNumSamplesProduced += numSamplesToProduce;
-    return numSamplesToProduce;
+    mStream->stretcher.GetSamples(buffers, len);
 }
 
-bool ClipSegment::Empty() const
+sampleCount ClipSegment::NumSamples() const
 {
-    return mTotalNumSamplesProduced == mTotalNumSamplesToProduce;
+    return sampleCount { mClip.GetVisibleSampleCount().as_double() * mClip.GetStretchRatio() + .5 };
 }
 
 size_t ClipSegment::NChannels() const
 {
-    return mSource.NChannels();
+    return mClip.NChannels();
 }

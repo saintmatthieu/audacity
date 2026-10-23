@@ -11,27 +11,30 @@
 #pragma once
 
 #include "au3-mixer/AudioIOSequences.h"
-#include "PlaybackDirection.h"
 
 #include <memory>
-#include <optional>
 #include <vector>
 
-class AudioSegment;
 class AudioSegmentFactoryInterface;
 class ClipInterface;
+struct ClipAudioSegment;
 using ClipConstHolders = std::vector<std::shared_ptr<const ClipInterface> >;
 
-// For now this class assumes forward reading, which will be sufficient for the
-// first goal of allowing export and rendering.
+//! Reads the clips of a sequence, time-stretched and pitch-shifted, and silence between them
+/*!
+ * Any range can be read, forward or backward. Time stretching being stateful, reading a clip where its previous read
+ * ended is cheaper than elsewhere: see readme.md.
+ */
 class STRETCHING_SEQUENCE_API StretchingSequence final : public PlayableSequence
 {
 public:
+    //! Must be called on the main thread
     static std::shared_ptr<StretchingSequence>
     Create(const PlayableSequence&, const ClipConstHolders& clips);
 
-    StretchingSequence(
-        const PlayableSequence&, int sampleRate, size_t numChannels, std::unique_ptr<AudioSegmentFactoryInterface>);
+    //! Must be called on the main thread
+    StretchingSequence(const PlayableSequence&, const AudioSegmentFactoryInterface&);
+    ~StretchingSequence() override = default;
 
     // WideSampleSequence
     size_t NChannels() const override;
@@ -60,17 +63,6 @@ public:
         float* buffers[], sampleCount start, size_t len, bool backwards) const;
 
 private:
-    using AudioSegments = std::vector<std::shared_ptr<AudioSegment> >;
-
-    void ResetCursor(double t, PlaybackDirection);
-    bool GetNext(float* const buffers[], size_t numChannels, size_t numSamples);
-    bool MutableGet(
-        size_t iChannel, size_t nBuffers, const samplePtr buffers[], sampleFormat format, sampleCount start, size_t len, bool backwards);
-
     const PlayableSequence& mSequence;
-    const std::unique_ptr<AudioSegmentFactoryInterface> mAudioSegmentFactory;
-    AudioSegments mAudioSegments;
-    AudioSegments::const_iterator mActiveAudioSegmentIt = mAudioSegments.end();
-    std::optional<sampleCount> mExpectedStart;
-    PlaybackDirection mPlaybackDirection = PlaybackDirection::forward;
+    const std::vector<ClipAudioSegment> mSegments;
 };
