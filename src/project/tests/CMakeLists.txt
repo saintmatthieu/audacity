@@ -20,6 +20,7 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/clipfadespersistence_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/fadechangesmoothing_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/playbackfades_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/waveformfades_tests.cpp
 )
 
 set(MODULE_TEST_LINK
@@ -28,6 +29,7 @@ set(MODULE_TEST_LINK
     au3-project
     au3-project-file-io
     au3-realtime-effects
+    au3-wave-track-paint
     trackedit
     muse::actions
     muse::draw
