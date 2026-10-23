@@ -10,7 +10,7 @@ class ClipInterface;
 class PlayableSequence;
 using ClipConstHolders = std::vector<std::shared_ptr<const ClipInterface> >;
 
-//! Makes a sequence playable: its clips time-stretched and pitch-shifted, at their places in time, with silence
+//! Makes a sequence playable: its clips time-stretched, pitch-shifted and faded, at their places in time, with silence
 //! between them, and changes of their processing during playback cross-faded
 /*!
  * Any range can be read, forward. Time stretching being stateful, reading a clip where its previous read ended is
