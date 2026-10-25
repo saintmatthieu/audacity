@@ -140,6 +140,6 @@ if (CC_IS_CLANG)
     set_property(TARGET ${MODULE} APPEND_STRING PROPERTY COMPILE_FLAGS "-fobjc-arc")
 endif()
 
-if (AU_BUILD_PROJECT_TESTS)
+# if (AU_BUILD_PROJECT_TESTS)
     add_subdirectory(tests)
-endif()
+# endif()
