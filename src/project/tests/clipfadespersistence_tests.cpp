@@ -110,8 +110,8 @@ protected:
         const auto clips = track.SortedIntervalArray();
         ASSERT_EQ(clips.size(), 3);
         setFades(*clips[0], TEST_FADE_IN, INNER_FADES[0]);
-        setFades(*clips[1], INNER_FADES[1], INNER_FADES[2], FadeType::Logarithmic);
-        setFades(*clips[2], INNER_FADES[3], TEST_FADE_OUT, FadeType::Logarithmic);
+        setFades(*clips[1], INNER_FADES[1], INNER_FADES[2], FadeType::Exponential);
+        setFades(*clips[2], INNER_FADES[3], TEST_FADE_OUT, FadeType::Exponential);
     }
 
     //! Three clips split at `firstSplit` and `secondSplit` and ending at `end`, with the fades of `splitInThreeWithInnerFades`
@@ -129,10 +129,10 @@ protected:
         EXPECT_DOUBLE_EQ(first.fadeOut(), INNER_FADES[0]);
         EXPECT_DOUBLE_EQ(second.fadeIn(), INNER_FADES[1]);
         EXPECT_DOUBLE_EQ(second.fadeOut(), INNER_FADES[2]);
-        EXPECT_EQ(second.fadeOutType(), FadeType::Logarithmic);
+        EXPECT_EQ(second.fadeOutType(), FadeType::Exponential);
         EXPECT_DOUBLE_EQ(third.fadeIn(), INNER_FADES[3]);
         EXPECT_DOUBLE_EQ(third.fadeOut(), TEST_FADE_OUT);
-        EXPECT_EQ(third.fadeOutType(), FadeType::Logarithmic);
+        EXPECT_EQ(third.fadeOutType(), FadeType::Exponential);
     }
 };
 
@@ -146,9 +146,9 @@ TEST_F(ClipFadesPersistenceTests, FadesAreLoaded)
 TEST_F(ClipFadesPersistenceTests, FadeTypesAreLoadedAndDefaultToLinear)
 {
     const auto& fades = ClipFades::Get(onlyClip(firstTrack()));
-    // The test XML's first clip only has its fade-out specified as logarithmic.
+    // The test XML's first clip only has its fade-out specified as exponential.
     EXPECT_EQ(fades.fadeInType(), FadeType::Linear);
-    EXPECT_EQ(fades.fadeOutType(), FadeType::Logarithmic);
+    EXPECT_EQ(fades.fadeOutType(), FadeType::Exponential);
 }
 
 TEST_F(ClipFadesPersistenceTests, FadesAreSaved)
@@ -172,7 +172,7 @@ TEST_F(ClipFadesPersistenceTests, CopiedClipsKeepTheirFadesAndFollowTheirOwnStre
     //! [THEN] the copied clip has the same fades
     EXPECT_DOUBLE_EQ(ClipFades::Get(copied).fadeIn(), TEST_FADE_IN);
     EXPECT_DOUBLE_EQ(ClipFades::Get(copied).fadeOut(), TEST_FADE_OUT);
-    EXPECT_EQ(ClipFades::Get(copied).fadeOutType(), FadeType::Logarithmic);
+    EXPECT_EQ(ClipFades::Get(copied).fadeOutType(), FadeType::Exponential);
 
     //! [WHEN] the copied clip is stretched
     copied.StretchBy(2.0);
@@ -205,7 +205,7 @@ TEST_F(ClipFadesPersistenceTests, RenderingPitchAndSpeedKeepsTheFades)
     ASSERT_FALSE(rendered.HasPitchOrSpeed());
     EXPECT_DOUBLE_EQ(ClipFades::Get(rendered).fadeIn(), stretchRatio * TEST_FADE_IN);
     EXPECT_DOUBLE_EQ(ClipFades::Get(rendered).fadeOut(), stretchRatio * TEST_FADE_OUT);
-    EXPECT_EQ(ClipFades::Get(rendered).fadeOutType(), FadeType::Logarithmic);
+    EXPECT_EQ(ClipFades::Get(rendered).fadeOutType(), FadeType::Exponential);
 }
 }
 
@@ -356,7 +356,7 @@ TEST_F(ClipFadesPersistenceTests, ClearAndPasteNotPreservingSplitLinesKeepsOnlyT
     const auto& fades = ClipFades::Get(onlyClip(track));
     EXPECT_DOUBLE_EQ(fades.fadeIn(), TEST_FADE_IN);
     EXPECT_DOUBLE_EQ(fades.fadeOut(), TEST_FADE_OUT);
-    EXPECT_EQ(fades.fadeOutType(), FadeType::Logarithmic);
+    EXPECT_EQ(fades.fadeOutType(), FadeType::Exponential);
 }
 
 //! As Change Speed does: the region gets shorter, and what was in it gets closer
