@@ -69,6 +69,8 @@
         <file>qml/Audacity/ProjectScene/tracksitemsview/pitchandspeed/PitchSection.qml</file>
         <file>qml/Audacity/ProjectScene/tracksitemsview/pitchandspeed/GeneralSection.qml</file>
         <file>qml/Audacity/ProjectScene/tracksitemsview/pitchandspeed/SpeedSection.qml</file>
+        <file>qml/Audacity/ProjectScene/tracksitemsview/clipfades/ClipFadesEditDialog.qml</file>
+        <file>qml/Audacity/ProjectScene/tracksitemsview/clipfades/FadeSection.qml</file>
         <file>qml/Audacity/ProjectScene/historypanel/HistoryPanel.qml</file>
         <file>qml/Audacity/ProjectScene/toolbars/WorkspacesToolBar.qml</file>
         <file>qml/Audacity/ProjectScene/tracksitemsview/PlayRegion.qml</file>

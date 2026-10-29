@@ -81,6 +81,7 @@ private:
 
     muse::Ret openClipPitchAndSpeedEdit(const muse::rcommand::Params& params);
 
+    muse::Ret openClipFadesEdit();
     muse::Ret openLabelEditor();
 
     muse::Ret toggleEffectsPanel();

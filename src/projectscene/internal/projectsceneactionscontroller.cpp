@@ -53,6 +53,7 @@ static const ActionCode REALTIME_EFFECT_MOVE_UP_CODE("realtime-effect-move-up");
 static const ActionCode REALTIME_EFFECT_MOVE_DOWN_CODE("realtime-effect-move-down");
 
 static const muse::Uri EDIT_PITCH_AND_SPEED_URI("audacity://projectscene/editpitchandspeed");
+static const muse::Uri EDIT_CLIP_FADES_URI("audacity://projectscene/editclipfades");
 
 namespace {
 CommandQuery queryParamsConv(const Command& command, const ActionData& args)
@@ -165,6 +166,7 @@ void ProjectSceneActionsController::init()
     cd->onRequest(this, PROJECTSCENE_CLIP_PITCH_AND_SPEED_COMMAND, [this](const Params& params) {
         return openClipPitchAndSpeedEdit(params);
     });
+    cd->onRequest(this, PROJECTSCENE_CLIP_EDIT_FADES_COMMAND, [this]() { return openClipFadesEdit(); });
     cd->onRequest(this, PROJECTSCENE_OPEN_LABEL_EDITOR_COMMAND, [this]() { return openLabelEditor(); });
 
     static const std::vector<ActionToCommand> actionToCommand = {
@@ -394,6 +396,16 @@ muse::Ret ProjectSceneActionsController::openClipPitchAndSpeedEdit(const Params&
     query.addParam("focusItemName", muse::Val("pitch"));
 
     interactive()->open(query);
+    return make_ok();
+}
+
+muse::Ret ProjectSceneActionsController::openClipFadesEdit()
+{
+    if (interactive()->isOpened(EDIT_CLIP_FADES_URI).val) {
+        return make_ret(Ret::Code::Busy);
+    }
+
+    interactive()->open(EDIT_CLIP_FADES_URI);
     return make_ok();
 }
 
