@@ -25,6 +25,8 @@ const auto fadeFloor = std::pow(10, ClipFades::fadeLogRangeDb / 20);
 constexpr const char* fadeTypeName(FadeType type)
 {
     switch (type) {
+    case FadeType::Exponential:
+        return "exponential";
     case FadeType::Logarithmic:
         return "logarithmic";
     case FadeType::Linear:
@@ -37,7 +39,7 @@ constexpr const char* fadeTypeName(FadeType type)
 
 constexpr std::optional<FadeType> fadeTypeFromName(const std::string& name)
 {
-    for (const auto type : { FadeType::Linear, FadeType::Logarithmic }) {
+    for (const auto type : { FadeType::Linear, FadeType::Logarithmic, FadeType::Exponential }) {
         if (name == fadeTypeName(type)) {
             return type;
         }
