@@ -24,6 +24,7 @@ Item {
     signal fadeEditCanceled
     signal fadeTypeChangeRequested(int type)
     signal fadeLengthEditRequested
+    signal fadeRemoveRequested
 
     // in parent coordinates
     signal mousePositionChanged(real x, real y)
@@ -63,6 +64,7 @@ Item {
         ]
 
         readonly property string editLengthItemId: "editLength"
+        readonly property string removeItemId: "remove"
 
         function openContextMenu(x, y) {
             const typeItems = fadeTypes.map(fadeType => ({
@@ -75,7 +77,11 @@ Item {
                 id: editLengthItemId,
                 title: root.isFadeIn ? qsTrc("projectscene", "Edit fade-in length") : qsTrc("projectscene", "Edit fade-out length")
             }
-            contextMenuLoader.show(Qt.point(x, y), typeItems.concat([{}, editLengthItem]))
+            const removeItem = {
+                id: removeItemId,
+                title: root.isFadeIn ? qsTrc("projectscene", "Remove fade-in") : qsTrc("projectscene", "Remove fade-out")
+            }
+            contextMenuLoader.show(Qt.point(x, y), typeItems.concat([{}, editLengthItem, removeItem]))
         }
     }
 
@@ -106,6 +112,10 @@ Item {
         onHandleMenuItem: function (itemId) {
             if (itemId === prv.editLengthItemId) {
                 root.fadeLengthEditRequested()
+                return
+            }
+            if (itemId === prv.removeItemId) {
+                root.fadeRemoveRequested()
                 return
             }
             const type = parseInt(itemId)

@@ -629,6 +629,14 @@ TrackItemsContainer {
                                     Qt.callLater(clipsModel.openClipFadeOutLengthEdit, itemData.key)
                                 }
 
+                                onFadeInRemoveRequested: {
+                                    clipsModel.removeClipFadeIn(itemData.key)
+                                }
+
+                                onFadeOutRemoveRequested: {
+                                    clipsModel.removeClipFadeOut(itemData.key)
+                                }
+
                                 onPitchChangeRequested: {
                                     Qt.callLater(clipsModel.openClipPitchEdit, itemData.key)
                                 }

@@ -429,6 +429,16 @@ void TrackClipsListModel::openClipFadeOutLengthEdit(const ClipKey& key)
     openClipFadesEdit(key, "fadeOutLength");
 }
 
+bool TrackClipsListModel::removeClipFadeIn(const ClipKey& key)
+{
+    return trackeditInteraction()->changeClipFadeIn(key.key, 0.0, true);
+}
+
+bool TrackClipsListModel::removeClipFadeOut(const ClipKey& key)
+{
+    return trackeditInteraction()->changeClipFadeOut(key.key, 0.0, true);
+}
+
 void TrackClipsListModel::openClipFadesEdit(const ClipKey& key, const std::string& focusItemName)
 {
     selectClip(key);
