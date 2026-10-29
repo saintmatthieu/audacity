@@ -12,6 +12,8 @@ import Audacity.ProjectScene
 StyledDialogView {
     id: root
 
+    property string focusItemName: "" // fadeInLength, fadeOutLength
+
     title: qsTrc("projectscene", "Edit fades")
 
     contentWidth: 320
@@ -42,7 +44,11 @@ StyledDialogView {
     }
 
     onNavigationActivateRequested: {
-        fadeInSection.requestActiveFocus()
+        if (root.focusItemName == "fadeOutLength") {
+            fadeOutSection.requestActiveFocus()
+        } else {
+            fadeInSection.requestActiveFocus()
+        }
     }
 
     ColumnLayout {

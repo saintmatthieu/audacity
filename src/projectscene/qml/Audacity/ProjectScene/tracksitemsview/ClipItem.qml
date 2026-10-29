@@ -99,6 +99,8 @@ Rectangle {
     signal fadeEditCanceled
     signal fadeInTypeChangeRequested(int type)
     signal fadeOutTypeChangeRequested(int type)
+    signal fadeInLengthEditRequested
+    signal fadeOutLengthEditRequested
 
     signal requestSelected
     signal requestSelectionReset
@@ -1238,6 +1240,9 @@ Rectangle {
         onFadeOutTypeChangeRequested: function (type) {
             root.fadeOutTypeChangeRequested(type)
         }
+
+        onFadeInLengthEditRequested: root.fadeInLengthEditRequested()
+        onFadeOutLengthEditRequested: root.fadeOutLengthEditRequested()
 
         onFadeHandlesMousePositionChanged: function (xWithinFadeHandles, yWithinFadeHandles) {
             clipItemMousePositionChanged(xWithinFadeHandles, fades.y + yWithinFadeHandles)
