@@ -13,6 +13,9 @@ enum class FadeType {
     Linear = 0,
     Exponential = 1,
     Logarithmic = 2,
+    Rounded = 3,
+    Cosine = 4,
+    SCurve = 5,
 };
 
 //! Published whenever the fades of a clip change

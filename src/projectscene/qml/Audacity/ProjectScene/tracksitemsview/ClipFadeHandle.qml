@@ -46,6 +46,18 @@ Item {
             {
                 type: FadeType.LOGARITHMIC,
                 title: qsTrc("projectscene", "Logarithmic")
+            },
+            {
+                type: FadeType.ROUNDED,
+                title: qsTrc("projectscene", "Rounded")
+            },
+            {
+                type: FadeType.COSINE,
+                title: qsTrc("projectscene", "Cosine")
+            },
+            {
+                type: FadeType.S_CURVE,
+                title: qsTrc("projectscene", "S-Curve")
             }
         ]
 
