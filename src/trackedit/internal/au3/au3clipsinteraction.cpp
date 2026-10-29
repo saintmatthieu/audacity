@@ -49,6 +49,12 @@ static const std::string mixingDownToMonoLabel = muse::trc("trackedit", "Mixing 
         return ::FadeType::Exponential;
     case au::trackedit::FadeType::Logarithmic:
         return ::FadeType::Logarithmic;
+    case au::trackedit::FadeType::Rounded:
+        return ::FadeType::Rounded;
+    case au::trackedit::FadeType::Cosine:
+        return ::FadeType::Cosine;
+    case au::trackedit::FadeType::SCurve:
+        return ::FadeType::SCurve;
     case au::trackedit::FadeType::Linear:
     default:
         return ::FadeType::Linear;
