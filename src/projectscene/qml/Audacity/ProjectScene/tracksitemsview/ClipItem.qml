@@ -1218,8 +1218,6 @@ Rectangle {
         fadeOutWidth: root.fadeOutDuration * root.context.zoom
         fadeInType: root.fadeInType
         fadeOutType: root.fadeOutType
-        // Shown on selected clips, like the trim and stretch handles; elsewhere, the mouse cursor turns into a fade handle over the hit areas
-        handlesVisible: root.clipSelected && !root.moveActive
 
         onFadeEditStarted: root.fadeEditStarted()
 

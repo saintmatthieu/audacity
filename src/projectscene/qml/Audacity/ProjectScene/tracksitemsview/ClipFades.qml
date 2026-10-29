@@ -21,7 +21,6 @@ Item {
     property real handlesY: 0
     //! Above it, the fades aren't drawn
     property real drawingTop: 0
-    property bool handlesVisible: false
 
     signal fadeEditStarted
     signal fadeInWidthChangeRequested(real width, bool completed)
@@ -75,7 +74,7 @@ Item {
         handleX: prv.handleX(prv.fadeInLineCenter - prv.collisionPush)
         handleY: root.handlesY
         handleSize: prv.handleSize
-        handleVisible: root.handlesVisible
+        handleVisible: root.fadeInWidth > 0
 
         onFadeEditStarted: root.fadeEditStarted()
 
@@ -109,7 +108,7 @@ Item {
         handleX: prv.handleX(prv.fadeOutLineCenter + prv.collisionPush)
         handleY: root.handlesY
         handleSize: prv.handleSize
-        handleVisible: root.handlesVisible
+        handleVisible: root.fadeOutWidth > 0
 
         onFadeEditStarted: root.fadeEditStarted()
 
