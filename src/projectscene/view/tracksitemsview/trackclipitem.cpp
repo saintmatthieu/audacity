@@ -17,6 +17,12 @@ constexpr FadeTypes::Type fadeType(au::trackedit::FadeType type)
         return FadeTypes::Type::EXPONENTIAL;
     case au::trackedit::FadeType::Logarithmic:
         return FadeTypes::Type::LOGARITHMIC;
+    case au::trackedit::FadeType::Rounded:
+        return FadeTypes::Type::ROUNDED;
+    case au::trackedit::FadeType::Cosine:
+        return FadeTypes::Type::COSINE;
+    case au::trackedit::FadeType::SCurve:
+        return FadeTypes::Type::S_CURVE;
     default:
         assert(false);
         return FadeTypes::Type::LINEAR;

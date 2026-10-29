@@ -25,6 +25,12 @@ FadeType fadeType(FadeTypes::Type type)
     switch (type) {
     case FadeTypes::Type::LOGARITHMIC:
         return FadeType::Logarithmic;
+    case FadeTypes::Type::ROUNDED:
+        return FadeType::Rounded;
+    case FadeTypes::Type::COSINE:
+        return FadeType::Cosine;
+    case FadeTypes::Type::S_CURVE:
+        return FadeType::SCurve;
     case FadeTypes::Type::EXPONENTIAL:
         return FadeType::Exponential;
     case FadeTypes::Type::LINEAR:

@@ -29,6 +29,12 @@ constexpr const char* fadeTypeName(FadeType type)
         return "exponential";
     case FadeType::Logarithmic:
         return "logarithmic";
+    case FadeType::Rounded:
+        return "rounded";
+    case FadeType::Cosine:
+        return "cosine";
+    case FadeType::SCurve:
+        return "sCurve";
     case FadeType::Linear:
         return "linear";
     default:
@@ -39,7 +45,8 @@ constexpr const char* fadeTypeName(FadeType type)
 
 constexpr std::optional<FadeType> fadeTypeFromName(const std::string& name)
 {
-    for (const auto type : { FadeType::Linear, FadeType::Logarithmic, FadeType::Exponential }) {
+    for (const auto type : { FadeType::Linear, FadeType::Exponential, FadeType::Logarithmic,
+                             FadeType::Rounded, FadeType::Cosine, FadeType::SCurve }) {
         if (name == fadeTypeName(type)) {
             return type;
         }
@@ -202,6 +209,14 @@ double ClipFades::fadeGain(FadeType type, double t)
         // Rounding may take the gain marginally below 0 at `t == 0`
         return std::max(0.0, 1.0 - 20.0 * std::log10(u) / ClipFades::fadeLogRangeDb);
     }
+    case FadeType::Rounded:
+        return std::sqrt(t);
+    case FadeType::Cosine:
+        // Quarter of a sine period
+        return std::sin(std::numbers::pi / 2.0 * t);
+    case FadeType::SCurve:
+        // Half of a raised cosine period
+        return 0.5 * (1.0 - std::cos(std::numbers::pi * t));
     case FadeType::Linear:
     default:
         return t;
