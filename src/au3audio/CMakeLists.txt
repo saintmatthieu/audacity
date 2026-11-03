@@ -89,21 +89,32 @@ elseif (OS_IS_LIN AND LIBUDEV_INCLUDE_DIR AND LIBUDEV_LIBRARY)
 endif()
 
 if (AU_USE_TRACKTION)
-    set(MODULE_SRC ${MODULE_SRC}
+    set(TRACKTION_SRC
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectscratch.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectscratch.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectslatency.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectslatency.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/masternode.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/masternode.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/pendingframes.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/pendingframes.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playbackstream.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playbackstream.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playedrange.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/rendercontext.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/sequencenode.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/sequencenode.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktiongraphincludes.h
     )
+    set(MODULE_SRC ${MODULE_SRC} ${TRACKTION_SRC})
     # JUCE headers clash with the `using namespace muse` of other unity-combined sources
-    set_source_files_properties(
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.cpp
-        PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
-    )
+    set_source_files_properties(${TRACKTION_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
     set(MODULE_LINK ${MODULE_LINK}
         juce_tracktion
         au3-mixer

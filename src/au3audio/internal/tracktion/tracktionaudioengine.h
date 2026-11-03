@@ -13,8 +13,11 @@
 #include "au3-utility/LockFreeQueue.h"
 #include "au3-utility/Observer.h"
 
+#include "playedrange.h"
+
 namespace au::au3audio {
 class JuceAudioDevices;
+class PlaybackStream;
 
 //! The audio engine of the Tracktion backend: a tracktion_graph with one node per playback
 //! sequence, pulled synchronously by the callback of a JUCE audio device.
@@ -35,8 +38,8 @@ public:
     bool isStreamActive(AudacityProject& project) const override;
     double transportTime() const override;
 
-    int startTransport(const TransportSequences& sequences, double startTime, double endTime, double mixerEndTime,
-                       AudacityProject& project, const StartTransportOptions& options) override;
+    int startTransport(const TransportSequences& sequences, double startTime, double endTime, double mixerEndTime, AudacityProject& project,
+                       const StartTransportOptions& options) override;
     void stopTransport() override;
     void pauseTransport(bool pause) override;
     void seek(double time) override;
@@ -45,8 +48,8 @@ public:
                                                                 const std::string& effectId) override;
     void removeRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
                                    const std::shared_ptr<RealtimeEffectState>& state) override;
-    std::shared_ptr<RealtimeEffectState> replaceRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
-                                                                    size_t effectListIndex, const std::string& newEffectId) override;
+    std::shared_ptr<RealtimeEffectState> replaceRealtimeEffectState(AudacityProject& project, ChannelGroup* group, size_t effectListIndex,
+                                                                    const std::string& newEffectId) override;
 
     void setPlaybackMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter) override;
     void setCaptureMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter) override;
@@ -76,21 +79,13 @@ public:
     muse::async::Notification streamStopped() const override;
     muse::async::Channel<au3::Au3TrackId, au3::Au3ClipId> recordingClipChanged() const override;
 
-    //! What the device callback has played, for transportTime(): from `time`, `frames` contiguous frames
-    struct PlayedRange {
-        double time = 0.0;
-        unsigned long frames = 0;
-    };
-
 private:
-    class Stream;
-
     void onPlayRegionChanged();
 
     const std::shared_ptr<JuceAudioDevices> m_devices;
     const audio::IAudioDriverController* m_driverController = nullptr;
 
-    std::unique_ptr<Stream> m_stream;
+    std::unique_ptr<PlaybackStream> m_stream;
     int m_nextStreamToken = 1;
     double m_lastSampleRate = 0.0;
     muse::String m_lastError;
