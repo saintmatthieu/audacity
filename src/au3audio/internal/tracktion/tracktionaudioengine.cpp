@@ -35,7 +35,6 @@
 #include "playheadsegment.h"
 
 using namespace au::au3audio;
-using namespace tracktion::graph;
 
 namespace {
 //! The graph and the device are stereo
@@ -167,13 +166,13 @@ float* channelPointer(const choc::buffer::ChannelArrayView<float>& view, int cha
 
 //! Renders one playback sequence: pulls its samples from a Mixer (which resamples and stretches),
 //! applies its realtime effects, mute/solo and volume/pan, and feeds its meter.
-class SequenceNode final : public Node
+class SequenceNode final : public tracktion::graph::Node
 {
 public:
     //! @param graph the graph processing `sequence` as it is played, where its samples are read
     SequenceNode(std::shared_ptr<const PlayableSequence> sequence, std::shared_ptr<ISequenceProcessingNode> graph,
-                 const PlayHead& playHead, const RenderContext& context, const AudacityProject& project, double mixerStartTime,
-                 double mixerEndTime, int latency, size_t nodeId)
+                 const tracktion::graph::PlayHead& playHead, const RenderContext& context, const AudacityProject& project,
+                 double mixerStartTime, double mixerEndTime, int latency, size_t nodeId)
         : m_sequence{std::move(sequence)}, m_graph{std::move(graph)}, m_playHead{playHead}, m_context{context}, m_project{project},
         m_mixerStartTime{mixerStartTime}, m_mixerEndTime{mixerEndTime}, m_latency{latency}, m_nodeId{nodeId}
     {
@@ -181,9 +180,9 @@ public:
         m_trackId = waveTrack ? static_cast<int64_t>(waveTrack->GetId()) : -1;
     }
 
-    NodeProperties getNodeProperties() override
+    tracktion::graph::NodeProperties getNodeProperties() override
     {
-        NodeProperties props;
+        tracktion::graph::NodeProperties props;
         props.hasAudio = true;
         props.numberOfChannels = numChannels;
         // The summing node delays the other sequences to compensate
@@ -194,7 +193,7 @@ public:
 
     bool isReadyToProcess() override { return true; }
 
-    void prepareToPlay(const PlaybackInitialisationInfo& info) override
+    void prepareToPlay(const tracktion::graph::PlaybackInitialisationInfo& info) override
     {
         m_sampleRate = info.sampleRate;
         Mixer::Inputs inputs;
@@ -216,7 +215,7 @@ public:
         m_nextTimelinePosition.reset();
     }
 
-    void process(ProcessContext& pc) override
+    void process(tracktion::graph::Node::ProcessContext& pc) override
     {
         const auto frames = static_cast<size_t>(pc.numSamples);
         const auto output = pc.buffers.audio;
@@ -296,7 +295,7 @@ public:
 private:
     const std::shared_ptr<const PlayableSequence> m_sequence;
     const std::shared_ptr<ISequenceProcessingNode> m_graph;
-    const PlayHead& m_playHead;
+    const tracktion::graph::PlayHead& m_playHead;
     const RenderContext& m_context;
     const AudacityProject& m_project;
     const double m_mixerStartTime;
@@ -314,17 +313,17 @@ private:
 };
 
 //! Applies the master realtime effects to the mix of all sequences
-class MasterNode final : public Node
+class MasterNode final : public tracktion::graph::Node
 {
 public:
-    MasterNode(std::unique_ptr<Node> input, const RenderContext& context, int latency, size_t nodeId)
+    MasterNode(std::unique_ptr<tracktion::graph::Node> input, const RenderContext& context, int latency, size_t nodeId)
         : m_input{std::move(input)}, m_context{context}, m_latency{latency}, m_nodeId{nodeId}
     {
     }
 
-    NodeProperties getNodeProperties() override
+    tracktion::graph::NodeProperties getNodeProperties() override
     {
-        NodeProperties props;
+        tracktion::graph::NodeProperties props;
         props.hasAudio = true;
         props.numberOfChannels = numChannels;
         props.latencyNumSamples = m_input->getNodeProperties().latencyNumSamples + m_latency;
@@ -332,18 +331,18 @@ public:
         return props;
     }
 
-    std::vector<Node*> getDirectInputNodes() override { return { m_input.get() }; }
+    std::vector<tracktion::graph::Node*> getDirectInputNodes() override { return { m_input.get() }; }
 
     bool isReadyToProcess() override { return m_input->hasProcessed(); }
 
-    void prepareToPlay(const PlaybackInitialisationInfo& info) override
+    void prepareToPlay(const tracktion::graph::PlaybackInitialisationInfo& info) override
     {
         m_scratch.allocate(info.blockSize);
     }
 
-    void process(ProcessContext& pc) override
+    void process(tracktion::graph::Node::ProcessContext& pc) override
     {
-        copy(pc.buffers.audio, m_input->getProcessedOutput().audio);
+        choc::buffer::copy(pc.buffers.audio, m_input->getProcessedOutput().audio);
         if (m_context.effects) {
             float* buffers[numChannels] { channelPointer(pc.buffers.audio, 0), channelPointer(pc.buffers.audio, 1) };
             // As for the sequences, the output stays delayed by m_latency
@@ -353,7 +352,7 @@ public:
     }
 
 private:
-    const std::unique_ptr<Node> m_input;
+    const std::unique_ptr<tracktion::graph::Node> m_input;
     const RenderContext& m_context;
     const int m_latency;
     const size_t m_nodeId;
@@ -417,7 +416,7 @@ public:
 
         // TODO: rebuild the graph when the latency changes during the stream
         size_t nodeId = 1;
-        std::vector<std::unique_ptr<Node> > sequenceNodes;
+        std::vector<std::unique_ptr<tracktion::graph::Node> > sequenceNodes;
         for (size_t i = 0; i < m_sequences.size(); ++i) {
             const auto& sequence = m_sequences[i];
             const auto group = sequence->FindChannelGroup();
@@ -425,11 +424,11 @@ public:
             sequenceNodes.push_back(std::make_unique<SequenceNode>(sequence, sequences.playbackGraphs[i], m_playHead, m_context,
                                                                    project, mixerStartTime, mixerEndTime, latency, nodeId++));
         }
-        auto master = std::make_unique<MasterNode>(std::make_unique<SummingNode>(std::move(sequenceNodes)), m_context,
+        auto master = std::make_unique<MasterNode>(std::make_unique<tracktion::graph::SummingNode>(std::move(sequenceNodes)), m_context,
                                                    effectsLatency(project, RealtimeEffectManager::MasterGroup, m_sampleRate),
                                                    nodeId++);
         auto& root = *master;
-        m_player = std::make_unique<NodePlayer>(std::move(master), &m_playHeadState);
+        m_player = std::make_unique<tracktion::graph::NodePlayer>(std::move(master), &m_playHeadState);
         m_player->prepareToPlay(m_sampleRate, m_blockSize);
         m_context.latency = std::max(0, root.getNodeProperties().latencyNumSamples);
         m_pendingFrames.reset();
@@ -568,7 +567,7 @@ private:
     {
         const juce::Range<int64_t> referenceRange { m_referencePosition, m_referencePosition + frames };
         m_playHead.setReferenceSampleRange(referenceRange);
-        const auto timeline = referenceSampleRangeToSplitTimelineRange(m_playHead, referenceRange);
+        const auto timeline = tracktion::graph::referenceSampleRangeToSplitTimelineRange(m_playHead, referenceRange);
 
         // What the graph is fed now, heard after its latency. Unless looping, play stops at the end.
         if (m_playHead.isLooping()) {
@@ -658,9 +657,9 @@ private:
     const double m_sampleRate;
     const int m_blockSize;
 
-    PlayHead m_playHead;
-    PlayHeadState m_playHeadState { m_playHead };
-    std::unique_ptr<NodePlayer> m_player;
+    tracktion::graph::PlayHead m_playHead;
+    tracktion::graph::PlayHeadState m_playHeadState { m_playHead };
+    std::unique_ptr<tracktion::graph::NodePlayer> m_player;
     RenderContext m_context;
     ConstPlayableSequences m_sequences;
     std::optional<RealtimeEffects::InitializationScope> m_effectsInitialization;
