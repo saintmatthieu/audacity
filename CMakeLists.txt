@@ -114,6 +114,9 @@ option(AU_LOAD_TIMETRACK "Load time track from Audacity 3 projects" OFF)
 # Port mixer
 option(AU_USE_PORTMIXER "Use PortMixer for audio device management" ON)
 
+# Tracktion audio backend (experimental)
+option(AU_USE_TRACKTION "Build JUCE and tracktion_graph for the experimental Tracktion audio backend" OFF)
+
 set(MUSE_MODULE_ACCESSIBILITY ON)
 set(MUSE_MODULE_ACTIONS ON)
 set(MUSE_MODULE_AUDIO OFF)
