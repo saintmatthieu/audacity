@@ -12,6 +12,11 @@
 #include "internal/audiodrivercontroller.h"
 #include "internal/portaudiodevices.h"
 
+#ifdef AU_USE_TRACKTION
+#include "internal/tracktion/juceaudiodevices.h"
+#include "internal/tracktion/tracktionaudioengine.h"
+#endif
+
 #include "au3-audio-devices/AudioIOBase.h"
 
 #if defined(Q_OS_MAC)
@@ -40,6 +45,12 @@ void Au3AudioModule::registerExports()
     m_audioDriverController = std::make_shared<AudioDriverController>(std::make_unique<PortAudioDevices>(), "AudioIO");
     m_audioDriverController->setAudioEngine(m_audioEngine);
 
+#ifdef AU_USE_TRACKTION
+    m_tracktionAudioEngine = std::make_shared<TracktionAudioEngine>();
+    m_tracktionDriverController = std::make_shared<AudioDriverController>(std::make_unique<JuceAudioDevices>(), "TracktionAudio");
+    m_tracktionDriverController->setAudioEngine(m_tracktionAudioEngine);
+#endif
+
 #if defined(Q_OS_MAC)
     m_systemAudioDevicesListener = std::make_shared<MacosSystemAudioDevicesListener>();
 #elif defined(Q_OS_WIN)
@@ -60,6 +71,9 @@ void Au3AudioModule::resolveImports()
         return;
     }
     backendRegister->registerBackend({ "portaudio", m_audioEngine, m_audioDriverController });
+#ifdef AU_USE_TRACKTION
+    backendRegister->registerBackend({ "tracktion", m_tracktionAudioEngine, m_tracktionDriverController });
+#endif
 }
 
 void Au3AudioModule::onInit(const muse::IApplication::RunMode&)
@@ -67,6 +81,9 @@ void Au3AudioModule::onInit(const muse::IApplication::RunMode&)
     m_audioEngine->init();
     AudioDriverController::initSharedDefaults(AudioIOBase::GetOptimalSupportedSampleRate());
     m_audioDriverController->init();
+#ifdef AU_USE_TRACKTION
+    m_tracktionDriverController->init();
+#endif
     m_systemAudioDevicesListener->startListening();
 }
 

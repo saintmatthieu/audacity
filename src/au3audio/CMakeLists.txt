@@ -88,6 +88,21 @@ elseif (OS_IS_LIN AND LIBUDEV_INCLUDE_DIR AND LIBUDEV_LIBRARY)
     set(MODULE_DEF ${MODULE_DEF} AU_AU3AUDIO_HAS_UDEV)
 endif()
 
+if (AU_USE_TRACKTION)
+    set(MODULE_SRC ${MODULE_SRC}
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.h
+    )
+    # JUCE headers clash with the `using namespace muse` of other unity-combined sources
+    set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.cpp
+        PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
+    )
+    set(MODULE_LINK ${MODULE_LINK} juce_tracktion)
+    set(MODULE_DEF ${MODULE_DEF} AU_USE_TRACKTION)
+endif()
+
 setup_module()
 
 if (AU_BUILD_AU3AUDIO_TESTS)
