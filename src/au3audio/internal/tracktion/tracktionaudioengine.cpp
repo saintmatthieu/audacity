@@ -22,7 +22,9 @@
 #include "au3-mixer/AudioIOSequences.h"
 #include "au3-mixer/Mix.h"
 #include "au3-project/Project.h"
+#include "au3-realtime-effects/RealtimeEffectList.h"
 #include "au3-realtime-effects/RealtimeEffectManager.h"
+#include "au3-realtime-effects/RealtimeEffectState.h"
 #include "au3-time-frequency-selection/ViewInfo.h"
 #include "au3-track/Track.h"
 #include "au3-wave-track/WaveTrack.h"
@@ -49,8 +51,91 @@ struct RenderContext {
     RealtimeEffects::ProcessingScope* effects = nullptr;
     Clock::time_point dacTime;
     bool hasSoloingSequence = false;
+    //! Where the sequences go silent, unless looping
+    std::optional<int64_t> endPosition;
     //! Constant during a stream
     au::audio::IAudioMeterPtr meter;
+    //! Of the whole graph, in samples
+    int latency = 0;
+};
+
+Clock::duration toDuration(int64_t samples, double sampleRate)
+{
+    return std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(samples / sampleRate));
+}
+
+//! The latency, in samples, of the enabled realtime effects of a group (MasterGroup for the master effects)
+int effectsLatency(const AudacityProject& project, const ChannelGroup* group, double sampleRate)
+{
+    const auto& list = group ? RealtimeEffectList::Get(*group) : RealtimeEffectList::Get(project);
+    EffectInstance::SampleCount latency = 0;
+    list.Visit([&](const RealtimeEffectState& state, bool listIsActive) {
+        if (!listIsActive || !state.IsEnabled()) {
+            return;
+        }
+        if (const auto instance = state.PeekInstance()) {
+            latency += instance->GetLatency(state.GetSettings(), sampleRate);
+        }
+    });
+    return static_cast<int>(latency);
+}
+
+//! The timeline positions of the frames still in the graph's latency, oldest first
+class PendingFrames
+{
+public:
+    //! `frames` frames from `start`, or past the end of the play range if not `valid`
+    struct Range {
+        int64_t start = 0;
+        int64_t frames = 0;
+        bool valid = true;
+    };
+
+    void reset()
+    {
+        m_ranges.clear();
+        m_ranges.reserve(capacity);
+    }
+
+    void push(Range range)
+    {
+        if (range.frames <= 0) {
+            return;
+        }
+        if (!m_ranges.empty()) {
+            auto& last = m_ranges.back();
+            const bool contiguous = last.valid == range.valid && (!range.valid || last.start + last.frames == range.start);
+            // When full, the positions get approximate rather than allocating on the audio thread
+            if (contiguous || m_ranges.size() == capacity) {
+                last.frames += range.frames;
+                return;
+            }
+        }
+        m_ranges.push_back(range);
+    }
+
+    //! Calls `visitor(range, offset)` for the oldest `frames` frames
+    template<typename Visitor>
+    void pop(int64_t frames, const Visitor& visitor)
+    {
+        int64_t offset = 0;
+        while (frames > 0 && !m_ranges.empty()) {
+            auto& first = m_ranges.front();
+            const auto taken = std::min(frames, first.frames);
+            visitor(Range { first.start, taken, first.valid }, offset);
+            first.start += taken;
+            first.frames -= taken;
+            if (first.frames == 0) {
+                m_ranges.erase(m_ranges.begin());
+            }
+            frames -= taken;
+            offset += taken;
+        }
+    }
+
+private:
+    static constexpr size_t capacity = 256;
+    std::vector<Range> m_ranges;
 };
 
 //! Scratch space in the layout RealtimeEffectManager::Process() expects
@@ -88,9 +173,9 @@ public:
     //! @param graph the graph processing `sequence` as it is played, where its samples are read
     SequenceNode(std::shared_ptr<const PlayableSequence> sequence, std::shared_ptr<ISequenceProcessingNode> graph,
                  const PlayHead& playHead, const RenderContext& context, const AudacityProject& project, double mixerStartTime,
-                 double mixerEndTime, size_t nodeId)
+                 double mixerEndTime, int latency, size_t nodeId)
         : m_sequence{std::move(sequence)}, m_graph{std::move(graph)}, m_playHead{playHead}, m_context{context}, m_project{project},
-        m_mixerStartTime{mixerStartTime}, m_mixerEndTime{mixerEndTime}, m_nodeId{nodeId}
+        m_mixerStartTime{mixerStartTime}, m_mixerEndTime{mixerEndTime}, m_latency{latency}, m_nodeId{nodeId}
     {
         const auto waveTrack = dynamic_cast<const WaveTrack*>(m_sequence->FindChannelGroup());
         m_trackId = waveTrack ? static_cast<int64_t>(waveTrack->GetId()) : -1;
@@ -101,6 +186,8 @@ public:
         NodeProperties props;
         props.hasAudio = true;
         props.numberOfChannels = numChannels;
+        // The summing node delays the other sequences to compensate
+        props.latencyNumSamples = m_latency;
         props.nodeID = m_nodeId;
         return props;
     }
@@ -162,9 +249,18 @@ public:
             std::fill_n(m_work[ch].data(), frames, 0.f);
         }
 
+        // Past the end of the play range, only what is still in the effects' latency is heard
+        if (const auto end = m_context.endPosition) {
+            const auto audible = static_cast<size_t>(std::clamp<int64_t>(*end - linearStart, 0, frames));
+            for (auto& buffer : m_work) {
+                std::fill(buffer.data() + audible, buffer.data() + frames, 0.f);
+            }
+        }
+
         if (const auto group = m_sequence->FindChannelGroup(); m_context.effects && group) {
             float* buffers[numChannels] { m_work[0].data(), m_work[1].data() };
-            // TODO: compensate the latency of effects that report some
+            // Ignores how many samples to discard for the effects' latency: the output stays delayed by
+            // m_latency, which the graph compensates.
             m_context.effects->Process(group, buffers, m_scratch.scratch(), m_scratch.dummy(), numChannels, frames);
         }
 
@@ -182,15 +278,17 @@ public:
 
         if (const auto& meter = m_context.meter) {
             const auto trackId = au::audio::IAudioMeter::TrackId { m_trackId };
+            // This output is heard after the latency it is delayed by downstream
+            const auto dacTime = m_context.dacTime + toDuration(m_context.latency - m_latency, m_sampleRate);
             if (sequenceChannels > 1) {
                 for (int ch = 0; ch < numChannels; ++ch) {
-                    meter->push(ch, { channelPointer(output, ch), frames, 1, m_context.dacTime }, trackId);
+                    meter->push(ch, { channelPointer(output, ch), frames, 1, dacTime }, trackId);
                 }
             } else {
                 for (size_t i = 0; i < frames; ++i) {
                     m_meterBuffer[i] = m_work[0][i] * maxVolume;
                 }
-                meter->push(0, { m_meterBuffer.data(), frames, 1, m_context.dacTime }, trackId);
+                meter->push(0, { m_meterBuffer.data(), frames, 1, dacTime }, trackId);
             }
         }
     }
@@ -203,6 +301,7 @@ private:
     const AudacityProject& m_project;
     const double m_mixerStartTime;
     const double m_mixerEndTime;
+    const int m_latency;
     const size_t m_nodeId;
     int64_t m_trackId = -1;
 
@@ -218,8 +317,8 @@ private:
 class MasterNode final : public Node
 {
 public:
-    MasterNode(std::unique_ptr<Node> input, const RenderContext& context, size_t nodeId)
-        : m_input{std::move(input)}, m_context{context}, m_nodeId{nodeId}
+    MasterNode(std::unique_ptr<Node> input, const RenderContext& context, int latency, size_t nodeId)
+        : m_input{std::move(input)}, m_context{context}, m_latency{latency}, m_nodeId{nodeId}
     {
     }
 
@@ -228,6 +327,7 @@ public:
         NodeProperties props;
         props.hasAudio = true;
         props.numberOfChannels = numChannels;
+        props.latencyNumSamples = m_input->getNodeProperties().latencyNumSamples + m_latency;
         props.nodeID = m_nodeId;
         return props;
     }
@@ -246,7 +346,7 @@ public:
         copy(pc.buffers.audio, m_input->getProcessedOutput().audio);
         if (m_context.effects) {
             float* buffers[numChannels] { channelPointer(pc.buffers.audio, 0), channelPointer(pc.buffers.audio, 1) };
-            // TODO: compensate the latency of effects that report some
+            // As for the sequences, the output stays delayed by m_latency
             m_context.effects->Process(RealtimeEffectManager::MasterGroup, buffers, m_scratch.scratch(), m_scratch.dummy(),
                                        numChannels, pc.numSamples);
         }
@@ -255,6 +355,7 @@ public:
 private:
     const std::unique_ptr<Node> m_input;
     const RenderContext& m_context;
+    const int m_latency;
     const size_t m_nodeId;
     EffectScratch m_scratch;
 };
@@ -314,15 +415,35 @@ public:
             }
         }
 
+        // TODO: rebuild the graph when the latency changes during the stream
         size_t nodeId = 1;
         std::vector<std::unique_ptr<Node> > sequenceNodes;
         for (size_t i = 0; i < m_sequences.size(); ++i) {
-            sequenceNodes.push_back(std::make_unique<SequenceNode>(m_sequences[i], sequences.playbackGraphs[i], m_playHead, m_context,
-                                                                   project, mixerStartTime, mixerEndTime, nodeId++));
+            const auto& sequence = m_sequences[i];
+            const auto group = sequence->FindChannelGroup();
+            const auto latency = group ? effectsLatency(project, group, m_sampleRate) : 0;
+            sequenceNodes.push_back(std::make_unique<SequenceNode>(sequence, sequences.playbackGraphs[i], m_playHead, m_context,
+                                                                   project, mixerStartTime, mixerEndTime, latency, nodeId++));
         }
-        auto master = std::make_unique<MasterNode>(std::make_unique<SummingNode>(std::move(sequenceNodes)), m_context, nodeId++);
+        auto master = std::make_unique<MasterNode>(std::make_unique<SummingNode>(std::move(sequenceNodes)), m_context,
+                                                   effectsLatency(project, RealtimeEffectManager::MasterGroup, m_sampleRate),
+                                                   nodeId++);
+        auto& root = *master;
         m_player = std::make_unique<NodePlayer>(std::move(master), &m_playHeadState);
         m_player->prepareToPlay(m_sampleRate, m_blockSize);
+        m_context.latency = std::max(0, root.getNodeProperties().latencyNumSamples);
+        m_pendingFrames.reset();
+    }
+
+    //! Processes the graph for its latency, so that the device hears the start of the play range first.
+    //! Call after setPlayRange() and before start().
+    void preRoll()
+    {
+        for (int64_t remaining = m_context.latency; remaining > 0;) {
+            const auto frames = static_cast<int>(std::min<int64_t>(remaining, m_blockSize));
+            processChunk(nullptr, 0, 0, frames, Clock::now(), true);
+            remaining -= frames;
+        }
     }
 
     //! Plays from `startTime` to `endTime`, or loops `loopRange` if given, rolling into it if `startTime` is left of it.
@@ -441,22 +562,31 @@ private:
         return { start, std::max(start + 1, toSamples(loopRange.second)) };
     }
 
-    void processChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime)
+    //! With `preRoll`, only feeds the graph: nothing is output, metered or reported as played
+    void processChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime,
+                      bool preRoll = false)
     {
         const juce::Range<int64_t> referenceRange { m_referencePosition, m_referencePosition + frames };
         m_playHead.setReferenceSampleRange(referenceRange);
         const auto timeline = referenceSampleRangeToSplitTimelineRange(m_playHead, referenceRange);
 
-        // Stop at the end, unless looping
-        int playedFrames = frames;
-        if (!m_playHead.isLooping()) {
+        // What the graph is fed now, heard after its latency. Unless looping, play stops at the end.
+        if (m_playHead.isLooping()) {
+            m_context.endPosition.reset();
+            // The block wraps around the loop more than once if the loop is shorter
+            const auto linearStart = m_playHead.referenceSampleRangeToSourceRangeUnlooped(referenceRange).getStart();
+            for (int64_t done = 0; done < frames;) {
+                const auto [start, length] = playHeadSegment(m_playHead, linearStart + done, frames - done);
+                m_pendingFrames.push({ start, length });
+                done += length;
+            }
+        } else {
             const auto end = m_endPosition.load();
             const auto start = timeline.timelineRange1.getStart();
-            if (start >= end) {
-                m_finished = true;
-                return;
-            }
-            playedFrames = static_cast<int>(std::min<int64_t>(frames, end - start));
+            const auto inRange = std::clamp<int64_t>(end - start, 0, frames);
+            m_context.endPosition = end;
+            m_pendingFrames.push({ start, inRange });
+            m_pendingFrames.push({ 0, frames - inRange, false });
         }
 
         m_context.hasSoloingSequence = std::any_of(m_sequences.begin(), m_sequences.end(),
@@ -473,11 +603,22 @@ private:
         m_midi.clear();
         m_player->process({ static_cast<choc::buffer::FrameCount>(frames), referenceRange, { view, m_midi } });
         m_context.effects = nullptr;
-
-        if (playedFrames < frames) {
-            view.getFrameRange({ static_cast<choc::buffer::FrameCount>(playedFrames),
-                                 static_cast<choc::buffer::FrameCount>(frames) }).clear();
+        m_referencePosition += frames;
+        if (preRoll) {
+            return;
         }
+
+        // What comes out now: report it as played, or silence it past the end
+        bool finished = false;
+        m_pendingFrames.pop(frames, [&](const PendingFrames::Range& range, int64_t rangeOffset) {
+            if (range.valid) {
+                m_engine.m_playedRanges.Put({ toTime(range.start), static_cast<unsigned long>(range.frames) });
+            } else {
+                view.getFrameRange({ static_cast<choc::buffer::FrameCount>(rangeOffset),
+                                     static_cast<choc::buffer::FrameCount>(rangeOffset + range.frames) }).clear();
+                finished = true;
+            }
+        });
 
         if (const auto& meter = m_context.meter) {
             // The meter shows the mix before the playback volume
@@ -506,17 +647,7 @@ private:
             }
         }
 
-        // What was played, for the play head position seen by the main thread. The block wraps around the loop more
-        // than once if the loop is shorter.
-        const auto linearStart = m_playHead.referenceSampleRangeToSourceRangeUnlooped(referenceRange).getStart();
-        for (int64_t done = 0; done < playedFrames;) {
-            const auto [start, length] = playHeadSegment(m_playHead, linearStart + done, playedFrames - done);
-            m_engine.m_playedRanges.Put({ toTime(start), static_cast<unsigned long>(length) });
-            done += length;
-        }
-
-        m_referencePosition += frames;
-        if (playedFrames < frames) {
+        if (finished) {
             m_finished = true;
         }
     }
@@ -538,8 +669,9 @@ private:
     std::atomic<bool> m_paused { false };
     std::atomic<bool> m_finished { false };
 
-    // Audio thread only
+    // Audio thread only, once started
     int64_t m_referencePosition = 0;
+    PendingFrames m_pendingFrames;
     choc::buffer::ChannelArrayBuffer<float> m_buffer;
     tracktion_engine::MidiMessageArray m_midi;
     std::vector<float> m_interleaved;
@@ -658,6 +790,7 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
         loopRange.emplace(startTime, endTime);
     }
     stream->setPlayRange(playStartTime, endTime, loopRange);
+    stream->preRoll();
 
     m_callbackInfoQueue.Clear();
     m_playedRanges.Clear();
