@@ -46,9 +46,11 @@ void Au3AudioModule::registerExports()
     m_audioDriverController->setAudioEngine(m_audioEngine);
 
 #ifdef AU_USE_TRACKTION
-    m_tracktionAudioEngine = std::make_shared<TracktionAudioEngine>();
-    m_tracktionDriverController = std::make_shared<AudioDriverController>(std::make_unique<JuceAudioDevices>(), "TracktionAudio");
+    const auto juceDevices = std::make_shared<JuceAudioDevices>();
+    m_tracktionAudioEngine = std::make_shared<TracktionAudioEngine>(juceDevices);
+    m_tracktionDriverController = std::make_shared<AudioDriverController>(juceDevices, "TracktionAudio");
     m_tracktionDriverController->setAudioEngine(m_tracktionAudioEngine);
+    m_tracktionAudioEngine->setDriverController(m_tracktionDriverController.get());
 #endif
 
 #if defined(Q_OS_MAC)

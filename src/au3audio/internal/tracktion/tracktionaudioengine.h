@@ -3,14 +3,31 @@
 */
 #pragma once
 
+#include <atomic>
+#include <map>
+#include <memory>
+
+#include "audio/driver/iaudiodrivercontroller.h"
 #include "audio/iaudioengine.h"
 
+#include "au3-utility/LockFreeQueue.h"
+#include "au3-utility/Observer.h"
+
 namespace au::au3audio {
-//! The audio engine of the Tracktion backend.
-//! TODO: so far a placeholder that never starts a stream.
+class JuceAudioDevices;
+
+//! The audio engine of the Tracktion backend: a tracktion_graph with one node per playback
+//! sequence, pulled synchronously by the callback of a JUCE audio device.
+//! So far playback only: it refuses to record or monitor.
 class TracktionAudioEngine final : public audio::IAudioEngine
 {
 public:
+    TracktionAudioEngine(std::shared_ptr<JuceAudioDevices> devices);
+    ~TracktionAudioEngine() override;
+
+    //! The controller whose configuration selects the device; must outlive this.
+    void setDriverController(const audio::IAudioDriverController* driverController);
+
     bool isBusy() const override;
     bool isCapturing() const override;
     bool isMonitoring() const override;
@@ -59,9 +76,40 @@ public:
     muse::async::Notification streamStopped() const override;
     muse::async::Channel<au3::Au3TrackId, au3::Au3ClipId> recordingClipChanged() const override;
 
+    //! What the device callback has played, for transportTime(): from `time`, `frames` contiguous frames
+    struct PlayedRange {
+        double time = 0.0;
+        unsigned long frames = 0;
+    };
+
 private:
+    class Stream;
+
+    void onPlayRegionChanged();
+
+    const std::shared_ptr<JuceAudioDevices> m_devices;
+    const audio::IAudioDriverController* m_driverController = nullptr;
+
+    std::unique_ptr<Stream> m_stream;
+    int m_nextStreamToken = 1;
+    double m_lastSampleRate = 0.0;
+    muse::String m_lastError;
+
+    std::atomic<float> m_playbackVolume { 1.f };
     float m_inputVolume = 1.f;
-    float m_playbackVolume = 1.f;
+
+    std::map<const AudacityProject*, audio::IAudioMeterPtr> m_playbackMeters;
+    std::map<const AudacityProject*, audio::IAudioMeterPtr> m_captureMeters;
+
+    // Filled by the device callback, consumed by the main thread
+    LockFreeQueue<audio::AudioCallbackInfo> m_callbackInfoQueue { 512 };
+    LockFreeQueue<PlayedRange> m_playedRanges { 1024 };
+    // Main thread state of the consumption of m_playedRanges
+    PlayedRange m_currentPlayedRange;
+    unsigned long m_consumedInCurrentRange = 0;
+    double m_transportTime = 0.0;
+
+    Observer::Subscription m_playRegionSubscription;
 
     muse::async::Notification m_recordingUpdateRequested;
     muse::async::Notification m_recordingNewBlocks;

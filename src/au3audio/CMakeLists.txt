@@ -92,14 +92,25 @@ if (AU_USE_TRACKTION)
     set(MODULE_SRC ${MODULE_SRC}
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.h
     )
     # JUCE headers clash with the `using namespace muse` of other unity-combined sources
-    set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.cpp
+    set_source_files_properties(
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.cpp
         PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
     )
-    set(MODULE_LINK ${MODULE_LINK} juce_tracktion)
+    set(MODULE_LINK ${MODULE_LINK}
+        juce_tracktion
+        au3-mixer
+        au3-project
+        au3-realtime-effects
+        au3-wave-track
+    )
     set(MODULE_DEF ${MODULE_DEF} AU_USE_TRACKTION)
 endif()
 
