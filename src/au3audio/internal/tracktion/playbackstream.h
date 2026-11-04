@@ -24,9 +24,10 @@
 class AudacityProject;
 
 namespace au::au3audio {
+class RecordingCapture;
 class SequenceNode;
 
-//! A playback stream: the device, the graph it pulls, and the play head
+//! A stream: the device, the graph it pulls, and the play head, and what it records if it does
 class PlaybackStream final : public juce::AudioIODeviceCallback
 {
 public:
@@ -40,7 +41,11 @@ public:
     int64_t toSamples(double time) const { return static_cast<int64_t>(std::llround(time * m_sampleRate)); }
     double toTime(int64_t samples) const { return samples / m_sampleRate; }
 
-    void build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter);
+    //! @param leadInEndTime where the lead-in sequences stop playing, if recording with a lead-in
+    void build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter, std::optional<double> leadInEndTime);
+    //! Records the input; call before start()
+    void setCapture(std::unique_ptr<RecordingCapture> capture);
+    const RecordingCapture* capture() const { return m_capture.get(); }
 
     //! Processes the graph for its latency, so that the device hears the start of the play range first.
     //! Call after setPlayRange() and before start().
@@ -64,8 +69,8 @@ public:
     RealtimeEffects::InitializationScope* effectsInitialization();
 
     // juce::AudioIODeviceCallback
-    void audioDeviceIOCallbackWithContext(const float* const*, int, float* const* outputChannelData, int numOutputChannels, int numSamples,
-                                          const juce::AudioIODeviceCallbackContext&) override;
+    void audioDeviceIOCallbackWithContext(const float* const* inputChannelData, int numInputChannels, float* const* outputChannelData,
+                                          int numOutputChannels, int numSamples, const juce::AudioIODeviceCallbackContext&) override;
     void audioDeviceAboutToStart(juce::AudioIODevice*) override {}
     void audioDeviceStopped() override {}
     void audioDeviceError(const juce::String& errorMessage) override;
@@ -103,6 +108,7 @@ private:
     RenderContext m_context;
     ConstPlayableSequences m_sequences;
     std::optional<RealtimeEffects::InitializationScope> m_effectsInitialization;
+    std::unique_ptr<RecordingCapture> m_capture;
 
     std::atomic<int64_t> m_endPosition { 0 };
     std::atomic<bool> m_paused { false };

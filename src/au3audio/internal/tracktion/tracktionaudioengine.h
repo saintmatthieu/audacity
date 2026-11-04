@@ -16,6 +16,7 @@
 #include "au3-utility/LockFreeQueue.h"
 #include "au3-utility/Observer.h"
 
+#include "../au3audioiolistener.h"
 #include "playedrange.h"
 
 namespace juce {
@@ -29,7 +30,7 @@ class PlaybackStream;
 
 //! The audio engine of the Tracktion backend: a tracktion_graph with one node per playback
 //! sequence, pulled synchronously by the callback of a JUCE audio device.
-//! So far it plays back and monitors the input, but refuses to record.
+//! It also records, and monitors the input.
 class TracktionAudioEngine final : public audio::IAudioEngine
 {
     muse::GlobalInject<record::IRecordConfiguration> recordConfiguration;
@@ -119,11 +120,8 @@ private:
 
     Observer::Subscription m_playRegionSubscription;
 
-    muse::async::Notification m_recordingUpdateRequested;
-    muse::async::Notification m_recordingNewBlocks;
-    muse::async::Notification m_recordingCommitRequested;
-    muse::async::Notification m_recordingFinished;
+    //! Notified of recordings, as AudioIO notifies its listener
+    const std::shared_ptr<Au3AudioIOListener> m_listener = std::make_shared<Au3AudioIOListener>();
     muse::async::Notification m_streamStopped;
-    muse::async::Channel<au3::Au3TrackId, au3::Au3ClipId> m_recordingClipChanged;
 };
 }

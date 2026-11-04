@@ -10,6 +10,7 @@
 #include "framework/global/log.h"
 
 #include "au3-project/Project.h"
+#include "au3-preferences/Prefs.h"
 #include "au3-project-rate/ProjectRate.h"
 #include "au3-realtime-effects/RealtimeEffectManager.h"
 #include "au3-time-frequency-selection/ViewInfo.h"
@@ -19,11 +20,14 @@
 
 #include "juceaudiodevices.h"
 #include "monitoringstream.h"
+#include "recordingcapture.h"
 #include "playbackstream.h"
 
 using namespace au::au3audio;
 
 namespace {
+//! Where a stream that plays or records until stopped ends
+constexpr double maxStreamTime = 1e7;
 //! How far right of the loop region the play head may be for loop play to still capture it (as in DefaultPlaybackPolicy)
 constexpr double loopCaptureAllowance = 0.5;
 
@@ -73,7 +77,8 @@ bool TracktionAudioEngine::isBusy() const
 
 bool TracktionAudioEngine::isCapturing() const
 {
-    return false;
+    // As AudioIO, once past the lead-in
+    return m_stream && !m_stream->isFinished() && m_stream->capture() && m_stream->capture()->isCapturing(m_stream->position());
 }
 
 bool TracktionAudioEngine::isMonitoring() const
@@ -89,7 +94,8 @@ std::optional<au::audio::AudioStreamDescriptor> TracktionAudioEngine::currentStr
     if (!m_stream) {
         return std::nullopt;
     }
-    return audio::AudioStreamDescriptor { audio::AudioStreamKind::Playback, &m_stream->project, m_stream->sampleRate() };
+    const auto kind = m_stream->capture() ? audio::AudioStreamKind::Recording : audio::AudioStreamKind::Playback;
+    return audio::AudioStreamDescriptor { kind, &m_stream->project, m_stream->sampleRate() };
 }
 
 bool TracktionAudioEngine::isStreamActive(AudacityProject& project) const
@@ -108,11 +114,8 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
     if (m_stream) {
         return 0;
     }
-    if (!sequences.captureSequences.empty()) {
-        m_lastError = u"The Tracktion audio engine cannot record yet";
-        return 0;
-    }
-    if (sequences.playbackSequences.empty()) {
+    const bool recording = !sequences.captureSequences.empty();
+    if (sequences.playbackSequences.empty() && !recording) {
         m_lastError = u"Nothing to play";
         return 0;
     }
@@ -122,11 +125,45 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
                                     [](const auto& graph) { return graph != nullptr; })) {
         return 0;
     }
+    IF_ASSERT_FAILED(m_driverController) {
+        return 0;
+    }
     // As AudioIO, playing stops monitoring
     stopMonitoring();
-    auto device = openDevice(0, numChannels, options.sampleRate);
+    const auto configuration = m_driverController->configuration();
+    auto device = openDevice(recording ? configuration.inputChannels : 0, numChannels, options.sampleRate);
     if (!device) {
         return 0;
+    }
+
+    // As AudioIO, recording plays from before where it starts by the lead-in, and to after where it ends by the latency
+    // it compensates
+    std::optional<RecordingCapture::Settings> capture;
+    double rangeStart = startTime;
+    double rangeEnd = endTime;
+    if (recording) {
+        RecordingCapture::Settings settings;
+        settings.sequences = sequences.captureSequences;
+        settings.startTime = startTime;
+        settings.endTime = endTime;
+        settings.leadInTime = std::max(0.0, std::min(startTime, options.leadInTime));
+        const auto rate = device->getCurrentSampleRate();
+        settings.latencyCompensation = configuration.automaticLatencyCompensation
+                                       ? -(device->getInputLatencyInSamples() + device->getOutputLatencyInSamples()) / rate
+                                       : configuration.latencyCompensation / 1000.0;
+        settings.crossfadeData = options.crossfadeData;
+        settings.detectDropouts = gPrefs->Read(WarningDialogKey(wxT("DropoutDetected")), true) != 0;
+        settings.numInputChannels = device->getActiveInputChannels().countNumberOfSetBits();
+        settings.deviceRate = rate;
+        settings.maxFrames = std::max(1, device->getCurrentBufferSizeSamples());
+        if (settings.numInputChannels == 0) {
+            m_lastError = u"The input device has no channels";
+            return 0;
+        }
+        rangeStart = startTime - settings.leadInTime;
+        // Recording until stopped ends very far away
+        rangeEnd = std::min(endTime - settings.latencyCompensation, maxStreamTime);
+        capture = std::move(settings);
     }
 
     // As AudioIO: the default policy plays from the play region start, and loops it if it is active
@@ -135,7 +172,7 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
     if (!streamStartTime && options.isDefaultPolicy) {
         streamStartTime = std::max(0.0, playRegion.GetStart());
     }
-    const double playStartTime = streamStartTime.value_or(startTime);
+    const double playStartTime = streamStartTime.value_or(rangeStart);
 
     auto stream = std::make_unique<PlaybackStream>(project, m_nextStreamToken, std::move(device), options.isDefaultPolicy,
                                                    m_callbackInfoQueue, m_playedRanges, m_playbackVolume);
@@ -143,14 +180,24 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
     const auto meter = muse::value(m_playbackMeters, &project);
     // Sequences are read as far as the play head goes, which is past the end of the play range only if loop play is turned
     // off while playing: then to the end of the tracks
-    stream->build(sequences, meter);
+    stream->build(sequences, meter, recording ? std::optional<double> { startTime } : std::nullopt);
+    if (capture) {
+        auto recordingCapture = std::make_unique<RecordingCapture>(project, std::move(*capture), m_listener, muse::value(m_captureMeters, &project),
+                                                                   m_inputVolume, recordConfiguration()->isInputMonitoringOn(),
+                                                                   [this] { stopTransport(); });
+        if (!recordingCapture->start()) {
+            m_lastError = u"Cannot allocate the recording buffers";
+            return 0;
+        }
+        stream->setCapture(std::move(recordingCapture));
+    }
 
     std::optional<std::pair<double, double> > loopRange;
     if (options.isDefaultPolicy && playRegion.Active() && startTime < endTime
         && playStartTime <= endTime + loopCaptureAllowance) {
         loopRange.emplace(startTime, endTime);
     }
-    stream->setPlayRange(playStartTime, endTime, loopRange);
+    stream->setPlayRange(playStartTime, rangeEnd, loopRange);
     stream->preRoll();
 
     m_callbackInfoQueue.Clear();
@@ -166,7 +213,7 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
     }
     m_stream->start();
 
-    LOGI() << "Tracktion engine playing at " << m_lastSampleRate << " Hz";
+    LOGI() << "Tracktion engine " << (recording ? "recording" : "playing") << " at " << m_lastSampleRate << " Hz";
     return m_nextStreamToken++;
 }
 
@@ -391,22 +438,22 @@ std::optional<au::audio::AudioCallbackInfo> TracktionAudioEngine::consumeNextCal
 
 muse::async::Notification TracktionAudioEngine::recordingUpdateRequested() const
 {
-    return m_recordingUpdateRequested;
+    return m_listener->recordingUpdateRequested();
 }
 
 muse::async::Notification TracktionAudioEngine::recordingNewBlocks() const
 {
-    return m_recordingNewBlocks;
+    return m_listener->recordingNewBlocks();
 }
 
 muse::async::Notification TracktionAudioEngine::recordingCommitRequested() const
 {
-    return m_recordingCommitRequested;
+    return m_listener->recordingCommitRequested();
 }
 
 muse::async::Notification TracktionAudioEngine::recordingFinished() const
 {
-    return m_recordingFinished;
+    return m_listener->recordingFinished();
 }
 
 muse::async::Notification TracktionAudioEngine::streamStopped() const
@@ -416,5 +463,5 @@ muse::async::Notification TracktionAudioEngine::streamStopped() const
 
 muse::async::Channel<au::au3::Au3TrackId, au::au3::Au3ClipId> TracktionAudioEngine::recordingClipChanged() const
 {
-    return m_recordingClipChanged;
+    return m_listener->recordingClipChanged();
 }

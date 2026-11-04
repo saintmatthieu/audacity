@@ -40,6 +40,9 @@ public:
     //! Any thread, after the play head changed what it plays ahead of the device, e.g. a seek: what was read ahead
     //! isn't played, and the sequence is read again shortly ahead
     void invalidateReadAhead();
+    //! Before playing: the sequence is silent from timeline `position` on
+    void stopPlayingAt(int64_t position) { m_stopPosition = position; }
+
     //! Any thread: the reference sample that what was read ahead, or is being read, ends at
     int64_t readAheadEnd() const;
     //! At most how far ahead of the device the sequence is read
@@ -53,6 +56,7 @@ private:
     const int m_latency;
     const size_t m_nodeId;
     int64_t m_trackId = -1;
+    std::optional<int64_t> m_stopPosition;
 
     double m_sampleRate = 0.0;
     //! The sequence as read ahead on the worker thread, by reference sample

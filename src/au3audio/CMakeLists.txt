@@ -111,6 +111,8 @@ if (AU_USE_TRACKTION)
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadschedule.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/recordingcapture.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/recordingcapture.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/rendercontext.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/sequencenode.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/sequencenode.h

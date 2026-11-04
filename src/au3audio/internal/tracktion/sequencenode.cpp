@@ -114,8 +114,13 @@ void SequenceNode::process(tracktion::graph::Node::ProcessContext& pc)
         std::fill_n(m_work[ch].data(), frames, 0.f);
     }
 
-    // Past the end of the play range, only what is still in the effects' latency is heard
-    if (const auto end = m_context.endPosition) {
+    // Past the end of the play range, only what is still in the effects' latency is heard; past where the sequence stops,
+    // the same
+    auto end = m_context.endPosition;
+    if (m_stopPosition) {
+        end = std::min(end.value_or(*m_stopPosition), *m_stopPosition);
+    }
+    if (end) {
         const auto linearStart = m_playHead.referenceSamplePositionToTimelinePositionUnlooped(referenceStart);
         const auto audible = static_cast<size_t>(std::clamp<int64_t>(*end - linearStart, 0, frames));
         for (auto& buffer : m_work) {

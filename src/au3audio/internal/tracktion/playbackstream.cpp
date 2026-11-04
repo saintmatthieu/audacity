@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 
+#include "framework/global/containers.h"
 #include "framework/global/log.h"
 
 #include "au3-project/Project.h"
@@ -14,6 +15,7 @@
 #include "effectslatency.h"
 #include "masternode.h"
 #include "playheadsegment.h"
+#include "recordingcapture.h"
 #include "sequencenode.h"
 
 using namespace au::au3audio;
@@ -53,7 +55,7 @@ PlaybackStream::~PlaybackStream()
     stop();
 }
 
-void PlaybackStream::build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter)
+void PlaybackStream::build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter, std::optional<double> leadInEndTime)
 {
     m_sequences = sequences.playbackSequences;
     m_context.meter = meter;
@@ -75,6 +77,10 @@ void PlaybackStream::build(const TransportSequences& sequences, const audio::IAu
         const auto latency = group ? effectsLatency(project, group, m_sampleRate) : 0;
         auto node = std::make_unique<SequenceNode>(sequence, sequences.playbackGraphs[i], m_playHead, m_context, latency,
                                                    nodeId++);
+        // As AudioIO, sequences recorded into with a lead-in play only during the lead-in
+        if (leadInEndTime && muse::contains(sequences.leadInTimeSequences, sequence)) {
+            node->stopPlayingAt(toSamples(*leadInEndTime));
+        }
         m_sequenceNodes.push_back(node.get());
         sequenceNodes.push_back(std::move(node));
     }
@@ -182,12 +188,21 @@ void PlaybackStream::start()
     m_device->start(this);
 }
 
+void PlaybackStream::setCapture(std::unique_ptr<RecordingCapture> capture)
+{
+    m_capture = std::move(capture);
+}
+
 void PlaybackStream::stop()
 {
     if (m_device) {
         m_device->stop();
         m_device->close();
         m_device.reset();
+    }
+    // Once the device stopped, so that what it captured last is recorded
+    if (m_capture) {
+        m_capture->finish();
     }
     if (m_context.meter) {
         m_context.meter->stop();
@@ -203,8 +218,8 @@ RealtimeEffects::InitializationScope* PlaybackStream::effectsInitialization()
     return m_effectsInitialization ? &*m_effectsInitialization : nullptr;
 }
 
-void PlaybackStream::audioDeviceIOCallbackWithContext(const float* const*, int, float* const* outputChannelData,
-                                                      int numOutputChannels, int numSamples,
+void PlaybackStream::audioDeviceIOCallbackWithContext(const float* const* inputChannelData, int numInputChannels,
+                                                      float* const* outputChannelData, int numOutputChannels, int numSamples,
                                                       const juce::AudioIODeviceCallbackContext&)
 {
     for (int ch = 0; ch < numOutputChannels; ++ch) {
@@ -213,24 +228,37 @@ void PlaybackStream::audioDeviceIOCallbackWithContext(const float* const*, int, 
         }
     }
 
-    if (m_paused || m_finished || !m_player) {
+    if (m_finished || !m_player) {
+        return;
+    }
+    const bool paused = m_paused;
+    if (paused && !m_capture) {
         return;
     }
 
     const auto latency = std::chrono::duration_cast<Clock::duration>(
         std::chrono::duration<double>(m_device->getOutputLatencyInSamples() / m_sampleRate));
     const auto dacTime = Clock::now() + latency;
+    // The input of the channels the capture records, if the device gives them
+    const auto input = m_capture && numInputChannels >= m_capture->numInputChannels() ? inputChannelData : nullptr;
 
     int done = 0;
     while (done < numSamples && !m_finished) {
         const int frames = std::min(numSamples - done, m_blockSize);
         const auto chunkDacTime = dacTime + std::chrono::duration_cast<Clock::duration>(
             std::chrono::duration<double>(done / m_sampleRate));
-        processChunk(outputChannelData, numOutputChannels, done, frames, chunkDacTime);
+        if (!paused) {
+            processChunk(outputChannelData, numOutputChannels, done, frames, chunkDacTime);
+        }
+        if (input) {
+            m_capture->process(input, outputChannelData, numOutputChannels, done, frames, position(), chunkDacTime, paused);
+        }
         done += frames;
     }
 
-    m_callbackInfos.Put({ dacTime, numSamples });
+    if (!paused) {
+        m_callbackInfos.Put({ dacTime, numSamples });
+    }
 }
 
 void PlaybackStream::audioDeviceError(const juce::String& errorMessage)

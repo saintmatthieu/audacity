@@ -29,7 +29,13 @@ void MasterNode::prepareToPlay(const tracktion::graph::PlaybackInitialisationInf
 
 void MasterNode::process(tracktion::graph::Node::ProcessContext& pc)
 {
-    choc::buffer::copy(pc.buffers.audio, m_input->getProcessedOutput().audio);
+    const auto input = m_input->getProcessedOutput().audio;
+    if (input.getNumChannels() == pc.buffers.audio.getNumChannels()) {
+        choc::buffer::copy(pc.buffers.audio, input);
+    } else {
+        // Nothing plays, e.g. while recording the first track
+        pc.buffers.audio.clear();
+    }
     if (m_context.effects) {
         float* buffers[numChannels] { channelPointer(pc.buffers.audio, 0), channelPointer(pc.buffers.audio, 1) };
         // As for the sequences, the output stays delayed by m_latency
