@@ -24,6 +24,8 @@
 class AudacityProject;
 
 namespace au::au3audio {
+class SequenceNode;
+
 //! A playback stream: the device, the graph it pulls, and the play head
 class PlaybackStream final : public juce::AudioIODeviceCallback
 {
@@ -38,20 +40,21 @@ public:
     int64_t toSamples(double time) const { return static_cast<int64_t>(std::llround(time * m_sampleRate)); }
     double toTime(int64_t samples) const { return samples / m_sampleRate; }
 
-    void build(const TransportSequences& sequences, double mixerStartTime, double mixerEndTime, const audio::IAudioMeterPtr& meter);
+    void build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter);
 
     //! Processes the graph for its latency, so that the device hears the start of the play range first.
     //! Call after setPlayRange() and before start().
     void preRoll();
 
     //! Plays from `startTime` to `endTime`, or loops `loopRange` if given, rolling into it if `startTime` is left of it.
+    //! Then starts reading the sequences ahead.
     void setPlayRange(double startTime, double endTime, std::optional<std::pair<double, double> > loopRange);
 
     //! Main thread, while playing: the play region changed
     void updateLoop(std::optional<std::pair<double, double> > loopRange, double endTime);
 
     double position() const { return toTime(m_playHead.getPosition()); }
-    void seek(double time) { m_playHead.setPosition(toSamples(time)); }
+    void seek(double time);
     void setPaused(bool paused) { m_paused = paused; }
     bool isFinished() const { return m_finished; }
 
@@ -76,6 +79,9 @@ public:
 private:
     //! At least a sample long, to be played as a loop
     juce::Range<int64_t> toLoopRange(const std::pair<double, double>& loopRange) const;
+    //! What of the timeline the device plays from `from` to `end`, segment by segment
+    std::vector<std::pair<int64_t, int64_t> > segments(int64_t from, int64_t end) const;
+    void invalidateReadAhead();
 
     //! With `preRoll`, only feeds the graph: nothing is output, metered or reported as played
     void processChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime, bool preRoll = false);
@@ -92,6 +98,8 @@ private:
     tracktion::graph::PlayHead m_playHead;
     tracktion::graph::PlayHeadState m_playHeadState { m_playHead };
     std::unique_ptr<tracktion::graph::NodePlayer> m_player;
+    //! Owned by m_player
+    std::vector<SequenceNode*> m_sequenceNodes;
     RenderContext m_context;
     ConstPlayableSequences m_sequences;
     std::optional<RealtimeEffects::InitializationScope> m_effectsInitialization;
@@ -100,8 +108,10 @@ private:
     std::atomic<bool> m_paused { false };
     std::atomic<bool> m_finished { false };
 
+    //! The reference sample the device is at; written by the audio thread once started, read by the main thread
+    std::atomic<int64_t> m_referencePosition { 0 };
+
     // Audio thread only, once started
-    int64_t m_referencePosition = 0;
     PendingFrames m_pendingFrames;
     choc::buffer::ChannelArrayBuffer<float> m_buffer;
     tracktion_engine::MidiMessageArray m_midi;

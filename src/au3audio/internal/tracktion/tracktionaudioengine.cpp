@@ -90,7 +90,7 @@ double TracktionAudioEngine::transportTime() const
 }
 
 int TracktionAudioEngine::startTransport(const TransportSequences& sequences, double startTime, double endTime,
-                                         double mixerEndTime, AudacityProject& project, const StartTransportOptions& options)
+                                         double /*mixerEndTime*/, AudacityProject& project, const StartTransportOptions& options)
 {
     if (m_stream) {
         return 0;
@@ -142,15 +142,14 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
         streamStartTime = std::max(0.0, playRegion.GetStart());
     }
     const double playStartTime = streamStartTime.value_or(startTime);
-    const double mixerStartTime = std::min(startTime, playStartTime);
 
     auto stream = std::make_unique<PlaybackStream>(project, m_nextStreamToken, std::move(device), options.isDefaultPolicy,
                                                    m_callbackInfoQueue, m_playedRanges, m_playbackVolume);
     stream->trackEndTime = TrackList::Get(project).GetEndTime();
     const auto meter = muse::value(m_playbackMeters, &project);
-    // Loop play may be turned off while playing, and then plays on to the end of the tracks
-    const double streamMixerEndTime = options.isDefaultPolicy ? std::max(mixerEndTime, stream->trackEndTime) : mixerEndTime;
-    stream->build(sequences, mixerStartTime, streamMixerEndTime, meter);
+    // Sequences are read as far as the play head goes, which is past the end of the play range only if loop play is turned
+    // off while playing: then to the end of the tracks
+    stream->build(sequences, meter);
 
     std::optional<std::pair<double, double> > loopRange;
     if (options.isDefaultPolicy && playRegion.Active() && startTime < endTime

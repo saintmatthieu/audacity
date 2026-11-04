@@ -103,6 +103,8 @@ if (AU_USE_TRACKTION)
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playbackstream.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playbackstream.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playedrange.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadschedule.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadschedule.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/rendercontext.h
@@ -117,6 +119,7 @@ if (AU_USE_TRACKTION)
     set_source_files_properties(${TRACKTION_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
     set(MODULE_LINK ${MODULE_LINK}
         juce_tracktion
+        au3-clip-processing
         au3-mixer
         au3-project
         au3-realtime-effects

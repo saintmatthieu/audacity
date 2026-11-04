@@ -18,6 +18,24 @@
 
 using namespace au::au3audio;
 
+namespace {
+using Segments = std::vector<std::pair<int64_t, int64_t> >;
+
+//! The segments that start at `from`, cut at `end`
+Segments cut(const Segments& segments, int64_t from, int64_t end)
+{
+    Segments result;
+    for (const auto& [position, length] : segments) {
+        if (from >= end) {
+            break;
+        }
+        result.push_back({ position, std::min(length, end - from) });
+        from += length;
+    }
+    return result;
+}
+}
+
 PlaybackStream::PlaybackStream(AudacityProject& project, int token, std::unique_ptr<juce::AudioIODevice> device,
                                bool followsPlayRegion, LockFreeQueue<audio::AudioCallbackInfo>& callbackInfos,
                                LockFreeQueue<PlayedRange>& playedRanges, const std::atomic<float>& playbackVolume)
@@ -35,8 +53,7 @@ PlaybackStream::~PlaybackStream()
     stop();
 }
 
-void PlaybackStream::build(const TransportSequences& sequences, double mixerStartTime, double mixerEndTime,
-                           const audio::IAudioMeterPtr& meter)
+void PlaybackStream::build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter)
 {
     m_sequences = sequences.playbackSequences;
     m_context.meter = meter;
@@ -56,8 +73,10 @@ void PlaybackStream::build(const TransportSequences& sequences, double mixerStar
         const auto& sequence = m_sequences[i];
         const auto group = sequence->FindChannelGroup();
         const auto latency = group ? effectsLatency(project, group, m_sampleRate) : 0;
-        sequenceNodes.push_back(std::make_unique<SequenceNode>(sequence, sequences.playbackGraphs[i], m_playHead, m_context,
-                                                               project, mixerStartTime, mixerEndTime, latency, nodeId++));
+        auto node = std::make_unique<SequenceNode>(sequence, sequences.playbackGraphs[i], m_playHead, m_context, latency,
+                                                   nodeId++);
+        m_sequenceNodes.push_back(node.get());
+        sequenceNodes.push_back(std::move(node));
     }
     auto master = std::make_unique<MasterNode>(std::make_unique<tracktion::graph::SummingNode>(std::move(sequenceNodes)), m_context,
                                                effectsLatency(project, RealtimeEffectManager::MasterGroup, m_sampleRate),
@@ -95,15 +114,57 @@ void PlaybackStream::setPlayRange(double startTime, double endTime, std::optiona
     } else {
         m_playHead.play({ start, std::max(start, m_endPosition.load()) }, false);
     }
+    for (const auto node : m_sequenceNodes) {
+        node->startReading();
+    }
+}
+
+void PlaybackStream::seek(double time)
+{
+    m_playHead.setPosition(toSamples(time));
+    invalidateReadAhead();
 }
 
 void PlaybackStream::updateLoop(std::optional<std::pair<double, double> > loopRange, double endTime)
 {
+    // From where the device is, further than the sequences may have been read ahead
+    const auto from = m_referencePosition.load(std::memory_order_relaxed);
+    const auto horizon = from + toSamples(SequenceNode::maxReadAheadDuration());
+    const auto before = segments(from, horizon);
     if (loopRange) {
         m_playHead.setLoopRange(true, toLoopRange(*loopRange), true);
     } else {
         m_endPosition = toSamples(endTime);
         m_playHead.setLoopRange(false, m_playHead.getLoopRange(), true);
+    }
+    // Only if what was read ahead changes: e.g. not when the end of the loop moves while still far ahead. Loaded after
+    // the change, what was read before it is included.
+    int64_t readEnd = 0;
+    for (const auto node : m_sequenceNodes) {
+        readEnd = std::max(readEnd, node->readAheadEnd());
+    }
+    const auto end = std::min(readEnd, horizon);
+    if (cut(segments(from, horizon), from, end) != cut(before, from, end)) {
+        invalidateReadAhead();
+    }
+}
+
+std::vector<std::pair<int64_t, int64_t> > PlaybackStream::segments(int64_t from, int64_t end) const
+{
+    std::vector<std::pair<int64_t, int64_t> > segments;
+    for (auto index = from; index < end;) {
+        const auto linearPosition = m_playHead.referenceSamplePositionToTimelinePositionUnlooped(index);
+        segments.push_back(playHeadSegment(m_playHead, linearPosition, end - index));
+        index += segments.back().second;
+    }
+    return segments;
+}
+
+void PlaybackStream::invalidateReadAhead()
+{
+    // After the play head changed, so that the sequences are read again as it now says
+    for (const auto node : m_sequenceNodes) {
+        node->invalidateReadAhead();
     }
 }
 
@@ -132,6 +193,7 @@ void PlaybackStream::stop()
         m_context.meter->stop();
     }
     m_player.reset();
+    m_sequenceNodes.clear();
     // After the device stopped, so that the callback can't use them
     m_effectsInitialization.reset();
 }
@@ -179,7 +241,8 @@ void PlaybackStream::audioDeviceError(const juce::String& errorMessage)
 void PlaybackStream::processChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime,
                                   bool preRoll)
 {
-    const juce::Range<int64_t> referenceRange { m_referencePosition, m_referencePosition + frames };
+    const auto referencePosition = m_referencePosition.load(std::memory_order_relaxed);
+    const juce::Range<int64_t> referenceRange { referencePosition, referencePosition + frames };
     m_playHead.setReferenceSampleRange(referenceRange);
     const auto timeline = tracktion::graph::referenceSampleRangeToSplitTimelineRange(m_playHead, referenceRange);
 
@@ -216,7 +279,7 @@ void PlaybackStream::processChunk(float* const* output, int numOutputChannels, i
     m_midi.clear();
     m_player->process({ static_cast<choc::buffer::FrameCount>(frames), referenceRange, { view, m_midi } });
     m_context.effects = nullptr;
-    m_referencePosition += frames;
+    m_referencePosition.store(referencePosition + frames, std::memory_order_relaxed);
     if (preRoll) {
         return;
     }
