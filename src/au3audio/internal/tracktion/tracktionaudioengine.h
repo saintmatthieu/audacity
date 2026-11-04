@@ -7,23 +7,33 @@
 #include <map>
 #include <memory>
 
+#include "framework/global/modularity/ioc.h"
+
 #include "audio/driver/iaudiodrivercontroller.h"
 #include "audio/iaudioengine.h"
+#include "record/irecordconfiguration.h"
 
 #include "au3-utility/LockFreeQueue.h"
 #include "au3-utility/Observer.h"
 
 #include "playedrange.h"
 
+namespace juce {
+class AudioIODevice;
+}
+
 namespace au::au3audio {
 class JuceAudioDevices;
+class MonitoringStream;
 class PlaybackStream;
 
 //! The audio engine of the Tracktion backend: a tracktion_graph with one node per playback
 //! sequence, pulled synchronously by the callback of a JUCE audio device.
-//! So far playback only: it refuses to record or monitor.
+//! So far it plays back and monitors the input, but refuses to record.
 class TracktionAudioEngine final : public audio::IAudioEngine
 {
+    muse::GlobalInject<record::IRecordConfiguration> recordConfiguration;
+
 public:
     TracktionAudioEngine(std::shared_ptr<JuceAudioDevices> devices);
     ~TracktionAudioEngine() override;
@@ -81,17 +91,20 @@ public:
 
 private:
     void onPlayRegionChanged();
+    //! Opened with as many of the requested channels as it has, or null, with `m_lastError` set
+    std::unique_ptr<juce::AudioIODevice> openDevice(int numInputChannels, int numOutputChannels, double sampleRate);
 
     const std::shared_ptr<JuceAudioDevices> m_devices;
     const audio::IAudioDriverController* m_driverController = nullptr;
 
     std::unique_ptr<PlaybackStream> m_stream;
+    std::unique_ptr<MonitoringStream> m_monitoring;
     int m_nextStreamToken = 1;
     double m_lastSampleRate = 0.0;
     muse::String m_lastError;
 
     std::atomic<float> m_playbackVolume { 1.f };
-    float m_inputVolume = 1.f;
+    std::atomic<float> m_inputVolume { 1.f };
 
     std::map<const AudacityProject*, audio::IAudioMeterPtr> m_playbackMeters;
     std::map<const AudacityProject*, audio::IAudioMeterPtr> m_captureMeters;

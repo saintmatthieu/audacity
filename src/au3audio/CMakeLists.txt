@@ -90,6 +90,8 @@ endif()
 
 if (AU_USE_TRACKTION)
     set(TRACKTION_SRC
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/captureinput.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/captureinput.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectscratch.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectscratch.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectslatency.cpp
@@ -98,6 +100,8 @@ if (AU_USE_TRACKTION)
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/masternode.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/masternode.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/monitoringstream.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/monitoringstream.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/pendingframes.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/pendingframes.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playbackstream.cpp

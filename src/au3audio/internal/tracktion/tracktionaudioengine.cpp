@@ -10,6 +10,7 @@
 #include "framework/global/log.h"
 
 #include "au3-project/Project.h"
+#include "au3-project-rate/ProjectRate.h"
 #include "au3-realtime-effects/RealtimeEffectManager.h"
 #include "au3-time-frequency-selection/ViewInfo.h"
 #include "au3-track/Track.h"
@@ -17,6 +18,7 @@
 #include "au3wrap/internal/wxtypes_convert.h"
 
 #include "juceaudiodevices.h"
+#include "monitoringstream.h"
 #include "playbackstream.h"
 
 using namespace au::au3audio;
@@ -31,6 +33,14 @@ std::string effectiveOutputDevice(const JuceAudioDevices& devices, const au::aud
         return *configuration.outputDevice;
     }
     return devices.systemDefaultOutputDevice(configuration.api);
+}
+
+std::string effectiveInputDevice(const JuceAudioDevices& devices, const au::audio::AudioConfiguration& configuration)
+{
+    if (configuration.inputDevice && muse::contains(devices.inputDevices(configuration.api), *configuration.inputDevice)) {
+        return *configuration.inputDevice;
+    }
+    return devices.systemDefaultInputDevice(configuration.api);
 }
 
 //! The requested rate if the device supports it, else its highest
@@ -68,11 +78,14 @@ bool TracktionAudioEngine::isCapturing() const
 
 bool TracktionAudioEngine::isMonitoring() const
 {
-    return false;
+    return m_monitoring != nullptr;
 }
 
 std::optional<au::audio::AudioStreamDescriptor> TracktionAudioEngine::currentStream() const
 {
+    if (m_monitoring) {
+        return audio::AudioStreamDescriptor { audio::AudioStreamKind::Monitoring, &m_monitoring->project, m_monitoring->sampleRate() };
+    }
     if (!m_stream) {
         return std::nullopt;
     }
@@ -109,29 +122,10 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
                                     [](const auto& graph) { return graph != nullptr; })) {
         return 0;
     }
-    IF_ASSERT_FAILED(m_driverController) {
-        return 0;
-    }
-
-    const auto configuration = m_driverController->configuration();
-    const auto type = m_devices->deviceType(configuration.api);
-    if (!type) {
-        m_lastError = muse::String::fromStdString("No such audio API: " + configuration.api);
-        return 0;
-    }
-    const auto outputDevice = effectiveOutputDevice(*m_devices, configuration);
-    std::unique_ptr<juce::AudioIODevice> device { type->createDevice(juce::String(outputDevice), {}) };
+    // As AudioIO, playing stops monitoring
+    stopMonitoring();
+    auto device = openDevice(0, numChannels, options.sampleRate);
     if (!device) {
-        m_lastError = muse::String::fromStdString("Cannot create audio device " + outputDevice);
-        return 0;
-    }
-
-    juce::BigInteger outputChannels;
-    outputChannels.setRange(0, std::min(numChannels, device->getOutputChannelNames().size()), true);
-    const auto sampleRate = bestSampleRate(*device, options.sampleRate);
-    const auto error = device->open({}, outputChannels, sampleRate, device->getDefaultBufferSize());
-    if (error.isNotEmpty()) {
-        m_lastError = muse::String::fromStdString(error.toStdString());
         return 0;
     }
 
@@ -172,7 +166,7 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
     }
     m_stream->start();
 
-    LOGI() << "Tracktion engine playing at " << m_lastSampleRate << " Hz on " << outputDevice;
+    LOGI() << "Tracktion engine playing at " << m_lastSampleRate << " Hz";
     return m_nextStreamToken++;
 }
 
@@ -258,16 +252,76 @@ void TracktionAudioEngine::stopMeters(AudacityProject& project)
     }
 }
 
-void TracktionAudioEngine::startMonitoring(AudacityProject&)
+void TracktionAudioEngine::startMonitoring(AudacityProject& project)
 {
+    if (m_stream) {
+        return;
+    }
+    const bool playThrough = recordConfiguration()->isInputMonitoringOn();
+    if (m_monitoring) {
+        if (&m_monitoring->project == &project && m_monitoring->playThrough == playThrough) {
+            return;
+        }
+        stopMonitoring();
+    }
+    IF_ASSERT_FAILED(m_driverController) {
+        return;
+    }
+    // As AudioIO, at the rate of the project. With the output even if silent: with input only, JUCE's ALSA devices stall
+    // after their first callback.
+    auto device = openDevice(m_driverController->configuration().inputChannels, numChannels, ProjectRate::Get(project).GetRate());
+    if (!device) {
+        LOGE() << "cannot monitor the input: " << m_lastError;
+        return;
+    }
+    m_monitoring = std::make_unique<MonitoringStream>(project, std::move(device), playThrough, muse::value(m_captureMeters, &project),
+                                                      m_inputVolume);
+    m_monitoring->start();
 }
 
 void TracktionAudioEngine::stopMonitoring()
 {
+    if (m_monitoring) {
+        m_monitoring->stop();
+        m_monitoring.reset();
+    }
+}
+
+std::unique_ptr<juce::AudioIODevice> TracktionAudioEngine::openDevice(int numInputChannels, int numOutputChannels, double sampleRate)
+{
+    IF_ASSERT_FAILED(m_driverController) {
+        return nullptr;
+    }
+    const auto configuration = m_driverController->configuration();
+    const auto type = m_devices->deviceType(configuration.api);
+    if (!type) {
+        m_lastError = muse::String::fromStdString("No such audio API: " + configuration.api);
+        return nullptr;
+    }
+    const auto outputDevice = numOutputChannels > 0 ? effectiveOutputDevice(*m_devices, configuration) : std::string {};
+    const auto inputDevice = numInputChannels > 0 ? effectiveInputDevice(*m_devices, configuration) : std::string {};
+    std::unique_ptr<juce::AudioIODevice> device { type->createDevice(juce::String(outputDevice), juce::String(inputDevice)) };
+    if (!device) {
+        m_lastError = muse::String::fromStdString("Cannot create audio device " + outputDevice + " / " + inputDevice);
+        return nullptr;
+    }
+
+    juce::BigInteger inputChannels;
+    inputChannels.setRange(0, std::min(numInputChannels, device->getInputChannelNames().size()), true);
+    juce::BigInteger outputChannels;
+    outputChannels.setRange(0, std::min(numOutputChannels, device->getOutputChannelNames().size()), true);
+    const auto error = device->open(inputChannels, outputChannels, bestSampleRate(*device, sampleRate),
+                                    device->getDefaultBufferSize());
+    if (error.isNotEmpty()) {
+        m_lastError = muse::String::fromStdString(error.toStdString());
+        return nullptr;
+    }
+    return device;
 }
 
 void TracktionAudioEngine::setInputVolume(float newInputVolume)
 {
+    // Applied to the input, as AudioIO does where it can't set the volume of the device
     m_inputVolume = newInputVolume;
 }
 
