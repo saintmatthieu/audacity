@@ -1013,6 +1013,7 @@ int AudioIO::StartStream(const TransportSequences& sequences,
     mLastRecordingOffset = 0;
     mCaptureSequences = sequences.captureSequences;
     mPlaybackSequences = sequences.playbackSequences;
+    mPlaybackGraphs = sequences.playbackGraphs;
     mPlaybackTracks = {
         sequences.playbackSequences.begin(),
         sequences.playbackSequences.end()
@@ -1024,6 +1025,7 @@ int AudioIO::StartStream(const TransportSequences& sequences,
         if (!commit) {
             // Don't keep unnecessary shared pointers to sequences
             mPlaybackSequences.clear();
+            mPlaybackGraphs.clear();
             mPlaybackTracks.clear();
             mCaptureSequences.clear();
             for (auto& ext : Extensions()) {
@@ -1436,7 +1438,8 @@ bool AudioIO::AllocateBuffers(
                     }
 
                     Mixer::Inputs mixSequences;
-                    mixSequences.push_back(Mixer::Input { pSequence });
+                    mixSequences.push_back(Mixer::Input { pSequence, {},
+                                                          i < mPlaybackGraphs.size() ? mPlaybackGraphs[i] : nullptr });
                     mPlaybackMixers.emplace_back(std::make_unique<Mixer>(
                                                      std::move(mixSequences), std::nullopt,
                                                      // Don't throw for read errors, just play silence:
@@ -1803,6 +1806,7 @@ void AudioIO::StopStream()
     mNumPlaybackChannels = 0;
 
     mPlaybackSequences.clear();
+    mPlaybackGraphs.clear();
     mCaptureSequences.clear();
     ResetCaptureRouting();
 
