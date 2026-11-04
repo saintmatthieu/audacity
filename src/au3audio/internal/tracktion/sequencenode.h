@@ -17,7 +17,7 @@ class LockFreeQueueNode;
 class PlayableSequence;
 
 namespace au::au3audio {
-//! Renders one playback sequence: applies its realtime effects, mute/solo and volume/pan, and feeds its meter.
+//! Renders one playback sequence: applies its realtime effects, mute/solo and volume/pan, and keeps what its meter shows.
 /*!
  * The sequence is read, with its gain envelope, stretched and resampled to the device rate ahead of time on a worker
  * thread, where the device will read it as the play head says.
@@ -40,6 +40,10 @@ public:
     //! Any thread, after the play head changed what it plays ahead of the device, e.g. a seek: what was read ahead
     //! isn't played, and the sequence is read again shortly ahead
     void invalidateReadAhead();
+    //! After the graph processed a block, on the thread that processes it: sends what was rendered to the meter. Not
+    //! while rendering, which may happen on other threads at the same time as other sequences.
+    void sendToMeter();
+
     //! Before playing: the sequence is silent from timeline `position` on
     void stopPlayingAt(int64_t position) { m_stopPosition = position; }
 
@@ -63,7 +67,11 @@ private:
     std::shared_ptr<ISequenceProcessingNode> m_source;
     LockFreeQueueNode* m_queue = nullptr;
     std::vector<float> m_work[numChannels];
-    std::vector<float> m_meterBuffer;
+    //! What the meter shows of the last block rendered, one buffer per channel
+    std::vector<float> m_meterBuffers[numChannels];
+    size_t m_meterChannels = 0;
+    size_t m_meterFrames = 0;
+    audio::TimePoint m_meterTime;
     EffectScratch m_scratch;
 };
 }

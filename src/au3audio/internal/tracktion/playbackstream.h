@@ -101,8 +101,8 @@ private:
     const int m_blockSize;
 
     tracktion::graph::PlayHead m_playHead;
-    tracktion::graph::PlayHeadState m_playHeadState { m_playHead };
-    std::unique_ptr<tracktion::graph::NodePlayer> m_player;
+    //! Processes the sequences on a pool of threads, in step with the device
+    std::unique_ptr<tracktion::graph::LockFreeMultiThreadedNodePlayer> m_player;
     //! Owned by m_player
     std::vector<SequenceNode*> m_sequenceNodes;
     RenderContext m_context;

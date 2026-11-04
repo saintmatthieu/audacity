@@ -71,7 +71,9 @@ void SequenceNode::prepareToPlay(const tracktion::graph::PlaybackInitialisationI
     for (auto& buffer : m_work) {
         buffer.assign(info.blockSize, 0.f);
     }
-    m_meterBuffer.assign(info.blockSize, 0.f);
+    for (auto& buffer : m_meterBuffers) {
+        buffer.assign(info.blockSize, 0.f);
+    }
     m_scratch.allocate(info.blockSize);
 }
 
@@ -147,19 +149,33 @@ void SequenceNode::process(tracktion::graph::Node::ProcessContext& pc)
         }
     }
 
-    if (const auto& meter = m_context.meter) {
-        const auto trackId = audio::IAudioMeter::TrackId { m_trackId };
+    if (m_context.meter) {
         // This output is heard after the latency it is delayed by downstream
-        const auto dacTime = m_context.dacTime + toDuration(m_context.latency - m_latency, m_sampleRate);
+        m_meterTime = m_context.dacTime + toDuration(m_context.latency - m_latency, m_sampleRate);
+        m_meterFrames = frames;
         if (sequenceChannels > 1) {
+            m_meterChannels = numChannels;
             for (int ch = 0; ch < numChannels; ++ch) {
-                meter->push(ch, { channelPointer(output, ch), frames, 1, dacTime }, trackId);
+                std::copy_n(channelPointer(output, ch), frames, m_meterBuffers[ch].data());
             }
         } else {
+            m_meterChannels = 1;
             for (size_t i = 0; i < frames; ++i) {
-                m_meterBuffer[i] = m_work[0][i] * maxVolume;
+                m_meterBuffers[0][i] = m_work[0][i] * maxVolume;
             }
-            meter->push(0, { m_meterBuffer.data(), frames, 1, dacTime }, trackId);
         }
     }
+}
+
+void SequenceNode::sendToMeter()
+{
+    const auto& meter = m_context.meter;
+    if (!meter || m_meterFrames == 0) {
+        return;
+    }
+    const auto trackId = audio::IAudioMeter::TrackId { m_trackId };
+    for (size_t ch = 0; ch < m_meterChannels; ++ch) {
+        meter->push(static_cast<uint8_t>(ch), { m_meterBuffers[ch].data(), m_meterFrames, 1, m_meterTime }, trackId);
+    }
+    m_meterFrames = 0;
 }

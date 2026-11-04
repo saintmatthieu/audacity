@@ -88,8 +88,11 @@ void PlaybackStream::build(const TransportSequences& sequences, const audio::IAu
                                                effectsLatency(project, RealtimeEffectManager::MasterGroup, m_sampleRate),
                                                nodeId++);
     auto& root = *master;
-    m_player = std::make_unique<tracktion::graph::NodePlayer>(std::move(master), &m_playHeadState);
-    m_player->prepareToPlay(m_sampleRate, m_blockSize);
+    // As tracktion_engine: a thread per CPU, the device's included
+    m_player = std::make_unique<tracktion::graph::LockFreeMultiThreadedNodePlayer>(
+        tracktion::graph::getPoolCreatorFunction(tracktion::graph::ThreadPoolStrategy::lightweightSemHybrid));
+    m_player->setNumThreads(static_cast<size_t>(std::max(0, juce::SystemStats::getNumCpus() - 1)));
+    m_player->setNode(std::move(master), m_sampleRate, m_blockSize);
     m_context.latency = std::max(0, root.getNodeProperties().latencyNumSamples);
     m_pendingFrames.reset();
 }
@@ -310,6 +313,10 @@ void PlaybackStream::processChunk(float* const* output, int numOutputChannels, i
     m_referencePosition.store(referencePosition + frames, std::memory_order_relaxed);
     if (preRoll) {
         return;
+    }
+    // Now that no thread of the pool renders anymore
+    for (const auto node : m_sequenceNodes) {
+        node->sendToMeter();
     }
 
     // What comes out now: report it as played, or silence it past the end

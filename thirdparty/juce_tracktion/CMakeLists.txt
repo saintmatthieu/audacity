@@ -2,7 +2,8 @@
 # Audacity: A Digital Audio Editor
 #
 # The JUCE modules needed by tracktion_graph, plus tracktion_graph itself,
-# compiled as one static library from the modules' unity sources.
+# compiled as one static library from the modules' unity sources, except
+# tracktion_graph's, which builds its tests too.
 # JUCE's own CMake API is not used: it builds its juceaide helper at configure
 # time, which we do not need.
 
@@ -36,9 +37,9 @@ foreach(module ${JUCE_MODULES})
 endforeach()
 # Compiled separately by JUCE's own CMake API, so that only it rebuilds on every build
 list(APPEND SOURCES ${JUCE_MODULES_DIR}/juce_core/juce_core_CompilationTime.cpp)
-foreach(module ${TRACKTION_MODULES})
-    list(APPEND SOURCES ${TRACKTION_MODULES_DIR}/${module}/${module}.cpp)
-endforeach()
+list(APPEND SOURCES ${TRACKTION_MODULES_DIR}/tracktion_core/tracktion_core.cpp)
+# tracktion_graph.cpp also compiles tests that need tracktion_engine
+list(APPEND SOURCES ${CMAKE_CURRENT_LIST_DIR}/tracktion_graph_runtime.cpp)
 
 add_library(${TARGET} STATIC ${SOURCES})
 
