@@ -14,12 +14,14 @@ using namespace au::effects;
 namespace {
 //! Keeps the result of the calibration, so that it isn't optimized away
 volatile double calibrationSink = 0.0;
+//! Where the calibration starts, unknown to the compiler, so that it doesn't compute the work at compile time
+volatile double calibrationSeed = 0.5;
 
 //! The work: a chain of dependent multiply-adds, which doesn't vectorize and doesn't fold away
 double burn(double state, uint64_t iterations)
 {
     for (uint64_t i = 0; i < iterations; ++i) {
-        state = state * 0.999999 + 1e-6;
+        state = state * 0.999999 + 1e-3;
     }
     return state;
 }
@@ -32,7 +34,7 @@ double iterationsPerSecond()
         constexpr uint64_t batch = 100000;
         // Long enough for the core to reach its clock speed
         constexpr auto duration = std::chrono::milliseconds { 200 };
-        double state = 1.0;
+        double state = calibrationSeed;
         uint64_t done = 0;
         const auto start = Clock::now();
         auto now = start;
