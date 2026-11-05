@@ -117,8 +117,20 @@ private:
     //! The reference sample the device is at; written by the audio thread once started, read by the main thread
     std::atomic<int64_t> m_referencePosition { 0 };
 
+    //! Playback dropouts, to compare the audio engines: written by the callback, read once the device stopped
+    struct Dropouts {
+        //! What the callback output while playing
+        int64_t frames = 0;
+        //! Callbacks that took longer than the audio they output
+        int lateCallbacks = 0;
+        double longestCallback = 0.0;
+        //! The block size of the longest callback
+        double longestCallbackBlock = 0.0;
+    };
+
     // Audio thread only, once started
     PendingFrames m_pendingFrames;
+    Dropouts m_dropouts;
     choc::buffer::ChannelArrayBuffer<float> m_buffer;
     tracktion_engine::MidiMessageArray m_midi;
     std::vector<float> m_interleaved;

@@ -200,6 +200,12 @@ void PlaybackStream::stop()
 {
     if (m_device) {
         m_device->stop();
+        // Underruns of the output, and overflows of the input if one is open
+        const int xruns = m_device->getXRunCount();
+        LOGI() << "Playback dropouts (Tracktion): " << muse::String::number(m_dropouts.frames / m_sampleRate, 1) << " s played, "
+               << xruns << " device underruns" << (m_capture ? " or input overflows" : "") << ", " << m_dropouts.lateCallbacks
+               << " late callbacks (longest " << muse::String::number(1000.0 * m_dropouts.longestCallback, 1) << " ms for "
+               << muse::String::number(1000.0 * m_dropouts.longestCallbackBlock, 1) << " ms of audio)";
         m_device->close();
         m_device.reset();
     }
@@ -239,9 +245,10 @@ void PlaybackStream::audioDeviceIOCallbackWithContext(const float* const* inputC
         return;
     }
 
+    const auto callbackStart = Clock::now();
     const auto latency = std::chrono::duration_cast<Clock::duration>(
         std::chrono::duration<double>(m_device->getOutputLatencyInSamples() / m_sampleRate));
-    const auto dacTime = Clock::now() + latency;
+    const auto dacTime = callbackStart + latency;
     // The input of the channels the capture records, if the device gives them
     const auto input = m_capture && numInputChannels >= m_capture->numInputChannels() ? inputChannelData : nullptr;
 
@@ -261,6 +268,17 @@ void PlaybackStream::audioDeviceIOCallbackWithContext(const float* const* inputC
 
     if (!paused) {
         m_callbackInfos.Put({ dacTime, numSamples });
+
+        const double duration = std::chrono::duration<double>(Clock::now() - callbackStart).count();
+        const double block = numSamples / m_sampleRate;
+        m_dropouts.frames += numSamples;
+        if (duration > block) {
+            ++m_dropouts.lateCallbacks;
+        }
+        if (duration > m_dropouts.longestCallback) {
+            m_dropouts.longestCallback = duration;
+            m_dropouts.longestCallbackBlock = block;
+        }
     }
 }
 
