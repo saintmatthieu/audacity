@@ -3,7 +3,7 @@
 */
 #include "masternode.h"
 
-#include "au3-realtime-effects/RealtimeEffectManager.h"
+#include "../juce/sequencerenderer.h"
 
 using namespace au::au3audio;
 
@@ -36,10 +36,7 @@ void MasterNode::process(tracktion::graph::Node::ProcessContext& pc)
         // Nothing plays, e.g. while recording the first track
         pc.buffers.audio.clear();
     }
-    if (m_context.effects) {
-        float* buffers[numChannels] { channelPointer(pc.buffers.audio, 0), channelPointer(pc.buffers.audio, 1) };
-        // As for the sequences, the output stays delayed by m_latency
-        m_context.effects->Process(RealtimeEffectManager::MasterGroup, buffers, m_scratch.scratch(), m_scratch.dummy(),
-                                   numChannels, pc.numSamples);
-    }
+    float* buffers[numChannels] { channelPointer(pc.buffers.audio, 0), channelPointer(pc.buffers.audio, 1) };
+    // As for the sequences, the output stays delayed by m_latency
+    renderMaster(m_context, m_scratch, buffers, pc.numSamples);
 }

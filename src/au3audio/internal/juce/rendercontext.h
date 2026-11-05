@@ -30,6 +30,8 @@ struct RenderContext {
     audio::IAudioMeterPtr meter;
     //! Of the whole graph, in samples
     int latency = 0;
+    //! Constant during a stream
+    double sampleRate = 0.0;
 };
 
 inline Clock::duration toDuration(int64_t samples, double sampleRate)

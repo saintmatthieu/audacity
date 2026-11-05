@@ -41,6 +41,7 @@ void TracktionPlaybackStream::build(const TransportSequences& sequences, const a
 {
     m_meter = meter;
     m_context.meter = meter;
+    m_context.sampleRate = m_sampleRate;
     initializeEffects(sequences.playbackSequences);
 
     // TODO: rebuild the graph when the latency changes during the stream

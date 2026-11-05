@@ -8,8 +8,8 @@
 #include <optional>
 #include <vector>
 
-#include "../juce/effectscratch.h"
 #include "../juce/rendercontext.h"
+#include "../juce/sequencerenderer.h"
 #include "tracktiongraphincludes.h"
 
 class ISequenceProcessingNode;
@@ -17,7 +17,7 @@ class LockFreeQueueNode;
 class PlayableSequence;
 
 namespace au::au3audio {
-//! Renders one playback sequence: applies its realtime effects, mute/solo and volume/pan, and keeps what its meter shows.
+//! Renders one playback sequence, as SequenceRenderer does
 /*!
  * The sequence is read, with its gain envelope, stretched and resampled to the device rate ahead of time on a worker
  * thread, where the device will read it as the play head says.
@@ -42,10 +42,10 @@ public:
     void invalidateReadAhead();
     //! After the graph processed a block, on the thread that processes it: sends what was rendered to the meter. Not
     //! while rendering, which may happen on other threads at the same time as other sequences.
-    void sendToMeter();
+    void sendToMeter() { m_renderer.sendToMeter(); }
 
     //! Before playing: the sequence is silent from timeline `position` on
-    void stopPlayingAt(int64_t position) { m_stopPosition = position; }
+    void stopPlayingAt(int64_t position) { m_renderer.stopPlayingAt(position); }
 
     //! Any thread: the reference sample that what was read ahead, or is being read, ends at
     int64_t readAheadEnd() const;
@@ -56,22 +56,12 @@ private:
     const std::shared_ptr<const PlayableSequence> m_sequence;
     const std::shared_ptr<ISequenceProcessingNode> m_graph;
     const tracktion::graph::PlayHead& m_playHead;
-    const RenderContext& m_context;
     const int m_latency;
     const size_t m_nodeId;
-    int64_t m_trackId = -1;
-    std::optional<int64_t> m_stopPosition;
+    SequenceRenderer m_renderer;
 
-    double m_sampleRate = 0.0;
     //! The sequence as read ahead on the worker thread, by reference sample
     std::shared_ptr<ISequenceProcessingNode> m_source;
     LockFreeQueueNode* m_queue = nullptr;
-    std::vector<float> m_work[numChannels];
-    //! What the meter shows of the last block rendered, one buffer per channel
-    std::vector<float> m_meterBuffers[numChannels];
-    size_t m_meterChannels = 0;
-    size_t m_meterFrames = 0;
-    audio::TimePoint m_meterTime;
-    EffectScratch m_scratch;
 };
 }

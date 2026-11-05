@@ -109,6 +109,8 @@ if (AU_USE_JUCE)
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/recordingcapture.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/recordingcapture.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/rendercontext.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/sequencerenderer.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/sequencerenderer.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/streamplayhead.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/streamplayhead.h
     )
