@@ -33,6 +33,7 @@ public:
     // IAudioBackendSelector
     std::vector<std::string> backends() const override;
     std::string activeBackend() const override;
+    std::string backendTitle(const std::string& id) const override;
     ApplyResult setActiveBackend(const std::string& id) override;
     muse::async::Notification activeBackendChanged() const override;
 

@@ -22,6 +22,8 @@ struct AudioBackend {
     std::shared_ptr<IAudioDriverController> driverController;
     //! Stops the backend's stream, if any, so that another backend can be activated; empty if it can't
     std::function<AudioStreamRestorer()> suspendStream;
+    //! What the user sees it as; the id if empty
+    std::string title;
 };
 
 //! Where backend modules declare their audio backend.

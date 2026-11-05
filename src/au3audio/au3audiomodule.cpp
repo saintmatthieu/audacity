@@ -98,16 +98,16 @@ void Au3AudioModule::resolveImports()
         return;
     }
     backendRegister->registerBackend({ "portaudio", m_audioEngine, m_audioDriverController,
-                                       [this] { return m_audioDriverController->suspendStream(); } });
+                                       [this] { return m_audioDriverController->suspendStream(); }, "PortAudio" });
 #ifdef AU_USE_JUCE
     backendRegister->registerBackend({ "juce", m_juceWorkerAudioEngine, m_juceWorkerDriverController,
-                                       [this] { return m_juceWorkerDriverController->suspendStream(); } });
+                                       [this] { return m_juceWorkerDriverController->suspendStream(); }, "JUCE (worker)" });
     backendRegister->registerBackend({ "juce-instep", m_juceDeviceAudioEngine, m_juceDeviceDriverController,
-                                       [this] { return m_juceDeviceDriverController->suspendStream(); } });
+                                       [this] { return m_juceDeviceDriverController->suspendStream(); }, "JUCE (device)" });
 #endif
 #ifdef AU_USE_TRACKTION
     backendRegister->registerBackend({ "tracktion", m_tracktionAudioEngine, m_tracktionDriverController,
-                                       [this] { return m_tracktionDriverController->suspendStream(); } });
+                                       [this] { return m_tracktionDriverController->suspendStream(); }, "Tracktion" });
 #endif
 }
 

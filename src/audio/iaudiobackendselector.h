@@ -22,6 +22,8 @@ public:
 
     virtual std::vector<std::string> backends() const = 0;
     virtual std::string activeBackend() const = 0;
+    //! What the user sees backend `id` as
+    virtual std::string backendTitle(const std::string& id) const = 0;
 
     //! Suspends the stream of the active backend, if any, activates `id`, and restores the stream as a change of the audio
     //! configuration does: e.g. monitoring restarts, playback doesn't. The owners of meters set them again on

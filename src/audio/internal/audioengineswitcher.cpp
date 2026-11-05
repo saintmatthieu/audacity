@@ -56,6 +56,15 @@ std::vector<std::string> AudioEngineSwitcher::backends() const
     return ids;
 }
 
+std::string AudioEngineSwitcher::backendTitle(const std::string& id) const
+{
+    const auto it = std::find_if(m_backends.begin(), m_backends.end(), [&](const auto& backend) { return backend.id == id; });
+    if (it == m_backends.end() || it->title.empty()) {
+        return id;
+    }
+    return it->title;
+}
+
 std::string AudioEngineSwitcher::activeBackend() const
 {
     return m_activeId;

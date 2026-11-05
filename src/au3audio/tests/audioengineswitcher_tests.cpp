@@ -19,6 +19,7 @@ namespace {
 const muse::Settings::Key TEST_BACKEND_KEY("audio", "audio/backend");
 const std::string TEST_FIRST = "first";
 const std::string TEST_SECOND = "second";
+const std::string TEST_FIRST_TITLE = "First";
 constexpr float TEST_PLAYBACK_VOLUME = 0.25f;
 constexpr float TEST_INPUT_VOLUME = 0.75f;
 }
@@ -35,9 +36,9 @@ protected:
         int suspensions = 0;
         int restorations = 0;
 
-        AudioBackend backend(const std::string& id)
+        AudioBackend backend(const std::string& id, const std::string& title = {})
         {
-            return { id, engine, driver, [this] { ++suspensions; return restorer; } };
+            return { id, engine, driver, [this] { ++suspensions; return restorer; }, title };
         }
     };
 
@@ -55,7 +56,7 @@ protected:
     std::unique_ptr<AudioEngineSwitcher> makeSwitcher()
     {
         auto switcher = std::make_unique<AudioEngineSwitcher>();
-        switcher->registerBackend(m_first.backend(TEST_FIRST));
+        switcher->registerBackend(m_first.backend(TEST_FIRST, TEST_FIRST_TITLE));
         switcher->registerBackend(m_second.backend(TEST_SECOND));
         switcher->init();
         return switcher;
@@ -122,5 +123,12 @@ TEST_F(AudioEngineSwitcherTests, UnknownBackendsAreRefused)
     const auto switcher = makeSwitcher();
     EXPECT_EQ(switcher->setActiveBackend("unknown").status, ApplyStatus::InvalidConfiguration);
     EXPECT_EQ(switcher->activeBackend(), TEST_FIRST);
+}
+
+TEST_F(AudioEngineSwitcherTests, BackendsAreTitledAsRegisteredOrByTheirIds)
+{
+    const auto switcher = makeSwitcher();
+    EXPECT_EQ(switcher->backendTitle(TEST_FIRST), TEST_FIRST_TITLE);
+    EXPECT_EQ(switcher->backendTitle(TEST_SECOND), TEST_SECOND);
 }
 }
