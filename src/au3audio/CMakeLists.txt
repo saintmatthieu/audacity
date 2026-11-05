@@ -88,32 +88,48 @@ elseif (OS_IS_LIN AND LIBUDEV_INCLUDE_DIR AND LIBUDEV_LIBRARY)
     set(MODULE_DEF ${MODULE_DEF} AU_AU3AUDIO_HAS_UDEV)
 endif()
 
+if (AU_USE_JUCE)
+    set(JUCE_SRC
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/captureinput.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/captureinput.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/effectscratch.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/effectscratch.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/effectslatency.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/effectslatency.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudiodevices.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudiodevices.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceincludes.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/monitoringstream.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/monitoringstream.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/playedrange.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/recordingcapture.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/recordingcapture.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/rendercontext.h
+    )
+    set(MODULE_SRC ${MODULE_SRC} ${JUCE_SRC})
+    # JUCE headers clash with the `using namespace muse` of other unity-combined sources
+    set_source_files_properties(${JUCE_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+    set(MODULE_LINK ${MODULE_LINK}
+        juce
+        au3-mixer
+        au3-project
+        au3-realtime-effects
+    )
+    set(MODULE_DEF ${MODULE_DEF} AU_USE_JUCE)
+endif()
+
 if (AU_USE_TRACKTION)
     set(TRACKTION_SRC
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/captureinput.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/captureinput.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectscratch.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectscratch.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectslatency.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/effectslatency.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/juceaudiodevices.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/masternode.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/masternode.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/monitoringstream.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/monitoringstream.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/pendingframes.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/pendingframes.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playbackstream.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playbackstream.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playedrange.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadschedule.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadschedule.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/recordingcapture.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/recordingcapture.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/rendercontext.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/sequencenode.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/sequencenode.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.cpp
@@ -121,14 +137,11 @@ if (AU_USE_TRACKTION)
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktiongraphincludes.h
     )
     set(MODULE_SRC ${MODULE_SRC} ${TRACKTION_SRC})
-    # JUCE headers clash with the `using namespace muse` of other unity-combined sources
+    # tracktion_graph's headers include JUCE's
     set_source_files_properties(${TRACKTION_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
     set(MODULE_LINK ${MODULE_LINK}
-        juce_tracktion
+        tracktion_graph
         au3-clip-processing
-        au3-mixer
-        au3-project
-        au3-realtime-effects
         au3-wave-track
     )
     set(MODULE_DEF ${MODULE_DEF} AU_USE_TRACKTION)

@@ -17,7 +17,7 @@
 #include "au3-utility/Observer.h"
 
 #include "../au3audioiolistener.h"
-#include "playedrange.h"
+#include "../juce/playedrange.h"
 
 namespace juce {
 class AudioIODevice;

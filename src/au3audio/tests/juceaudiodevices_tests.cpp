@@ -5,7 +5,7 @@
 
 #include "framework/global/containers.h"
 
-#include "../internal/tracktion/juceaudiodevices.h"
+#include "../internal/juce/juceaudiodevices.h"
 
 namespace au::au3audio {
 TEST(JuceAudioDevicesTests, ListsConsistentDevices)

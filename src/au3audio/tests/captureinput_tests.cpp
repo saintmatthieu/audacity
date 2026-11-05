@@ -6,7 +6,7 @@
 #include <map>
 #include <vector>
 
-#include "../internal/tracktion/captureinput.h"
+#include "../internal/juce/captureinput.h"
 
 namespace {
 constexpr int TEST_FRAMES = 4;

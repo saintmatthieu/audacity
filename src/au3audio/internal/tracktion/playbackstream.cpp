@@ -12,10 +12,10 @@
 #include "au3-project/Project.h"
 #include "au3-track/Track.h"
 
-#include "effectslatency.h"
+#include "../juce/effectslatency.h"
 #include "masternode.h"
 #include "playheadsegment.h"
-#include "recordingcapture.h"
+#include "../juce/recordingcapture.h"
 #include "sequencenode.h"
 
 using namespace au::au3audio;

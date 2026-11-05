@@ -10,7 +10,7 @@
 #include "audio/iaudiometer.h"
 
 #include "captureinput.h"
-#include "tracktiongraphincludes.h"
+#include "juceincludes.h"
 
 class AudacityProject;
 

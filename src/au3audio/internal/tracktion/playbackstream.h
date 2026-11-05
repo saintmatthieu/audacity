@@ -17,8 +17,8 @@
 #include "au3-utility/LockFreeQueue.h"
 
 #include "pendingframes.h"
-#include "playedrange.h"
-#include "rendercontext.h"
+#include "../juce/playedrange.h"
+#include "../juce/rendercontext.h"
 #include "tracktiongraphincludes.h"
 
 class AudacityProject;

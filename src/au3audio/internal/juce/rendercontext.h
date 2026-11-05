@@ -9,8 +9,6 @@
 
 #include "audio/iaudiometer.h"
 
-#include "tracktiongraphincludes.h"
-
 namespace RealtimeEffects {
 class ProcessingScope;
 }
@@ -37,10 +35,5 @@ struct RenderContext {
 inline Clock::duration toDuration(int64_t samples, double sampleRate)
 {
     return std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(samples / sampleRate));
-}
-
-inline float* channelPointer(const choc::buffer::ChannelArrayView<float>& view, int channel)
-{
-    return view.data.channels[channel] + view.data.offset;
 }
 }

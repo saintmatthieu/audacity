@@ -13,7 +13,7 @@
 #include "internal/portaudiodevices.h"
 
 #ifdef AU_USE_TRACKTION
-#include "internal/tracktion/juceaudiodevices.h"
+#include "internal/juce/juceaudiodevices.h"
 #include "internal/tracktion/tracktionaudioengine.h"
 #endif
 

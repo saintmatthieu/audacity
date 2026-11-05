@@ -18,9 +18,9 @@
 
 #include "au3wrap/internal/wxtypes_convert.h"
 
-#include "juceaudiodevices.h"
-#include "monitoringstream.h"
-#include "recordingcapture.h"
+#include "../juce/juceaudiodevices.h"
+#include "../juce/monitoringstream.h"
+#include "../juce/recordingcapture.h"
 #include "playbackstream.h"
 
 using namespace au::au3audio;

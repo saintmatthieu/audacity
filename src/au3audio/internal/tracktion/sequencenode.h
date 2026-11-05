@@ -8,8 +8,8 @@
 #include <optional>
 #include <vector>
 
-#include "effectscratch.h"
-#include "rendercontext.h"
+#include "../juce/effectscratch.h"
+#include "../juce/rendercontext.h"
 #include "tracktiongraphincludes.h"
 
 class ISequenceProcessingNode;

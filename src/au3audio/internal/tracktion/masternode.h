@@ -6,8 +6,8 @@
 #include <memory>
 #include <vector>
 
-#include "effectscratch.h"
-#include "rendercontext.h"
+#include "../juce/effectscratch.h"
+#include "../juce/rendercontext.h"
 #include "tracktiongraphincludes.h"
 
 namespace au::au3audio {
