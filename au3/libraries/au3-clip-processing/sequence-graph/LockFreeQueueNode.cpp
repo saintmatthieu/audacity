@@ -149,6 +149,20 @@ void LockFreeQueueNode::Prepare(sampleCount sampleIndex)
     }
 }
 
+size_t LockFreeQueueNode::Available(sampleCount start, size_t len) const
+{
+    size_t done = 0;
+    while (done < len) {
+        const auto index = start.as_long_long() + static_cast<long long>(done);
+        const auto chunk = Find(index);
+        if (!chunk) {
+            break;
+        }
+        done += std::min(len - done, static_cast<size_t>(chunk->End() - index));
+    }
+    return done;
+}
+
 void LockFreeQueueNode::GetSamples(float* const* buffers, sampleCount start, size_t len)
 {
     size_t done = 0;

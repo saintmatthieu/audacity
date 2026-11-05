@@ -117,3 +117,36 @@ TEST(LockFreeQueueNodeTests, anInvalidationIsSilentAndResynchronizes)
         return read(*queue, TEST_RESYNC_LEAD, TEST_CHUNK_SIZE) == expected;
     }));
 }
+
+TEST(LockFreeQueueNodeTests, saysHowMuchIsQueued)
+{
+    //! [GIVEN] a full queue, from where the stream is
+    const auto queue = makeQueue(std::make_shared<IndexNode>());
+    queue->Start();
+    queue->Prepare(0);
+
+    //! [THEN] what it holds is available, up to its end
+    constexpr size_t start = TEST_CAPACITY - TEST_CHUNK_SIZE / 2;
+    EXPECT_EQ(queue->Available(0, TEST_CAPACITY), TEST_CAPACITY);
+    EXPECT_EQ(queue->Available(start, TEST_CHUNK_SIZE), TEST_CAPACITY - start);
+    EXPECT_EQ(queue->Available(TEST_CAPACITY, TEST_CHUNK_SIZE), 0u);
+}
+
+TEST(LockFreeQueueNodeTests, withoutResyncLeadAWaitingReaderGetsAllTheInput)
+{
+    //! [GIVEN] a queue that resynchronizes where the stream is
+    const auto input = std::make_shared<IndexNode>();
+    const auto queue = std::make_unique<LockFreeQueueNode>(input, TEST_NUM_CHANNELS, TEST_CHUNK_SIZE, TEST_NUM_CHUNKS, 0);
+    queue->Start();
+    input->m_offset = TEST_CHANGED_OFFSET;
+
+    //! [WHEN] what was read ahead is invalidated
+    queue->Invalidate();
+
+    //! [THEN] a reader that waits gets the changed input from where it is, without a gap
+    EXPECT_TRUE(waitFor([&] {
+        queue->Prepare(0);
+        return queue->Available(0, TEST_CHUNK_SIZE) == TEST_CHUNK_SIZE;
+    }));
+    EXPECT_EQ(read(*queue, 0, TEST_CHUNK_SIZE), values(TEST_CHANGED_OFFSET, TEST_CHUNK_SIZE));
+}

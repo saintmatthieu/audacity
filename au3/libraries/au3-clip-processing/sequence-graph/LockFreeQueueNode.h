@@ -52,6 +52,10 @@ public:
     //! Reader: the samples of the stream from `start`, which must not be before the index last prepared
     void GetSamples(float* const* buffers, sampleCount start, size_t len) override;
 
+    //! Reader: how many samples of the stream from `start` on are queued, at most `len`. A reader that waits for them,
+    //! rather than reading silence, plays the input late rather than skipping it, when the worker is late.
+    size_t Available(sampleCount start, size_t len) const;
+
 private:
     struct Chunk {
         std::vector<std::vector<float> > channels;
