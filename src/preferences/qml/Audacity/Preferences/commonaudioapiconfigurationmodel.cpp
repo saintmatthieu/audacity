@@ -314,6 +314,8 @@ QStringList CommonAudioApiConfigurationModel::audioEngineList() const
             result.push_back(QStringLiteral("PortAudio"));
         } else if (id == "juce") {
             result.push_back(QStringLiteral("JUCE (worker)"));
+        } else if (id == "juce-instep") {
+            result.push_back(QStringLiteral("JUCE (device)"));
         } else if (id == "tracktion") {
             result.push_back(QStringLiteral("Tracktion"));
         } else {

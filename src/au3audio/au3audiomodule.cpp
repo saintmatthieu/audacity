@@ -15,6 +15,7 @@
 #ifdef AU_USE_JUCE
 #include "internal/juce/juceaudiodevices.h"
 #include "internal/juce/juceaudioengine.h"
+#include "internal/juce/jucedeviceplaybackstream.h"
 #include "internal/juce/juceworkerplaybackstream.h"
 #endif
 #ifdef AU_USE_TRACKTION
@@ -57,6 +58,14 @@ void Au3AudioModule::registerExports()
     m_juceWorkerDriverController = std::make_shared<AudioDriverController>(juceWorkerDevices, "JuceAudio");
     m_juceWorkerDriverController->setAudioEngine(m_juceWorkerAudioEngine);
     m_juceWorkerAudioEngine->setDriverController(m_juceWorkerDriverController.get());
+
+    const auto juceDeviceDevices = std::make_shared<JuceAudioDevices>();
+    m_juceDeviceAudioEngine = std::make_shared<JuceAudioEngine>(juceDeviceDevices, [](auto&&... args) -> std::unique_ptr<PlaybackStream> {
+        return std::make_unique<JuceDevicePlaybackStream>(std::forward<decltype(args)>(args)...);
+    }, "JUCE in step");
+    m_juceDeviceDriverController = std::make_shared<AudioDriverController>(juceDeviceDevices, "JuceInStepAudio");
+    m_juceDeviceDriverController->setAudioEngine(m_juceDeviceAudioEngine);
+    m_juceDeviceAudioEngine->setDriverController(m_juceDeviceDriverController.get());
 #endif
 
 #ifdef AU_USE_TRACKTION
@@ -93,6 +102,8 @@ void Au3AudioModule::resolveImports()
 #ifdef AU_USE_JUCE
     backendRegister->registerBackend({ "juce", m_juceWorkerAudioEngine, m_juceWorkerDriverController,
                                        [this] { return m_juceWorkerDriverController->suspendStream(); } });
+    backendRegister->registerBackend({ "juce-instep", m_juceDeviceAudioEngine, m_juceDeviceDriverController,
+                                       [this] { return m_juceDeviceDriverController->suspendStream(); } });
 #endif
 #ifdef AU_USE_TRACKTION
     backendRegister->registerBackend({ "tracktion", m_tracktionAudioEngine, m_tracktionDriverController,
@@ -107,6 +118,7 @@ void Au3AudioModule::onInit(const muse::IApplication::RunMode&)
     m_audioDriverController->init();
 #ifdef AU_USE_JUCE
     m_juceWorkerDriverController->init();
+    m_juceDeviceDriverController->init();
 #endif
 #ifdef AU_USE_TRACKTION
     m_tracktionDriverController->init();

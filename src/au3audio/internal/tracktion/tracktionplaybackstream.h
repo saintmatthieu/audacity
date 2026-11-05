@@ -51,7 +51,6 @@ private:
     std::unique_ptr<tracktion::graph::LockFreeMultiThreadedNodePlayer> m_player;
     //! Owned by m_player
     std::vector<SequenceNode*> m_sequenceNodes;
-    RenderContext m_context;
 
     std::atomic<int64_t> m_endPosition { 0 };
 

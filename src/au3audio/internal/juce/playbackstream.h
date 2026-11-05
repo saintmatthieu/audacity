@@ -117,6 +117,8 @@ protected:
     audio::IAudioMeterPtr m_meter;
     ConstPlayableSequences m_sequences;
     std::optional<RealtimeEffects::InitializationScope> m_effectsInitialization;
+    //! For what renders; written only by the thread that renders, once rendering
+    RenderContext m_context;
 
 private:
     LockFreeQueue<audio::AudioCallbackInfo>& m_callbackInfos;

@@ -100,7 +100,11 @@ if (AU_USE_JUCE)
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudiodevices.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudioengine.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudioengine.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/jucedeviceplaybackstream.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/jucedeviceplaybackstream.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceincludes.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceplaybackstream.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceplaybackstream.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceworkerplaybackstream.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceworkerplaybackstream.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/mixnode.cpp
