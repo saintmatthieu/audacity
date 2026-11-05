@@ -312,6 +312,8 @@ QStringList CommonAudioApiConfigurationModel::audioEngineList() const
     for (const auto& id : audioBackendSelector()->backends()) {
         if (id == "portaudio") {
             result.push_back(QStringLiteral("PortAudio"));
+        } else if (id == "juce") {
+            result.push_back(QStringLiteral("JUCE (worker)"));
         } else if (id == "tracktion") {
             result.push_back(QStringLiteral("Tracktion"));
         } else {

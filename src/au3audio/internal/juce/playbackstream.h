@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -86,14 +87,19 @@ public:
 protected:
     //! In logs
     virtual const char* name() const = 0;
+    //! Before releaseRendering(): more of the dropouts, for the log, if any
+    virtual std::string dropoutDetails() const { return {}; }
     //! Device thread, while not paused: renders `frames` frames into `output` from `offset` on, at most the block size.
-    //! Reports what plays, with reportPlayed() and finish().
-    virtual void renderChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime) = 0;
+    //! Reports what plays, with reportPlayed() and finish(). Returns how many of the frames, at the end, it couldn't
+    //! play, being silent instead: the transport doesn't advance by them.
+    virtual int renderChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime) = 0;
     //! Once the device stopped: releases what renders
     virtual void releaseRendering() = 0;
 
     //! Before rendering: realtime effects at the rate of the stream, for `sequences` and the master
     void initializeEffects(const ConstPlayableSequences& sequences);
+    //! How long after the callback what it outputs is heard
+    Clock::duration outputLatency() const;
 
     // Device thread
     //! `frames` frames from `start` in the timeline play

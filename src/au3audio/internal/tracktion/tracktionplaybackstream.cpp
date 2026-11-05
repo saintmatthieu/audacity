@@ -165,9 +165,11 @@ void TracktionPlaybackStream::releaseRendering()
     m_sequenceNodes.clear();
 }
 
-void TracktionPlaybackStream::renderChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime)
+int TracktionPlaybackStream::renderChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime)
 {
     processChunk(output, numOutputChannels, offset, frames, dacTime);
+    // In step with the device: what isn't rendered in time is skipped, not played late
+    return 0;
 }
 
 void TracktionPlaybackStream::processChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime,

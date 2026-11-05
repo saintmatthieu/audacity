@@ -38,6 +38,11 @@ void PlaybackStream::initializeEffects(const ConstPlayableSequences& sequences)
     }
 }
 
+Clock::duration PlaybackStream::outputLatency() const
+{
+    return toDuration(m_device->getOutputLatencyInSamples(), m_sampleRate);
+}
+
 void PlaybackStream::start()
 {
     if (m_meter) {
@@ -60,7 +65,8 @@ void PlaybackStream::stop()
         LOGI() << "Playback dropouts (" << name() << "): " << muse::String::number(m_dropouts.frames / m_sampleRate, 1)
                << " s played, " << xruns << " device underruns" << (m_capture ? " or input overflows" : "") << ", "
                << m_dropouts.lateCallbacks << " late callbacks (longest " << muse::String::number(1000.0 * m_dropouts.longestCallback, 1)
-               << " ms for " << muse::String::number(1000.0 * m_dropouts.longestCallbackBlock, 1) << " ms of audio)";
+               << " ms for " << muse::String::number(1000.0 * m_dropouts.longestCallbackBlock, 1) << " ms of audio)"
+               << dropoutDetails();
         m_device->close();
         m_device.reset();
     }
@@ -100,18 +106,17 @@ void PlaybackStream::audioDeviceIOCallbackWithContext(const float* const* inputC
     }
 
     const auto callbackStart = Clock::now();
-    const auto latency = std::chrono::duration_cast<Clock::duration>(
-        std::chrono::duration<double>(m_device->getOutputLatencyInSamples() / m_sampleRate));
-    const auto dacTime = callbackStart + latency;
+    const auto dacTime = callbackStart + outputLatency();
     // The input of the channels the capture records, if the device gives them
     const auto input = m_capture && numInputChannels >= m_capture->numInputChannels() ? inputChannelData : nullptr;
 
     int done = 0;
+    int unplayed = 0;
     while (done < numSamples && !m_finished) {
         const int frames = std::min(numSamples - done, m_blockSize);
         const auto chunkDacTime = dacTime + toDuration(done, m_sampleRate);
         if (!paused) {
-            renderChunk(outputChannelData, numOutputChannels, done, frames, chunkDacTime);
+            unplayed += renderChunk(outputChannelData, numOutputChannels, done, frames, chunkDacTime);
         }
         if (input) {
             m_capture->process(input, outputChannelData, numOutputChannels, done, frames, position(), chunkDacTime, paused);
@@ -120,7 +125,10 @@ void PlaybackStream::audioDeviceIOCallbackWithContext(const float* const* inputC
     }
 
     if (!paused) {
-        m_callbackInfos.Put({ dacTime, numSamples });
+        // As AudioIO, only what played advances the transport
+        if (numSamples > unplayed) {
+            m_callbackInfos.Put({ dacTime, numSamples - unplayed });
+        }
 
         const double duration = std::chrono::duration<double>(Clock::now() - callbackStart).count();
         const double block = numSamples / m_sampleRate;

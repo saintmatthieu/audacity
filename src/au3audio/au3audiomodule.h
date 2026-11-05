@@ -26,6 +26,10 @@ public:
 private:
     std::shared_ptr<Au3AudioEngine> m_audioEngine;
     std::shared_ptr<AudioDriverController> m_audioDriverController;
+#ifdef AU_USE_JUCE
+    std::shared_ptr<JuceAudioEngine> m_juceWorkerAudioEngine;
+    std::shared_ptr<AudioDriverController> m_juceWorkerDriverController;
+#endif
 #ifdef AU_USE_TRACKTION
     std::shared_ptr<JuceAudioEngine> m_tracktionAudioEngine;
     std::shared_ptr<AudioDriverController> m_tracktionDriverController;

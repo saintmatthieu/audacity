@@ -12,9 +12,12 @@
 #include "internal/audiodrivercontroller.h"
 #include "internal/portaudiodevices.h"
 
-#ifdef AU_USE_TRACKTION
+#ifdef AU_USE_JUCE
 #include "internal/juce/juceaudiodevices.h"
 #include "internal/juce/juceaudioengine.h"
+#include "internal/juce/juceworkerplaybackstream.h"
+#endif
+#ifdef AU_USE_TRACKTION
 #include "internal/tracktion/tracktionplaybackstream.h"
 #endif
 
@@ -45,6 +48,16 @@ void Au3AudioModule::registerExports()
     m_audioEngine = std::make_shared<Au3AudioEngine>();
     m_audioDriverController = std::make_shared<AudioDriverController>(std::make_unique<PortAudioDevices>(), "AudioIO");
     m_audioDriverController->setAudioEngine(m_audioEngine);
+
+#ifdef AU_USE_JUCE
+    const auto juceWorkerDevices = std::make_shared<JuceAudioDevices>();
+    m_juceWorkerAudioEngine = std::make_shared<JuceAudioEngine>(juceWorkerDevices, [](auto&&... args) -> std::unique_ptr<PlaybackStream> {
+        return std::make_unique<JuceWorkerPlaybackStream>(std::forward<decltype(args)>(args)...);
+    }, "JUCE");
+    m_juceWorkerDriverController = std::make_shared<AudioDriverController>(juceWorkerDevices, "JuceAudio");
+    m_juceWorkerDriverController->setAudioEngine(m_juceWorkerAudioEngine);
+    m_juceWorkerAudioEngine->setDriverController(m_juceWorkerDriverController.get());
+#endif
 
 #ifdef AU_USE_TRACKTION
     const auto juceDevices = std::make_shared<JuceAudioDevices>();
@@ -77,6 +90,10 @@ void Au3AudioModule::resolveImports()
     }
     backendRegister->registerBackend({ "portaudio", m_audioEngine, m_audioDriverController,
                                        [this] { return m_audioDriverController->suspendStream(); } });
+#ifdef AU_USE_JUCE
+    backendRegister->registerBackend({ "juce", m_juceWorkerAudioEngine, m_juceWorkerDriverController,
+                                       [this] { return m_juceWorkerDriverController->suspendStream(); } });
+#endif
 #ifdef AU_USE_TRACKTION
     backendRegister->registerBackend({ "tracktion", m_tracktionAudioEngine, m_tracktionDriverController,
                                        [this] { return m_tracktionDriverController->suspendStream(); } });
@@ -88,6 +105,9 @@ void Au3AudioModule::onInit(const muse::IApplication::RunMode&)
     m_audioEngine->init();
     AudioDriverController::initSharedDefaults(AudioIOBase::GetOptimalSupportedSampleRate());
     m_audioDriverController->init();
+#ifdef AU_USE_JUCE
+    m_juceWorkerDriverController->init();
+#endif
 #ifdef AU_USE_TRACKTION
     m_tracktionDriverController->init();
 #endif

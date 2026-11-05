@@ -101,6 +101,10 @@ if (AU_USE_JUCE)
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudioengine.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudioengine.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceincludes.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceworkerplaybackstream.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceworkerplaybackstream.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/mixnode.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/mixnode.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/monitoringstream.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/monitoringstream.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/playbackstream.cpp
@@ -113,6 +117,8 @@ if (AU_USE_JUCE)
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/sequencerenderer.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/streamplayhead.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/streamplayhead.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/tracknode.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/tracknode.h
     )
     set(MODULE_SRC ${MODULE_SRC} ${JUCE_SRC})
     # JUCE headers clash with the `using namespace muse` of other unity-combined sources

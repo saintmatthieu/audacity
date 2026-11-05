@@ -34,7 +34,7 @@ public:
 
 private:
     const char* name() const override { return "Tracktion"; }
-    void renderChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime) override;
+    int renderChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime) override;
     void releaseRendering() override;
 
     //! At least a sample long, to be played as a loop
