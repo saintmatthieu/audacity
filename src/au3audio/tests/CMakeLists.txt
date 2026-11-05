@@ -17,6 +17,7 @@ if (AU_USE_JUCE)
     set(MODULE_TEST_SRC ${MODULE_TEST_SRC}
         ${CMAKE_CURRENT_LIST_DIR}/captureinput_tests.cpp
         ${CMAKE_CURRENT_LIST_DIR}/juceaudiodevices_tests.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/streamplayhead_tests.cpp
     )
 endif()
 if (AU_USE_TRACKTION)

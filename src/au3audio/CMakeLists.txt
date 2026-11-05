@@ -109,15 +109,19 @@ if (AU_USE_JUCE)
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/recordingcapture.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/recordingcapture.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/rendercontext.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/streamplayhead.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/streamplayhead.h
     )
     set(MODULE_SRC ${MODULE_SRC} ${JUCE_SRC})
     # JUCE headers clash with the `using namespace muse` of other unity-combined sources
     set_source_files_properties(${JUCE_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
     set(MODULE_LINK ${MODULE_LINK}
         juce
+        au3-clip-processing
         au3-mixer
         au3-project
         au3-realtime-effects
+        au3-wave-track
     )
     set(MODULE_DEF ${MODULE_DEF} AU_USE_JUCE)
 endif()
@@ -141,11 +145,7 @@ if (AU_USE_TRACKTION)
     set(MODULE_SRC ${MODULE_SRC} ${TRACKTION_SRC})
     # tracktion_graph's headers include JUCE's
     set_source_files_properties(${TRACKTION_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
-    set(MODULE_LINK ${MODULE_LINK}
-        tracktion_graph
-        au3-clip-processing
-        au3-wave-track
-    )
+    set(MODULE_LINK ${MODULE_LINK} tracktion_graph)
     set(MODULE_DEF ${MODULE_DEF} AU_USE_TRACKTION)
 endif()
 
