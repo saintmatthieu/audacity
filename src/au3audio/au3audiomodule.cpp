@@ -14,7 +14,8 @@
 
 #ifdef AU_USE_TRACKTION
 #include "internal/juce/juceaudiodevices.h"
-#include "internal/tracktion/tracktionaudioengine.h"
+#include "internal/juce/juceaudioengine.h"
+#include "internal/tracktion/tracktionplaybackstream.h"
 #endif
 
 #include "au3-audio-devices/AudioIOBase.h"
@@ -47,7 +48,9 @@ void Au3AudioModule::registerExports()
 
 #ifdef AU_USE_TRACKTION
     const auto juceDevices = std::make_shared<JuceAudioDevices>();
-    m_tracktionAudioEngine = std::make_shared<TracktionAudioEngine>(juceDevices);
+    m_tracktionAudioEngine = std::make_shared<JuceAudioEngine>(juceDevices, [](auto&&... args) -> std::unique_ptr<PlaybackStream> {
+        return std::make_unique<TracktionPlaybackStream>(std::forward<decltype(args)>(args)...);
+    }, "Tracktion");
     m_tracktionDriverController = std::make_shared<AudioDriverController>(juceDevices, "TracktionAudio");
     m_tracktionDriverController->setAudioEngine(m_tracktionAudioEngine);
     m_tracktionAudioEngine->setDriverController(m_tracktionDriverController.get());

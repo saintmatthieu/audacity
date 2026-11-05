@@ -4,8 +4,10 @@
 #pragma once
 
 #include <atomic>
+#include <functional>
 #include <map>
 #include <memory>
+#include <string>
 
 #include "framework/global/modularity/ioc.h"
 
@@ -17,7 +19,7 @@
 #include "au3-utility/Observer.h"
 
 #include "../au3audioiolistener.h"
-#include "../juce/playedrange.h"
+#include "playedrange.h"
 
 namespace juce {
 class AudioIODevice;
@@ -28,16 +30,21 @@ class JuceAudioDevices;
 class MonitoringStream;
 class PlaybackStream;
 
-//! The audio engine of the Tracktion backend: a tracktion_graph with one node per playback
-//! sequence, pulled synchronously by the callback of a JUCE audio device.
-//! It also records, and monitors the input.
-class TracktionAudioEngine final : public audio::IAudioEngine
+//! An audio engine over JUCE audio devices: plays what a stream renders, records, and monitors the input
+class JuceAudioEngine final : public audio::IAudioEngine
 {
     muse::GlobalInject<record::IRecordConfiguration> recordConfiguration;
 
 public:
-    TracktionAudioEngine(std::shared_ptr<JuceAudioDevices> devices);
-    ~TracktionAudioEngine() override;
+    //! Makes a stream, rendering the sequences in its own way; see PlaybackStream's constructor
+    using StreamFactory = std::function<std::unique_ptr<PlaybackStream>(
+                                            AudacityProject& project, int token, std::unique_ptr<juce::AudioIODevice> device,
+                                            bool followsPlayRegion, LockFreeQueue<audio::AudioCallbackInfo>& callbackInfos,
+                                            LockFreeQueue<PlayedRange>& playedRanges, const std::atomic<float>& playbackVolume)>;
+
+    //! @param name in logs
+    JuceAudioEngine(std::shared_ptr<JuceAudioDevices> devices, StreamFactory makeStream, std::string name);
+    ~JuceAudioEngine() override;
 
     //! The controller whose configuration selects the device; must outlive this.
     void setDriverController(const audio::IAudioDriverController* driverController);
@@ -96,6 +103,8 @@ private:
     std::unique_ptr<juce::AudioIODevice> openDevice(int numInputChannels, int numOutputChannels, double sampleRate);
 
     const std::shared_ptr<JuceAudioDevices> m_devices;
+    const StreamFactory m_makeStream;
+    const std::string m_name;
     const audio::IAudioDriverController* m_driverController = nullptr;
 
     std::unique_ptr<PlaybackStream> m_stream;

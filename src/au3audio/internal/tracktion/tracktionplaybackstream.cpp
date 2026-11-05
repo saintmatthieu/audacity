@@ -1,21 +1,15 @@
 /*
 * Audacity: A Digital Audio Editor
 */
-#include "playbackstream.h"
+#include "tracktionplaybackstream.h"
 
 #include <algorithm>
-#include <chrono>
 
 #include "framework/global/containers.h"
-#include "framework/global/log.h"
-
-#include "au3-project/Project.h"
-#include "au3-track/Track.h"
 
 #include "../juce/effectslatency.h"
 #include "masternode.h"
 #include "playheadsegment.h"
-#include "../juce/recordingcapture.h"
 #include "sequencenode.h"
 
 using namespace au::au3audio;
@@ -38,35 +32,16 @@ Segments cut(const Segments& segments, int64_t from, int64_t end)
 }
 }
 
-PlaybackStream::PlaybackStream(AudacityProject& project, int token, std::unique_ptr<juce::AudioIODevice> device,
-                               bool followsPlayRegion, LockFreeQueue<audio::AudioCallbackInfo>& callbackInfos,
-                               LockFreeQueue<PlayedRange>& playedRanges, const std::atomic<float>& playbackVolume)
-    : project{project}, token{token}, followsPlayRegion{followsPlayRegion}, m_callbackInfos{callbackInfos},
-    m_playedRanges{playedRanges}, m_playbackVolume{playbackVolume}, m_wProject{project.shared_from_this()},
-    m_device{std::move(device)}, m_sampleRate{m_device->getCurrentSampleRate()},
-    m_blockSize{std::max(1, m_device->getCurrentBufferSizeSamples())},
-    m_buffer{numChannels, static_cast<choc::buffer::FrameCount>(m_blockSize)}
-{
-    m_playHead.setReferenceSampleRange({ 0, 0 });
-}
-
-PlaybackStream::~PlaybackStream()
+TracktionPlaybackStream::~TracktionPlaybackStream()
 {
     stop();
 }
 
-void PlaybackStream::build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter, std::optional<double> leadInEndTime)
+void TracktionPlaybackStream::build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter, std::optional<double> leadInEndTime)
 {
-    m_sequences = sequences.playbackSequences;
+    m_meter = meter;
     m_context.meter = meter;
-
-    // Setup for realtime effects at the rate of the stream, not of the sequences
-    m_effectsInitialization.emplace(m_wProject, m_sampleRate, numChannels, m_blockSize);
-    for (const auto& sequence : m_sequences) {
-        if (const auto group = sequence->FindChannelGroup()) {
-            m_effectsInitialization->AddGroup(*group, numChannels, m_sampleRate, m_blockSize);
-        }
-    }
+    initializeEffects(sequences.playbackSequences);
 
     // TODO: rebuild the graph when the latency changes during the stream
     size_t nodeId = 1;
@@ -97,7 +72,7 @@ void PlaybackStream::build(const TransportSequences& sequences, const audio::IAu
     m_pendingFrames.reset();
 }
 
-void PlaybackStream::preRoll()
+void TracktionPlaybackStream::preRoll()
 {
     for (int64_t remaining = m_context.latency; remaining > 0;) {
         const auto frames = static_cast<int>(std::min<int64_t>(remaining, m_blockSize));
@@ -106,7 +81,7 @@ void PlaybackStream::preRoll()
     }
 }
 
-void PlaybackStream::setPlayRange(double startTime, double endTime, std::optional<std::pair<double, double> > loopRange)
+void TracktionPlaybackStream::setPlayRange(double startTime, double endTime, std::optional<std::pair<double, double> > loopRange)
 {
     m_endPosition = toSamples(endTime);
     const auto start = toSamples(startTime);
@@ -128,13 +103,13 @@ void PlaybackStream::setPlayRange(double startTime, double endTime, std::optiona
     }
 }
 
-void PlaybackStream::seek(double time)
+void TracktionPlaybackStream::seek(double time)
 {
     m_playHead.setPosition(toSamples(time));
     invalidateReadAhead();
 }
 
-void PlaybackStream::updateLoop(std::optional<std::pair<double, double> > loopRange, double endTime)
+void TracktionPlaybackStream::updateLoop(std::optional<std::pair<double, double> > loopRange, double endTime)
 {
     // From where the device is, further than the sequences may have been read ahead
     const auto from = m_referencePosition.load(std::memory_order_relaxed);
@@ -158,7 +133,7 @@ void PlaybackStream::updateLoop(std::optional<std::pair<double, double> > loopRa
     }
 }
 
-std::vector<std::pair<int64_t, int64_t> > PlaybackStream::segments(int64_t from, int64_t end) const
+std::vector<std::pair<int64_t, int64_t> > TracktionPlaybackStream::segments(int64_t from, int64_t end) const
 {
     std::vector<std::pair<int64_t, int64_t> > segments;
     for (auto index = from; index < end;) {
@@ -169,7 +144,7 @@ std::vector<std::pair<int64_t, int64_t> > PlaybackStream::segments(int64_t from,
     return segments;
 }
 
-void PlaybackStream::invalidateReadAhead()
+void TracktionPlaybackStream::invalidateReadAhead()
 {
     // After the play head changed, so that the sequences are read again as it now says
     for (const auto node : m_sequenceNodes) {
@@ -177,117 +152,24 @@ void PlaybackStream::invalidateReadAhead()
     }
 }
 
-juce::Range<int64_t> PlaybackStream::toLoopRange(const std::pair<double, double>& loopRange) const
+juce::Range<int64_t> TracktionPlaybackStream::toLoopRange(const std::pair<double, double>& loopRange) const
 {
     const auto start = toSamples(loopRange.first);
     return { start, std::max(start + 1, toSamples(loopRange.second)) };
 }
 
-void PlaybackStream::start()
+void TracktionPlaybackStream::releaseRendering()
 {
-    if (m_context.meter) {
-        m_context.meter->start(m_sampleRate);
-    }
-    m_device->start(this);
-}
-
-void PlaybackStream::setCapture(std::unique_ptr<RecordingCapture> capture)
-{
-    m_capture = std::move(capture);
-}
-
-void PlaybackStream::stop()
-{
-    if (m_device) {
-        m_device->stop();
-        // Underruns of the output, and overflows of the input if one is open
-        const int xruns = m_device->getXRunCount();
-        LOGI() << "Playback dropouts (Tracktion): " << muse::String::number(m_dropouts.frames / m_sampleRate, 1) << " s played, "
-               << xruns << " device underruns" << (m_capture ? " or input overflows" : "") << ", " << m_dropouts.lateCallbacks
-               << " late callbacks (longest " << muse::String::number(1000.0 * m_dropouts.longestCallback, 1) << " ms for "
-               << muse::String::number(1000.0 * m_dropouts.longestCallbackBlock, 1) << " ms of audio)";
-        m_device->close();
-        m_device.reset();
-    }
-    // Once the device stopped, so that what it captured last is recorded
-    if (m_capture) {
-        m_capture->finish();
-    }
-    if (m_context.meter) {
-        m_context.meter->stop();
-    }
     m_player.reset();
     m_sequenceNodes.clear();
-    // After the device stopped, so that the callback can't use them
-    m_effectsInitialization.reset();
 }
 
-RealtimeEffects::InitializationScope* PlaybackStream::effectsInitialization()
+void TracktionPlaybackStream::renderChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime)
 {
-    return m_effectsInitialization ? &*m_effectsInitialization : nullptr;
+    processChunk(output, numOutputChannels, offset, frames, dacTime);
 }
 
-void PlaybackStream::audioDeviceIOCallbackWithContext(const float* const* inputChannelData, int numInputChannels,
-                                                      float* const* outputChannelData, int numOutputChannels, int numSamples,
-                                                      const juce::AudioIODeviceCallbackContext&)
-{
-    for (int ch = 0; ch < numOutputChannels; ++ch) {
-        if (outputChannelData[ch]) {
-            std::fill_n(outputChannelData[ch], numSamples, 0.f);
-        }
-    }
-
-    if (m_finished || !m_player) {
-        return;
-    }
-    const bool paused = m_paused;
-    if (paused && !m_capture) {
-        return;
-    }
-
-    const auto callbackStart = Clock::now();
-    const auto latency = std::chrono::duration_cast<Clock::duration>(
-        std::chrono::duration<double>(m_device->getOutputLatencyInSamples() / m_sampleRate));
-    const auto dacTime = callbackStart + latency;
-    // The input of the channels the capture records, if the device gives them
-    const auto input = m_capture && numInputChannels >= m_capture->numInputChannels() ? inputChannelData : nullptr;
-
-    int done = 0;
-    while (done < numSamples && !m_finished) {
-        const int frames = std::min(numSamples - done, m_blockSize);
-        const auto chunkDacTime = dacTime + std::chrono::duration_cast<Clock::duration>(
-            std::chrono::duration<double>(done / m_sampleRate));
-        if (!paused) {
-            processChunk(outputChannelData, numOutputChannels, done, frames, chunkDacTime);
-        }
-        if (input) {
-            m_capture->process(input, outputChannelData, numOutputChannels, done, frames, position(), chunkDacTime, paused);
-        }
-        done += frames;
-    }
-
-    if (!paused) {
-        m_callbackInfos.Put({ dacTime, numSamples });
-
-        const double duration = std::chrono::duration<double>(Clock::now() - callbackStart).count();
-        const double block = numSamples / m_sampleRate;
-        m_dropouts.frames += numSamples;
-        if (duration > block) {
-            ++m_dropouts.lateCallbacks;
-        }
-        if (duration > m_dropouts.longestCallback) {
-            m_dropouts.longestCallback = duration;
-            m_dropouts.longestCallbackBlock = block;
-        }
-    }
-}
-
-void PlaybackStream::audioDeviceError(const juce::String& errorMessage)
-{
-    LOGE() << "audio device error: " << errorMessage.toStdString();
-}
-
-void PlaybackStream::processChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime,
+void TracktionPlaybackStream::processChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime,
                                   bool preRoll)
 {
     const auto referencePosition = m_referencePosition.load(std::memory_order_relaxed);
@@ -341,7 +223,7 @@ void PlaybackStream::processChunk(float* const* output, int numOutputChannels, i
     bool finished = false;
     m_pendingFrames.pop(frames, [&](const PendingFrames::Range& range, int64_t rangeOffset) {
         if (range.valid) {
-            m_playedRanges.Put({ toTime(range.start), static_cast<unsigned long>(range.frames) });
+            reportPlayed(range.start, range.frames);
         } else {
             view.getFrameRange({ static_cast<choc::buffer::FrameCount>(rangeOffset),
                                  static_cast<choc::buffer::FrameCount>(rangeOffset + range.frames) }).clear();
@@ -349,34 +231,11 @@ void PlaybackStream::processChunk(float* const* output, int numOutputChannels, i
         }
     });
 
-    if (const auto& meter = m_context.meter) {
-        // The meter shows the mix before the playback volume
-        m_interleaved.resize(static_cast<size_t>(frames) * numChannels);
-        for (int i = 0; i < frames; ++i) {
-            for (int ch = 0; ch < numChannels; ++ch) {
-                m_interleaved[i * numChannels + ch] = view.getSample(ch, i);
-            }
-        }
-        for (int ch = 0; ch < numChannels; ++ch) {
-            meter->push(ch, { m_interleaved.data() + ch, static_cast<size_t>(frames), numChannels, dacTime });
-        }
-    }
-
-    const float volume = m_playbackVolume.load(std::memory_order_relaxed);
-    for (int ch = 0; ch < numOutputChannels; ++ch) {
-        if (!output[ch]) {
-            continue;
-        }
-        for (int i = 0; i < frames; ++i) {
-            // A mono device gets the downmix
-            const float sample = numOutputChannels == 1
-                                 ? 0.5f * (view.getSample(0, i) + view.getSample(1, i))
-                                 : ch < numChannels ? view.getSample(ch, i) : 0.f;
-            output[ch][offset + i] = sample * volume;
-        }
-    }
+    const float* stereo[numChannels] { channelPointer(view, 0), channelPointer(view, 1) };
+    sendToMainMeter(stereo, frames, dacTime);
+    writeOutput(stereo, output, numOutputChannels, offset, frames);
 
     if (finished) {
-        m_finished = true;
+        finish();
     }
 }

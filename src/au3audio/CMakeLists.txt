@@ -98,9 +98,13 @@ if (AU_USE_JUCE)
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/effectslatency.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudiodevices.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudiodevices.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudioengine.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudioengine.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceincludes.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/monitoringstream.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/monitoringstream.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/playbackstream.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/playbackstream.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/playedrange.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/recordingcapture.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/recordingcapture.h
@@ -124,16 +128,14 @@ if (AU_USE_TRACKTION)
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/masternode.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/pendingframes.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/pendingframes.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playbackstream.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playbackstream.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadschedule.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadschedule.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/playheadsegment.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/sequencenode.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/sequencenode.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionaudioengine.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionplaybackstream.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktionplaybackstream.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/tracktiongraphincludes.h
     )
     set(MODULE_SRC ${MODULE_SRC} ${TRACKTION_SRC})

@@ -1,7 +1,7 @@
 /*
 * Audacity: A Digital Audio Editor
 */
-#include "tracktionaudioengine.h"
+#include "juceaudioengine.h"
 
 #include <algorithm>
 #include <optional>
@@ -18,10 +18,10 @@
 
 #include "au3wrap/internal/wxtypes_convert.h"
 
-#include "../juce/juceaudiodevices.h"
-#include "../juce/monitoringstream.h"
-#include "../juce/recordingcapture.h"
+#include "juceaudiodevices.h"
+#include "monitoringstream.h"
 #include "playbackstream.h"
+#include "recordingcapture.h"
 
 using namespace au::au3audio;
 
@@ -58,35 +58,35 @@ double bestSampleRate(juce::AudioIODevice& device, double requested)
 }
 }
 
-TracktionAudioEngine::TracktionAudioEngine(std::shared_ptr<JuceAudioDevices> devices)
-    : m_devices{std::move(devices)}
+JuceAudioEngine::JuceAudioEngine(std::shared_ptr<JuceAudioDevices> devices, StreamFactory makeStream, std::string name)
+    : m_devices{std::move(devices)}, m_makeStream{std::move(makeStream)}, m_name{std::move(name)}
 {
 }
 
-TracktionAudioEngine::~TracktionAudioEngine() = default;
+JuceAudioEngine::~JuceAudioEngine() = default;
 
-void TracktionAudioEngine::setDriverController(const audio::IAudioDriverController* driverController)
+void JuceAudioEngine::setDriverController(const audio::IAudioDriverController* driverController)
 {
     m_driverController = driverController;
 }
 
-bool TracktionAudioEngine::isBusy() const
+bool JuceAudioEngine::isBusy() const
 {
     return m_stream != nullptr;
 }
 
-bool TracktionAudioEngine::isCapturing() const
+bool JuceAudioEngine::isCapturing() const
 {
     // As AudioIO, once past the lead-in
     return m_stream && !m_stream->isFinished() && m_stream->capture() && m_stream->capture()->isCapturing(m_stream->position());
 }
 
-bool TracktionAudioEngine::isMonitoring() const
+bool JuceAudioEngine::isMonitoring() const
 {
     return m_monitoring != nullptr;
 }
 
-std::optional<au::audio::AudioStreamDescriptor> TracktionAudioEngine::currentStream() const
+std::optional<au::audio::AudioStreamDescriptor> JuceAudioEngine::currentStream() const
 {
     if (m_monitoring) {
         return audio::AudioStreamDescriptor { audio::AudioStreamKind::Monitoring, &m_monitoring->project, m_monitoring->sampleRate() };
@@ -98,17 +98,17 @@ std::optional<au::audio::AudioStreamDescriptor> TracktionAudioEngine::currentStr
     return audio::AudioStreamDescriptor { kind, &m_stream->project, m_stream->sampleRate() };
 }
 
-bool TracktionAudioEngine::isStreamActive(AudacityProject& project) const
+bool JuceAudioEngine::isStreamActive(AudacityProject& project) const
 {
     return m_stream && &m_stream->project == &project && !m_stream->isFinished();
 }
 
-double TracktionAudioEngine::transportTime() const
+double JuceAudioEngine::transportTime() const
 {
     return m_transportTime;
 }
 
-int TracktionAudioEngine::startTransport(const TransportSequences& sequences, double startTime, double endTime,
+int JuceAudioEngine::startTransport(const TransportSequences& sequences, double startTime, double endTime,
                                          double /*mixerEndTime*/, AudacityProject& project, const StartTransportOptions& options)
 {
     if (m_stream) {
@@ -174,8 +174,8 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
     }
     const double playStartTime = streamStartTime.value_or(rangeStart);
 
-    auto stream = std::make_unique<PlaybackStream>(project, m_nextStreamToken, std::move(device), options.isDefaultPolicy,
-                                                   m_callbackInfoQueue, m_playedRanges, m_playbackVolume);
+    auto stream = m_makeStream(project, m_nextStreamToken, std::move(device), options.isDefaultPolicy, m_callbackInfoQueue,
+                               m_playedRanges, m_playbackVolume);
     stream->trackEndTime = TrackList::Get(project).GetEndTime();
     const auto meter = muse::value(m_playbackMeters, &project);
     // Sequences are read as far as the play head goes, which is past the end of the play range only if loop play is turned
@@ -213,11 +213,11 @@ int TracktionAudioEngine::startTransport(const TransportSequences& sequences, do
     }
     m_stream->start();
 
-    LOGI() << "Tracktion engine " << (recording ? "recording" : "playing") << " at " << m_lastSampleRate << " Hz";
+    LOGI() << m_name << " engine " << (recording ? "recording" : "playing") << " at " << m_lastSampleRate << " Hz";
     return m_nextStreamToken++;
 }
 
-void TracktionAudioEngine::onPlayRegionChanged()
+void JuceAudioEngine::onPlayRegionChanged()
 {
     if (!m_stream) {
         return;
@@ -233,7 +233,7 @@ void TracktionAudioEngine::onPlayRegionChanged()
     m_stream->updateLoop(loopRange, std::max(t0, m_stream->trackEndTime));
 }
 
-void TracktionAudioEngine::stopTransport()
+void JuceAudioEngine::stopTransport()
 {
     if (!m_stream) {
         return;
@@ -244,35 +244,35 @@ void TracktionAudioEngine::stopTransport()
     m_streamStopped.notify();
 }
 
-void TracktionAudioEngine::pauseTransport(bool pause)
+void JuceAudioEngine::pauseTransport(bool pause)
 {
     if (m_stream) {
         m_stream->setPaused(pause);
     }
 }
 
-void TracktionAudioEngine::seek(double time)
+void JuceAudioEngine::seek(double time)
 {
     if (m_stream) {
         m_stream->seek(time);
     }
 }
 
-std::shared_ptr<RealtimeEffectState> TracktionAudioEngine::addRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
+std::shared_ptr<RealtimeEffectState> JuceAudioEngine::addRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
                                                                                   const std::string& effectId)
 {
     const auto scope = m_stream && &m_stream->project == &project ? m_stream->effectsInitialization() : nullptr;
     return RealtimeEffectManager::Get(project).AddState(scope, group, au3::wxFromStdString(effectId));
 }
 
-void TracktionAudioEngine::removeRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
+void JuceAudioEngine::removeRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
                                                      const std::shared_ptr<RealtimeEffectState>& state)
 {
     const auto scope = m_stream && &m_stream->project == &project ? m_stream->effectsInitialization() : nullptr;
     RealtimeEffectManager::Get(project).RemoveState(scope, group, state);
 }
 
-std::shared_ptr<RealtimeEffectState> TracktionAudioEngine::replaceRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
+std::shared_ptr<RealtimeEffectState> JuceAudioEngine::replaceRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
                                                                                       size_t effectListIndex,
                                                                                       const std::string& newEffectId)
 {
@@ -280,17 +280,17 @@ std::shared_ptr<RealtimeEffectState> TracktionAudioEngine::replaceRealtimeEffect
     return RealtimeEffectManager::Get(project).ReplaceState(scope, group, effectListIndex, au3::wxFromStdString(newEffectId));
 }
 
-void TracktionAudioEngine::setPlaybackMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter)
+void JuceAudioEngine::setPlaybackMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter)
 {
     m_playbackMeters[&project] = meter;
 }
 
-void TracktionAudioEngine::setCaptureMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter)
+void JuceAudioEngine::setCaptureMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter)
 {
     m_captureMeters[&project] = meter;
 }
 
-void TracktionAudioEngine::stopMeters(AudacityProject& project)
+void JuceAudioEngine::stopMeters(AudacityProject& project)
 {
     for (const auto* meters : { &m_playbackMeters, &m_captureMeters }) {
         if (const auto meter = muse::value(*meters, &project)) {
@@ -299,7 +299,7 @@ void TracktionAudioEngine::stopMeters(AudacityProject& project)
     }
 }
 
-void TracktionAudioEngine::startMonitoring(AudacityProject& project)
+void JuceAudioEngine::startMonitoring(AudacityProject& project)
 {
     if (m_stream) {
         return;
@@ -326,7 +326,7 @@ void TracktionAudioEngine::startMonitoring(AudacityProject& project)
     m_monitoring->start();
 }
 
-void TracktionAudioEngine::stopMonitoring()
+void JuceAudioEngine::stopMonitoring()
 {
     if (m_monitoring) {
         m_monitoring->stop();
@@ -334,7 +334,7 @@ void TracktionAudioEngine::stopMonitoring()
     }
 }
 
-std::unique_ptr<juce::AudioIODevice> TracktionAudioEngine::openDevice(int numInputChannels, int numOutputChannels, double sampleRate)
+std::unique_ptr<juce::AudioIODevice> JuceAudioEngine::openDevice(int numInputChannels, int numOutputChannels, double sampleRate)
 {
     IF_ASSERT_FAILED(m_driverController) {
         return nullptr;
@@ -366,48 +366,48 @@ std::unique_ptr<juce::AudioIODevice> TracktionAudioEngine::openDevice(int numInp
     return device;
 }
 
-void TracktionAudioEngine::setInputVolume(float newInputVolume)
+void JuceAudioEngine::setInputVolume(float newInputVolume)
 {
     // Applied to the input, as AudioIO does where it can't set the volume of the device
     m_inputVolume = newInputVolume;
 }
 
-float TracktionAudioEngine::getInputVolume() const
+float JuceAudioEngine::getInputVolume() const
 {
     return m_inputVolume;
 }
 
-void TracktionAudioEngine::setPlaybackVolume(float newPlaybackVolume)
+void JuceAudioEngine::setPlaybackVolume(float newPlaybackVolume)
 {
     m_playbackVolume = newPlaybackVolume;
 }
 
-float TracktionAudioEngine::getPlaybackVolume() const
+float JuceAudioEngine::getPlaybackVolume() const
 {
     return m_playbackVolume;
 }
 
-bool TracktionAudioEngine::canStopTransport(AudacityProject& project) const
+bool JuceAudioEngine::canStopTransport(AudacityProject& project) const
 {
     return !m_stream || &m_stream->project == &project;
 }
 
-void TracktionAudioEngine::handleDeviceChange()
+void JuceAudioEngine::handleDeviceChange()
 {
     // The device is opened for each stream, and the driver controller suspends streams before changing it
 }
 
-muse::String TracktionAudioEngine::lastErrorString() const
+muse::String JuceAudioEngine::lastErrorString() const
 {
     return m_lastError;
 }
 
-double TracktionAudioEngine::getPlaybackSampleRate() const
+double JuceAudioEngine::getPlaybackSampleRate() const
 {
     return m_lastSampleRate;
 }
 
-void TracktionAudioEngine::updateTimePosition(unsigned long newlyConsumedSamples)
+void JuceAudioEngine::updateTimePosition(unsigned long newlyConsumedSamples)
 {
     while (newlyConsumedSamples > 0) {
         if (m_consumedInCurrentRange == m_currentPlayedRange.frames) {
@@ -427,7 +427,7 @@ void TracktionAudioEngine::updateTimePosition(unsigned long newlyConsumedSamples
     }
 }
 
-std::optional<au::audio::AudioCallbackInfo> TracktionAudioEngine::consumeNextCallbackInfo()
+std::optional<au::audio::AudioCallbackInfo> JuceAudioEngine::consumeNextCallbackInfo()
 {
     audio::AudioCallbackInfo info;
     if (m_callbackInfoQueue.Get(info)) {
@@ -436,32 +436,32 @@ std::optional<au::audio::AudioCallbackInfo> TracktionAudioEngine::consumeNextCal
     return std::nullopt;
 }
 
-muse::async::Notification TracktionAudioEngine::recordingUpdateRequested() const
+muse::async::Notification JuceAudioEngine::recordingUpdateRequested() const
 {
     return m_listener->recordingUpdateRequested();
 }
 
-muse::async::Notification TracktionAudioEngine::recordingNewBlocks() const
+muse::async::Notification JuceAudioEngine::recordingNewBlocks() const
 {
     return m_listener->recordingNewBlocks();
 }
 
-muse::async::Notification TracktionAudioEngine::recordingCommitRequested() const
+muse::async::Notification JuceAudioEngine::recordingCommitRequested() const
 {
     return m_listener->recordingCommitRequested();
 }
 
-muse::async::Notification TracktionAudioEngine::recordingFinished() const
+muse::async::Notification JuceAudioEngine::recordingFinished() const
 {
     return m_listener->recordingFinished();
 }
 
-muse::async::Notification TracktionAudioEngine::streamStopped() const
+muse::async::Notification JuceAudioEngine::streamStopped() const
 {
     return m_streamStopped;
 }
 
-muse::async::Channel<au::au3::Au3TrackId, au::au3::Au3ClipId> TracktionAudioEngine::recordingClipChanged() const
+muse::async::Channel<au::au3::Au3TrackId, au::au3::Au3ClipId> JuceAudioEngine::recordingClipChanged() const
 {
     return m_listener->recordingClipChanged();
 }
