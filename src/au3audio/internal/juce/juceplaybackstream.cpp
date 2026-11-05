@@ -11,7 +11,7 @@
 #include "effectslatency.h"
 #include "mixnode.h"
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 namespace {
 //! If a worker can't keep up, or after a seek, it may resume this many chunks ahead of the device

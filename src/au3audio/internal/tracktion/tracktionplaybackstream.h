@@ -14,14 +14,14 @@
 #include "pendingframes.h"
 #include "tracktiongraphincludes.h"
 
-namespace au::au3audio {
+namespace au::au4tracktion {
 class SequenceNode;
 
 //! Plays a tracktion_graph, processed on a pool of threads in step with the device, as the play head says
-class TracktionPlaybackStream final : public PlaybackStream
+class TracktionPlaybackStream final : public au4juce::PlaybackStream
 {
 public:
-    using PlaybackStream::PlaybackStream;
+    using au4juce::PlaybackStream::PlaybackStream;
     ~TracktionPlaybackStream() override;
 
     void build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter, std::optional<double> leadInEndTime) override;
@@ -34,7 +34,7 @@ public:
 
 private:
     const char* name() const override { return "Tracktion"; }
-    int renderChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime) override;
+    int renderChunk(float* const* output, int numOutputChannels, int offset, int frames, au4juce::Clock::time_point dacTime) override;
     void releaseRendering() override;
 
     //! At least a sample long, to be played as a loop
@@ -44,7 +44,8 @@ private:
     void invalidateReadAhead();
 
     //! With `preRoll`, only feeds the graph: nothing is output, metered or reported as played
-    void processChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime, bool preRoll = false);
+    void processChunk(float* const* output, int numOutputChannels, int offset, int frames, au4juce::Clock::time_point dacTime,
+                      bool preRoll = false);
 
     tracktion::graph::PlayHead m_playHead;
     //! Processes the sequences on a pool of threads, in step with the device
@@ -59,7 +60,7 @@ private:
 
     // Audio thread only, once started
     PendingFrames m_pendingFrames;
-    choc::buffer::ChannelArrayBuffer<float> m_buffer { numChannels, static_cast<choc::buffer::FrameCount>(m_blockSize) };
+    choc::buffer::ChannelArrayBuffer<float> m_buffer { au4juce::numChannels, static_cast<choc::buffer::FrameCount>(m_blockSize) };
     tracktion_engine::MidiMessageArray m_midi;
 };
 }

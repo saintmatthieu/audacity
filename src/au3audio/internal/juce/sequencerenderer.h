@@ -14,7 +14,7 @@
 
 class PlayableSequence;
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! Renders one playback sequence: applies its realtime effects, mute/solo and volume/pan, and keeps what its meter shows
 class SequenceRenderer
 {

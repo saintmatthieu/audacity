@@ -23,7 +23,7 @@
 
 class AudacityProject;
 
-namespace au::au3audio {
+namespace au::au4juce {
 class RecordingCapture;
 
 //! A stream: the device, what it plays, and what it records if it does

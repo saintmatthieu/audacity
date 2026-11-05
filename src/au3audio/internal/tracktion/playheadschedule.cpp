@@ -5,7 +5,7 @@
 
 #include "playheadsegment.h"
 
-using namespace au::au3audio;
+using namespace au::au4tracktion;
 
 PlayHeadSchedule::PlayHeadSchedule(const tracktion::graph::PlayHead& playHead)
     : m_playHead{playHead}

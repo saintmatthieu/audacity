@@ -12,7 +12,7 @@
 
 #include "streamplayhead.h"
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 TrackNode::TrackNode(std::shared_ptr<const PlayableSequence> sequence, std::shared_ptr<ISequenceProcessingNode> graph,
                      const StreamPlayHead& playHead, const RenderContext& context, int latency, double sampleRate, size_t maxFrames,

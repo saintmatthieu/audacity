@@ -14,7 +14,7 @@
 
 class AudacityProject;
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! Monitors the input of a device: meters it, and plays it through if asked
 class MonitoringStream final : public juce::AudioIODeviceCallback
 {

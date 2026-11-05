@@ -8,7 +8,7 @@
 
 #include "framework/global/log.h"
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 MonitoringStream::MonitoringStream(AudacityProject& project, std::unique_ptr<juce::AudioIODevice> device, bool playThrough,
                                    audio::IAudioMeterPtr meter, const std::atomic<float>& inputVolume)

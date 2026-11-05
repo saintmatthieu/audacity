@@ -7,10 +7,13 @@
 
 #include "framework/global/modularity/imodulesetup.h"
 
+namespace au::au4juce {
+class JuceAudioEngine;
+}
+
 namespace au::au3audio {
 class Au3AudioEngine;
 class AudioDriverController;
-class JuceAudioEngine;
 class ISystemAudioDevicesListener;
 
 class Au3AudioModule : public muse::modularity::IModuleSetup
@@ -27,13 +30,13 @@ private:
     std::shared_ptr<Au3AudioEngine> m_audioEngine;
     std::shared_ptr<AudioDriverController> m_audioDriverController;
 #ifdef AU_USE_JUCE
-    std::shared_ptr<JuceAudioEngine> m_juceWorkerAudioEngine;
+    std::shared_ptr<au4juce::JuceAudioEngine> m_juceWorkerAudioEngine;
     std::shared_ptr<AudioDriverController> m_juceWorkerDriverController;
-    std::shared_ptr<JuceAudioEngine> m_juceDeviceAudioEngine;
+    std::shared_ptr<au4juce::JuceAudioEngine> m_juceDeviceAudioEngine;
     std::shared_ptr<AudioDriverController> m_juceDeviceDriverController;
 #endif
 #ifdef AU_USE_TRACKTION
-    std::shared_ptr<JuceAudioEngine> m_tracktionAudioEngine;
+    std::shared_ptr<au4juce::JuceAudioEngine> m_tracktionAudioEngine;
     std::shared_ptr<AudioDriverController> m_tracktionDriverController;
 #endif
     std::shared_ptr<ISystemAudioDevicesListener> m_systemAudioDevicesListener;

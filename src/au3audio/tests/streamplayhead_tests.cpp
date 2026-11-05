@@ -19,7 +19,7 @@ constexpr int64_t TEST_BLOCK_SIZE = 5 * TEST_LOOP_LENGTH + TEST_LOOP_LENGTH / 3;
 constexpr int64_t TEST_DEVICE_ADVANCE = TEST_LOOP_LENGTH / 4;
 }
 
-namespace au::au3audio {
+namespace au::au4juce {
 class StreamPlayHeadTests : public ::testing::Test
 {
 protected:

@@ -7,7 +7,7 @@
 
 #include "../internal/juce/juceaudiodevices.h"
 
-namespace au::au3audio {
+namespace au::au4juce {
 TEST(JuceAudioDevicesTests, ListsConsistentDevices)
 {
     JuceAudioDevices devices;

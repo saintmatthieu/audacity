@@ -13,9 +13,9 @@ namespace juce {
 class AudioIODeviceType;
 }
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! The audio devices as seen by JUCE: an API is a juce::AudioIODeviceType.
-class JuceAudioDevices final : public IAudioDevices
+class JuceAudioDevices final : public au3audio::IAudioDevices
 {
 public:
     JuceAudioDevices();

@@ -8,7 +8,7 @@
 
 #include "au3-audio-io/AudioIOListener.h"
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 namespace {
 //! How often the worker moves the captured input into the sequences

@@ -18,7 +18,7 @@
 class AudacityProject;
 class AudioIOListener;
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! Records the input of a stream into its capture sequences, as AudioIO does: with a CaptureSink, filled by the device
 //! and drained into the sequences by a worker thread
 class RecordingCapture

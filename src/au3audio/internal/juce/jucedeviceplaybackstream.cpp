@@ -7,7 +7,7 @@
 
 #include "mixnode.h"
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 namespace {
 //! If a worker can't keep up, or after a seek, it resumes this many chunks ahead of the device, as the Tracktion

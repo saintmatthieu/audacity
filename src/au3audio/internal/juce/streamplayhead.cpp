@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 PlaybackScheduleNode::ISchedule::Segment StreamPlayHead::Schedule::Map(sampleCount index, size_t maxLen) const
 {

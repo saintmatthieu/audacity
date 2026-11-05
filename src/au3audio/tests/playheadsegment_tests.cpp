@@ -17,7 +17,7 @@ constexpr int64_t TEST_POSITION_IN_LOOP = TEST_LOOP_START + TEST_LOOP_LENGTH / 2
 constexpr int64_t TEST_POSITION_BEFORE_LOOP = TEST_LOOP_START / 2;
 }
 
-namespace au::au3audio {
+namespace au::au4tracktion {
 class PlayHeadSegmentTests : public ::testing::Test
 {
 protected:

@@ -17,7 +17,7 @@
 class LockFreeQueueNode;
 class PlayableSequence;
 
-namespace au::au3audio {
+namespace au::au4juce {
 class StreamPlayHead;
 
 //! One playback sequence as the stream plays it, rendered as SequenceRenderer does, compensating its effects' latency

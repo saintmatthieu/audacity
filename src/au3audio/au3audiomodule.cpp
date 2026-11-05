@@ -51,17 +51,17 @@ void Au3AudioModule::registerExports()
     m_audioDriverController->setAudioEngine(m_audioEngine);
 
 #ifdef AU_USE_JUCE
-    const auto juceWorkerDevices = std::make_shared<JuceAudioDevices>();
-    m_juceWorkerAudioEngine = std::make_shared<JuceAudioEngine>(juceWorkerDevices, [](auto&&... args) -> std::unique_ptr<PlaybackStream> {
-        return std::make_unique<JuceWorkerPlaybackStream>(std::forward<decltype(args)>(args)...);
+    const auto juceWorkerDevices = std::make_shared<au4juce::JuceAudioDevices>();
+    m_juceWorkerAudioEngine = std::make_shared<au4juce::JuceAudioEngine>(juceWorkerDevices, [](auto&&... args) -> std::unique_ptr<au4juce::PlaybackStream> {
+        return std::make_unique<au4juce::JuceWorkerPlaybackStream>(std::forward<decltype(args)>(args)...);
     }, "JUCE");
     m_juceWorkerDriverController = std::make_shared<AudioDriverController>(juceWorkerDevices, "JuceAudio");
     m_juceWorkerDriverController->setAudioEngine(m_juceWorkerAudioEngine);
     m_juceWorkerAudioEngine->setDriverController(m_juceWorkerDriverController.get());
 
-    const auto juceDeviceDevices = std::make_shared<JuceAudioDevices>();
-    m_juceDeviceAudioEngine = std::make_shared<JuceAudioEngine>(juceDeviceDevices, [](auto&&... args) -> std::unique_ptr<PlaybackStream> {
-        return std::make_unique<JuceDevicePlaybackStream>(std::forward<decltype(args)>(args)...);
+    const auto juceDeviceDevices = std::make_shared<au4juce::JuceAudioDevices>();
+    m_juceDeviceAudioEngine = std::make_shared<au4juce::JuceAudioEngine>(juceDeviceDevices, [](auto&&... args) -> std::unique_ptr<au4juce::PlaybackStream> {
+        return std::make_unique<au4juce::JuceDevicePlaybackStream>(std::forward<decltype(args)>(args)...);
     }, "JUCE in step");
     m_juceDeviceDriverController = std::make_shared<AudioDriverController>(juceDeviceDevices, "JuceInStepAudio");
     m_juceDeviceDriverController->setAudioEngine(m_juceDeviceAudioEngine);
@@ -69,9 +69,9 @@ void Au3AudioModule::registerExports()
 #endif
 
 #ifdef AU_USE_TRACKTION
-    const auto juceDevices = std::make_shared<JuceAudioDevices>();
-    m_tracktionAudioEngine = std::make_shared<JuceAudioEngine>(juceDevices, [](auto&&... args) -> std::unique_ptr<PlaybackStream> {
-        return std::make_unique<TracktionPlaybackStream>(std::forward<decltype(args)>(args)...);
+    const auto juceDevices = std::make_shared<au4juce::JuceAudioDevices>();
+    m_tracktionAudioEngine = std::make_shared<au4juce::JuceAudioEngine>(juceDevices, [](auto&&... args) -> std::unique_ptr<au4juce::PlaybackStream> {
+        return std::make_unique<au4tracktion::TracktionPlaybackStream>(std::forward<decltype(args)>(args)...);
     }, "Tracktion");
     m_tracktionDriverController = std::make_shared<AudioDriverController>(juceDevices, "TracktionAudio");
     m_tracktionDriverController->setAudioEngine(m_tracktionAudioEngine);

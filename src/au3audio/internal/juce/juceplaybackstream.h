@@ -17,7 +17,7 @@
 #include "streamplayhead.h"
 #include "tracknode.h"
 
-namespace au::au3audio {
+namespace au::au4juce {
 class MixNode;
 
 //! Plays the mix of the sequences, rendered by one thread, as its play head says

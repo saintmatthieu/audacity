@@ -7,7 +7,7 @@
 
 #include "rendercontext.h"
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! Scratch space in the layout RealtimeEffectManager::Process() expects
 class EffectScratch
 {

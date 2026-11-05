@@ -3,7 +3,7 @@
 */
 #include "pendingframes.h"
 
-using namespace au::au3audio;
+using namespace au::au4tracktion;
 
 void PendingFrames::reset()
 {

@@ -12,7 +12,7 @@
 #include "playheadsegment.h"
 #include "sequencenode.h"
 
-using namespace au::au3audio;
+using namespace au::au4tracktion;
 
 namespace {
 using Segments = std::vector<std::pair<int64_t, int64_t> >;
@@ -50,7 +50,7 @@ void TracktionPlaybackStream::build(const TransportSequences& sequences, const a
     for (size_t i = 0; i < m_sequences.size(); ++i) {
         const auto& sequence = m_sequences[i];
         const auto group = sequence->FindChannelGroup();
-        const auto latency = group ? effectsLatency(project, group, m_sampleRate) : 0;
+        const auto latency = group ? au4juce::effectsLatency(project, group, m_sampleRate) : 0;
         auto node = std::make_unique<SequenceNode>(sequence, sequences.playbackGraphs[i], m_playHead, m_context, latency,
                                                    nodeId++);
         // As AudioIO, sequences recorded into with a lead-in play only during the lead-in
@@ -61,7 +61,7 @@ void TracktionPlaybackStream::build(const TransportSequences& sequences, const a
         sequenceNodes.push_back(std::move(node));
     }
     auto master = std::make_unique<MasterNode>(std::make_unique<tracktion::graph::SummingNode>(std::move(sequenceNodes)), m_context,
-                                               effectsLatency(project, RealtimeEffectManager::MasterGroup, m_sampleRate),
+                                               au4juce::effectsLatency(project, RealtimeEffectManager::MasterGroup, m_sampleRate),
                                                nodeId++);
     auto& root = *master;
     // As tracktion_engine: a thread per CPU, the device's included
@@ -77,7 +77,7 @@ void TracktionPlaybackStream::preRoll()
 {
     for (int64_t remaining = m_context.latency; remaining > 0;) {
         const auto frames = static_cast<int>(std::min<int64_t>(remaining, m_blockSize));
-        processChunk(nullptr, 0, 0, frames, Clock::now(), true);
+        processChunk(nullptr, 0, 0, frames, au4juce::Clock::now(), true);
         remaining -= frames;
     }
 }
@@ -165,14 +165,14 @@ void TracktionPlaybackStream::releaseRendering()
     m_sequenceNodes.clear();
 }
 
-int TracktionPlaybackStream::renderChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime)
+int TracktionPlaybackStream::renderChunk(float* const* output, int numOutputChannels, int offset, int frames, au4juce::Clock::time_point dacTime)
 {
     processChunk(output, numOutputChannels, offset, frames, dacTime);
     // In step with the device: what isn't rendered in time is skipped, not played late
     return 0;
 }
 
-void TracktionPlaybackStream::processChunk(float* const* output, int numOutputChannels, int offset, int frames, Clock::time_point dacTime,
+void TracktionPlaybackStream::processChunk(float* const* output, int numOutputChannels, int offset, int frames, au4juce::Clock::time_point dacTime,
                                   bool preRoll)
 {
     const auto referencePosition = m_referencePosition.load(std::memory_order_relaxed);
@@ -234,7 +234,7 @@ void TracktionPlaybackStream::processChunk(float* const* output, int numOutputCh
         }
     });
 
-    const float* stereo[numChannels] { channelPointer(view, 0), channelPointer(view, 1) };
+    const float* stereo[au4juce::numChannels] { channelPointer(view, 0), channelPointer(view, 1) };
     sendToMainMeter(stereo, frames, dacTime);
     writeOutput(stereo, output, numOutputChannels, offset, frames);
 

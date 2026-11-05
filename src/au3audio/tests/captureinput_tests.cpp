@@ -47,7 +47,7 @@ std::vector<float> scaled(const std::vector<float>& samples, float factor)
 }
 }
 
-namespace au::au3audio {
+namespace au::au4juce {
 TEST(CaptureInputTests, ReadsInterleavedWithTheVolumeApplied)
 {
     const std::vector<float> left { 1.f, 2.f, 3.f, 4.f };

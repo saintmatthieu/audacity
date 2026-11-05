@@ -7,7 +7,7 @@
 
 #include "juceplaybackstream.h"
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! Plays the mix of the sequences, rendered in step with the device, as the Tracktion backend does, without its pool
 /*!
  * A worker per sequence reads it ahead, as the play head says, and the device thread renders the effects, the mix and

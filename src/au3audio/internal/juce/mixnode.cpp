@@ -9,7 +9,7 @@
 #include "streamplayhead.h"
 #include "tracknode.h"
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 MixNode::MixNode(std::vector<std::unique_ptr<TrackNode> > tracks, Settings settings, RenderContext& context,
                  RealtimeEffects::InitializationScope& effects, const StreamPlayHead& playHead,

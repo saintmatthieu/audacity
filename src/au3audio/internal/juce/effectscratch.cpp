@@ -3,7 +3,7 @@
 */
 #include "effectscratch.h"
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 void EffectScratch::allocate(int frames)
 {

@@ -10,7 +10,7 @@
 
 #include "au3-clip-processing/sequence-graph/PlaybackScheduleNode.h"
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! Where in the timeline a stream plays: maps the indices of the stream's samples to timeline positions
 /*!
  * The device is at an index, which the device thread advances. What the stream plays from an index on depends on the

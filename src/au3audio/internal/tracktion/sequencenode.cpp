@@ -12,7 +12,7 @@
 
 #include "playheadschedule.h"
 
-using namespace au::au3audio;
+using namespace au::au4tracktion;
 
 namespace {
 //! The worker reads ahead in chunks of this duration ...
@@ -24,7 +24,7 @@ constexpr size_t resyncLeadNumChunks = 2;
 }
 
 SequenceNode::SequenceNode(std::shared_ptr<const PlayableSequence> sequence, std::shared_ptr<ISequenceProcessingNode> graph,
-                           const tracktion::graph::PlayHead& playHead, const RenderContext& context, int latency,
+                           const tracktion::graph::PlayHead& playHead, const au4juce::RenderContext& context, int latency,
                            size_t nodeId)
     : m_sequence{std::move(sequence)}, m_graph{std::move(graph)}, m_playHead{playHead}, m_latency{latency}, m_nodeId{nodeId},
     m_renderer{m_sequence, context, latency}
@@ -37,7 +37,7 @@ tracktion::graph::NodeProperties SequenceNode::getNodeProperties()
 {
     tracktion::graph::NodeProperties props;
     props.hasAudio = true;
-    props.numberOfChannels = numChannels;
+    props.numberOfChannels = au4juce::numChannels;
     // The summing node delays the other sequences to compensate
     props.latencyNumSamples = m_latency;
     props.nodeID = m_nodeId;
@@ -95,6 +95,6 @@ void SequenceNode::process(tracktion::graph::Node::ProcessContext& pc)
     const auto referenceStart = pc.referenceSampleRange.getStart();
     m_queue->Prepare(referenceStart);
     m_source->GetSamples(m_renderer.input(), referenceStart, frames);
-    float* output[numChannels] { channelPointer(pc.buffers.audio, 0), channelPointer(pc.buffers.audio, 1) };
+    float* output[au4juce::numChannels] { channelPointer(pc.buffers.audio, 0), channelPointer(pc.buffers.audio, 1) };
     m_renderer.render(output, frames, m_playHead.referenceSamplePositionToTimelinePositionUnlooped(referenceStart));
 }

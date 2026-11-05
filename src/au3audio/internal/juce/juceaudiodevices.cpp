@@ -9,7 +9,7 @@
 
 #include "au3-audio-devices/AudioIOBase.h"
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 namespace {
 std::vector<std::string> toStdStrings(const juce::StringArray& strings)

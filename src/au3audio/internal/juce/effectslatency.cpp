@@ -6,7 +6,7 @@
 #include "au3-realtime-effects/RealtimeEffectList.h"
 #include "au3-realtime-effects/RealtimeEffectState.h"
 
-int au::au3audio::effectsLatency(const AudacityProject& project, const ChannelGroup* group, double sampleRate)
+int au::au4juce::effectsLatency(const AudacityProject& project, const ChannelGroup* group, double sampleRate)
 {
     const auto& list = group ? RealtimeEffectList::Get(*group) : RealtimeEffectList::Get(project);
     EffectInstance::SampleCount latency = 0;

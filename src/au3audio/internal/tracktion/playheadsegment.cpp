@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-std::pair<int64_t, int64_t> au::au3audio::playHeadSegment(const tracktion::graph::PlayHead& playHead, int64_t linearPosition,
+std::pair<int64_t, int64_t> au::au4tracktion::playHeadSegment(const tracktion::graph::PlayHead& playHead, int64_t linearPosition,
                                                           int64_t maxLen)
 {
     if (!playHead.isLooping()) {

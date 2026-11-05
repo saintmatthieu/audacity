@@ -11,7 +11,7 @@
 
 #include "juceplaybackstream.h"
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! Plays the mix of the sequences, rendered ahead on a worker thread, as AudioIO does
 /*!
  * The worker renders everything, effects included, by one thread, about 0.25 s ahead of the device, into a queue: the

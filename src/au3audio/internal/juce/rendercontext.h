@@ -13,7 +13,7 @@ namespace RealtimeEffects {
 class ProcessingScope;
 }
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! The graph and the device are stereo
 constexpr int numChannels = 2;
 

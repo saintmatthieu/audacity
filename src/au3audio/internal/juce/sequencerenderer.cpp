@@ -9,7 +9,7 @@
 #include "au3-realtime-effects/RealtimeEffectManager.h"
 #include "au3-wave-track/WaveTrack.h"
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 SequenceRenderer::SequenceRenderer(std::shared_ptr<const PlayableSequence> sequence, const RenderContext& context, int latency)
     : m_sequence{std::move(sequence)}, m_context{context}, m_latency{latency}
@@ -98,7 +98,7 @@ void SequenceRenderer::sendToMeter()
     m_meterFrames = 0;
 }
 
-void au::au3audio::renderMaster(const RenderContext& context, EffectScratch& scratch, float* const* stereo, size_t frames)
+void au::au4juce::renderMaster(const RenderContext& context, EffectScratch& scratch, float* const* stereo, size_t frames)
 {
     if (context.effects) {
         // As for the sequences, the output stays delayed by the effects' latency

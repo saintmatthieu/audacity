@@ -25,7 +25,7 @@ namespace juce {
 class AudioIODevice;
 }
 
-namespace au::au3audio {
+namespace au::au4juce {
 class JuceAudioDevices;
 class MonitoringStream;
 class PlaybackStream;
@@ -130,7 +130,7 @@ private:
     Observer::Subscription m_playRegionSubscription;
 
     //! Notified of recordings, as AudioIO notifies its listener
-    const std::shared_ptr<Au3AudioIOListener> m_listener = std::make_shared<Au3AudioIOListener>();
+    const std::shared_ptr<au3audio::Au3AudioIOListener> m_listener = std::make_shared<au3audio::Au3AudioIOListener>();
     muse::async::Notification m_streamStopped;
 };
 }

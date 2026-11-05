@@ -13,7 +13,7 @@
 
 #include "recordingcapture.h"
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 PlaybackStream::PlaybackStream(AudacityProject& project, int token, std::unique_ptr<juce::AudioIODevice> device,
                                bool followsPlayRegion, LockFreeQueue<audio::AudioCallbackInfo>& callbackInfos,

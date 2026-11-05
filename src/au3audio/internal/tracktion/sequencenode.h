@@ -16,7 +16,7 @@ class ISequenceProcessingNode;
 class LockFreeQueueNode;
 class PlayableSequence;
 
-namespace au::au3audio {
+namespace au::au4tracktion {
 //! Renders one playback sequence, as SequenceRenderer does
 /*!
  * The sequence is read, with its gain envelope, stretched and resampled to the device rate ahead of time on a worker
@@ -27,7 +27,7 @@ class SequenceNode final : public tracktion::graph::Node
 public:
     //! @param graph the graph processing `sequence` as it is played, where its samples are read
     SequenceNode(std::shared_ptr<const PlayableSequence> sequence, std::shared_ptr<ISequenceProcessingNode> graph,
-                 const tracktion::graph::PlayHead& playHead, const RenderContext& context, int latency, size_t nodeId);
+                 const tracktion::graph::PlayHead& playHead, const au4juce::RenderContext& context, int latency, size_t nodeId);
     ~SequenceNode() override;
 
     tracktion::graph::NodeProperties getNodeProperties() override;
@@ -58,7 +58,7 @@ private:
     const tracktion::graph::PlayHead& m_playHead;
     const int m_latency;
     const size_t m_nodeId;
-    SequenceRenderer m_renderer;
+    au4juce::SequenceRenderer m_renderer;
 
     //! The sequence as read ahead on the worker thread, by reference sample
     std::shared_ptr<ISequenceProcessingNode> m_source;

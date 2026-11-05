@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cmath>
 
-using namespace au::au3audio;
+using namespace au::au4juce;
 
 namespace {
 //! The input meter shows at most stereo

@@ -9,7 +9,7 @@
 
 #include "au3-mixer/AudioIOSequences.h"
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! The input of a device, as captured: with the input volume applied, metered, and played through, as AudioIO does
 class CaptureInput
 {

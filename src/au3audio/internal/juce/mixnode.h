@@ -19,7 +19,7 @@
 
 class AudacityProject;
 
-namespace au::au3audio {
+namespace au::au4juce {
 class StreamPlayHead;
 class TrackNode;
 

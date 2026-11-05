@@ -3,7 +3,7 @@
 */
 #pragma once
 
-namespace au::au3audio {
+namespace au::au4juce {
 //! What the device callback has played, for transportTime(): from `time`, `frames` contiguous frames
 struct PlayedRange {
     double time = 0.0;

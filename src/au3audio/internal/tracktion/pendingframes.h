@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace au::au3audio {
+namespace au::au4tracktion {
 //! The timeline positions of the frames still in the graph's latency, oldest first
 class PendingFrames
 {
