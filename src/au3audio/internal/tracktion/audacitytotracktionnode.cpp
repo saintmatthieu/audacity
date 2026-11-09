@@ -5,7 +5,7 @@
 
 #include "au3-mixer/ISequenceProcessingNode.h"
 
-#include "../juce/stereo.h"
+#include "../au4/stereo.h"
 
 using namespace au::au4tracktion;
 
@@ -20,7 +20,7 @@ tracktion::graph::NodeProperties AudacityToTracktionNode::getNodeProperties()
 {
     tracktion::graph::NodeProperties props;
     props.hasAudio = true;
-    props.numberOfChannels = au4juce::numChannels;
+    props.numberOfChannels = au4::numChannels;
     props.latencyNumSamples = 0;
     props.nodeID = m_nodeId;
     return props;
@@ -28,6 +28,6 @@ tracktion::graph::NodeProperties AudacityToTracktionNode::getNodeProperties()
 
 void AudacityToTracktionNode::process(tracktion::graph::Node::ProcessContext& pc)
 {
-    float* const buffers[au4juce::numChannels] { channelPointer(pc.buffers.audio, 0), channelPointer(pc.buffers.audio, 1) };
+    float* const buffers[au4::numChannels] { channelPointer(pc.buffers.audio, 0), channelPointer(pc.buffers.audio, 1) };
     m_input->GetSamples(buffers, pc.referenceSampleRange.getStart(), pc.numSamples);
 }

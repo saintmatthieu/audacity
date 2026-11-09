@@ -10,7 +10,7 @@
 
 #include "juceaudiodevices.h"
 
-using namespace au::au4juce;
+using namespace au::au4;
 
 namespace {
 std::string effectiveOutputDevice(const JuceAudioDevices& devices, const au::audio::AudioConfiguration& configuration)

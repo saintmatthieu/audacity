@@ -14,7 +14,7 @@
 
 #ifdef AU_USE_JUCE
 #include "internal/juce/juceaudiodevices.h"
-#include "internal/juce/au4audioengine.h"
+#include "internal/au4/au4audioengine.h"
 #include "internal/juce/jucedevice.h"
 #endif
 
@@ -47,8 +47,8 @@ void Au3AudioModule::registerExports()
     m_audioDriverController->setAudioEngine(m_audioEngine);
 
 #ifdef AU_USE_JUCE
-    const auto juceDevices = std::make_shared<au4juce::JuceAudioDevices>();
-    m_juceEngine = std::make_shared<au4juce::Au4AudioEngine>(std::make_shared<au4juce::JuceDeviceOpener>(juceDevices));
+    const auto juceDevices = std::make_shared<au4::JuceAudioDevices>();
+    m_juceEngine = std::make_shared<au4::Au4AudioEngine>(std::make_shared<au4::JuceDeviceOpener>(juceDevices));
     m_juceDriverController = std::make_shared<AudioDriverController>(juceDevices, "JuceAudio");
     m_juceDriverController->setAudioEngine(m_juceEngine);
     m_juceEngine->setDriverController(m_juceDriverController.get());
@@ -79,7 +79,7 @@ void Au3AudioModule::resolveImports()
     // One engine, which plays as the active backend says
     const auto suspendJuceStream = [this] { return m_juceDriverController->suspendStream(); };
     backendRegister->registerBackend({ "juce", m_juceEngine, m_juceDriverController, suspendJuceStream, "JUCE (safe)",
-                                       [this] { m_juceEngine->setMode(au4juce::Au4AudioEngine::Mode::Safe); } });
+                                       [this] { m_juceEngine->setMode(au4::Au4AudioEngine::Mode::Safe); } });
 #ifdef AU_USE_TRACKTION
     // Mixes with tracktion_graph
     const std::string fastTitle = "Tracktion (fast)";
@@ -87,7 +87,7 @@ void Au3AudioModule::resolveImports()
     const std::string fastTitle = "JUCE (fast)";
 #endif
     backendRegister->registerBackend({ "juce-fast", m_juceEngine, m_juceDriverController, suspendJuceStream, fastTitle,
-                                       [this] { m_juceEngine->setMode(au4juce::Au4AudioEngine::Mode::Fast); } });
+                                       [this] { m_juceEngine->setMode(au4::Au4AudioEngine::Mode::Fast); } });
 #endif
 }
 

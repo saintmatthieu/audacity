@@ -6,7 +6,7 @@
 #include <map>
 #include <vector>
 
-#include "../internal/juce/captureinput.h"
+#include "../internal/au4/captureinput.h"
 
 namespace {
 constexpr int TEST_FRAMES = 4;
@@ -47,7 +47,7 @@ std::vector<float> scaled(const std::vector<float>& samples, float factor)
 }
 }
 
-namespace au::au4juce {
+namespace au::au4 {
 TEST(CaptureInputTests, ReadsInterleavedWithTheVolumeApplied)
 {
     const std::vector<float> left { 1.f, 2.f, 3.f, 4.f };

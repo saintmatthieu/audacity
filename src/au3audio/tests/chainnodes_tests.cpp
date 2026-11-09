@@ -12,19 +12,19 @@
 #include "au3-clip-processing/sequence-graph/IPlayheadMapper.h"
 #include "au3-mixer/AudioIOSequences.h"
 
-#include "../internal/juce/effectscratch.h"
-#include "../internal/juce/effectsnode.h"
-#include "../internal/juce/endoftracknode.h"
-#include "../internal/juce/gainpannode.h"
-#include "../internal/juce/ieffectscontext.h"
-#include "../internal/juce/iendoftrackcontext.h"
-#include "../internal/juce/imutesolocontext.h"
-#include "../internal/juce/metertapnode.h"
-#include "../internal/juce/monitoredinput.h"
-#include "../internal/juce/mutesolonode.h"
-#include "../internal/juce/sequentialmixnode.h"
+#include "../internal/au4/effectscratch.h"
+#include "../internal/au4/effectsnode.h"
+#include "../internal/au4/endoftracknode.h"
+#include "../internal/au4/gainpannode.h"
+#include "../internal/au4/ieffectscontext.h"
+#include "../internal/au4/iendoftrackcontext.h"
+#include "../internal/au4/imutesolocontext.h"
+#include "../internal/au4/metertapnode.h"
+#include "../internal/au4/monitoredinput.h"
+#include "../internal/au4/mutesolonode.h"
+#include "../internal/au4/sequentialmixnode.h"
 
-using namespace au::au4juce;
+using namespace au::au4;
 
 namespace {
 constexpr size_t TEST_MAX_FRAMES = 64;
@@ -44,7 +44,7 @@ constexpr int64_t TEST_TRACK_STOP = TEST_PLAYHEAD_START + TEST_READ_LEN / 4;
 class RampNode final : public ISequenceProcessingNode
 {
 public:
-    explicit RampNode(size_t numChannels = au::au4juce::numChannels)
+    explicit RampNode(size_t numChannels = au::au4::numChannels)
         : m_numChannels{numChannels} {}
 
     void GetSamples(float* const* buffers, sampleCount start, size_t len) override
@@ -69,7 +69,7 @@ public:
 
     void GetSamples(float* const* buffers, sampleCount, size_t len) override
     {
-        for (int ch = 0; ch < au::au4juce::numChannels; ++ch) {
+        for (int ch = 0; ch < au::au4::numChannels; ++ch) {
             std::fill_n(buffers[ch], len, m_level);
         }
     }
@@ -90,7 +90,7 @@ public:
     void process(const ChannelGroup* group, float* const* buffers, EffectScratch&, size_t frames) override
     {
         auto& delays = m_delays[group];
-        for (int ch = 0; ch < au::au4juce::numChannels; ++ch) {
+        for (int ch = 0; ch < au::au4::numChannels; ++ch) {
             auto& delay = delays[ch];
             if (delay.empty()) {
                 delay.assign(static_cast<size_t>(m_latency), 0.f);
@@ -108,7 +108,7 @@ public:
 
 private:
     const int m_latency;
-    std::map<const ChannelGroup*, std::array<std::deque<float>, au::au4juce::numChannels> > m_delays;
+    std::map<const ChannelGroup*, std::array<std::deque<float>, au::au4::numChannels> > m_delays;
 };
 
 //! The playhead reads linearly from TEST_PLAYHEAD_START
@@ -166,7 +166,7 @@ struct Stereo {
         : left(len), right(len) {}
     std::vector<float> left;
     std::vector<float> right;
-    float* pointers[au::au4juce::numChannels] { left.data(), right.data() };
+    float* pointers[au::au4::numChannels] { left.data(), right.data() };
 };
 
 Stereo read(ISequenceProcessingNode& node, int64_t start, size_t len)
@@ -189,7 +189,7 @@ std::vector<float> ramp(int64_t start, size_t len)
 TEST(EffectsNodeTests, WhatIsReadAtAnIndexIsHeardThere)
 {
     DelayingEffects effects { TEST_LATENCY };
-    EffectsNode node { std::make_shared<RampNode>(), au::au4juce::numChannels, nullptr, effects, TEST_MAX_FRAMES };
+    EffectsNode node { std::make_shared<RampNode>(), au::au4::numChannels, nullptr, effects, TEST_MAX_FRAMES };
 
     const auto output = read(node, 0, TEST_READ_LEN);
 
@@ -200,7 +200,7 @@ TEST(EffectsNodeTests, WhatIsReadAtAnIndexIsHeardThere)
 TEST(EffectsNodeTests, PrimesTheEffectsWhereReadingJumps)
 {
     DelayingEffects effects { TEST_LATENCY };
-    EffectsNode node { std::make_shared<RampNode>(), au::au4juce::numChannels, nullptr, effects, TEST_MAX_FRAMES };
+    EffectsNode node { std::make_shared<RampNode>(), au::au4::numChannels, nullptr, effects, TEST_MAX_FRAMES };
     read(node, 0, TEST_READ_LEN);
 
     const auto output = read(node, TEST_JUMP_INDEX, TEST_READ_LEN);
@@ -222,7 +222,7 @@ TEST(EffectsNodeTests, GivesTheEffectsSilenceWhereAMonoInputHasNoChannel)
 
 TEST(MuteSoloNodeTests, SilencesAMutedTrack)
 {
-    const auto track = std::make_shared<TestTrack>(au::au4juce::numChannels);
+    const auto track = std::make_shared<TestTrack>(au::au4::numChannels);
     TestMuteSoloContext context;
     MuteSoloNode node { std::make_shared<ConstantNode>(TEST_LEVEL), track, context };
     track->mute = true;
@@ -232,7 +232,7 @@ TEST(MuteSoloNodeTests, SilencesAMutedTrack)
 
 TEST(MuteSoloNodeTests, SilencesATrackWhileAnotherSolos)
 {
-    const auto track = std::make_shared<TestTrack>(au::au4juce::numChannels);
+    const auto track = std::make_shared<TestTrack>(au::au4::numChannels);
     TestMuteSoloContext context;
     MuteSoloNode node { std::make_shared<ConstantNode>(TEST_LEVEL), track, context };
     context.soloing = true;
@@ -242,7 +242,7 @@ TEST(MuteSoloNodeTests, SilencesATrackWhileAnotherSolos)
 
 TEST(MuteSoloNodeTests, PlaysASoloingTrackEvenIfMuted)
 {
-    const auto track = std::make_shared<TestTrack>(au::au4juce::numChannels);
+    const auto track = std::make_shared<TestTrack>(au::au4::numChannels);
     TestMuteSoloContext context;
     MuteSoloNode node { std::make_shared<ConstantNode>(TEST_LEVEL), track, context };
     track->mute = true;
@@ -269,7 +269,7 @@ TEST(GainPanNodeTests, PansAMonoTrackToStereo)
 
 TEST(GainPanNodeTests, AppliesEachChannelsVolumeToAStereoTrack)
 {
-    const auto track = std::make_shared<TestTrack>(au::au4juce::numChannels);
+    const auto track = std::make_shared<TestTrack>(au::au4::numChannels);
     track->leftVolume = TEST_LEFT_VOLUME;
     track->rightVolume = TEST_RIGHT_VOLUME;
     GainPanNode node { std::make_shared<ConstantNode>(TEST_LEVEL), track };
@@ -282,7 +282,7 @@ TEST(GainPanNodeTests, AppliesEachChannelsVolumeToAStereoTrack)
 
 TEST(MeterTapNodeTests, PassesItsInputAndKeepsContiguousReads)
 {
-    MeterTapNode node { std::make_shared<RampNode>(), au::au4juce::numChannels, TEST_READ_LEN };
+    MeterTapNode node { std::make_shared<RampNode>(), au::au4::numChannels, TEST_READ_LEN };
 
     const auto first = read(node, 0, TEST_MAX_FRAMES);
     read(node, TEST_MAX_FRAMES, TEST_MAX_FRAMES);
@@ -296,7 +296,7 @@ TEST(MeterTapNodeTests, PassesItsInputAndKeepsContiguousReads)
 
 TEST(MeterTapNodeTests, StartsOverWhereReadingJumpsOrOnceReset)
 {
-    MeterTapNode node { std::make_shared<RampNode>(), au::au4juce::numChannels, TEST_READ_LEN };
+    MeterTapNode node { std::make_shared<RampNode>(), au::au4::numChannels, TEST_READ_LEN };
     read(node, 0, TEST_MAX_FRAMES);
 
     read(node, TEST_JUMP_INDEX, TEST_MAX_FRAMES);
@@ -397,7 +397,7 @@ TEST(MonitoredInputNodeTests, GivesTheBlocksInputWhereItIsReadLive)
     const auto samples = ramp(0, TEST_MAX_FRAMES);
     const float* const device[] { samples.data() };
     input->read(device, 0, TEST_MAX_FRAMES, TEST_BLOCK_INDEX);
-    MonitoredInputNode node { input, au::au4juce::numChannels, TEST_INPUT_LEAD };
+    MonitoredInputNode node { input, au::au4::numChannels, TEST_INPUT_LEAD };
 
     const auto output = read(node, TEST_BLOCK_INDEX + TEST_INPUT_LEAD, TEST_MAX_FRAMES);
 
@@ -415,7 +415,7 @@ TEST(MonitoredInputNodeTests, IsSilentWhereItIsNotReadLive)
     const auto samples = std::vector<float>(TEST_MAX_FRAMES, TEST_LEVEL);
     const float* const device[] { samples.data() };
     input->read(device, 0, TEST_MAX_FRAMES, TEST_BLOCK_INDEX);
-    MonitoredInputNode node { input, au::au4juce::numChannels, TEST_INPUT_LEAD };
+    MonitoredInputNode node { input, au::au4::numChannels, TEST_INPUT_LEAD };
 
     // As where effects are primed, before what plays
     const auto output = read(node, TEST_BLOCK_INDEX, TEST_MAX_FRAMES);

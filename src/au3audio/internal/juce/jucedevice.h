@@ -5,10 +5,10 @@
 
 #include <memory>
 
-#include "idevice.h"
+#include "../au4/idevice.h"
 #include "juceincludes.h"
 
-namespace au::au4juce {
+namespace au::au4 {
 class JuceAudioDevices;
 
 //! A JUCE device

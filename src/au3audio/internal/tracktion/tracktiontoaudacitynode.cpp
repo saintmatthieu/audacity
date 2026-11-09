@@ -5,14 +5,14 @@
 
 #include <algorithm>
 
-#include "../juce/stereo.h"
+#include "../au4/stereo.h"
 #include "audacitytotracktionnode.h"
 
 using namespace au::au4tracktion;
 
 TracktionToAudacityNode::TracktionToAudacityNode(std::vector<std::shared_ptr<ISequenceProcessingNode> > tracks, double sampleRate,
                                                  size_t maxFrames)
-    : m_maxFrames{maxFrames}, m_buffer{au4juce::numChannels, static_cast<choc::buffer::FrameCount>(maxFrames)}
+    : m_maxFrames{maxFrames}, m_buffer{au4::numChannels, static_cast<choc::buffer::FrameCount>(maxFrames)}
 {
     size_t nodeId = 1;
     std::vector<std::unique_ptr<tracktion::graph::Node> > adapters;
@@ -39,7 +39,7 @@ void TracktionToAudacityNode::GetSamples(float* const* buffers, sampleCount star
         m_midi.clear();
         m_player->process({ static_cast<choc::buffer::FrameCount>(frames), juce::Range<int64_t> { from, from + static_cast<int64_t>(frames) },
                             { view, m_midi } });
-        for (int ch = 0; ch < au4juce::numChannels; ++ch) {
+        for (int ch = 0; ch < au4::numChannels; ++ch) {
             std::copy_n(channelPointer(view, ch), frames, buffers[ch] + done);
         }
         done += frames;

@@ -8,7 +8,7 @@
 #include "framework/global/modularity/imodulesetup.h"
 
 #ifdef AU_USE_JUCE
-namespace au::au4juce {
+namespace au::au4 {
 class Au4AudioEngine;
 }
 #endif
@@ -32,7 +32,7 @@ private:
     std::shared_ptr<Au3AudioEngine> m_audioEngine;
     std::shared_ptr<AudioDriverController> m_audioDriverController;
 #ifdef AU_USE_JUCE
-    std::shared_ptr<au4juce::Au4AudioEngine> m_juceEngine;
+    std::shared_ptr<au4::Au4AudioEngine> m_juceEngine;
     std::shared_ptr<AudioDriverController> m_juceDriverController;
 #endif
     std::shared_ptr<ISystemAudioDevicesListener> m_systemAudioDevicesListener;

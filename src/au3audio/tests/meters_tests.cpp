@@ -7,12 +7,12 @@
 #include <memory>
 #include <vector>
 
-#include "../internal/juce/metersendnode.h"
-#include "../internal/juce/metersink.h"
-#include "../internal/juce/metertapnode.h"
-#include "../internal/juce/stereo.h"
+#include "../internal/au4/metersendnode.h"
+#include "../internal/au4/metersink.h"
+#include "../internal/au4/metertapnode.h"
+#include "../internal/au4/stereo.h"
 
-using namespace au::au4juce;
+using namespace au::au4;
 using au::audio::IAudioMeter;
 using au::audio::TimePoint;
 
@@ -30,7 +30,7 @@ class RampNode final : public ISequenceProcessingNode
 public:
     void GetSamples(float* const* buffers, sampleCount start, size_t len) override
     {
-        for (int ch = 0; ch < au::au4juce::numChannels; ++ch) {
+        for (int ch = 0; ch < au::au4::numChannels; ++ch) {
             for (size_t i = 0; i < len; ++i) {
                 buffers[ch][i] = static_cast<float>(start.as_long_long() + static_cast<int64_t>(i));
             }

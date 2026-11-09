@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include "../internal/juce/playheadmapper.h"
+#include "../internal/au4/playheadmapper.h"
 
 namespace {
 constexpr int64_t TEST_LOOP_START = 100;
@@ -19,7 +19,7 @@ constexpr int64_t TEST_BLOCK_SIZE = 5 * TEST_LOOP_LENGTH + TEST_LOOP_LENGTH / 3;
 constexpr int64_t TEST_DEVICE_ADVANCE = TEST_LOOP_LENGTH / 4;
 }
 
-namespace au::au4juce {
+namespace au::au4 {
 class PlayheadMapperTests : public ::testing::Test
 {
 protected:
