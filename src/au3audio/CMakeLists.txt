@@ -120,6 +120,8 @@ set(AU4_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metersink.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metertapnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metertapnode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/monitoredinput.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/monitoredinput.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/monitoringcallback.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/monitoringcallback.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/mutesolonode.cpp

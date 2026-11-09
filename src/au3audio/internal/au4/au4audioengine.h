@@ -20,6 +20,8 @@
 #include "../au3audioiolistener.h"
 #include "playedrange.h"
 
+struct PlayableSequence;
+
 namespace RealtimeEffects {
 class InitializationScope;
 }
@@ -79,6 +81,8 @@ public:
 
     void startMonitoring(AudacityProject& project) override;
     void stopMonitoring() override;
+    //! Playing fast, the input is monitored through its effects, then the master's; playing safe, as it comes
+    void setMonitoredTrack(std::optional<int64_t> track) override;
 
     void setInputVolume(float newInputVolume) override;
     float getInputVolume() const override;
@@ -108,11 +112,14 @@ private:
     std::unique_ptr<IDevice> openDevice(int numInputChannels, int numOutputChannels, double sampleRate);
     //! Where realtime effects added to `project` while streaming are initialized, if anywhere
     RealtimeEffects::InitializationScope* effectsInitialization(AudacityProject& project) const;
+    //! The track of `project` the input is monitored through, if any
+    std::shared_ptr<const PlayableSequence> monitoredTrack(AudacityProject& project) const;
 
     const std::shared_ptr<IDeviceOpener> m_deviceOpener;
     const audio::IAudioDriverController* m_driverController = nullptr;
 
     Mode m_mode = Mode::Safe;
+    std::optional<int64_t> m_monitoredTrack;
     std::unique_ptr<IoCallback> m_stream;
     std::unique_ptr<MonitoringCallback> m_monitoring;
     int m_nextStreamToken = 1;

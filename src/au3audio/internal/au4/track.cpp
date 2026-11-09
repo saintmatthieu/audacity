@@ -12,8 +12,11 @@
 #include "effectsnode.h"
 #include "endoftracknode.h"
 #include "gainpannode.h"
+#include "ieffectscontext.h"
 #include "metertapnode.h"
+#include "monitoredinput.h"
 #include "mutesolonode.h"
+#include "sequentialmixnode.h"
 #include "stereo.h"
 
 using namespace au::au4;
@@ -53,8 +56,16 @@ au::au4::Track au::au4::buildTrack(std::shared_ptr<const PlayableSequence> seque
         node = queue;
     }
     node = std::make_shared<EndOfTrackNode>(std::move(node), settings.mapper, *settings.endOfTrack, stop);
+    const auto group = sequence->FindChannelGroup();
+    if (settings.monitoredInput && group) {
+        // Read by the track's effects ahead by their latency, as the master reads the track ahead by its
+        const auto lead = settings.masterLatency + settings.effects->latency(group);
+        auto input = std::make_shared<MonitoredInputNode>(settings.monitoredInput, numSequenceChannels, lead);
+        std::vector<std::shared_ptr<ISequenceProcessingNode> > sources { std::move(node), std::move(input) };
+        node = std::make_shared<SequentialMixNode>(std::move(sources), settings.maxFrames);
+    }
     // Without a group, it has no effects; a null group would be the master's
-    if (const auto group = sequence->FindChannelGroup()) {
+    if (group) {
         node = std::make_shared<EffectsNode>(std::move(node), numSequenceChannels, group, *settings.effects, settings.maxFrames);
     }
     node = std::make_shared<MuteSoloNode>(std::move(node), sequence, *settings.muteSolo);
@@ -65,4 +76,19 @@ au::au4::Track au::au4::buildTrack(std::shared_ptr<const PlayableSequence> seque
         meterId = static_cast<int64_t>(waveTrack->GetId());
     }
     return { tap, tap, std::move(queue), meterId, std::min<size_t>(numSequenceChannels, numChannels) };
+}
+
+std::shared_ptr<ISequenceProcessingNode> au::au4::buildMonitoredInput(std::shared_ptr<const PlayableSequence> track,
+                                                                      const TrackSettings& settings)
+{
+    const auto group = track ? track->FindChannelGroup() : nullptr;
+    if (!group) {
+        return std::make_shared<MonitoredInputNode>(settings.monitoredInput, numChannels, settings.masterLatency);
+    }
+    const auto numTrackChannels = track->NChannels();
+    std::shared_ptr<ISequenceProcessingNode> node = std::make_shared<MonitoredInputNode>(
+        settings.monitoredInput, numTrackChannels, settings.masterLatency + settings.effects->latency(group));
+    node = std::make_shared<EffectsNode>(std::move(node), numTrackChannels, group, *settings.effects, settings.maxFrames);
+    node = std::make_shared<MuteSoloNode>(std::move(node), track, *settings.muteSolo);
+    return std::make_shared<GainPanNode>(std::move(node), track);
 }

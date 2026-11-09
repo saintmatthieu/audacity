@@ -20,6 +20,7 @@
 #include "../internal/au4/iendoftrackcontext.h"
 #include "../internal/au4/imutesolocontext.h"
 #include "../internal/au4/metertapnode.h"
+#include "../internal/au4/monitoredinput.h"
 #include "../internal/au4/mutesolonode.h"
 #include "../internal/au4/sequentialmixnode.h"
 
@@ -382,4 +383,43 @@ TEST(EndOfTrackNodeTests, StopsTheTrackEvenWhileLooping)
     EndOfTrackNode node { std::make_shared<RampNode>(), std::make_shared<LinearMapper>(), context, TEST_TRACK_STOP };
 
     EXPECT_EQ(read(node, 0, TEST_READ_LEN).left, rampUntil(TEST_READ_LEN, static_cast<size_t>(TEST_TRACK_STOP - TEST_PLAYHEAD_START)));
+}
+
+namespace {
+constexpr int64_t TEST_BLOCK_INDEX = 500;
+constexpr int64_t TEST_INPUT_LEAD = 20;
+constexpr float TEST_INPUT_VOLUME = 0.5f;
+}
+
+TEST(MonitoredInputNodeTests, GivesTheBlocksInputWhereItIsReadLive)
+{
+    const std::atomic<float> volume { TEST_INPUT_VOLUME };
+    const auto input = std::make_shared<MonitoredInput>(1, TEST_MAX_FRAMES, volume);
+    const auto samples = ramp(0, TEST_MAX_FRAMES);
+    const float* const device[] { samples.data() };
+    input->read(device, 0, TEST_MAX_FRAMES, TEST_BLOCK_INDEX);
+    MonitoredInputNode node { input, au::au4::numChannels, TEST_INPUT_LEAD };
+
+    const auto output = read(node, TEST_BLOCK_INDEX + TEST_INPUT_LEAD, TEST_MAX_FRAMES);
+
+    for (size_t i = 0; i < TEST_MAX_FRAMES; ++i) {
+        // A mono input in both channels
+        EXPECT_FLOAT_EQ(output.left[i], samples[i] * TEST_INPUT_VOLUME);
+        EXPECT_FLOAT_EQ(output.right[i], samples[i] * TEST_INPUT_VOLUME);
+    }
+}
+
+TEST(MonitoredInputNodeTests, IsSilentWhereItIsNotReadLive)
+{
+    const std::atomic<float> volume { 1.f };
+    const auto input = std::make_shared<MonitoredInput>(1, TEST_MAX_FRAMES, volume);
+    const auto samples = std::vector<float>(TEST_MAX_FRAMES, TEST_LEVEL);
+    const float* const device[] { samples.data() };
+    input->read(device, 0, TEST_MAX_FRAMES, TEST_BLOCK_INDEX);
+    MonitoredInputNode node { input, au::au4::numChannels, TEST_INPUT_LEAD };
+
+    // As where effects are primed, before what plays
+    const auto output = read(node, TEST_BLOCK_INDEX, TEST_MAX_FRAMES);
+
+    EXPECT_EQ(output.left, std::vector<float>(TEST_MAX_FRAMES, 0.f));
 }
