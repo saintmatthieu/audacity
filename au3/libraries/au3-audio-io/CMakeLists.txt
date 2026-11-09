@@ -20,6 +20,8 @@ set( SOURCES
    CaptureSink.h
    PlaybackSchedule.cpp
    PlaybackSchedule.h
+   PortAudioStream.cpp
+   PortAudioStream.h
    ProjectAudioIO.cpp
    ProjectAudioIO.h
    RingBuffer.cpp
