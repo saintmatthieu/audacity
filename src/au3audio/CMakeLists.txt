@@ -152,6 +152,21 @@ set(MODULE_LINK ${MODULE_LINK}
     au3-wave-track
 )
 
+if (AU_USE_JUCE)
+    set(JUCE_SRC
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudiodevices.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudiodevices.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/jucedevice.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/jucedevice.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceincludes.h
+    )
+    set(MODULE_SRC ${MODULE_SRC} ${JUCE_SRC})
+    # JUCE headers clash with the `using namespace muse` of other unity-combined sources
+    set_source_files_properties(${JUCE_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+    set(MODULE_LINK ${MODULE_LINK} juce)
+    set(MODULE_DEF ${MODULE_DEF} AU_USE_JUCE)
+endif()
+
 if (AU_USE_TRACKTION)
     set(TRACKTION_SRC
         ${CMAKE_CURRENT_LIST_DIR}/internal/tracktion/audacitytotracktionnode.cpp

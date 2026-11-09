@@ -14,6 +14,11 @@
 #include "internal/au4/au4audioengine.h"
 #include "internal/portaudio/portaudiodevice.h"
 
+#ifdef AU_USE_JUCE
+#include "internal/juce/juceaudiodevices.h"
+#include "internal/juce/jucedevice.h"
+#endif
+
 #include "au3-audio-devices/AudioIOBase.h"
 
 #if defined(Q_OS_MAC)
@@ -44,6 +49,15 @@ void Au3AudioModule::registerExports()
     // Over AudioIO's devices and settings
     m_portAudioEngine = std::make_shared<au4::Au4AudioEngine>(std::make_shared<au4::PortAudioDeviceOpener>());
     m_portAudioEngine->setDriverController(m_audioDriverController.get());
+
+#ifdef AU_USE_JUCE
+    // Over JUCE's devices, with settings of its own
+    const auto juceDevices = std::make_shared<au4::JuceAudioDevices>();
+    m_juceEngine = std::make_shared<au4::Au4AudioEngine>(std::make_shared<au4::JuceDeviceOpener>(juceDevices));
+    m_juceDriverController = std::make_shared<AudioDriverController>(juceDevices, "JuceAudio");
+    m_juceDriverController->setAudioEngine(m_juceEngine);
+    m_juceEngine->setDriverController(m_juceDriverController.get());
+#endif
 
 #if defined(Q_OS_MAC)
     m_systemAudioDevicesListener = std::make_shared<MacosSystemAudioDevicesListener>();
@@ -86,6 +100,19 @@ void Au3AudioModule::resolveImports()
             m_portAudioEngine->setMode(au4::Au4AudioEngine::Mode::FastParallel);
         } });
 #endif
+#ifdef AU_USE_JUCE
+    const auto suspendJuceStream = [this] { return m_juceDriverController->suspendStream(); };
+    backendRegister->registerBackend({ "juce", m_juceEngine, m_juceDriverController, suspendJuceStream, "JUCE (safe)",
+                                       [this] { m_juceEngine->setMode(au4::Au4AudioEngine::Mode::Safe); } });
+#ifdef AU_USE_TRACKTION
+    // Mixing in parallel
+    const auto juceFastMode = au4::Au4AudioEngine::Mode::FastParallel;
+#else
+    const auto juceFastMode = au4::Au4AudioEngine::Mode::Fast;
+#endif
+    backendRegister->registerBackend({ "juce-fast", m_juceEngine, m_juceDriverController, suspendJuceStream, "JUCE (fast)",
+                                       [this, juceFastMode] { m_juceEngine->setMode(juceFastMode); } });
+#endif
 }
 
 void Au3AudioModule::onInit(const muse::IApplication::RunMode&)
@@ -93,6 +120,9 @@ void Au3AudioModule::onInit(const muse::IApplication::RunMode&)
     m_audioEngine->init();
     AudioDriverController::initSharedDefaults(AudioIOBase::GetOptimalSupportedSampleRate());
     m_audioDriverController->init();
+#ifdef AU_USE_JUCE
+    m_juceDriverController->init();
+#endif
     m_systemAudioDevicesListener->startListening();
 }
 
