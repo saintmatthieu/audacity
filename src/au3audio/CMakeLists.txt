@@ -88,6 +88,18 @@ elseif (OS_IS_LIN AND LIBUDEV_INCLUDE_DIR AND LIBUDEV_LIBRARY)
     set(MODULE_DEF ${MODULE_DEF} AU_AU3AUDIO_HAS_UDEV)
 endif()
 
+# The audio engine of graphs of nodes, over any audio library
+set(AU4_SRC
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playheadmapper.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playheadmapper.h
+)
+set(MODULE_SRC ${MODULE_SRC} ${AU4_SRC})
+# Their `using namespace au::au4` would leak into other unity-combined sources
+set_source_files_properties(${AU4_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+set(MODULE_LINK ${MODULE_LINK}
+    au3-clip-processing
+)
+
 setup_module()
 
 if (AU_BUILD_AU3AUDIO_TESTS)
