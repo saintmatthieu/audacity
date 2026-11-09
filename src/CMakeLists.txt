@@ -62,6 +62,7 @@ endif()
 if (AU_BUILD_PLAYBACK_MODULE)
     add_subdirectory(auportaudio)
     add_subdirectory(au3audio)
+    add_subdirectory(au4audio)
     add_subdirectory(playback)
 endif()
 
