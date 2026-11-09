@@ -7,7 +7,19 @@
 
 #include "au3-clip-processing/sequence-graph/LockFreeQueueNode.h"
 
+#ifdef AU_USE_TRACKTION
+#include "../tracktion/tracktiontoaudacitynode.h"
+#endif
+
 using namespace au::au4;
+
+FastIoCallback::FastIoCallback(AudacityProject& project, int token, std::unique_ptr<IDevice> device, bool followsPlayRegion,
+                               LockFreeQueue<audio::AudioCallbackInfo>& callbackInfos, LockFreeQueue<PlayedRange>& playedRanges,
+                               const std::atomic<float>& playbackVolume, bool parallelMix)
+    : IoCallback{project, token, std::move(device), followsPlayRegion, callbackInfos, playedRanges, playbackVolume},
+    m_parallelMix{parallelMix}
+{
+}
 
 FastIoCallback::~FastIoCallback()
 {
@@ -18,6 +30,17 @@ std::optional<TrackReadAhead> FastIoCallback::trackReadAhead() const
 {
     const auto chunkSize = readAheadChunkSize();
     return TrackReadAhead { chunkSize, readAheadNumChunks, maxResyncLeadNumChunks * chunkSize };
+}
+
+std::shared_ptr<ISequenceProcessingNode> FastIoCallback::makeMix(std::vector<std::shared_ptr<ISequenceProcessingNode> > tracks,
+                                                                 size_t maxFrames)
+{
+#ifdef AU_USE_TRACKTION
+    if (m_parallelMix) {
+        return std::make_shared<au4tracktion::TracktionToAudacityNode>(std::move(tracks), m_sampleRate, maxFrames);
+    }
+#endif
+    return IoCallback::makeMix(std::move(tracks), maxFrames);
 }
 
 void FastIoCallback::startReadingAhead()

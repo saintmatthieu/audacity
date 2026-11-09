@@ -150,9 +150,10 @@ int Au4AudioEngine::startTransport(const TransportSequences& sequences, double s
     const double playStartTime = streamStartTime.value_or(rangeStart);
 
     std::unique_ptr<IoCallback> stream;
-    if (m_mode == Mode::Fast) {
+    if (playsFast()) {
         stream = std::make_unique<FastIoCallback>(project, m_nextStreamToken, std::move(device), options.isDefaultPolicy,
-                                                  m_callbackInfoQueue, m_playedRanges, m_playbackVolume);
+                                                  m_callbackInfoQueue, m_playedRanges, m_playbackVolume,
+                                                  m_mode == Mode::FastParallel);
     } else {
         stream = std::make_unique<SafeIoCallback>(project, m_nextStreamToken, std::move(device), options.isDefaultPolicy,
                                                   m_callbackInfoQueue, m_playedRanges, m_playbackVolume);
@@ -160,7 +161,7 @@ int Au4AudioEngine::startTransport(const TransportSequences& sequences, double s
     stream->trackEndTime = TrackList::Get(project).GetEndTime();
     // Monitored as it comes or, playing fast, through the effects
     const bool monitors = capture && recordConfiguration()->isInputMonitoringOn();
-    const bool monitorsThroughEffects = monitors && m_mode == Mode::Fast;
+    const bool monitorsThroughEffects = monitors && playsFast();
     if (monitorsThroughEffects) {
         stream->monitorThrough(monitoredTrack(project), capture->numInputChannels, m_inputVolume);
     }
@@ -202,7 +203,7 @@ int Au4AudioEngine::startTransport(const TransportSequences& sequences, double s
     m_stream->start();
 
     LOGI() << m_deviceOpener->name() << " engine " << (recording ? "recording" : "playing") << " at " << m_lastSampleRate << " Hz, "
-           << (m_mode == Mode::Fast ? "fast" : "safe");
+           << (m_mode == Mode::Safe ? "safe" : m_mode == Mode::Fast ? "fast" : "fast, in parallel");
     return m_nextStreamToken++;
 }
 
@@ -305,7 +306,7 @@ void Au4AudioEngine::startMonitoring(AudacityProject& project)
     }
     const bool playThrough = recordConfiguration()->isInputMonitoringOn();
     std::optional<MonitoringCallback::Effects> effects;
-    if (playThrough && m_mode == Mode::Fast) {
+    if (playThrough && playsFast()) {
         effects = MonitoringCallback::Effects { monitoredTrack(project) };
     }
     if (m_monitoring) {

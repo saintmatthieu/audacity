@@ -123,7 +123,7 @@ void IoCallback::build(const TransportSequences& sequences, const audio::IAudioM
     }
     m_maxLatency = std::max(0, masterLatency) + maxTrackLatency;
 
-    std::shared_ptr<ISequenceProcessingNode> master = std::make_shared<SequentialMixNode>(std::move(outputs), maxFrames);
+    std::shared_ptr<ISequenceProcessingNode> master = makeMix(std::move(outputs), maxFrames);
     master = std::make_shared<EffectsNode>(std::move(master), numChannels, RealtimeEffectManager::MasterGroup, *m_blockContext,
                                            maxFrames);
     m_masterTap = std::make_shared<MeterTapNode>(std::move(master), numChannels, readAheadChunkSize());
@@ -154,6 +154,12 @@ void IoCallback::monitorThrough(std::shared_ptr<const PlayableSequence> track, i
                                 const std::atomic<float>& inputVolume)
 {
     m_monitorSettings = MonitorSettings { std::move(track), numInputChannels, &inputVolume };
+}
+
+std::shared_ptr<ISequenceProcessingNode> IoCallback::makeMix(std::vector<std::shared_ptr<ISequenceProcessingNode> > tracks,
+                                                             size_t maxFrames)
+{
+    return std::make_shared<SequentialMixNode>(std::move(tracks), maxFrames);
 }
 
 void IoCallback::setCapture(std::unique_ptr<RecordingCapture> capture)
