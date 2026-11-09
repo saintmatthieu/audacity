@@ -10,9 +10,12 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/effectscratch.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/effectsnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/effectsnode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/endoftracknode.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/endoftracknode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/gainpannode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/gainpannode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/ieffectscontext.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/iendoftrackcontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/imutesolocontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/metertapnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/metertapnode.h
