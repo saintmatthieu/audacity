@@ -90,14 +90,30 @@ endif()
 
 # The audio engine of graphs of nodes, over any audio library
 set(AU4_SRC
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectscratch.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectscratch.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectsnode.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectsnode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/gainpannode.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/gainpannode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/ieffectscontext.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/imutesolocontext.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metertapnode.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metertapnode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/mutesolonode.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/mutesolonode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playheadmapper.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playheadmapper.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/sequentialmixnode.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/sequentialmixnode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/stereo.h
 )
 set(MODULE_SRC ${MODULE_SRC} ${AU4_SRC})
 # Their `using namespace au::au4` would leak into other unity-combined sources
 set_source_files_properties(${AU4_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 set(MODULE_LINK ${MODULE_LINK}
     au3-clip-processing
+    au3-mixer
 )
 
 setup_module()
