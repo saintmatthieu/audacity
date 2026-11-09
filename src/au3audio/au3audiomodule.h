@@ -7,6 +7,10 @@
 
 #include "framework/global/modularity/imodulesetup.h"
 
+namespace au::au4 {
+class Au4AudioEngine;
+}
+
 namespace au::au3audio {
 class Au3AudioEngine;
 class AudioDriverController;
@@ -25,6 +29,7 @@ public:
 private:
     std::shared_ptr<Au3AudioEngine> m_audioEngine;
     std::shared_ptr<AudioDriverController> m_audioDriverController;
+    std::shared_ptr<au4::Au4AudioEngine> m_portAudioEngine;
     std::shared_ptr<ISystemAudioDevicesListener> m_systemAudioDevicesListener;
 };
 }
