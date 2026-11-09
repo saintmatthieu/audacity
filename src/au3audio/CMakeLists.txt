@@ -123,6 +123,8 @@ set(AU4_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playedrange.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playheadmapper.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playheadmapper.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/recordingcapture.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/recordingcapture.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/safeiocallback.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/safeiocallback.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/sequentialmixnode.cpp
