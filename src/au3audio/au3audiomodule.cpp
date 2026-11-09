@@ -79,6 +79,13 @@ void Au3AudioModule::resolveImports()
             m_audioDriverController->setAudioEngine(m_portAudioEngine);
             m_portAudioEngine->setMode(au4::Au4AudioEngine::Mode::Fast);
         } });
+#ifdef AU_USE_TRACKTION
+    backendRegister->registerBackend({ "portaudio-fast-parallel", m_portAudioEngine, m_audioDriverController, suspendPortAudioStream,
+                                       "PortAudio (fast, parallel)", [this] {
+            m_audioDriverController->setAudioEngine(m_portAudioEngine);
+            m_portAudioEngine->setMode(au4::Au4AudioEngine::Mode::FastParallel);
+        } });
+#endif
 }
 
 void Au3AudioModule::onInit(const muse::IApplication::RunMode&)

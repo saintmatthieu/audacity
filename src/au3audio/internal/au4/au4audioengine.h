@@ -41,7 +41,10 @@ class Au4AudioEngine final : public audio::IAudioEngine
 public:
     enum class Mode {
         Safe,
+        //! Mixing one track after the other
         Fast,
+        //! Mixing in parallel, where tracktion_graph is built
+        FastParallel,
     };
 
     //! Safe until told otherwise
@@ -107,6 +110,7 @@ public:
     muse::async::Notification deviceLatencyChanged() const override;
 
 private:
+    bool playsFast() const { return m_mode != Mode::Safe; }
     void onPlayRegionChanged();
     //! Opened with as many of the requested channels as it has, or null, with `m_lastError` set
     std::unique_ptr<IDevice> openDevice(int numInputChannels, int numOutputChannels, double sampleRate);
