@@ -108,6 +108,10 @@ set(AU4_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/ieffectscontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/iendoftrackcontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/imutesolocontext.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metersendnode.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metersendnode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metersink.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metersink.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metertapnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metertapnode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/mutesolonode.cpp
