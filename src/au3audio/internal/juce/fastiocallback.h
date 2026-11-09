@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include "juceiocallback.h"
+#include "iocallback.h"
 
 namespace au::au4juce {
 //! Plays fast: the tracks' sequences are read ahead on workers, but the chains render in the device callback
@@ -13,10 +13,10 @@ namespace au::au4juce {
  * Changes are heard within a block, and the input can be monitored through the effects. What isn't rendered in time is
  * skipped: a worker that can't keep up resumes ahead of the device.
  */
-class FastIoCallback final : public JuceIoCallback
+class FastIoCallback final : public IoCallback
 {
 public:
-    using JuceIoCallback::JuceIoCallback;
+    using IoCallback::IoCallback;
     ~FastIoCallback() override;
 
 private:

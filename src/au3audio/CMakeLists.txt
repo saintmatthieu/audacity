@@ -90,6 +90,8 @@ endif()
 
 if (AU_USE_JUCE)
     set(JUCE_SRC
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/au4audioengine.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/au4audioengine.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/blockcontext.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/blockcontext.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/captureinput.cpp
@@ -106,18 +108,17 @@ if (AU_USE_JUCE)
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/fastiocallback.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/gainpannode.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/gainpannode.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/idevice.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/ieffectscontext.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/iendoftrackcontext.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/imutesolocontext.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/iocallback.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/iocallback.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudiodevices.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudiodevices.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudioengine.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceaudioengine.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/jucedevice.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/jucedevice.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceincludes.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceiocallback.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/juceiocallback.h
-        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/jucemonitoringcallback.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/jucemonitoringcallback.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/metersendnode.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/metersendnode.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/metersink.cpp
@@ -126,6 +127,8 @@ if (AU_USE_JUCE)
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/metertapnode.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/monitoredinput.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/monitoredinput.h
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/monitoringcallback.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/internal/juce/monitoringcallback.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/mutesolonode.cpp
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/mutesolonode.h
         ${CMAKE_CURRENT_LIST_DIR}/internal/juce/playedrange.h

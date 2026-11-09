@@ -14,7 +14,8 @@
 
 #ifdef AU_USE_JUCE
 #include "internal/juce/juceaudiodevices.h"
-#include "internal/juce/juceaudioengine.h"
+#include "internal/juce/au4audioengine.h"
+#include "internal/juce/jucedevice.h"
 #endif
 
 #include "au3-audio-devices/AudioIOBase.h"
@@ -47,10 +48,10 @@ void Au3AudioModule::registerExports()
 
 #ifdef AU_USE_JUCE
     const auto juceDevices = std::make_shared<au4juce::JuceAudioDevices>();
-    m_juceAudioEngine = std::make_shared<au4juce::JuceAudioEngine>(juceDevices);
+    m_juceEngine = std::make_shared<au4juce::Au4AudioEngine>(std::make_shared<au4juce::JuceDeviceOpener>(juceDevices));
     m_juceDriverController = std::make_shared<AudioDriverController>(juceDevices, "JuceAudio");
-    m_juceDriverController->setAudioEngine(m_juceAudioEngine);
-    m_juceAudioEngine->setDriverController(m_juceDriverController.get());
+    m_juceDriverController->setAudioEngine(m_juceEngine);
+    m_juceEngine->setDriverController(m_juceDriverController.get());
 #endif
 
 #if defined(Q_OS_MAC)
@@ -77,16 +78,16 @@ void Au3AudioModule::resolveImports()
 #ifdef AU_USE_JUCE
     // One engine, which plays as the active backend says
     const auto suspendJuceStream = [this] { return m_juceDriverController->suspendStream(); };
-    backendRegister->registerBackend({ "juce", m_juceAudioEngine, m_juceDriverController, suspendJuceStream, "JUCE (safe)",
-                                       [this] { m_juceAudioEngine->setMode(au4juce::JuceAudioEngine::Mode::Safe); } });
+    backendRegister->registerBackend({ "juce", m_juceEngine, m_juceDriverController, suspendJuceStream, "JUCE (safe)",
+                                       [this] { m_juceEngine->setMode(au4juce::Au4AudioEngine::Mode::Safe); } });
 #ifdef AU_USE_TRACKTION
     // Mixes with tracktion_graph
     const std::string fastTitle = "Tracktion (fast)";
 #else
     const std::string fastTitle = "JUCE (fast)";
 #endif
-    backendRegister->registerBackend({ "juce-fast", m_juceAudioEngine, m_juceDriverController, suspendJuceStream, fastTitle,
-                                       [this] { m_juceAudioEngine->setMode(au4juce::JuceAudioEngine::Mode::Fast); } });
+    backendRegister->registerBackend({ "juce-fast", m_juceEngine, m_juceDriverController, suspendJuceStream, fastTitle,
+                                       [this] { m_juceEngine->setMode(au4juce::Au4AudioEngine::Mode::Fast); } });
 #endif
 }
 

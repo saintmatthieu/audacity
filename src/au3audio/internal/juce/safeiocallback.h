@@ -7,7 +7,7 @@
 
 #include "au3-clip-processing/sequence-graph/LockFreeQueueNode.h"
 
-#include "juceiocallback.h"
+#include "iocallback.h"
 
 namespace au::au4juce {
 //! Plays safe: everything renders ahead of the device on a worker, behind one queue, as AudioIO
@@ -16,10 +16,10 @@ namespace au::au4juce {
  * once what was rendered before them has played. The device callback only reads the queue, applies the playback volume,
  * and reports what plays.
  */
-class SafeIoCallback final : public JuceIoCallback
+class SafeIoCallback final : public IoCallback
 {
 public:
-    using JuceIoCallback::JuceIoCallback;
+    using IoCallback::IoCallback;
     ~SafeIoCallback() override;
 
 private:

@@ -22,21 +22,19 @@
 
 class PlayableSequence;
 
-namespace juce {
-class AudioIODevice;
-}
-
 namespace RealtimeEffects {
 class InitializationScope;
 }
 
 namespace au::au4juce {
-class JuceAudioDevices;
-class JuceIoCallback;
-class JuceMonitoringCallback;
+class IDevice;
+class IDeviceOpener;
+class IoCallback;
+class MonitoringCallback;
 
-//! An audio engine over JUCE audio devices, which plays safe or fast: see SafeIoCallback and FastIoCallback
-class JuceAudioEngine final : public audio::IAudioEngine
+//! An audio engine whose tracks and master are graphs of nodes, which plays safe or fast: see SafeIoCallback and
+//! FastIoCallback. Its devices are of the audio library of its IDeviceOpener.
+class Au4AudioEngine final : public audio::IAudioEngine
 {
     muse::GlobalInject<record::IRecordConfiguration> recordConfiguration;
 
@@ -47,8 +45,8 @@ public:
     };
 
     //! Safe until told otherwise
-    explicit JuceAudioEngine(std::shared_ptr<JuceAudioDevices> devices);
-    ~JuceAudioEngine() override;
+    explicit Au4AudioEngine(std::shared_ptr<IDeviceOpener> deviceOpener);
+    ~Au4AudioEngine() override;
 
     //! The controller whose configuration selects the device; must outlive this.
     void setDriverController(const audio::IAudioDriverController* driverController);
@@ -111,19 +109,19 @@ public:
 private:
     void onPlayRegionChanged();
     //! Opened with as many of the requested channels as it has, or null, with `m_lastError` set
-    std::unique_ptr<juce::AudioIODevice> openDevice(int numInputChannels, int numOutputChannels, double sampleRate);
+    std::unique_ptr<IDevice> openDevice(int numInputChannels, int numOutputChannels, double sampleRate);
     //! Where realtime effects added to `project` while streaming are initialized, if anywhere
     RealtimeEffects::InitializationScope* effectsInitialization(AudacityProject& project) const;
     //! The track of `project` the input is monitored through, if any
     std::shared_ptr<const PlayableSequence> monitoredTrack(AudacityProject& project) const;
 
-    const std::shared_ptr<JuceAudioDevices> m_devices;
+    const std::shared_ptr<IDeviceOpener> m_deviceOpener;
     const audio::IAudioDriverController* m_driverController = nullptr;
 
     Mode m_mode = Mode::Safe;
     std::optional<int64_t> m_monitoredTrack;
-    std::unique_ptr<JuceIoCallback> m_stream;
-    std::unique_ptr<JuceMonitoringCallback> m_monitoring;
+    std::unique_ptr<IoCallback> m_stream;
+    std::unique_ptr<MonitoringCallback> m_monitoring;
     int m_nextStreamToken = 1;
     double m_lastSampleRate = 0.0;
     muse::String m_lastError;

@@ -15,7 +15,7 @@
 #include "au3-realtime-effects/RealtimeEffectManager.h"
 
 #include "captureinput.h"
-#include "juceincludes.h"
+#include "idevice.h"
 #include "playheadmapper.h"
 #include "stereo.h"
 
@@ -28,7 +28,7 @@ class BlockContext;
 class MonitoredInput;
 
 //! Monitors the input of a device: meters it, and plays it through if asked, as it comes or through the effects
-class JuceMonitoringCallback final : public juce::AudioIODeviceCallback
+class MonitoringCallback final : public IDeviceCallback
 {
 public:
     //! What the input is played through, if through the effects
@@ -39,9 +39,9 @@ public:
 
     //! @param device opened, with input channels, and output channels for `playThrough`
     //! @param effects if played through the effects
-    JuceMonitoringCallback(AudacityProject& project, std::unique_ptr<juce::AudioIODevice> device, bool playThrough,
-                           audio::IAudioMeterPtr meter, const std::atomic<float>& inputVolume, std::optional<Effects> effects);
-    ~JuceMonitoringCallback() override;
+    MonitoringCallback(AudacityProject& project, std::unique_ptr<IDevice> device, bool playThrough, audio::IAudioMeterPtr meter,
+                       const std::atomic<float>& inputVolume, std::optional<Effects> effects);
+    ~MonitoringCallback() override;
 
     AudacityProject& project;
     const bool playThrough;
@@ -55,16 +55,11 @@ public:
     void start();
     void stop();
 
-    // juce::AudioIODeviceCallback
-    void audioDeviceIOCallbackWithContext(const float* const* inputChannelData, int numInputChannels, float* const* outputChannelData,
-                                          int numOutputChannels, int numSamples,
-                                          const juce::AudioIODeviceCallbackContext& context) override;
-    void audioDeviceAboutToStart(juce::AudioIODevice*) override {}
-    void audioDeviceStopped() override {}
-    void audioDeviceError(const juce::String& errorMessage) override;
+    // IDeviceCallback
+    void process(const float* const* input, int numInputChannels, float* const* output, int numOutputChannels, int frames) override;
 
 private:
-    std::unique_ptr<juce::AudioIODevice> m_device;
+    std::unique_ptr<IDevice> m_device;
     const int m_blockSize;
     const double m_sampleRate;
     const audio::IAudioMeterPtr m_meter;

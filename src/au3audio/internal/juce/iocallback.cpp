@@ -1,7 +1,7 @@
 /*
 * Audacity: A Digital Audio Editor
 */
-#include "juceiocallback.h"
+#include "iocallback.h"
 
 #include <algorithm>
 #include <cmath>
@@ -40,18 +40,18 @@ Segments cut(const Segments& segments, int64_t from, int64_t end)
 }
 }
 
-JuceIoCallback::JuceIoCallback(AudacityProject& project, int token, std::unique_ptr<juce::AudioIODevice> device,
+IoCallback::IoCallback(AudacityProject& project, int token, std::unique_ptr<IDevice> device,
                                bool followsPlayRegion, LockFreeQueue<audio::AudioCallbackInfo>& callbackInfos,
                                LockFreeQueue<PlayedRange>& playedRanges, const std::atomic<float>& playbackVolume)
-    : project{project}, token{token}, followsPlayRegion{followsPlayRegion}, m_sampleRate{device->getCurrentSampleRate()},
-    m_wProject{project.shared_from_this()}, m_blockSize{std::max(1, device->getCurrentBufferSizeSamples())},
+    : project{project}, token{token}, followsPlayRegion{followsPlayRegion}, m_sampleRate{device->sampleRate()},
+    m_wProject{project.shared_from_this()}, m_blockSize{device->blockSize()},
     m_callbackInfos{callbackInfos}, m_playedRanges{playedRanges}, m_playbackVolume{playbackVolume}, m_device{std::move(device)}
 {
 }
 
-JuceIoCallback::~JuceIoCallback() = default;
+IoCallback::~IoCallback() = default;
 
-void JuceIoCallback::build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter,
+void IoCallback::build(const TransportSequences& sequences, const audio::IAudioMeterPtr& meter,
                            std::optional<RecordingRange> recording)
 {
     m_meter = meter;
@@ -150,24 +150,24 @@ void JuceIoCallback::build(const TransportSequences& sequences, const audio::IAu
     }
 }
 
-std::shared_ptr<ISequenceProcessingNode> JuceIoCallback::makeMix(std::vector<std::shared_ptr<ISequenceProcessingNode> > tracks,
+std::shared_ptr<ISequenceProcessingNode> IoCallback::makeMix(std::vector<std::shared_ptr<ISequenceProcessingNode> > tracks,
                                                                  size_t maxFrames)
 {
     return std::make_shared<SequentialMixNode>(std::move(tracks), maxFrames);
 }
 
-void JuceIoCallback::monitorThrough(std::shared_ptr<const PlayableSequence> track, int numInputChannels,
+void IoCallback::monitorThrough(std::shared_ptr<const PlayableSequence> track, int numInputChannels,
                                     const std::atomic<float>& inputVolume)
 {
     m_monitorSettings = MonitorSettings { std::move(track), numInputChannels, &inputVolume };
 }
 
-void JuceIoCallback::setCapture(std::unique_ptr<RecordingCapture> capture)
+void IoCallback::setCapture(std::unique_ptr<RecordingCapture> capture)
 {
     m_capture = std::move(capture);
 }
 
-void JuceIoCallback::setPlayRange(double startTime, double endTime, std::optional<std::pair<double, double> > loopRange)
+void IoCallback::setPlayRange(double startTime, double endTime, std::optional<std::pair<double, double> > loopRange)
 {
     m_endPosition = toSamples(endTime);
     std::optional<PlayheadMapper::Range> loop;
@@ -179,13 +179,13 @@ void JuceIoCallback::setPlayRange(double startTime, double endTime, std::optiona
     startReadingAhead();
 }
 
-void JuceIoCallback::seek(double time)
+void IoCallback::seek(double time)
 {
     m_mapper->setPosition(toSamples(time));
     invalidate();
 }
 
-void JuceIoCallback::updateLoop(std::optional<std::pair<double, double> > loopRange, double endTime)
+void IoCallback::updateLoop(std::optional<std::pair<double, double> > loopRange, double endTime)
 {
     // From where the device is, further than may have been rendered ahead
     const auto from = m_mapper->deviceIndex();
@@ -205,7 +205,7 @@ void JuceIoCallback::updateLoop(std::optional<std::pair<double, double> > loopRa
     }
 }
 
-void JuceIoCallback::invalidate()
+void IoCallback::invalidate()
 {
     invalidateReadAhead();
     // Nor is what was rendered shown
@@ -214,7 +214,7 @@ void JuceIoCallback::invalidate()
     }
 }
 
-Segments JuceIoCallback::segments(int64_t from, int64_t end) const
+Segments IoCallback::segments(int64_t from, int64_t end) const
 {
     Segments segments;
     for (auto index = from; index < end;) {
@@ -225,31 +225,30 @@ Segments JuceIoCallback::segments(int64_t from, int64_t end) const
     return segments;
 }
 
-PlayheadMapper::Range JuceIoCallback::toLoopRange(const std::pair<double, double>& loopRange) const
+PlayheadMapper::Range IoCallback::toLoopRange(const std::pair<double, double>& loopRange) const
 {
     const auto start = toSamples(loopRange.first);
     return { start, std::max(start + 1, toSamples(loopRange.second)) };
 }
 
-void JuceIoCallback::start()
+void IoCallback::start()
 {
     if (m_meter) {
         m_meter->start(m_sampleRate);
     }
-    m_device->start(this);
+    m_device->start(*this);
 }
 
-void JuceIoCallback::stop()
+void IoCallback::stop()
 {
     if (m_device) {
         m_device->stop();
         // Underruns of the output, and overflows of the input if one is open
-        const int xruns = m_device->getXRunCount();
+        const int xruns = m_device->xrunCount();
         LOGI() << "Playback dropouts (" << name() << "): " << muse::String::number(m_dropouts.frames / m_sampleRate, 1) << " s played, "
                << xruns << " device underruns" << (m_capture ? " or input overflows" : "") << ", " << m_dropouts.lateCallbacks
                << " late callbacks (longest " << muse::String::number(1000.0 * m_dropouts.longestCallback, 1) << " ms for "
                << muse::String::number(1000.0 * m_dropouts.longestCallbackBlock, 1) << " ms of audio)" << dropoutDetails();
-        m_device->close();
         m_device.reset();
     }
     // Once the device stopped, so that what it captured last is recorded
@@ -273,14 +272,13 @@ void JuceIoCallback::stop()
     m_effectsInitialization.reset();
 }
 
-RealtimeEffects::InitializationScope* JuceIoCallback::effectsInitialization()
+RealtimeEffects::InitializationScope* IoCallback::effectsInitialization()
 {
     return m_effectsInitialization ? &*m_effectsInitialization : nullptr;
 }
 
-void JuceIoCallback::audioDeviceIOCallbackWithContext(const float* const* inputChannelData, int numInputChannels,
-                                                      float* const* outputChannelData, int numOutputChannels, int numSamples,
-                                                      const juce::AudioIODeviceCallbackContext&)
+void IoCallback::process(const float* const* inputChannelData, int numInputChannels, float* const* outputChannelData,
+                         int numOutputChannels, int numSamples)
 {
     for (int ch = 0; ch < numOutputChannels; ++ch) {
         if (outputChannelData[ch]) {
@@ -303,7 +301,7 @@ void JuceIoCallback::audioDeviceIOCallbackWithContext(const float* const* inputC
     const auto callbackStart = std::chrono::steady_clock::now();
     const auto dacTime = callbackStart
                          + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
-        std::chrono::duration<double>(m_device->getOutputLatencyInSamples() / m_sampleRate));
+        std::chrono::duration<double>(m_device->outputLatency()));
     int done = 0;
     int unplayed = 0;
     while (done < numSamples && !m_finished) {
@@ -340,7 +338,7 @@ void JuceIoCallback::audioDeviceIOCallbackWithContext(const float* const* inputC
     }
 }
 
-int JuceIoCallback::renderChunk(float* const* output, int numOutputChannels, int offset, int requested, audio::TimePoint dacTime)
+int IoCallback::renderChunk(float* const* output, int numOutputChannels, int offset, int requested, audio::TimePoint dacTime)
 {
     const auto index = m_mapper->deviceIndex();
     const auto frames = static_cast<int>(render(m_bufferPointers, index, static_cast<size_t>(requested)));
@@ -379,7 +377,7 @@ int JuceIoCallback::renderChunk(float* const* output, int numOutputChannels, int
     return requested - frames;
 }
 
-void JuceIoCallback::writeOutput(const float* const* stereo, float* const* output, int numOutputChannels, int offset, int frames) const
+void IoCallback::writeOutput(const float* const* stereo, float* const* output, int numOutputChannels, int offset, int frames) const
 {
     const float volume = m_playbackVolume.load(std::memory_order_relaxed);
     for (int ch = 0; ch < numOutputChannels; ++ch) {
@@ -395,12 +393,7 @@ void JuceIoCallback::writeOutput(const float* const* stereo, float* const* outpu
     }
 }
 
-void JuceIoCallback::reportPlayed(int64_t start, int64_t frames)
+void IoCallback::reportPlayed(int64_t start, int64_t frames)
 {
     m_playedRanges.Put({ toTime(start), static_cast<unsigned long>(frames) });
-}
-
-void JuceIoCallback::audioDeviceError(const juce::String& errorMessage)
-{
-    LOGE() << "audio device error: " << errorMessage.toStdString();
 }

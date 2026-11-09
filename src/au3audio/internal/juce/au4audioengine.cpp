@@ -1,7 +1,7 @@
 /*
 * Audacity: A Digital Audio Editor
 */
-#include "juceaudioengine.h"
+#include "au4audioengine.h"
 
 #include <algorithm>
 #include <optional>
@@ -20,8 +20,8 @@
 #include "au3wrap/internal/wxtypes_convert.h"
 
 #include "fastiocallback.h"
-#include "juceaudiodevices.h"
-#include "jucemonitoringcallback.h"
+#include "idevice.h"
+#include "monitoringcallback.h"
 #include "recordingcapture.h"
 #include "safeiocallback.h"
 
@@ -32,88 +32,42 @@ namespace {
 constexpr double maxStreamTime = 1e7;
 //! How far right of the loop region the playhead may be for loop play to still capture it (as in DefaultPlaybackPolicy)
 constexpr double loopCaptureAllowance = 0.5;
-
-std::string effectiveOutputDevice(const JuceAudioDevices& devices, const au::audio::AudioConfiguration& configuration)
-{
-    if (configuration.outputDevice && muse::contains(devices.outputDevices(configuration.api), *configuration.outputDevice)) {
-        return *configuration.outputDevice;
-    }
-    return devices.systemDefaultOutputDevice(configuration.api);
 }
 
-std::string effectiveInputDevice(const JuceAudioDevices& devices, const au::audio::AudioConfiguration& configuration)
-{
-    if (configuration.inputDevice && muse::contains(devices.inputDevices(configuration.api), *configuration.inputDevice)) {
-        return *configuration.inputDevice;
-    }
-    return devices.systemDefaultInputDevice(configuration.api);
-}
-
-//! The requested rate if the device supports it, else its highest
-double bestSampleRate(juce::AudioIODevice& device, double requested)
-{
-    const auto rates = device.getAvailableSampleRates();
-    if (rates.isEmpty() || rates.contains(requested)) {
-        return requested;
-    }
-    return *std::max_element(rates.begin(), rates.end());
-}
-
-//! As AudioIO asks PortAudio for `bufferLength` ms of latency: the longest buffer of the device that isn't longer, or its
-//! shortest. JUCE's ALSA devices list sizes without asking the device: with PipeWire, the shortest (32 frames) may open but
-//! stay silent.
-int bufferSize(juce::AudioIODevice& device, double bufferLength, double sampleRate)
-{
-    auto sizes = device.getAvailableBufferSizes();
-    if (sizes.isEmpty()) {
-        return device.getDefaultBufferSize();
-    }
-    std::sort(sizes.begin(), sizes.end());
-    const auto wanted = bufferLength / 1000.0 * sampleRate;
-    int size = sizes.getFirst();
-    for (const auto candidate : sizes) {
-        if (candidate <= wanted) {
-            size = candidate;
-        }
-    }
-    return size;
-}
-}
-
-JuceAudioEngine::JuceAudioEngine(std::shared_ptr<JuceAudioDevices> devices)
-    : m_devices{std::move(devices)}
+Au4AudioEngine::Au4AudioEngine(std::shared_ptr<IDeviceOpener> deviceOpener)
+    : m_deviceOpener{std::move(deviceOpener)}
 {
 }
 
-JuceAudioEngine::~JuceAudioEngine() = default;
+Au4AudioEngine::~Au4AudioEngine() = default;
 
-void JuceAudioEngine::setMode(Mode mode)
+void Au4AudioEngine::setMode(Mode mode)
 {
     m_mode = mode;
 }
 
-void JuceAudioEngine::setDriverController(const audio::IAudioDriverController* driverController)
+void Au4AudioEngine::setDriverController(const audio::IAudioDriverController* driverController)
 {
     m_driverController = driverController;
 }
 
-bool JuceAudioEngine::isBusy() const
+bool Au4AudioEngine::isBusy() const
 {
     return m_stream != nullptr;
 }
 
-bool JuceAudioEngine::isCapturing() const
+bool Au4AudioEngine::isCapturing() const
 {
     // As AudioIO, once past the lead-in
     return m_stream && !m_stream->isFinished() && m_stream->capture() && m_stream->capture()->isCapturing(m_stream->position());
 }
 
-bool JuceAudioEngine::isMonitoring() const
+bool Au4AudioEngine::isMonitoring() const
 {
     return m_monitoring != nullptr;
 }
 
-std::optional<au::audio::AudioStreamDescriptor> JuceAudioEngine::currentStream() const
+std::optional<au::audio::AudioStreamDescriptor> Au4AudioEngine::currentStream() const
 {
     if (m_monitoring) {
         return audio::AudioStreamDescriptor { audio::AudioStreamKind::Monitoring, &m_monitoring->project, m_monitoring->sampleRate() };
@@ -125,17 +79,17 @@ std::optional<au::audio::AudioStreamDescriptor> JuceAudioEngine::currentStream()
     return audio::AudioStreamDescriptor { kind, &m_stream->project, m_stream->sampleRate() };
 }
 
-bool JuceAudioEngine::isStreamActive(AudacityProject& project) const
+bool Au4AudioEngine::isStreamActive(AudacityProject& project) const
 {
     return m_stream && &m_stream->project == &project && !m_stream->isFinished();
 }
 
-double JuceAudioEngine::transportTime() const
+double Au4AudioEngine::transportTime() const
 {
     return m_transportTime;
 }
 
-int JuceAudioEngine::startTransport(const TransportSequences& sequences, double startTime, double endTime,
+int Au4AudioEngine::startTransport(const TransportSequences& sequences, double startTime, double endTime,
                                     double /*mixerEndTime*/, AudacityProject& project, const StartTransportOptions& options)
 {
     if (m_stream) {
@@ -174,15 +128,15 @@ int JuceAudioEngine::startTransport(const TransportSequences& sequences, double 
         settings.startTime = startTime;
         settings.endTime = endTime;
         settings.leadInTime = std::max(0.0, std::min(startTime, options.leadInTime));
-        const auto rate = device->getCurrentSampleRate();
+        const auto rate = device->sampleRate();
         settings.latencyCompensation = configuration.automaticLatencyCompensation
-                                       ? -(device->getInputLatencyInSamples() + device->getOutputLatencyInSamples()) / rate
+                                       ? -(device->inputLatency() + device->outputLatency())
                                        : configuration.latencyCompensation / 1000.0;
         settings.crossfadeData = options.crossfadeData;
         settings.detectDropouts = gPrefs->Read(WarningDialogKey(wxT("DropoutDetected")), true) != 0;
-        settings.numInputChannels = device->getActiveInputChannels().countNumberOfSetBits();
+        settings.numInputChannels = device->numInputChannels();
         settings.deviceRate = rate;
-        settings.maxFrames = std::max(1, device->getCurrentBufferSizeSamples());
+        settings.maxFrames = device->blockSize();
         if (settings.numInputChannels == 0) {
             m_lastError = u"The input device has no channels";
             return 0;
@@ -201,7 +155,7 @@ int JuceAudioEngine::startTransport(const TransportSequences& sequences, double 
     }
     const double playStartTime = streamStartTime.value_or(rangeStart);
 
-    std::unique_ptr<JuceIoCallback> stream;
+    std::unique_ptr<IoCallback> stream;
     if (m_mode == Mode::Fast) {
         stream = std::make_unique<FastIoCallback>(project, m_nextStreamToken, std::move(device), options.isDefaultPolicy,
                                                   m_callbackInfoQueue, m_playedRanges, m_playbackVolume);
@@ -216,9 +170,9 @@ int JuceAudioEngine::startTransport(const TransportSequences& sequences, double 
     if (monitorsThroughEffects) {
         stream->monitorThrough(monitoredTrack(project), capture->numInputChannels, m_inputVolume);
     }
-    std::optional<JuceIoCallback::RecordingRange> recordingRange;
+    std::optional<IoCallback::RecordingRange> recordingRange;
     if (recording) {
-        recordingRange = JuceIoCallback::RecordingRange { startTime, endTime };
+        recordingRange = IoCallback::RecordingRange { startTime, endTime };
     }
     stream->build(sequences, muse::value(m_playbackMeters, &project), recordingRange);
     if (capture) {
@@ -253,12 +207,12 @@ int JuceAudioEngine::startTransport(const TransportSequences& sequences, double 
     }
     m_stream->start();
 
-    LOGI() << "JUCE engine " << (recording ? "recording" : "playing") << " at " << m_lastSampleRate << " Hz, "
+    LOGI() << m_deviceOpener->name() << " engine " << (recording ? "recording" : "playing") << " at " << m_lastSampleRate << " Hz, "
            << (m_mode == Mode::Fast ? "fast" : "safe");
     return m_nextStreamToken++;
 }
 
-void JuceAudioEngine::onPlayRegionChanged()
+void Au4AudioEngine::onPlayRegionChanged()
 {
     if (!m_stream) {
         return;
@@ -274,7 +228,7 @@ void JuceAudioEngine::onPlayRegionChanged()
     m_stream->updateLoop(loopRange, std::max(t0, m_stream->trackEndTime));
 }
 
-void JuceAudioEngine::stopTransport()
+void Au4AudioEngine::stopTransport()
 {
     if (!m_stream) {
         return;
@@ -285,33 +239,33 @@ void JuceAudioEngine::stopTransport()
     m_streamStopped.notify();
 }
 
-void JuceAudioEngine::pauseTransport(bool pause)
+void Au4AudioEngine::pauseTransport(bool pause)
 {
     if (m_stream) {
         m_stream->setPaused(pause);
     }
 }
 
-void JuceAudioEngine::seek(double time)
+void Au4AudioEngine::seek(double time)
 {
     if (m_stream) {
         m_stream->seek(time);
     }
 }
 
-std::shared_ptr<RealtimeEffectState> JuceAudioEngine::addRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
+std::shared_ptr<RealtimeEffectState> Au4AudioEngine::addRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
                                                                              const std::string& effectId)
 {
     return RealtimeEffectManager::Get(project).AddState(effectsInitialization(project), group, au3::wxFromStdString(effectId));
 }
 
-void JuceAudioEngine::removeRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
+void Au4AudioEngine::removeRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
                                                 const std::shared_ptr<RealtimeEffectState>& state)
 {
     RealtimeEffectManager::Get(project).RemoveState(effectsInitialization(project), group, state);
 }
 
-std::shared_ptr<RealtimeEffectState> JuceAudioEngine::replaceRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
+std::shared_ptr<RealtimeEffectState> Au4AudioEngine::replaceRealtimeEffectState(AudacityProject& project, ChannelGroup* group,
                                                                                  size_t effectListIndex,
                                                                                  const std::string& newEffectId)
 {
@@ -319,7 +273,7 @@ std::shared_ptr<RealtimeEffectState> JuceAudioEngine::replaceRealtimeEffectState
                                                             au3::wxFromStdString(newEffectId));
 }
 
-RealtimeEffects::InitializationScope* JuceAudioEngine::effectsInitialization(AudacityProject& project) const
+RealtimeEffects::InitializationScope* Au4AudioEngine::effectsInitialization(AudacityProject& project) const
 {
     if (m_stream && &m_stream->project == &project) {
         return m_stream->effectsInitialization();
@@ -331,17 +285,17 @@ RealtimeEffects::InitializationScope* JuceAudioEngine::effectsInitialization(Aud
     return nullptr;
 }
 
-void JuceAudioEngine::setPlaybackMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter)
+void Au4AudioEngine::setPlaybackMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter)
 {
     m_playbackMeters[&project] = meter;
 }
 
-void JuceAudioEngine::setCaptureMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter)
+void Au4AudioEngine::setCaptureMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter)
 {
     m_captureMeters[&project] = meter;
 }
 
-void JuceAudioEngine::stopMeters(AudacityProject& project)
+void Au4AudioEngine::stopMeters(AudacityProject& project)
 {
     for (const auto* meters : { &m_playbackMeters, &m_captureMeters }) {
         if (const auto meter = muse::value(*meters, &project)) {
@@ -350,15 +304,15 @@ void JuceAudioEngine::stopMeters(AudacityProject& project)
     }
 }
 
-void JuceAudioEngine::startMonitoring(AudacityProject& project)
+void Au4AudioEngine::startMonitoring(AudacityProject& project)
 {
     if (m_stream) {
         return;
     }
     const bool playThrough = recordConfiguration()->isInputMonitoringOn();
-    std::optional<JuceMonitoringCallback::Effects> effects;
+    std::optional<MonitoringCallback::Effects> effects;
     if (playThrough && m_mode == Mode::Fast) {
-        effects = JuceMonitoringCallback::Effects { monitoredTrack(project) };
+        effects = MonitoringCallback::Effects { monitoredTrack(project) };
     }
     if (m_monitoring) {
         const auto& current = m_monitoring->effects;
@@ -378,12 +332,12 @@ void JuceAudioEngine::startMonitoring(AudacityProject& project)
         LOGE() << "cannot monitor the input: " << m_lastError;
         return;
     }
-    m_monitoring = std::make_unique<JuceMonitoringCallback>(project, std::move(device), playThrough,
+    m_monitoring = std::make_unique<MonitoringCallback>(project, std::move(device), playThrough,
                                                             muse::value(m_captureMeters, &project), m_inputVolume, std::move(effects));
     m_monitoring->start();
 }
 
-void JuceAudioEngine::stopMonitoring()
+void Au4AudioEngine::stopMonitoring()
 {
     if (m_monitoring) {
         m_monitoring->stop();
@@ -391,7 +345,7 @@ void JuceAudioEngine::stopMonitoring()
     }
 }
 
-void JuceAudioEngine::setMonitoredTrack(std::optional<int64_t> track)
+void Au4AudioEngine::setMonitoredTrack(std::optional<int64_t> track)
 {
     if (track == m_monitoredTrack) {
         return;
@@ -404,7 +358,7 @@ void JuceAudioEngine::setMonitoredTrack(std::optional<int64_t> track)
     }
 }
 
-std::shared_ptr<const PlayableSequence> JuceAudioEngine::monitoredTrack(AudacityProject& project) const
+std::shared_ptr<const PlayableSequence> Au4AudioEngine::monitoredTrack(AudacityProject& project) const
 {
     if (!m_monitoredTrack) {
         return nullptr;
@@ -413,41 +367,23 @@ std::shared_ptr<const PlayableSequence> JuceAudioEngine::monitoredTrack(Audacity
     return track ? track->SharedPointer<const WaveTrack>() : nullptr;
 }
 
-std::unique_ptr<juce::AudioIODevice> JuceAudioEngine::openDevice(int numInputChannels, int numOutputChannels, double sampleRate)
+std::unique_ptr<IDevice> Au4AudioEngine::openDevice(int numInputChannels, int numOutputChannels, double sampleRate)
 {
     IF_ASSERT_FAILED(m_driverController) {
         return nullptr;
     }
-    const auto configuration = m_driverController->configuration();
-    const auto type = m_devices->deviceType(configuration.api);
-    if (!type) {
-        m_lastError = muse::String::fromStdString("No such audio API: " + configuration.api);
-        return nullptr;
-    }
-    const auto outputDevice = numOutputChannels > 0 ? effectiveOutputDevice(*m_devices, configuration) : std::string {};
-    const auto inputDevice = numInputChannels > 0 ? effectiveInputDevice(*m_devices, configuration) : std::string {};
-    std::unique_ptr<juce::AudioIODevice> device { type->createDevice(juce::String(outputDevice), juce::String(inputDevice)) };
+    std::string error;
+    auto device = m_deviceOpener->open(m_driverController->configuration(), numInputChannels, numOutputChannels, sampleRate, error);
     if (!device) {
-        m_lastError = muse::String::fromStdString("Cannot create audio device " + outputDevice + " / " + inputDevice);
-        return nullptr;
-    }
-
-    juce::BigInteger inputChannels;
-    inputChannels.setRange(0, std::min(numInputChannels, device->getInputChannelNames().size()), true);
-    juce::BigInteger outputChannels;
-    outputChannels.setRange(0, std::min(numOutputChannels, device->getOutputChannelNames().size()), true);
-    const auto rate = bestSampleRate(*device, sampleRate);
-    const auto error = device->open(inputChannels, outputChannels, rate, bufferSize(*device, configuration.bufferLength, rate));
-    if (error.isNotEmpty()) {
-        m_lastError = muse::String::fromStdString(error.toStdString());
+        m_lastError = muse::String::fromStdString(error);
         return nullptr;
     }
     audio::DeviceLatency latency;
-    if (!device->getActiveInputChannels().isZero()) {
-        latency.input = device->getInputLatencyInSamples() / device->getCurrentSampleRate();
+    if (device->numInputChannels() > 0) {
+        latency.input = device->inputLatency();
     }
-    if (!device->getActiveOutputChannels().isZero()) {
-        latency.output = device->getOutputLatencyInSamples() / device->getCurrentSampleRate();
+    if (device->numOutputChannels() > 0) {
+        latency.output = device->outputLatency();
     }
     if (latency != m_deviceLatency) {
         m_deviceLatency = latency;
@@ -456,48 +392,48 @@ std::unique_ptr<juce::AudioIODevice> JuceAudioEngine::openDevice(int numInputCha
     return device;
 }
 
-void JuceAudioEngine::setInputVolume(float newInputVolume)
+void Au4AudioEngine::setInputVolume(float newInputVolume)
 {
     // Applied to the input, as AudioIO does where it can't set the volume of the device
     m_inputVolume = newInputVolume;
 }
 
-float JuceAudioEngine::getInputVolume() const
+float Au4AudioEngine::getInputVolume() const
 {
     return m_inputVolume;
 }
 
-void JuceAudioEngine::setPlaybackVolume(float newPlaybackVolume)
+void Au4AudioEngine::setPlaybackVolume(float newPlaybackVolume)
 {
     m_playbackVolume = newPlaybackVolume;
 }
 
-float JuceAudioEngine::getPlaybackVolume() const
+float Au4AudioEngine::getPlaybackVolume() const
 {
     return m_playbackVolume;
 }
 
-bool JuceAudioEngine::canStopTransport(AudacityProject& project) const
+bool Au4AudioEngine::canStopTransport(AudacityProject& project) const
 {
     return !m_stream || &m_stream->project == &project;
 }
 
-void JuceAudioEngine::handleDeviceChange()
+void Au4AudioEngine::handleDeviceChange()
 {
     // The device is opened for each stream, and the driver controller suspends streams before changing it
 }
 
-muse::String JuceAudioEngine::lastErrorString() const
+muse::String Au4AudioEngine::lastErrorString() const
 {
     return m_lastError;
 }
 
-double JuceAudioEngine::getPlaybackSampleRate() const
+double Au4AudioEngine::getPlaybackSampleRate() const
 {
     return m_lastSampleRate;
 }
 
-void JuceAudioEngine::updateTimePosition(unsigned long newlyConsumedSamples)
+void Au4AudioEngine::updateTimePosition(unsigned long newlyConsumedSamples)
 {
     while (newlyConsumedSamples > 0) {
         if (m_consumedInCurrentRange == m_currentPlayedRange.frames) {
@@ -517,7 +453,7 @@ void JuceAudioEngine::updateTimePosition(unsigned long newlyConsumedSamples)
     }
 }
 
-std::optional<au::audio::AudioCallbackInfo> JuceAudioEngine::consumeNextCallbackInfo()
+std::optional<au::audio::AudioCallbackInfo> Au4AudioEngine::consumeNextCallbackInfo()
 {
     audio::AudioCallbackInfo info;
     if (m_callbackInfoQueue.Get(info)) {
@@ -526,42 +462,42 @@ std::optional<au::audio::AudioCallbackInfo> JuceAudioEngine::consumeNextCallback
     return std::nullopt;
 }
 
-muse::async::Notification JuceAudioEngine::recordingUpdateRequested() const
+muse::async::Notification Au4AudioEngine::recordingUpdateRequested() const
 {
     return m_listener->recordingUpdateRequested();
 }
 
-muse::async::Notification JuceAudioEngine::recordingNewBlocks() const
+muse::async::Notification Au4AudioEngine::recordingNewBlocks() const
 {
     return m_listener->recordingNewBlocks();
 }
 
-muse::async::Notification JuceAudioEngine::recordingCommitRequested() const
+muse::async::Notification Au4AudioEngine::recordingCommitRequested() const
 {
     return m_listener->recordingCommitRequested();
 }
 
-muse::async::Notification JuceAudioEngine::recordingFinished() const
+muse::async::Notification Au4AudioEngine::recordingFinished() const
 {
     return m_listener->recordingFinished();
 }
 
-muse::async::Notification JuceAudioEngine::streamStopped() const
+muse::async::Notification Au4AudioEngine::streamStopped() const
 {
     return m_streamStopped;
 }
 
-std::optional<au::audio::DeviceLatency> JuceAudioEngine::deviceLatency() const
+std::optional<au::audio::DeviceLatency> Au4AudioEngine::deviceLatency() const
 {
     return m_deviceLatency;
 }
 
-muse::async::Notification JuceAudioEngine::deviceLatencyChanged() const
+muse::async::Notification Au4AudioEngine::deviceLatencyChanged() const
 {
     return m_deviceLatencyChanged;
 }
 
-muse::async::Channel<au::au3::Au3TrackId, au::au3::Au3ClipId> JuceAudioEngine::recordingClipChanged() const
+muse::async::Channel<au::au3::Au3TrackId, au::au3::Au3ClipId> Au4AudioEngine::recordingClipChanged() const
 {
     return m_listener->recordingClipChanged();
 }

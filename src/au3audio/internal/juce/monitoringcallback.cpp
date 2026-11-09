@@ -1,7 +1,7 @@
 /*
 * Audacity: A Digital Audio Editor
 */
-#include "jucemonitoringcallback.h"
+#include "monitoringcallback.h"
 
 #include <algorithm>
 #include <chrono>
@@ -18,12 +18,12 @@
 
 using namespace au::au4juce;
 
-JuceMonitoringCallback::JuceMonitoringCallback(AudacityProject& project, std::unique_ptr<juce::AudioIODevice> device, bool playThrough,
+MonitoringCallback::MonitoringCallback(AudacityProject& project, std::unique_ptr<IDevice> device, bool playThrough,
                                                audio::IAudioMeterPtr meter, const std::atomic<float>& inputVolume,
                                                std::optional<Effects> effects)
     : project{project}, playThrough{playThrough}, effects{playThrough ? std::move(effects) : std::nullopt}, m_device{std::move(device)},
-    m_blockSize{std::max(1, m_device->getCurrentBufferSizeSamples())}, m_sampleRate{m_device->getCurrentSampleRate()},
-    m_meter{std::move(meter)}, m_inputVolume{inputVolume}, m_input{m_device->getActiveInputChannels().countNumberOfSetBits(), m_blockSize},
+    m_blockSize{m_device->blockSize()}, m_sampleRate{m_device->sampleRate()},
+    m_meter{std::move(meter)}, m_inputVolume{inputVolume}, m_input{m_device->numInputChannels(), m_blockSize},
     m_inputPointers(static_cast<size_t>(m_input.numChannels()))
 {
     if (!this->effects) {
@@ -58,29 +58,28 @@ JuceMonitoringCallback::JuceMonitoringCallback(AudacityProject& project, std::un
     }
 }
 
-RealtimeEffects::InitializationScope* JuceMonitoringCallback::effectsInitialization()
+RealtimeEffects::InitializationScope* MonitoringCallback::effectsInitialization()
 {
     return m_effectsInitialization ? &*m_effectsInitialization : nullptr;
 }
 
-JuceMonitoringCallback::~JuceMonitoringCallback()
+MonitoringCallback::~MonitoringCallback()
 {
     stop();
 }
 
-void JuceMonitoringCallback::start()
+void MonitoringCallback::start()
 {
     if (m_meter) {
         m_meter->start(m_sampleRate);
     }
-    m_device->start(this);
+    m_device->start(*this);
 }
 
-void JuceMonitoringCallback::stop()
+void MonitoringCallback::stop()
 {
     if (m_device) {
         m_device->stop();
-        m_device->close();
         m_device.reset();
     }
     if (m_meter) {
@@ -93,9 +92,8 @@ void JuceMonitoringCallback::stop()
     m_effectsInitialization.reset();
 }
 
-void JuceMonitoringCallback::audioDeviceIOCallbackWithContext(const float* const* inputChannelData, int numInputChannels,
-                                                              float* const* outputChannelData, int numOutputChannels, int numSamples,
-                                                              const juce::AudioIODeviceCallbackContext&)
+void MonitoringCallback::process(const float* const* inputChannelData, int numInputChannels, float* const* outputChannelData,
+                                 int numOutputChannels, int numSamples)
 {
     for (int ch = 0; ch < numOutputChannels; ++ch) {
         if (outputChannelData[ch]) {
@@ -136,9 +134,4 @@ void JuceMonitoringCallback::audioDeviceIOCallbackWithContext(const float* const
         }
         done += frames;
     }
-}
-
-void JuceMonitoringCallback::audioDeviceError(const juce::String& errorMessage)
-{
-    LOGE() << "audio device error: " << errorMessage.toStdString();
 }

@@ -17,7 +17,7 @@
 #include "au3-realtime-effects/RealtimeEffectManager.h"
 #include "au3-utility/LockFreeQueue.h"
 
-#include "juceincludes.h"
+#include "idevice.h"
 #include "playedrange.h"
 #include "playheadmapper.h"
 #include "stereo.h"
@@ -33,21 +33,21 @@ class MonitoredInput;
 class RecordingCapture;
 class MeterTapNode;
 
-//! A stream on a JUCE device: what it plays, and what it records if it does
+//! A stream on a device: what it plays, and what it records if it does
 /*!
  * It builds the tracks' chains and the master's, plays them as the playhead says, records, applies the playback volume,
  * and reports what plays and what the meters show. Where the chains render, and so what is read ahead and by which
  * thread, is the subclasses': see SafeIoCallback and FastIoCallback.
  */
-class JuceIoCallback : public juce::AudioIODeviceCallback
+class IoCallback : public IDeviceCallback
 {
 public:
     //! Reports what it plays to `callbackInfos` and `playedRanges`, and applies `playbackVolume`
-    JuceIoCallback(AudacityProject& project, int token, std::unique_ptr<juce::AudioIODevice> device, bool followsPlayRegion,
+    IoCallback(AudacityProject& project, int token, std::unique_ptr<IDevice> device, bool followsPlayRegion,
                    LockFreeQueue<audio::AudioCallbackInfo>& callbackInfos, LockFreeQueue<PlayedRange>& playedRanges,
                    const std::atomic<float>& playbackVolume);
     //! Subclasses stop() in their destructor, as it releases what they render with
-    ~JuceIoCallback() override;
+    ~IoCallback() override;
 
     double sampleRate() const { return m_sampleRate; }
 
@@ -84,12 +84,8 @@ public:
 
     RealtimeEffects::InitializationScope* effectsInitialization();
 
-    // juce::AudioIODeviceCallback
-    void audioDeviceIOCallbackWithContext(const float* const* inputChannelData, int numInputChannels, float* const* outputChannelData,
-                                          int numOutputChannels, int numSamples, const juce::AudioIODeviceCallbackContext&) final;
-    void audioDeviceAboutToStart(juce::AudioIODevice*) final {}
-    void audioDeviceStopped() final {}
-    void audioDeviceError(const juce::String& errorMessage) final;
+    // IDeviceCallback
+    void process(const float* const* input, int numInputChannels, float* const* output, int numOutputChannels, int frames) final;
 
     AudacityProject& project;
     const int token;
@@ -158,7 +154,7 @@ private:
     LockFreeQueue<PlayedRange>& m_playedRanges;
     const std::atomic<float>& m_playbackVolume;
 
-    std::unique_ptr<juce::AudioIODevice> m_device;
+    std::unique_ptr<IDevice> m_device;
     std::unique_ptr<RecordingCapture> m_capture;
 
     // If the input is monitored through the effects: what monitorThrough() said, then what the chains read of it

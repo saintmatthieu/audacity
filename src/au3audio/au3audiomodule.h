@@ -9,7 +9,7 @@
 
 #ifdef AU_USE_JUCE
 namespace au::au4juce {
-class JuceAudioEngine;
+class Au4AudioEngine;
 }
 #endif
 
@@ -32,7 +32,7 @@ private:
     std::shared_ptr<Au3AudioEngine> m_audioEngine;
     std::shared_ptr<AudioDriverController> m_audioDriverController;
 #ifdef AU_USE_JUCE
-    std::shared_ptr<au4juce::JuceAudioEngine> m_juceAudioEngine;
+    std::shared_ptr<au4juce::Au4AudioEngine> m_juceEngine;
     std::shared_ptr<AudioDriverController> m_juceDriverController;
 #endif
     std::shared_ptr<ISystemAudioDevicesListener> m_systemAudioDevicesListener;
