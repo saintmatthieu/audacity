@@ -94,6 +94,8 @@ set(AU4_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/au4audioengine.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/blockcontext.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/blockcontext.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/captureinput.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/captureinput.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectscratch.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectscratch.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectslatency.cpp
@@ -114,6 +116,8 @@ set(AU4_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metersink.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metertapnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metertapnode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/monitoringcallback.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/monitoringcallback.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/mutesolonode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/mutesolonode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playedrange.h
