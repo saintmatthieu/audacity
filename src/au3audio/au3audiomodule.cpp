@@ -65,10 +65,11 @@ void Au3AudioModule::resolveImports()
         return;
     }
     // AudioIO and an Au4AudioEngine share the PortAudio devices: the driver controller follows the active one
-    backendRegister->registerBackend({ "portaudio", m_audioEngine, m_audioDriverController,
-                                       [this] { m_audioDriverController->setAudioEngine(m_audioEngine); } });
-    backendRegister->registerBackend({ "portaudio-safe", m_portAudioEngine, m_audioDriverController,
-                                       [this] { m_audioDriverController->setAudioEngine(m_portAudioEngine); } });
+    const auto suspendPortAudioStream = [this] { return m_audioDriverController->suspendStream(); };
+    backendRegister->registerBackend({ "portaudio", m_audioEngine, m_audioDriverController, suspendPortAudioStream,
+                                       "PortAudio (AudioIO)", [this] { m_audioDriverController->setAudioEngine(m_audioEngine); } });
+    backendRegister->registerBackend({ "portaudio-safe", m_portAudioEngine, m_audioDriverController, suspendPortAudioStream,
+                                       "PortAudio (safe)", [this] { m_audioDriverController->setAudioEngine(m_portAudioEngine); } });
 }
 
 void Au3AudioModule::onInit(const muse::IApplication::RunMode&)
