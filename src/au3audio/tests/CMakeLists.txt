@@ -10,6 +10,7 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/audiodrivercontroller_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/au3audioio_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mocks/audioenginemock.h
+    ${CMAKE_CURRENT_LIST_DIR}/chainnodes_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/playheadmapper_tests.cpp
     )
 
