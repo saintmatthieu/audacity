@@ -11,10 +11,11 @@
 #include "internal/au3audioengine.h"
 #include "internal/audiodrivercontroller.h"
 #include "internal/portaudiodevices.h"
+#include "internal/au4/au4audioengine.h"
+#include "internal/portaudio/portaudiodevice.h"
 
 #ifdef AU_USE_JUCE
 #include "internal/juce/juceaudiodevices.h"
-#include "internal/au4/au4audioengine.h"
 #include "internal/juce/jucedevice.h"
 #endif
 
@@ -45,6 +46,9 @@ void Au3AudioModule::registerExports()
     m_audioEngine = std::make_shared<Au3AudioEngine>();
     m_audioDriverController = std::make_shared<AudioDriverController>(std::make_unique<PortAudioDevices>(), "AudioIO");
     m_audioDriverController->setAudioEngine(m_audioEngine);
+    // Over AudioIO's devices and settings
+    m_portAudioEngine = std::make_shared<au4::Au4AudioEngine>(std::make_shared<au4::PortAudioDeviceOpener>());
+    m_portAudioEngine->setDriverController(m_audioDriverController.get());
 
 #ifdef AU_USE_JUCE
     const auto juceDevices = std::make_shared<au4::JuceAudioDevices>();
@@ -73,8 +77,20 @@ void Au3AudioModule::resolveImports()
     IF_ASSERT_FAILED(backendRegister) {
         return;
     }
-    backendRegister->registerBackend({ "portaudio", m_audioEngine, m_audioDriverController,
-                                       [this] { return m_audioDriverController->suspendStream(); }, "PortAudio" });
+    // AudioIO and an Au4AudioEngine share the PortAudio devices: the driver controller follows the active one
+    const auto suspendPortAudioStream = [this] { return m_audioDriverController->suspendStream(); };
+    backendRegister->registerBackend({ "portaudio", m_audioEngine, m_audioDriverController, suspendPortAudioStream,
+                                       "PortAudio (AudioIO)", [this] { m_audioDriverController->setAudioEngine(m_audioEngine); } });
+    backendRegister->registerBackend({ "portaudio-safe", m_portAudioEngine, m_audioDriverController, suspendPortAudioStream,
+                                       "PortAudio (safe)", [this] {
+            m_audioDriverController->setAudioEngine(m_portAudioEngine);
+            m_portAudioEngine->setMode(au4::Au4AudioEngine::Mode::Safe);
+        } });
+    backendRegister->registerBackend({ "portaudio-fast", m_portAudioEngine, m_audioDriverController, suspendPortAudioStream,
+                                       "PortAudio (fast)", [this] {
+            m_audioDriverController->setAudioEngine(m_portAudioEngine);
+            m_portAudioEngine->setMode(au4::Au4AudioEngine::Mode::Fast);
+        } });
 #ifdef AU_USE_JUCE
     // One engine, which plays as the active backend says
     const auto suspendJuceStream = [this] { return m_juceDriverController->suspendStream(); };

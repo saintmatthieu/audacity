@@ -20,7 +20,7 @@ public:
     ~FastIoCallback() override;
 
 private:
-    const char* name() const override { return "JUCE, fast"; }
+    const char* name() const override { return "fast"; }
     std::optional<TrackReadAhead> trackReadAhead() const override;
 #ifdef AU_USE_TRACKTION
     //! In parallel, with tracktion_graph

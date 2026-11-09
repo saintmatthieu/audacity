@@ -32,7 +32,8 @@ public:
     //! @param settingsGroup prefix of this backend's settings keys
     AudioDriverController(std::shared_ptr<IAudioDevices> devices, const std::string& settingsGroup);
 
-    void setAudioEngine(const std::shared_ptr<audio::IAudioEngine>& engine) { audioEngine.set(engine); }
+    //! May change, where backends share the devices: then the active one's
+    void setAudioEngine(const std::shared_ptr<audio::IAudioEngine>& engine);
 
     //! Stops the engine's stream, if any, as a change of the configuration does; see audio::AudioBackend::suspendStream
     audio::AudioStreamRestorer suspendStream() const;
@@ -105,6 +106,7 @@ private:
                             const muse::modularity::ContextPtr& requester, std::optional<double> requesterProjectRate,
                             bool refreshDeviceState, bool writeStarted, const audio::AudioStreamRestorer& restoreStream) noexcept;
     void publish(const audio::AudioConfigurationDelta& delta, bool deviceListChanged = false) noexcept;
+    void subscribeToAudioEngine();
     const std::shared_ptr<IAudioDevices> m_devices;
     const SettingsKeys m_keys;
 
@@ -116,5 +118,7 @@ private:
     muse::async::Notification m_audioDeviceListChanged;
     muse::async::Channel<std::string> m_usedOutputDeviceChanged;
     muse::async::Channel<std::string> m_usedInputDeviceChanged;
+    //! Subscriptions to the engine; replaced with it
+    std::unique_ptr<muse::async::Asyncable> m_engineSubscriptions;
 };
 }

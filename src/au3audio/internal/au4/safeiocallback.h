@@ -23,7 +23,7 @@ public:
     ~SafeIoCallback() override;
 
 private:
-    const char* name() const override { return "JUCE, safe"; }
+    const char* name() const override { return "safe"; }
     std::optional<TrackReadAhead> trackReadAhead() const override { return std::nullopt; }
     void onBuilt(std::shared_ptr<ISequenceProcessingNode> top) override;
     void startReadingAhead() override;

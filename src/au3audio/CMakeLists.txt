@@ -138,6 +138,8 @@ set(AU4_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/stereo.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/track.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/track.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/portaudio/portaudiodevice.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/portaudio/portaudiodevice.h
 )
 set(MODULE_SRC ${MODULE_SRC} ${AU4_SRC})
 # Its `using namespace au::au4` would make au4::Track and au3's Track ambiguous in other unity-combined sources
