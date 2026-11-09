@@ -90,14 +90,21 @@ endif()
 
 # The audio engine of graphs of nodes, over any audio library
 set(AU4_SRC
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/au4audioengine.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/au4audioengine.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/blockcontext.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/blockcontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectscratch.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectscratch.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectslatency.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectslatency.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectsnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectsnode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/endoftracknode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/endoftracknode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/gainpannode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/gainpannode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/idevice.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/ieffectscontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/iendoftrackcontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/imutesolocontext.h
@@ -105,11 +112,18 @@ set(AU4_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metertapnode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/mutesolonode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/mutesolonode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playedrange.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playheadmapper.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/playheadmapper.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/safeiocallback.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/safeiocallback.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/sequentialmixnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/sequentialmixnode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/stereo.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/track.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/track.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/portaudio/portaudiodevice.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/portaudio/portaudiodevice.h
 )
 set(MODULE_SRC ${MODULE_SRC} ${AU4_SRC})
 # Their `using namespace au::au4` would leak into other unity-combined sources
@@ -117,6 +131,9 @@ set_source_files_properties(${AU4_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 set(MODULE_LINK ${MODULE_LINK}
     au3-clip-processing
     au3-mixer
+    au3-project
+    au3-realtime-effects
+    au3-wave-track
 )
 
 setup_module()

@@ -11,6 +11,8 @@
 #include "internal/au3audioengine.h"
 #include "internal/audiodrivercontroller.h"
 #include "internal/portaudiodevices.h"
+#include "internal/au4/au4audioengine.h"
+#include "internal/portaudio/portaudiodevice.h"
 
 #include "au3-audio-devices/AudioIOBase.h"
 
@@ -39,6 +41,9 @@ void Au3AudioModule::registerExports()
     m_audioEngine = std::make_shared<Au3AudioEngine>();
     m_audioDriverController = std::make_shared<AudioDriverController>(std::make_unique<PortAudioDevices>(), "AudioIO");
     m_audioDriverController->setAudioEngine(m_audioEngine);
+    // Over AudioIO's devices and settings
+    m_portAudioEngine = std::make_shared<au4::Au4AudioEngine>(std::make_shared<au4::PortAudioDeviceOpener>());
+    m_portAudioEngine->setDriverController(m_audioDriverController.get());
 
 #if defined(Q_OS_MAC)
     m_systemAudioDevicesListener = std::make_shared<MacosSystemAudioDevicesListener>();
@@ -59,7 +64,11 @@ void Au3AudioModule::resolveImports()
     IF_ASSERT_FAILED(backendRegister) {
         return;
     }
-    backendRegister->registerBackend({ "portaudio", m_audioEngine, m_audioDriverController });
+    // AudioIO and an Au4AudioEngine share the PortAudio devices: the driver controller follows the active one
+    backendRegister->registerBackend({ "portaudio", m_audioEngine, m_audioDriverController,
+                                       [this] { m_audioDriverController->setAudioEngine(m_audioEngine); } });
+    backendRegister->registerBackend({ "portaudio-safe", m_portAudioEngine, m_audioDriverController,
+                                       [this] { m_audioDriverController->setAudioEngine(m_portAudioEngine); } });
 }
 
 void Au3AudioModule::onInit(const muse::IApplication::RunMode&)
