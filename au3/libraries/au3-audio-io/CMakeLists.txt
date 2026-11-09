@@ -20,6 +20,8 @@ set( SOURCES
    CaptureSink.h
    PlaybackSchedule.cpp
    PlaybackSchedule.h
+   PortAudioStream.cpp
+   PortAudioStream.h
    ProjectAudioIO.cpp
    ProjectAudioIO.h
    RingBuffer.cpp
@@ -29,6 +31,8 @@ set( LIBRARIES
 PUBLIC
    au3-audio-devices
    au3-components
+   # PortAudioStream.h is PortAudio's API
+   portaudio::portaudio
    au3-math
    au3-mixer
    au3-registries

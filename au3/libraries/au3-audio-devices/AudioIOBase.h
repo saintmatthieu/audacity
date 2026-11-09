@@ -359,7 +359,7 @@ protected:
     static int mCurrentCaptureIndex;
     static double mCachedBestRateIn;
 
-protected:
+public:
     /** \brief get the index of the supplied (named) recording device, or the
      * device selected in the preferences if none given.
      *
@@ -369,14 +369,6 @@ protected:
      */
     static int getRecordDevIndex(const wxString& devName = {});
 
-    /** \brief get the index of the device selected in the preferences.
-     *
-     * If the device isn't found, returns -1
-     */
-#if USE_PORTMIXER
-    static int getRecordSourceIndex(PxMixer* portMixer);
-#endif
-
     /** \brief get the index of the supplied (named) playback device, or the
      * device selected in the preferences if none given.
      *
@@ -385,6 +377,15 @@ protected:
      * default device index.
      */
     static int getPlayDevIndex(const wxString& devName = {});
+
+protected:
+    /** \brief get the index of the device selected in the preferences.
+     *
+     * If the device isn't found, returns -1
+     */
+#if USE_PORTMIXER
+    static int getRecordSourceIndex(PxMixer* portMixer);
+#endif
 
     /** \brief Array of audio sample rates to try to use
      *
