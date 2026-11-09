@@ -34,5 +34,6 @@ void Au4AudioModule::resolveImports()
     m_portAudioEngine = std::make_shared<Au4AudioEngine>(portAudio->deviceOpener());
     m_portAudioEngine->setDriverController(driverController.get());
     backendRegister->registerBackend({ "portaudio-safe", m_portAudioEngine, driverController,
+                                       [driverController] { return driverController->suspendStream(); }, "PortAudio (safe)",
                                        [this, driverController] { driverController->setAudioEngine(m_portAudioEngine); } });
 }
