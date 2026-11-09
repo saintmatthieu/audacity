@@ -11,7 +11,7 @@
 class IPlayheadMapper;
 class ISequenceProcessingNode;
 class LockFreeQueueNode;
-class PlayableSequence;
+struct PlayableSequence;
 
 namespace au::au4 {
 class IEffectsContext;

@@ -7,7 +7,7 @@
 
 #include "au3-mixer/ISequenceProcessingNode.h"
 
-class PlayableSequence;
+struct PlayableSequence;
 
 namespace au::au4 {
 //! Its input with its track's volume and pan; where a mono track becomes stereo. In place, in stereo.

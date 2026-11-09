@@ -7,7 +7,7 @@
 
 #include "au3-mixer/ISequenceProcessingNode.h"
 
-class PlayableSequence;
+struct PlayableSequence;
 
 namespace au::au4 {
 class IMuteSoloContext;

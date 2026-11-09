@@ -20,7 +20,7 @@
 #include "../au3audioiolistener.h"
 #include "playedrange.h"
 
-class PlayableSequence;
+struct PlayableSequence;
 
 namespace RealtimeEffects {
 class InitializationScope;

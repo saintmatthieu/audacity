@@ -21,7 +21,7 @@
 
 class AudacityProject;
 class ISequenceProcessingNode;
-class PlayableSequence;
+struct PlayableSequence;
 
 namespace au::au4 {
 class BlockContext;
