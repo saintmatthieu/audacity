@@ -68,8 +68,17 @@ void Au3AudioModule::resolveImports()
     const auto suspendPortAudioStream = [this] { return m_audioDriverController->suspendStream(); };
     backendRegister->registerBackend({ "portaudio", m_audioEngine, m_audioDriverController, suspendPortAudioStream,
                                        "PortAudio (AudioIO)", [this] { m_audioDriverController->setAudioEngine(m_audioEngine); } });
+    // One engine, which plays as the active backend says
     backendRegister->registerBackend({ "portaudio-safe", m_portAudioEngine, m_audioDriverController, suspendPortAudioStream,
-                                       "PortAudio (safe)", [this] { m_audioDriverController->setAudioEngine(m_portAudioEngine); } });
+                                       "PortAudio (safe)", [this] {
+            m_audioDriverController->setAudioEngine(m_portAudioEngine);
+            m_portAudioEngine->setMode(au4::Au4AudioEngine::Mode::Safe);
+        } });
+    backendRegister->registerBackend({ "portaudio-fast", m_portAudioEngine, m_audioDriverController, suspendPortAudioStream,
+                                       "PortAudio (fast)", [this] {
+            m_audioDriverController->setAudioEngine(m_portAudioEngine);
+            m_portAudioEngine->setMode(au4::Au4AudioEngine::Mode::Fast);
+        } });
 }
 
 void Au3AudioModule::onInit(const muse::IApplication::RunMode&)

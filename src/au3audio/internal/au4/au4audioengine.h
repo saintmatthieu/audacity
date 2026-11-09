@@ -27,20 +27,30 @@ class InitializationScope;
 namespace au::au4 {
 class IDevice;
 class IDeviceOpener;
+class IoCallback;
 class MonitoringCallback;
-class SafeIoCallback;
 
-//! An audio engine whose tracks and master are graphs of nodes, on the devices its IDeviceOpener opens
+//! An audio engine whose tracks and master are graphs of nodes, which plays safe or fast: see SafeIoCallback and
+//! FastIoCallback. Its devices are those its IDeviceOpener opens.
 class Au4AudioEngine final : public audio::IAudioEngine
 {
     muse::GlobalInject<record::IRecordConfiguration> recordConfiguration;
 
 public:
+    enum class Mode {
+        Safe,
+        Fast,
+    };
+
+    //! Safe until told otherwise
     explicit Au4AudioEngine(std::shared_ptr<IDeviceOpener> deviceOpener);
     ~Au4AudioEngine() override;
 
     //! The controller whose configuration selects the device; must outlive this.
     void setDriverController(const audio::IAudioDriverController* driverController);
+
+    //! How the next streams play: the engine is two backends, which set it when activated
+    void setMode(Mode mode);
 
     bool isBusy() const override;
     bool isCapturing() const override;
@@ -102,7 +112,8 @@ private:
     const std::shared_ptr<IDeviceOpener> m_deviceOpener;
     const audio::IAudioDriverController* m_driverController = nullptr;
 
-    std::unique_ptr<SafeIoCallback> m_stream;
+    Mode m_mode = Mode::Safe;
+    std::unique_ptr<IoCallback> m_stream;
     std::unique_ptr<MonitoringCallback> m_monitoring;
     int m_nextStreamToken = 1;
     double m_lastSampleRate = 0.0;

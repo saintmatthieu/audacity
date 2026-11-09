@@ -18,6 +18,7 @@
 
 #include "au3wrap/internal/wxtypes_convert.h"
 
+#include "fastiocallback.h"
 #include "idevice.h"
 #include "monitoringcallback.h"
 #include "recordingcapture.h"
@@ -38,6 +39,11 @@ Au4AudioEngine::Au4AudioEngine(std::shared_ptr<IDeviceOpener> deviceOpener)
 }
 
 Au4AudioEngine::~Au4AudioEngine() = default;
+
+void Au4AudioEngine::setMode(Mode mode)
+{
+    m_mode = mode;
+}
 
 void Au4AudioEngine::setDriverController(const audio::IAudioDriverController* driverController)
 {
@@ -148,12 +154,18 @@ int Au4AudioEngine::startTransport(const TransportSequences& sequences, double s
     }
     const double playStartTime = streamStartTime.value_or(rangeStart);
 
-    auto stream = std::make_unique<SafeIoCallback>(project, m_nextStreamToken, std::move(device), options.isDefaultPolicy,
-                                                   m_callbackInfoQueue, m_playedRanges, m_playbackVolume);
+    std::unique_ptr<IoCallback> stream;
+    if (m_mode == Mode::Fast) {
+        stream = std::make_unique<FastIoCallback>(project, m_nextStreamToken, std::move(device), options.isDefaultPolicy,
+                                                  m_callbackInfoQueue, m_playedRanges, m_playbackVolume);
+    } else {
+        stream = std::make_unique<SafeIoCallback>(project, m_nextStreamToken, std::move(device), options.isDefaultPolicy,
+                                                  m_callbackInfoQueue, m_playedRanges, m_playbackVolume);
+    }
     stream->trackEndTime = TrackList::Get(project).GetEndTime();
-    std::optional<SafeIoCallback::RecordingRange> recordingRange;
+    std::optional<IoCallback::RecordingRange> recordingRange;
     if (recording) {
-        recordingRange = SafeIoCallback::RecordingRange { startTime, endTime };
+        recordingRange = IoCallback::RecordingRange { startTime, endTime };
     }
     stream->build(sequences, muse::value(m_playbackMeters, &project), recordingRange);
     if (capture) {
@@ -188,7 +200,8 @@ int Au4AudioEngine::startTransport(const TransportSequences& sequences, double s
     }
     m_stream->start();
 
-    LOGI() << m_deviceOpener->name() << " engine " << (recording ? "recording" : "playing") << " at " << m_lastSampleRate << " Hz";
+    LOGI() << m_deviceOpener->name() << " engine " << (recording ? "recording" : "playing") << " at " << m_lastSampleRate << " Hz, "
+           << (m_mode == Mode::Fast ? "fast" : "safe");
     return m_nextStreamToken++;
 }
 
