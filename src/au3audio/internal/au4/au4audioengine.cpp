@@ -15,6 +15,7 @@
 #include "au3-realtime-effects/RealtimeEffectManager.h"
 #include "au3-time-frequency-selection/ViewInfo.h"
 #include "au3-track/Track.h"
+#include "au3-wave-track/WaveTrack.h"
 
 #include "au3wrap/internal/wxtypes_convert.h"
 
@@ -163,6 +164,12 @@ int Au4AudioEngine::startTransport(const TransportSequences& sequences, double s
                                                   m_callbackInfoQueue, m_playedRanges, m_playbackVolume);
     }
     stream->trackEndTime = TrackList::Get(project).GetEndTime();
+    // Monitored as it comes or, playing fast, through the effects
+    const bool monitors = capture && recordConfiguration()->isInputMonitoringOn();
+    const bool monitorsThroughEffects = monitors && m_mode == Mode::Fast;
+    if (monitorsThroughEffects) {
+        stream->monitorThrough(monitoredTrack(project), capture->numInputChannels, m_inputVolume);
+    }
     std::optional<IoCallback::RecordingRange> recordingRange;
     if (recording) {
         recordingRange = IoCallback::RecordingRange { startTime, endTime };
@@ -171,7 +178,7 @@ int Au4AudioEngine::startTransport(const TransportSequences& sequences, double s
     if (capture) {
         auto recordingCapture = std::make_unique<RecordingCapture>(project, std::move(*capture), m_listener,
                                                                    muse::value(m_captureMeters, &project), m_inputVolume,
-                                                                   recordConfiguration()->isInputMonitoringOn(),
+                                                                   monitors && !monitorsThroughEffects,
                                                                    [this] { stopTransport(); });
         if (!recordingCapture->start()) {
             m_lastError = u"Cannot allocate the recording buffers";
@@ -268,7 +275,14 @@ std::shared_ptr<RealtimeEffectState> Au4AudioEngine::replaceRealtimeEffectState(
 
 RealtimeEffects::InitializationScope* Au4AudioEngine::effectsInitialization(AudacityProject& project) const
 {
-    return m_stream && &m_stream->project == &project ? m_stream->effectsInitialization() : nullptr;
+    if (m_stream && &m_stream->project == &project) {
+        return m_stream->effectsInitialization();
+    }
+    // Or the input monitored through them
+    if (m_monitoring && &m_monitoring->project == &project) {
+        return m_monitoring->effectsInitialization();
+    }
+    return nullptr;
 }
 
 void Au4AudioEngine::setPlaybackMeter(AudacityProject& project, const audio::IAudioMeterPtr& meter)
@@ -296,8 +310,14 @@ void Au4AudioEngine::startMonitoring(AudacityProject& project)
         return;
     }
     const bool playThrough = recordConfiguration()->isInputMonitoringOn();
+    std::optional<MonitoringCallback::Effects> effects;
+    if (playThrough && m_mode == Mode::Fast) {
+        effects = MonitoringCallback::Effects { monitoredTrack(project) };
+    }
     if (m_monitoring) {
-        if (&m_monitoring->project == &project && m_monitoring->playThrough == playThrough) {
+        const auto& current = m_monitoring->effects;
+        const bool sameEffects = current.has_value() == effects.has_value() && (!current || current->track == effects->track);
+        if (&m_monitoring->project == &project && m_monitoring->playThrough == playThrough && sameEffects) {
             return;
         }
         stopMonitoring();
@@ -313,7 +333,7 @@ void Au4AudioEngine::startMonitoring(AudacityProject& project)
         return;
     }
     m_monitoring = std::make_unique<MonitoringCallback>(project, std::move(device), playThrough,
-                                                        muse::value(m_captureMeters, &project), m_inputVolume);
+                                                        muse::value(m_captureMeters, &project), m_inputVolume, std::move(effects));
     m_monitoring->start();
 }
 
@@ -323,6 +343,28 @@ void Au4AudioEngine::stopMonitoring()
         m_monitoring->stop();
         m_monitoring.reset();
     }
+}
+
+void Au4AudioEngine::setMonitoredTrack(std::optional<int64_t> track)
+{
+    if (track == m_monitoredTrack) {
+        return;
+    }
+    m_monitoredTrack = track;
+    // Monitoring follows; a stream keeps the track it started with
+    if (m_monitoring) {
+        auto& project = m_monitoring->project;
+        startMonitoring(project);
+    }
+}
+
+std::shared_ptr<const PlayableSequence> Au4AudioEngine::monitoredTrack(AudacityProject& project) const
+{
+    if (!m_monitoredTrack) {
+        return nullptr;
+    }
+    const auto track = dynamic_cast<WaveTrack*>(TrackList::Get(project).FindById(TrackId { *m_monitoredTrack }));
+    return track ? track->SharedPointer<const WaveTrack>() : nullptr;
 }
 
 std::unique_ptr<IDevice> Au4AudioEngine::openDevice(int numInputChannels, int numOutputChannels, double sampleRate)
