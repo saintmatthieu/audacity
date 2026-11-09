@@ -26,6 +26,10 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/ieffectscontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/iendoftrackcontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/imutesolocontext.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/metersendnode.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/metersendnode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/metersink.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/metersink.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/metertapnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/metertapnode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/mutesolonode.cpp
