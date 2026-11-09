@@ -104,12 +104,16 @@ set(AU4_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/effectsnode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/endoftracknode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/endoftracknode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/fastiocallback.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/fastiocallback.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/gainpannode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/gainpannode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/idevice.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/ieffectscontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/iendoftrackcontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/imutesolocontext.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/iocallback.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4/iocallback.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metersendnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metersendnode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/au4/metersink.cpp

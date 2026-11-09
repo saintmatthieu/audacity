@@ -25,7 +25,7 @@ struct AudioBackend {
     //! What the user sees it as; the id if empty
     std::string title;
     //! Called when it becomes the active backend, before the stream it takes over, if any, is restored; may be empty.
-    //! Lets backends share devices.
+    //! Lets backends share devices, or an engine, which plays as the active one says.
     std::function<void()> activated;
 };
 
