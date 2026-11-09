@@ -30,6 +30,10 @@ private:
     std::shared_ptr<Au3AudioEngine> m_audioEngine;
     std::shared_ptr<AudioDriverController> m_audioDriverController;
     std::shared_ptr<au4::Au4AudioEngine> m_portAudioEngine;
+#ifdef AU_USE_JUCE
+    std::shared_ptr<au4::Au4AudioEngine> m_juceEngine;
+    std::shared_ptr<AudioDriverController> m_juceDriverController;
+#endif
     std::shared_ptr<ISystemAudioDevicesListener> m_systemAudioDevicesListener;
 };
 }
