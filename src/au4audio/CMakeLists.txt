@@ -6,8 +6,17 @@
 declare_module(au4audio)
 
 set(MODULE_SRC
+    ${CMAKE_CURRENT_LIST_DIR}/au4audiomodule.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/au4audiomodule.h
+
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4audioengine.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/au4audioengine.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/blockcontext.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/blockcontext.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/effectscratch.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/effectscratch.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/effectslatency.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/effectslatency.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/effectsnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/effectsnode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/endoftracknode.cpp
@@ -21,11 +30,16 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/internal/metertapnode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/mutesolonode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/mutesolonode.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/playedrange.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/playheadmapper.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/playheadmapper.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/safeiocallback.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/safeiocallback.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/sequentialmixnode.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/sequentialmixnode.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/stereo.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/track.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/track.h
 )
 # Their `using namespace au::au4audio` would leak into other unity-combined sources
 set_source_files_properties(${MODULE_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
@@ -33,6 +47,12 @@ set_source_files_properties(${MODULE_SRC} PROPERTIES SKIP_UNITY_BUILD_INCLUSION 
 set(MODULE_LINK
     au3-clip-processing
     au3-mixer
+    audio
+    auportaudio
+    au3wrap
+    au3-project
+    au3-realtime-effects
+    au3-wave-track
 )
 
 setup_module()

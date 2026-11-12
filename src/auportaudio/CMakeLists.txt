@@ -9,6 +9,8 @@ set(MODULE_SRC
     ${CMAKE_CURRENT_LIST_DIR}/auportaudiomodule.h
     ${CMAKE_CURRENT_LIST_DIR}/iportaudiodriver.h
 
+    ${CMAKE_CURRENT_LIST_DIR}/internal/portaudiodevice.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/portaudiodevice.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/portaudiodevices.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/portaudiodevices.h
 )
