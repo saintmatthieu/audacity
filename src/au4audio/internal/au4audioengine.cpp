@@ -152,7 +152,7 @@ int Au4AudioEngine::startTransport(const TransportSequences& sequences, double s
     stream->build(sequences, muse::value(m_playbackMeters, &project), recordingRange);
     if (capture) {
         auto recordingCapture = std::make_unique<RecordingCapture>(project, std::move(*capture), m_listener,
-                                                                   muse::value(m_captureMeters, &project), m_inputVolume,
+                                                                   muse::value(m_captureMeters, &project), m_inputGain,
                                                                    recordConfiguration()->isInputMonitoringOn(),
                                                                    [this] { stopTransport(); });
         if (!recordingCapture->start()) {
@@ -294,7 +294,7 @@ void Au4AudioEngine::startMonitoring(AudacityProject& project)
         return;
     }
     m_monitoring = std::make_unique<MonitoringCallback>(project, std::move(device), playThrough,
-                                                        muse::value(m_captureMeters, &project), m_inputVolume);
+                                                        muse::value(m_captureMeters, &project), m_inputGain);
     m_monitoring->start();
 }
 
@@ -322,13 +322,25 @@ std::unique_ptr<au::audio::IDevice> Au4AudioEngine::openDevice(int numInputChann
 
 void Au4AudioEngine::setInputVolume(float newInputVolume)
 {
-    // Applied to the input, as AudioIO does where it can't set the volume of the device
     m_inputVolume = newInputVolume;
+    // As AudioIO: on the device where its mixer can, else applied to the input
+    const auto mixer = m_deviceOpener->mixer();
+    if (mixer && mixer->inputVolumeWorks() && mixer->inputVolume() != newInputVolume) {
+        mixer->setInputVolume(newInputVolume);
+    }
+    updateInputGain();
 }
 
 float Au4AudioEngine::getInputVolume() const
 {
-    return m_inputVolume;
+    const auto mixer = m_deviceOpener->mixer();
+    return mixer && mixer->inputVolumeWorks() ? mixer->inputVolume() : m_inputVolume;
+}
+
+void Au4AudioEngine::updateInputGain()
+{
+    const auto mixer = m_deviceOpener->mixer();
+    m_inputGain = mixer && mixer->inputVolumeWorks() ? 1.f : m_inputVolume;
 }
 
 void Au4AudioEngine::setPlaybackVolume(float newPlaybackVolume)
@@ -348,7 +360,12 @@ bool Au4AudioEngine::canStopTransport(AudacityProject& project) const
 
 void Au4AudioEngine::handleDeviceChange()
 {
-    // The device is opened for each stream, and the driver controller suspends streams before changing it
+    // The device is opened for each stream, and the driver controller suspends streams before changing it; its mixer is
+    // that of the selected devices
+    if (const auto mixer = m_deviceOpener->mixer()) {
+        mixer->reopen();
+    }
+    updateInputGain();
 }
 
 muse::String Au4AudioEngine::lastErrorString() const

@@ -42,11 +42,28 @@ public:
     virtual int xrunCount() const = 0;
 };
 
+//! The hardware mixer of the devices the audio settings select, where they have one
+class IDeviceMixer
+{
+public:
+    virtual ~IDeviceMixer() = default;
+
+    //! Of the devices the settings select now
+    virtual void reopen() = 0;
+    //! Whether the input volume can be set; if not, it is to be applied to the samples
+    virtual bool inputVolumeWorks() const = 0;
+    virtual float inputVolume() const = 0;
+    virtual void setInputVolume(float volume) = 0;
+};
+
 //! Opens devices of an audio library, as the audio settings say
 class IDeviceOpener
 {
 public:
     virtual ~IDeviceOpener() = default;
+
+    //! Null if the library controls no mixer
+    virtual IDeviceMixer* mixer() { return nullptr; }
 
     //! In logs
     virtual std::string name() const = 0;

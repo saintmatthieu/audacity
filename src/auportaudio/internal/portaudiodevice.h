@@ -9,6 +9,8 @@
 
 #include "portaudio.h"
 
+#include "au3-audio-devices/DeviceMixer.h"
+
 #include "audio/idevice.h"
 
 namespace au::auportaudio {
@@ -16,7 +18,8 @@ namespace au::auportaudio {
 class PortAudioDevice final : public audio::IDevice
 {
 public:
-    PortAudioDevice() = default;
+    //! `mixer`, of the selected devices, must outlive this
+    explicit PortAudioDevice(DeviceMixer& mixer);
     ~PortAudioDevice() override;
 
     //! With as many of the requested channels as the devices have; false if it can't, with `error` saying why
@@ -37,6 +40,7 @@ private:
     static int callback(const void* input, void* output, unsigned long frames, const PaStreamCallbackTimeInfo*,
                         PaStreamCallbackFlags flags, void* userData);
 
+    DeviceMixer& m_mixer;
     PaStream* m_stream = nullptr;
     int m_numInputChannels = 0;
     int m_numOutputChannels = 0;
@@ -47,13 +51,36 @@ private:
     std::atomic<int> m_xruns { 0 };
 };
 
+//! The hardware mixer of the devices of AudioIO's settings, as AudioIO controls it
+class PortAudioDeviceMixer final : public audio::IDeviceMixer
+{
+public:
+    void reopen() override;
+    bool inputVolumeWorks() const override;
+    float inputVolume() const override;
+    void setInputVolume(float volume) override;
+
+    DeviceMixer& mixer();
+
+private:
+    void openOnce() const;
+
+    mutable DeviceMixer m_mixer;
+    mutable bool m_opened = false;
+};
+
 //! Opens PortAudio streams on the devices of AudioIO's settings
 class PortAudioDeviceOpener final : public audio::IDeviceOpener
 {
 public:
+    audio::IDeviceMixer* mixer() override { return &m_mixer; }
+
     std::string name() const override { return "PortAudio"; }
     //! `configuration` is that of AudioIO's settings, which PortAudioStream reads
     std::unique_ptr<audio::IDevice> open(const audio::AudioConfiguration& configuration, int numInputChannels, int numOutputChannels,
                                          double sampleRate, std::string& error) override;
+
+private:
+    PortAudioDeviceMixer m_mixer;
 };
 }
